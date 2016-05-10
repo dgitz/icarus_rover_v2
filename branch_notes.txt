@@ -1,0 +1,2 @@
+Author: David Gitz
+Purpose: Contains the source code for development of a robot arm.
