@@ -188,6 +188,7 @@ include_directories(
 # catkin_add_nosetests(test)
 include_directories(include ${catkin_INCLUDE_DIRS})
 
-add_executable(webserver src/webserver.cpp)
-target_link_libraries(webserver ${catkin_LIBRARIES})
+add_executable(sample_node src/sample_node.cpp)
+add_library(logger src/logger.cpp)
+target_link_libraries(sample_node ${catkin_LIBRARIES} logger)
 
