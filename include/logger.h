@@ -2,6 +2,7 @@
 #define LOGGER_H
 
 #include "ros/ros.h"
+#include "Definitions.h"
 #include "ros/time.h"
 #include <stdio.h>
 #include <iostream>
@@ -10,15 +11,11 @@
 
 using std::string;
 using namespace std;
-enum
-{
-    DEBUG,INFO,NOTICE,WARN,ERROR,FATAL
-} log_level;
 class Logger
 {
 public:
     Logger();
-    Logger(std::string name);
+    Logger(std::string level, std::string name);
     ~Logger();
     void log_debug(std::string tempstr);
     void log_info(std::string tempstr);
@@ -27,8 +24,11 @@ public:
     void log_error(std::string tempstr);
     void log_fatal(std::string tempstr);
 private:
+    int line_counter;
+    int verbosity;
     ofstream log_file;
     char file_path[120];
     void print_log(int level,std::string tempstr);
+    int get_verbosity_level(std::string level);
 };
 #endif

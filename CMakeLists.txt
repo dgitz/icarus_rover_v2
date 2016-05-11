@@ -189,6 +189,6 @@ include_directories(
 include_directories(include ${catkin_INCLUDE_DIRS})
 
 add_executable(sample_node src/sample_node.cpp)
-add_library(logger src/logger.cpp)
+add_library(logger util/logger.cpp)
 target_link_libraries(sample_node ${catkin_LIBRARIES} logger)
 

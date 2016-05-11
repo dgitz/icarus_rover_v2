@@ -3,8 +3,11 @@
 Logger::Logger()
 {
 }
-Logger::Logger(std::string name)
+Logger::Logger(std::string level,std::string name)
 {
+    verbosity = get_verbosity_level(level);
+    printf("LEVEL: %s/%d\r\n",level.c_str(),verbosity);
+    line_counter = 0;
     name.erase(name.begin());
      replace(name.begin(),name.end(),'/','_');
     char buffer[100];
@@ -13,9 +16,21 @@ Logger::Logger(std::string name)
     
     sprintf(file_path,"/tmp/output/%s",buffer);
     ofstream log_file;
+    log_file.open(file_path); //Overwrite file.
+    log_file.close();
 }
 Logger::~Logger()
 {
+}
+int Logger::get_verbosity_level(std::string level)
+{
+    if     (level=="DEBUG"){    return DEBUG;}
+    else if(level=="INFO"){     return INFO; }
+    else if(level=="NOTICE"){   return NOTICE; }
+    else if(level=="WARN"){     return WARN; }
+    else if(level=="ERROR"){    return ERROR; }
+    else if(level=="FATAL"){    return FATAL; }
+    else{                       return DEBUG; }
 }
 void Logger::log_debug(std::string tempstr)
 {
@@ -53,8 +68,9 @@ void Logger::print_log(int level,std::string tempstr)
     strftime(datebuffer,80,"%d/%m/%Y %I:%M:%S",timeinfo);
     std::string str(datebuffer);
     log_file.open(file_path,ios::out | ios::app | ios::binary|std::ios::ate);
-    if(log_file.is_open())
+    if(log_file.is_open() && level >= verbosity)
     {
+        line_counter++;
         switch (level)
         {
             case DEBUG:
@@ -80,4 +96,10 @@ void Logger::print_log(int level,std::string tempstr)
         }   
     }
     log_file.close();
+    if(line_counter > 5000)
+    {
+        log_file.open(file_path); //Overwrite file.
+        log_file.close();
+        line_counter = 0;
+    }
 }
