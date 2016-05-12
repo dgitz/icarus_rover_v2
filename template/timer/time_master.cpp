@@ -36,6 +36,8 @@ int main(int argc, char **argv)
     gettimeofday(&pps_timer,NULL);
     while (ros::ok())
     {
+
+
         gettimeofday(&current_timer,NULL);
         seconds = current_timer.tv_sec - pps_timer.tv_sec;
         useconds = current_timer.tv_usec - pps_timer.tv_usec;

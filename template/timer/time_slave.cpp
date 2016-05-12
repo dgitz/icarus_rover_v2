@@ -9,16 +9,22 @@
 //Function Prototypes
 bool initialize(ros::NodeHandle nh);
 
-//Define program variables, these should be defined for every node.
+//Define general variables, these should be defined for every node.
 int rate = 1;
 std::string verbosity_level = "";
 Logger *logger;
-ros::Publisher timesync_pub;
-ros::Subscriber timesync_sub;
+ros::Publisher pps_pub; //Not used as this is a pps subscriber only.
+ros::Subscriber pps_sub;
+bool require_pps_to_start = false;
+bool received_pps = false;
 
-void TimeSync_Callback(const std_msgs::Bool::ConstPtr& msg)
+//Define program variables.  These will vary based on the application.
+
+
+void PPS_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
-	logger->log_info("Got TimeSync");
+	logger->log_info("Got pps");
+	received_pps = true;
 }
 int main(int argc, char **argv)
 {
@@ -31,7 +37,18 @@ int main(int argc, char **argv)
     ros::Rate loop_rate(rate);
     while (ros::ok())
     {
-        logger->log_debug("Executive");
+    	bool ok_to_start = false;
+		if(require_pps_to_start == false) { ok_to_start = true;}
+		else if(require_pps_to_start == true && received_pps == true) { ok_to_start = true; }
+    	if(ok_to_start == true)
+    	{
+    		logger->log_debug("Executive");
+    		//User Code goes here.
+    	}
+    	else
+    	{
+    		logger->log_warn("Waiting on PPS to Start.");
+    	}
         ros::spinOnce();
         loop_rate.sleep();
     }
@@ -46,7 +63,6 @@ bool initialize(ros::NodeHandle nh)
         logger = new Logger("FATAL",ros::this_node::getName());    
         logger->log_fatal("Missing Parameter: verbosity_level. Exiting");
         return false;
-
     }
     else
     {
@@ -57,7 +73,12 @@ bool initialize(ros::NodeHandle nh)
         logger->log_fatal("Missing Parameter: loop_rate.  Exiting.");
         return false;
     }
-    timesync_sub = nh.subscribe<std_msgs::Bool>("/timesync",1000,TimeSync_Callback);
+    pps_sub = nh.subscribe<std_msgs::Bool>("/pps",1000,PPS_Callback);  //This is a pps consumer.
+    if(nh.getParam("time_slave/require_pps_to_start",require_pps_to_start) == false)
+	{
+		logger->log_fatal("Missing Parameter: require_pps_to_start.  Exiting.");
+		return false;
+	}
     //Free to edit code from here.
 
     //More Template code here.  Do not edit.

@@ -5,5 +5,7 @@ Feature: logger
 Supported levels: DEBUG,INFO,NOTICE,WARN,ERROR,FATAL
 Issues: None
 
-Feature: timesync
-Issues: Figure out high-precision timesource.
+Feature: pps
+Subscribe to time_master/pps.  Also allows node sync on startup.
+Issues: None.
+
