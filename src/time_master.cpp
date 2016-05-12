@@ -12,14 +12,13 @@ bool initialize(ros::NodeHandle nh);
 //Define program variables, these should be defined for every node.
 int rate = 1;
 std::string verbosity_level = "";
+ros::Publisher timesync_pub;
+ros::Subscriber timesync_sub;
 Logger *logger;
-void TimeSync_Callback(const std_msgs::Bool::ConstPtr& msg)
-{
-	logger->log_debug("Got TimeSync");
-}
+
 int main(int argc, char **argv)
 {
-    ros::init(argc, argv, "sample_node");
+    ros::init(argc, argv, "time_master");
     ros::NodeHandle n;
     if(initialize(n) == false)
     {
@@ -31,6 +30,9 @@ int main(int argc, char **argv)
         logger->log_debug("Executive");
         ros::spinOnce();
         loop_rate.sleep();
+        std_msgs::Bool newstate;
+        newstate.data = true;
+        timesync_pub.publish(newstate);
     }
     return 0;
 }
@@ -38,7 +40,7 @@ int main(int argc, char **argv)
 bool initialize(ros::NodeHandle nh)
 {
     //Template code.  This should not be changed.
-    if(nh.getParam("sample_node/verbosity_level",verbosity_level) == false)
+    if(nh.getParam("time_master/verbosity_level",verbosity_level) == false)
     {
         logger = new Logger("FATAL",ros::this_node::getName());    
         logger->log_fatal("Missing Parameter: verbosity_level. Exiting");
@@ -49,12 +51,12 @@ bool initialize(ros::NodeHandle nh)
     {
         logger = new Logger(verbosity_level,ros::this_node::getName());      
     }
-    if(nh.getParam("sample_node/loop_rate",rate) == false)
+    if(nh.getParam("time_master/loop_rate",rate) == false)
     {
         logger->log_fatal("Missing Parameter: loop_rate.  Exiting.");
         return false;
     }
-    ros::Subscriber timesync_sub = nh.subscribe<std_msgs::Bool>("/timesync",1000,TimeSync_Callback);
+    timesync_pub = nh.advertise<std_msgs::Bool>("/timesync",1000);
     //Free to edit code from here.
 
     //More Template code here.  Do not edit.

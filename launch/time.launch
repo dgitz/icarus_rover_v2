@@ -1,0 +1,11 @@
+<!--xml-->
+<launch>
+   <node name="time_master" pkg="icarus_rover_v2" type="time_master"  output="screen">
+      <param name="loop_rate"       value="100"/>
+	  <param name="verbosity_level" value="INFO"/>
+  </node>
+  <node name="time_slave" pkg="icarus_rover_v2" type="time_slave"  output="screen">
+      <param name="loop_rate"       value="100"/>
+	  <param name="verbosity_level" value="INFO"/>
+  </node>
+</launch>
