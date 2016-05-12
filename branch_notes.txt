@@ -3,4 +3,7 @@ Purpose: Contains the source code for development of improvements ros functional
 
 Feature: logger
 Supported levels: DEBUG,INFO,NOTICE,WARN,ERROR,FATAL
-Issues: Need to figure out how to limit file size, erasing initial file when starting up, documenting, etc.
+Issues: None
+
+Feature: timesync
+Issues: Figure out high-precision timesource.
