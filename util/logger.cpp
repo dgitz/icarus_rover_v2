@@ -6,13 +6,11 @@ Logger::Logger()
 Logger::Logger(std::string level,std::string name)
 {
     verbosity = get_verbosity_level(level);
-    printf("LEVEL: %s/%d\r\n",level.c_str(),verbosity);
     line_counter = 0;
     name.erase(name.begin());
      replace(name.begin(),name.end(),'/','_');
     char buffer[100];
     sprintf(buffer,"%s.out",name.c_str());
-    printf("Using name: %s\n",buffer);
     
     sprintf(file_path,"/tmp/output/%s",buffer);
     ofstream log_file;

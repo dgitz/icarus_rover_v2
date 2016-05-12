@@ -8,6 +8,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
+  roslaunch
 )
 
 ## System dependencies are found with CMake's conventions
@@ -177,7 +178,7 @@ include_directories(
 #############
 ## Testing ##
 #############
-
+roslaunch_add_file_check(/home/dgitz/catkin_ws/src/icarus_rover_v2/launch)
 ## Add gtest based cpp test target and link libraries
 # catkin_add_gtest(${PROJECT_NAME}-test test/test_icarus_rover_v2.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
@@ -187,8 +188,8 @@ include_directories(
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
 include_directories(include ${catkin_INCLUDE_DIRS})
-
-add_executable(sample_node src/sample_node.cpp)
 add_library(logger util/logger.cpp)
-target_link_libraries(sample_node ${catkin_LIBRARIES} logger)
+
+#add_executable(sample_node src/sample_node.cpp)
+#target_link_libraries(sample_node ${catkin_LIBRARIES} logger)
 
