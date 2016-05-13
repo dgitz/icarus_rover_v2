@@ -5,7 +5,6 @@
 #include <boost/algorithm/string.hpp>
 #include <std_msgs/Bool.h>
 #include <sstream>
-#include <sys/time.h>
 #include <stdlib.h>
 #include <icarus_rover_v2/resource.h>
 
@@ -15,24 +14,69 @@
 bool initialize(ros::NodeHandle nh);
 int get_pid();
 bool check_resources();
+bool run_fastrate_code();
+bool run_mediumrate_code();
+bool run_slowrate_code();
+bool run_veryslowrate_code();
+double measure_time_diff(ros::Time timer_a, ros::Time tiber_b);
 
 //Define general variables, these should be defined for every node.
 std::string node_name;
 int rate = 1;
 std::string verbosity_level = "";
 ros::Publisher pps_pub;
-ros::Subscriber pps_sub;  //Not used as this is a pps publisher only.
+ros::Subscriber pps_sub;  //Not used as this is a pps producer only.
 ros::Publisher resource_pub;
 Logger *logger;
 bool require_pps_to_start = false;
 bool received_pps = false;
 int pid = -1;
 icarus_rover_v2::resource resources_used;
+ros::Time fast_timer; //50 Hz
+ros::Time medium_timer; //10 Hz
+ros::Time slow_timer; //1 Hz
+ros::Time veryslow_timer; //1 Hz
+ros::Time now;
+double mtime;
 
 
 //Define program variables.  These will vary based on the application.
-struct timeval current_timer,pps_timer;
-long mtime,seconds,useconds;
+ros::Time pps_timer;
+
+bool run_fastrate_code()
+{
+	//logger->log_debug("Running fast rate code.");
+	return true;
+}
+bool run_mediumrate_code()
+{
+	//logger->log_debug("Running medium rate code.");
+	return true;
+}
+bool run_slowrate_code()
+{
+	//logger->log_debug("Running slow rate code.");
+	if(check_resources() == false)
+	{
+		logger->log_fatal("Not able to check Node Resources.  Exiting.");
+		return false;
+	}
+	resource_pub.publish(resources_used);
+	return true;
+}
+bool run_veryslowrate_code()
+{
+	//logger->log_debug("Running very slow rate code.");
+	return true;
+}
+bool publish_pps()
+{
+	std_msgs::Bool newstate;
+	newstate.data = true;
+	pps_pub.publish(newstate);
+	logger->log_debug("Sending pps");
+	return true;
+}
 int main(int argc, char **argv)
 {
 	node_name = "time_master";
@@ -43,29 +87,45 @@ int main(int argc, char **argv)
         return 0; 
     }
     ros::Rate loop_rate(rate);
-    gettimeofday(&current_timer,NULL);
-    gettimeofday(&pps_timer,NULL);
+    now = ros::Time::now();
+    fast_timer = now;
+    medium_timer = now;
+    slow_timer = now;
+    veryslow_timer = now;
+    pps_timer = now;
     while (ros::ok())
     {
-        gettimeofday(&current_timer,NULL);
-        seconds = current_timer.tv_sec - pps_timer.tv_sec;
-        useconds = current_timer.tv_usec - pps_timer.tv_usec;
-        mtime = ((seconds)*1000 + useconds/1000.0)+10; //This is just a compensation.  rostopic /hz reports average rate: 1.0
-        if(mtime > 1000)
+        now = ros::Time::now();
+        mtime = measure_time_diff(now,pps_timer);
+        if(mtime > 1.0)
         {
-			std_msgs::Bool newstate;
-			newstate.data = true;
-			pps_pub.publish(newstate);
-			gettimeofday(&pps_timer,NULL);
-
-			if(check_resources() == false)
-			{
-				logger->log_fatal("Not able to check Node Resources.  Exiting.");
-				return 0;
-			}
-			resource_pub.publish(resources_used);
+        	publish_pps();
+			pps_timer = ros::Time::now();
         }
-        logger->log_debug("Executive");
+        mtime = measure_time_diff(now,fast_timer);
+		if(mtime > .02)
+		{
+			run_fastrate_code();
+			fast_timer = ros::Time::now();
+		}
+		mtime = measure_time_diff(now,medium_timer);
+		if(mtime > 0.1)
+		{
+			run_mediumrate_code();
+			medium_timer = ros::Time::now();
+		}
+		mtime = measure_time_diff(now,slow_timer);
+		if(mtime > 1.0)
+		{
+			run_slowrate_code();
+			slow_timer = ros::Time::now();
+		}
+		mtime = measure_time_diff(now,veryslow_timer);
+		if(mtime > 10.0)
+		{
+			run_veryslowrate_code();
+			veryslow_timer = ros::Time::now();
+		}
 		ros::spinOnce();
 		loop_rate.sleep();
     }
@@ -160,4 +220,9 @@ bool check_resources()
 	}
 	myfile.close();
 
+}
+double measure_time_diff(ros::Time timer_a, ros::Time timer_b)
+{
+	ros::Duration etime = timer_a - timer_b;
+	return etime.toSec();
 }

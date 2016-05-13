@@ -9,3 +9,5 @@ Feature: pps
 Subscribe to time_master/pps.  Also allows node sync on startup.
 Issues: None.
 
+Feature: timed loops
+
