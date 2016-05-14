@@ -4,6 +4,7 @@
 #include "logger.h"
 #include <boost/algorithm/string.hpp>
 #include <std_msgs/Bool.h>
+#include <std_msgs/Float64.h>
 #include <sstream>
 #include <stdlib.h>
 #include <icarus_rover_v2/resource.h>
@@ -47,11 +48,17 @@ double mtime;
 //Define program variables.  These will vary based on the application.
 urdf::Model arm_model;
 ros::Publisher joint_pub;
+ros::Subscriber joint_base_rotate_sub;
+ros::Subscriber joint_shoulder_sub;
+ros::Subscriber joint_elbow_sub;
+ros::Subscriber joint_wrist_sub;
 std::string path_to_model;
 geometry_msgs::TransformStamped odom_trans;
 sensor_msgs::JointState joint_state;
-double base_rotate_angle_rad = 0;
-double shoulder_rotate_angle_rad = 0;
+float joint_base_rotate_angle_command_rad = 0;
+float joint_shoulder_angle_command_rad = 1.57;
+float joint_elbow_angle_command_rad = 3.3; //Stowed
+float joint_wrist_angle_command_rad = 2.0; //Stowed
 bool run_fastrate_code()
 {
 	//logger->log_debug("Running fast rate code.");
@@ -61,37 +68,36 @@ bool run_mediumrate_code()
 {
 	//logger->log_debug("Running medium rate code.");
 	joint_state.header.stamp = ros::Time::now();
-	joint_state.name.resize(2);
-	joint_state.position.resize(2);
+	joint_state.name.resize(4);
+	joint_state.position.resize(4);
 	joint_state.name[0] = "joint_base_rotate";
-	joint_state.position[0] = base_rotate_angle_rad;
+	joint_state.position[0] = joint_base_rotate_angle_command_rad;
 	joint_state.name[1] = "joint_shoulder";
-	joint_state.position[1] = shoulder_rotate_angle_rad;
-	joint_state.effort.resize(2);
+	joint_state.position[1] = joint_shoulder_angle_command_rad;
+	joint_state.name[2] = "joint_elbow";
+	joint_state.position[2] = joint_elbow_angle_command_rad;
+	joint_state.name[3] = "joint_wrist";
+	joint_state.position[3] = joint_wrist_angle_command_rad;
+	joint_state.effort.resize(4);
 	joint_state.effort[0] = 0;
 	joint_state.effort[1] = 0;
-	joint_state.velocity.resize(2);
+	joint_state.effort[2] = 0;
+	joint_state.effort[3] = 0;
+	joint_state.velocity.resize(4);
 	joint_state.velocity[0] = 0;
 	joint_state.velocity[1] = 0;
+	joint_state.velocity[2] = 0;
+	joint_state.velocity[3] = 0;
 
 	odom_trans.header.frame_id = "odom";
 	odom_trans.child_frame_id = "base_link";
 	odom_trans.header.stamp = ros::Time::now();
-	odom_trans.transform.translation.x = cos(0);
-	odom_trans.transform.translation.y = sin(0);
-	odom_trans.transform.translation.z = 1.0;
+	odom_trans.transform.translation.x = 0;
+	odom_trans.transform.translation.y = 0;
+	odom_trans.transform.translation.z = 0.0;
 	odom_trans.transform.rotation = tf::createQuaternionMsgFromYaw(0+M_PI/2);
 	joint_pub.publish(joint_state);
-	base_rotate_angle_rad += 0.1;
-	if(base_rotate_angle_rad > M_PI)
-	{
-		base_rotate_angle_rad = -M_PI;
-	}
-	shoulder_rotate_angle_rad += 0.1;
-	if(shoulder_rotate_angle_rad > M_PI)
-	{
-		shoulder_rotate_angle_rad = -M_PI;
-	}
+
 
 	return true;
 }
@@ -115,6 +121,22 @@ void PPS_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
 	logger->log_info("Got pps");
 	received_pps = true;
+}
+void joint_base_rotate_Callback(const std_msgs::Float64::ConstPtr& msg)
+{
+	joint_base_rotate_angle_command_rad = msg->data;
+}
+void joint_shoulder_Callback(const std_msgs::Float64::ConstPtr& msg)
+{
+	joint_shoulder_angle_command_rad = msg->data;
+}
+void joint_elbow_Callback(const std_msgs::Float64::ConstPtr& msg)
+{
+	joint_elbow_angle_command_rad = msg->data;
+}
+void joint_wrist_Callback(const std_msgs::Float64::ConstPtr& msg)
+{
+	joint_wrist_angle_command_rad = msg->data;
 }
 int main(int argc, char **argv)
 {
@@ -217,6 +239,10 @@ bool initialize(ros::NodeHandle nh)
 		}
     }
     joint_pub = nh.advertise<sensor_msgs::JointState>("/joint_states", 1);
+    joint_base_rotate_sub = nh.subscribe<std_msgs::Float64>("/joint_base_rotate_command",1000,joint_base_rotate_Callback);
+    joint_shoulder_sub = nh.subscribe<std_msgs::Float64>("/joint_shoulder_command",1000,joint_shoulder_Callback);
+    joint_elbow_sub = nh.subscribe<std_msgs::Float64>("/joint_elbow_command",1000,joint_elbow_Callback);
+    joint_wrist_sub = nh.subscribe<std_msgs::Float64>("/joint_wrist_command",1000,joint_wrist_Callback);
 
     //More Template code here.  Do not edit.
     resource_pub =  nh.advertise<icarus_rover_v2::resource>("/arm_controller/resource",1000);
