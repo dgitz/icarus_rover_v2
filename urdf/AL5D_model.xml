@@ -1,0 +1,19 @@
+<robot name="AL5D">
+  <link name="base_link" />
+  <link name="base_rotate" />
+  <link name="shoulder" />
+
+  <joint name="joint_base_rotate" type="continuous">
+    <parent link="base_link"/>
+    <child link="base_rotate"/>
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <axis xyz="0 0 1" />
+  </joint>
+  <joint name="joint_shoulder" type="continuous">
+    <parent link="base_rotate"/>
+    <child link="shoulder"/>
+    <origin xyz = "0 0 .14605" rpy="0 0 0" />
+    <axix xyz="1 0 0"/>
+  </joint>
+
+</robot>

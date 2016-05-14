@@ -10,6 +10,8 @@
 #include <urdf/model.h>
 #include <sensor_msgs/JointState.h>
 #include <tf/transform_broadcaster.h>
+#include <geometry_msgs/TransformStamped.h>
+#include <math.h>
 
 //Template Code.  This should not be removed.
 //Function Prototypes
@@ -46,8 +48,10 @@ double mtime;
 urdf::Model arm_model;
 ros::Publisher joint_pub;
 std::string path_to_model;
-tf::TransformBroadcaster broadcaster;
-
+geometry_msgs::TransformStamped odom_trans;
+sensor_msgs::JointState joint_state;
+double base_rotate_angle_rad = 0;
+double shoulder_rotate_angle_rad = 0;
 bool run_fastrate_code()
 {
 	//logger->log_debug("Running fast rate code.");
@@ -56,6 +60,39 @@ bool run_fastrate_code()
 bool run_mediumrate_code()
 {
 	//logger->log_debug("Running medium rate code.");
+	joint_state.header.stamp = ros::Time::now();
+	joint_state.name.resize(2);
+	joint_state.position.resize(2);
+	joint_state.name[0] = "joint_base_rotate";
+	joint_state.position[0] = base_rotate_angle_rad;
+	joint_state.name[1] = "joint_shoulder";
+	joint_state.position[1] = shoulder_rotate_angle_rad;
+	joint_state.effort.resize(2);
+	joint_state.effort[0] = 0;
+	joint_state.effort[1] = 0;
+	joint_state.velocity.resize(2);
+	joint_state.velocity[0] = 0;
+	joint_state.velocity[1] = 0;
+
+	odom_trans.header.frame_id = "odom";
+	odom_trans.child_frame_id = "base_link";
+	odom_trans.header.stamp = ros::Time::now();
+	odom_trans.transform.translation.x = cos(0);
+	odom_trans.transform.translation.y = sin(0);
+	odom_trans.transform.translation.z = 1.0;
+	odom_trans.transform.rotation = tf::createQuaternionMsgFromYaw(0+M_PI/2);
+	joint_pub.publish(joint_state);
+	base_rotate_angle_rad += 0.1;
+	if(base_rotate_angle_rad > M_PI)
+	{
+		base_rotate_angle_rad = -M_PI;
+	}
+	shoulder_rotate_angle_rad += 0.1;
+	if(shoulder_rotate_angle_rad > M_PI)
+	{
+		shoulder_rotate_angle_rad = -M_PI;
+	}
+
 	return true;
 }
 bool run_slowrate_code()
@@ -84,6 +121,7 @@ int main(int argc, char **argv)
 	node_name = "arm_controller";
     ros::init(argc, argv, node_name);
     ros::NodeHandle n;
+    tf::TransformBroadcaster broadcaster;
     if(initialize(n) == false)
     {
         return 0; 
@@ -112,6 +150,7 @@ int main(int argc, char **argv)
 			if(mtime > 0.1)
 			{
 				run_mediumrate_code();
+				broadcaster.sendTransform(odom_trans); //Have to put broadcaster here, otherwise program will crash.
 				medium_timer = ros::Time::now();
 			}
 			mtime = measure_time_diff(now,slow_timer);
@@ -131,6 +170,7 @@ int main(int argc, char **argv)
 		{
 			logger->log_warn("Waiting on PPS to Start.");
 		}
+
 		ros::spinOnce();
 		loop_rate.sleep();
     }
@@ -176,9 +216,10 @@ bool initialize(ros::NodeHandle nh)
 			return false;
 		}
     }
-    joint_pub = nh.advertise<sensor_msgs::JointState>("/arm_controller/joint_states", 1);
+    joint_pub = nh.advertise<sensor_msgs::JointState>("/joint_states", 1);
 
     //More Template code here.  Do not edit.
+    resource_pub =  nh.advertise<icarus_rover_v2::resource>("/arm_controller/resource",1000);
     pid = get_pid();
     if(pid < 0)
     {

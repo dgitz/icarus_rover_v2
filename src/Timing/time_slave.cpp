@@ -164,7 +164,7 @@ bool initialize(ros::NodeHandle nh)
     	logger->log_fatal("Couldn't retrieve PID. Exiting");
     	return false;
     }
-    resource_pub =  nh.advertise<icarus_rover_v2::resource>("/time_slave/resource",1000); //This is a pps source.
+    resource_pub =  nh.advertise<icarus_rover_v2::resource>("/time_slave/resource",1000);
     logger->log_info("Initialized!");
     return true;
 }
