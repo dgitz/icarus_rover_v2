@@ -1,0 +1,14 @@
+<!--xml-->
+<launch>
+    <node name="arm_controller" pkg="icarus_rover_v2" type="arm_controller"  output="screen">
+        <param name="loop_rate"             value="500"/>
+	    <param name="verbosity_level"       value="DEBUG"/>
+        <param name="require_pps_to_start"  value="true"/>    
+        <param name="path_to_urdf"          value="/home/dgitz/catkin_ws/src/icarus_rover_v2/src/Arm_Controller/AL5D_model.urdf"/>
+    </node>
+    <node name="time_master" pkg="icarus_rover_v2" type="time_master"  output="screen">
+        <param name="loop_rate"             value="500"/>
+	    <param name="verbosity_level"       value="DEBUG"/>
+        <param name="require_pps_to_start"  value="false"/>    
+    </node>
+</launch>

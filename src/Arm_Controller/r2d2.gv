@@ -1,0 +1,23 @@
+digraph G {
+node [shape=box];
+"axis" [label="axis"];
+"leg1" [label="leg1"];
+"leg2" [label="leg2"];
+"body" [label="body"];
+"head" [label="head"];
+"rod" [label="rod"];
+"box" [label="box"];
+node [shape=ellipse, color=blue, fontcolor=blue];
+"axis" -> "leg1connect" [label="xyz: 0 0.3 0 \nrpy: 0 -0 0"]
+"leg1connect" -> "leg1"
+"axis" -> "leg2connect" [label="xyz: 0 -0.3 0 \nrpy: 0 -0 0"]
+"leg2connect" -> "leg2"
+"axis" -> "tilt" [label="xyz: 0 0 0 \nrpy: 0 -0 0"]
+"tilt" -> "body"
+"body" -> "swivel" [label="xyz: 0 0 0.1 \nrpy: 0 -0 0"]
+"swivel" -> "head"
+"head" -> "periscope" [label="xyz: 0.12 0 0.15 \nrpy: 0 -0 0"]
+"periscope" -> "rod"
+"rod" -> "boxconnect" [label="xyz: 0 0 0 \nrpy: 0 -0 0"]
+"boxconnect" -> "box"
+}

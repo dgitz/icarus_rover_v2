@@ -10,6 +10,8 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   roslaunch
     message_generation
+  urdf
+  tf
 )
 
 ## System dependencies are found with CMake's conventions
@@ -196,3 +198,5 @@ add_executable(time_master src/time_master.cpp)
 target_link_libraries(time_master ${catkin_LIBRARIES} logger)
 add_executable(time_slave src/time_slave.cpp)
 target_link_libraries(time_slave ${catkin_LIBRARIES} logger)
+add_executable(arm_controller src/Arm_Controller/arm_controller.cpp)
+target_link_libraries(arm_controller ${catkin_LIBRARIES} logger)
