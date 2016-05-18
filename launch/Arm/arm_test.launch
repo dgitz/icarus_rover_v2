@@ -15,11 +15,13 @@
     <node name="robot_state_publisher" pkg="robot_state_publisher" type="state_publisher" />
     
     <node name="rviz"   pkg="rviz"  type="rviz" />    
-    <node name="joy_node" pkg="joy" type="joy_node"  />
+    <!-- <node name="joy_node" pkg="joy" type="joy_node"  /> -->
+    <node name="keyboard" pkg="keyboard" type="keyboard"  />
     <node name="usercontrol_node" pkg="icarus_rover_v2" type="usercontrol_node"  output="screen">
         <param name="loop_rate"       value="100"/>
 	    <param name="verbosity_level" value="DEBUG"/>
         <param name="require_pps_to_start" value="false" />
+        <param name="Input_Mode"        value="keyboard" />
         <param name="Operation_Mode"    value="Arm" />
     </node>
 </launch>

@@ -5,12 +5,21 @@
 #include <boost/algorithm/string.hpp>
 #include <std_msgs/Bool.h>
 #include <sensor_msgs/Joy.h>
+#include "keyboard/Key.h"
 #include <std_msgs/Float64.h>
 #include <sstream>
 #include <stdlib.h>
 #include <math.h>
 #include <icarus_rover_v2/resource.h>
 
+#define KEY_A 97
+#define KEY_D 100
+#define KEY_W 119
+#define KEY_S 115
+#define KEY_UP 273
+#define KEY_LEFT 276
+#define KEY_DOWN 274
+#define KEY_RIGHT 275
 
 //Template Code.  This should not be removed.
 //Function Prototypes
@@ -45,7 +54,9 @@ double mtime;
 
 //Define program variables.  These will vary based on the application.
 std::string Operation_Mode;
+std::string Input_Mode;
 ros::Subscriber joy_sub;
+ros::Subscriber keydown_sub;
 //Publishers used to control an Arm
 ros::Publisher joint_base_rotate_pub;
 ros::Publisher joint_shoulder_pub;
@@ -59,6 +70,47 @@ int JOY_BASE_ROTATE_AXIS = 0;
 int JOY_SHOULDER_AXIS = 1;
 int JOY_ELBOW_AXIS = 2;
 int JOY_WRIST_AXIS = 3;
+void keydown_Callback(const keyboard::Key::ConstPtr& msg)
+{
+	logger->log_debug("key down");
+	float angle_delta = 0.1;
+	int code = msg->code;
+	switch(code)
+	{
+		case KEY_A:
+			base_rotate_command.data += angle_delta;
+			break;
+		case KEY_D:
+			base_rotate_command.data -= angle_delta;
+			break;
+		case KEY_W:
+			shoulder_command.data += angle_delta;
+			break;
+		case KEY_S:
+			shoulder_command.data -= angle_delta;
+			break;
+		case KEY_LEFT:
+			elbow_command.data += angle_delta;
+			break;
+		case KEY_RIGHT:
+			elbow_command.data -= angle_delta;
+			break;
+		case KEY_UP:
+			wrist_command.data += angle_delta;
+			break;
+		case KEY_DOWN:
+			wrist_command.data -= angle_delta;
+			break;
+		default:
+			break;
+	}
+     /*if(msg->code == KEY_A)
+     {
+          Armed_State = 1;
+          armed_state_changed = 1;
+
+     }*/
+}
 void joy_Callback(const sensor_msgs::Joy::ConstPtr& msg)
 {
 	//logger->log_info("Got joy");
@@ -104,7 +156,7 @@ bool run_veryslowrate_code()
 }
 void PPS_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
-	logger->log_info("Got pps");
+	//logger->log_info("Got pps");
 	received_pps = true;
 }
 int main(int argc, char **argv)
@@ -190,8 +242,24 @@ bool initialize(ros::NodeHandle nh)
 		return false;
 	}
     //Free to edit code from here.
-
-    joy_sub = nh.subscribe<sensor_msgs::Joy>("/joy",1000,joy_Callback);  //Joystick subscriber
+    if(nh.getParam("usercontrol_node/Input_Mode",Input_Mode) == false)
+    {
+    	logger->log_fatal("Missing Parameter: Input_Mode.  Available Options: 'joy','keyboard'. Exiting");
+    	return false;
+    }
+    if(Input_Mode=="joy")
+    {
+    	joy_sub = nh.subscribe<sensor_msgs::Joy>("/joy",1000,joy_Callback);  //Joystick subscriber
+    }
+    else if(Input_Mode=="keyboard")
+    {
+    	keydown_sub = nh.subscribe<keyboard::Key>("/keyboard/keydown",1000,keydown_Callback);
+    }
+    else
+    {
+    	logger->log_fatal("Unknown Parameter for Input_Mode. Exiting.");
+    	return false;
+    }
     if(nh.getParam("usercontrol_node/Operation_Mode",Operation_Mode) == false)
     {
     	logger->log_fatal("Missing Parameter: Operation_Mode.  Available Options: 'Arm'.  Exiting");
