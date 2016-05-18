@@ -4,6 +4,7 @@
 #include "logger.h"
 #include <boost/algorithm/string.hpp>
 #include <std_msgs/Bool.h>
+#include <sensor_msgs/Joy.h>
 #include <sstream>
 #include <stdlib.h>
 #include <icarus_rover_v2/resource.h>
@@ -41,7 +42,14 @@ double mtime;
 
 
 //Define program variables.  These will vary based on the application.
+std::string Operation_Mode;
+ros::Subscriber joy_sub;
+void joy_Callback(const sensor_msgs::Joy::ConstPtr& msg)
+{
+	//logger->log_info("Got joy");
+}
 
+//More Template code here.
 bool run_fastrate_code()
 {
 	//logger->log_debug("Running fast rate code.");
@@ -156,6 +164,18 @@ bool initialize(ros::NodeHandle nh)
 		return false;
 	}
     //Free to edit code from here.
+
+    joy_sub = nh.subscribe<sensor_msgs::Joy>("/joy",1000,joy_Callback);  //Joystick subscriber
+    if(nh.getParam("usercontrol_node/Operation_Mode",Operation_Mode) == false)
+    {
+    	logger->log_fatal("Missing Parameter: Operation_Mode.  Available Options: 'Arm'.  Exiting");
+    	return false;
+    }
+    if(Operation_Mode == "Arm")
+    {
+    	logger->log_debug("Operation Mode: Arm");
+    }
+
 
     //More Template code here.  Do not edit.
     pid = get_pid();
