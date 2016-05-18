@@ -1,0 +1,3 @@
+Author: David Gitz
+Purpose: Contains the code for development of a robotic arm.
+

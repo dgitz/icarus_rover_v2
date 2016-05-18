@@ -198,7 +198,10 @@ add_executable(time_master src/Timing/time_master.cpp)
 target_link_libraries(time_master ${catkin_LIBRARIES} logger)
 add_executable(time_slave src/Timing/time_slave.cpp)
 target_link_libraries(time_slave ${catkin_LIBRARIES} logger)
+<<<<<<< HEAD
 add_executable(arm_controller src/Arm_Controller/arm_controller.cpp)
 target_link_libraries(arm_controller ${catkin_LIBRARIES} logger)
+=======
 add_executable(usercontrol_node src/User_Control/usercontrol_node.cpp)
 target_link_libraries(usercontrol_node ${catkin_LIBRARIES} logger)
+>>>>>>> joy_user

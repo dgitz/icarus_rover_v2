@@ -14,14 +14,14 @@
     <joint name="joint_shoulder" type="continuous">
         <parent link="shoulder"/>
         <child link="upper_arm"/>
-        <origin xyz = "0 0 0.01" rpy="0 0 0" />
-        <axix xyz="1 0 0"/>
+        <origin xyz = "0 0 0.01" rpy="1.57 0 0" />
+        <axix xyz="0 0 1"/>
     </joint>
     <joint name="joint_elbow" type="continuous">
         <parent link="upper_arm"/>
         <child link="lower_arm"/>
         <origin xyz = "0 0 .14605" rpy="0 0 0" />
-        <axix xyz="1 0 0"/>
+        <axix xyz="0 1 0"/>
     </joint>
     <joint name="joint_wrist" type="continuous">
         <parent link="lower_arm"/>

@@ -1,0 +1,8 @@
+Author: David Gitz
+<<<<<<< HEAD
+Purpose: Contains the code for development of a robotic arm.
+=======
+Purpose: Contains the source code for development of different features for user control.
+
+>>>>>>> joy_user
+

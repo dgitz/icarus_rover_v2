@@ -4,15 +4,13 @@
 #include "logger.h"
 #include <boost/algorithm/string.hpp>
 #include <std_msgs/Bool.h>
+#include <sensor_msgs/Joy.h>
 #include <std_msgs/Float64.h>
 #include <sstream>
 #include <stdlib.h>
-#include <icarus_rover_v2/resource.h>
-#include <urdf/model.h>
-#include <sensor_msgs/JointState.h>
-#include <tf/transform_broadcaster.h>
-#include <geometry_msgs/TransformStamped.h>
 #include <math.h>
+#include <icarus_rover_v2/resource.h>
+
 
 //Template Code.  This should not be removed.
 //Function Prototypes
@@ -46,59 +44,46 @@ double mtime;
 
 
 //Define program variables.  These will vary based on the application.
-urdf::Model arm_model;
-ros::Publisher joint_pub;
-ros::Subscriber joint_base_rotate_sub;
-ros::Subscriber joint_shoulder_sub;
-ros::Subscriber joint_elbow_sub;
-ros::Subscriber joint_wrist_sub;
-std::string path_to_model;
-geometry_msgs::TransformStamped odom_trans;
-sensor_msgs::JointState joint_state;
-float joint_base_rotate_angle_command_rad = 0;
-float joint_shoulder_angle_command_rad = 0;
-float joint_elbow_angle_command_rad = 0; //Stowed
-float joint_wrist_angle_command_rad = 0; //Stowed
+std::string Operation_Mode;
+ros::Subscriber joy_sub;
+//Publishers used to control an Arm
+ros::Publisher joint_base_rotate_pub;
+ros::Publisher joint_shoulder_pub;
+ros::Publisher joint_elbow_pub;
+ros::Publisher joint_wrist_pub;
+std_msgs::Float64 base_rotate_command;
+std_msgs::Float64 shoulder_command;
+std_msgs::Float64 elbow_command;
+std_msgs::Float64 wrist_command;
+int JOY_BASE_ROTATE_AXIS = 0;
+int JOY_SHOULDER_AXIS = 1;
+int JOY_ELBOW_AXIS = 2;
+int JOY_WRIST_AXIS = 3;
+void joy_Callback(const sensor_msgs::Joy::ConstPtr& msg)
+{
+	//logger->log_info("Got joy");
+	base_rotate_command.data = M_PI*msg->axes[JOY_BASE_ROTATE_AXIS];
+	shoulder_command.data = M_PI*msg->axes[JOY_SHOULDER_AXIS]/2.0;
+	elbow_command.data = M_PI*msg->axes[JOY_ELBOW_AXIS]/2.0;
+	wrist_command.data = M_PI*msg->axes[JOY_WRIST_AXIS]/2.0;
+}
+
+//More Template code here.
 bool run_fastrate_code()
 {
+	//har tempstr[40];
+	//sprintf(tempstr,"v:%f",shoulder_command.data);
+	//logger->log_debug(std::string(tempstr));
 	//logger->log_debug("Running fast rate code.");
 	return true;
 }
 bool run_mediumrate_code()
 {
 	//logger->log_debug("Running medium rate code.");
-	joint_state.header.stamp = ros::Time::now();
-	joint_state.name.resize(4);
-	joint_state.position.resize(4);
-	joint_state.name[0] = "joint_base_rotate";
-	joint_state.position[0] = joint_base_rotate_angle_command_rad;
-	joint_state.name[1] = "joint_shoulder";
-	joint_state.position[1] = joint_shoulder_angle_command_rad;
-	joint_state.name[2] = "joint_elbow";
-	joint_state.position[2] = joint_elbow_angle_command_rad;
-	joint_state.name[3] = "joint_wrist";
-	joint_state.position[3] = joint_wrist_angle_command_rad;
-	joint_state.effort.resize(4);
-	joint_state.effort[0] = 0;
-	joint_state.effort[1] = 0;
-	joint_state.effort[2] = 0;
-	joint_state.effort[3] = 0;
-	joint_state.velocity.resize(4);
-	joint_state.velocity[0] = 0;
-	joint_state.velocity[1] = 0;
-	joint_state.velocity[2] = 0;
-	joint_state.velocity[3] = 0;
-
-	odom_trans.header.frame_id = "odom";
-	odom_trans.child_frame_id = "base_link";
-	odom_trans.header.stamp = ros::Time::now();
-	odom_trans.transform.translation.x = 0;
-	odom_trans.transform.translation.y = 0;
-	odom_trans.transform.translation.z = 0.0;
-	odom_trans.transform.rotation = tf::createQuaternionMsgFromYaw(0+M_PI/2);
-	joint_pub.publish(joint_state);
-
-
+	joint_base_rotate_pub.publish(base_rotate_command);
+	joint_shoulder_pub.publish(shoulder_command);
+	joint_elbow_pub.publish(elbow_command);
+	joint_wrist_pub.publish(wrist_command);
 	return true;
 }
 bool run_slowrate_code()
@@ -119,32 +104,14 @@ bool run_veryslowrate_code()
 }
 void PPS_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
-	//logger->log_info("Got pps");
+	logger->log_info("Got pps");
 	received_pps = true;
-}
-void joint_base_rotate_Callback(const std_msgs::Float64::ConstPtr& msg)
-{
-	joint_base_rotate_angle_command_rad = msg->data;
-}
-void joint_shoulder_Callback(const std_msgs::Float64::ConstPtr& msg)
-{
-	logger->log_debug("Got here.");
-	joint_shoulder_angle_command_rad = msg->data;
-}
-void joint_elbow_Callback(const std_msgs::Float64::ConstPtr& msg)
-{
-	joint_elbow_angle_command_rad = msg->data;
-}
-void joint_wrist_Callback(const std_msgs::Float64::ConstPtr& msg)
-{
-	joint_wrist_angle_command_rad = msg->data;
 }
 int main(int argc, char **argv)
 {
-	node_name = "arm_controller";
+	node_name = "usercontrol_node";
     ros::init(argc, argv, node_name);
     ros::NodeHandle n;
-    tf::TransformBroadcaster broadcaster;
     if(initialize(n) == false)
     {
         return 0; 
@@ -173,7 +140,6 @@ int main(int argc, char **argv)
 			if(mtime > 0.1)
 			{
 				run_mediumrate_code();
-				broadcaster.sendTransform(odom_trans); //Have to put broadcaster here, otherwise program will crash.
 				medium_timer = ros::Time::now();
 			}
 			mtime = measure_time_diff(now,slow_timer);
@@ -193,7 +159,6 @@ int main(int argc, char **argv)
 		{
 			logger->log_warn("Waiting on PPS to Start.");
 		}
-
 		ros::spinOnce();
 		loop_rate.sleep();
     }
@@ -203,7 +168,7 @@ int main(int argc, char **argv)
 bool initialize(ros::NodeHandle nh)
 {
     //Template code.  This should not be changed.
-    if(nh.getParam("arm_controller/verbosity_level",verbosity_level) == false)
+    if(nh.getParam("usercontrol_node/verbosity_level",verbosity_level) == false)
     {
         logger = new Logger("FATAL",ros::this_node::getName());    
         logger->log_fatal("Missing Parameter: verbosity_level. Exiting");
@@ -213,47 +178,47 @@ bool initialize(ros::NodeHandle nh)
     {
         logger = new Logger(verbosity_level,ros::this_node::getName());      
     }
-    if(nh.getParam("arm_controller/loop_rate",rate) == false)
+    if(nh.getParam("usercontrol_node/loop_rate",rate) == false)
     {
         logger->log_fatal("Missing Parameter: loop_rate.  Exiting.");
         return false;
     }
     pps_sub = nh.subscribe<std_msgs::Bool>("/pps",1000,PPS_Callback);  //This is a pps consumer.
-    if(nh.getParam("arm_controller/require_pps_to_start",require_pps_to_start) == false)
+    if(nh.getParam("usercontrol_node/require_pps_to_start",require_pps_to_start) == false)
 	{
 		logger->log_fatal("Missing Parameter: require_pps_to_start.  Exiting.");
 		return false;
 	}
     //Free to edit code from here.
 
-    if(nh.getParam("arm_controller/path_to_urdf",path_to_model) == false)
+    joy_sub = nh.subscribe<sensor_msgs::Joy>("/joy",1000,joy_Callback);  //Joystick subscriber
+    if(nh.getParam("usercontrol_node/Operation_Mode",Operation_Mode) == false)
     {
-    	logger->log_fatal("Missing Parameter: path_urdf");
+    	logger->log_fatal("Missing Parameter: Operation_Mode.  Available Options: 'Arm'.  Exiting");
     	return false;
     }
-    else
+    if(Operation_Mode == "Arm")
     {
-		if(!arm_model.initFile(path_to_model))
-		{
-			logger->log_fatal("Couldn't parse URDF file.");
-			return false;
-		}
+    	logger->log_debug("Operation Mode: Arm");
+    	joint_base_rotate_pub = nh.advertise<std_msgs::Float64>("/joint_base_rotate_command",1000);
+    	joint_shoulder_pub = nh.advertise<std_msgs::Float64>("/joint_shoulder_command",1000);
+    	joint_elbow_pub = nh.advertise<std_msgs::Float64>("/joint_elbow_command",1000);
+    	joint_wrist_pub = nh.advertise<std_msgs::Float64>("/joint_wrist_command",1000);
+    	base_rotate_command.data = 0.0;
+		shoulder_command.data = 0.0;
+		elbow_command.data = 0.0;
+		wrist_command.data = 0.0;
     }
-    joint_pub = nh.advertise<sensor_msgs::JointState>("/joint_states", 1);
-    joint_base_rotate_sub = nh.subscribe<std_msgs::Float64>("/joint_base_rotate_command",1000,joint_base_rotate_Callback);
-    joint_shoulder_sub = nh.subscribe<std_msgs::Float64>("/joint_shoulder_command",1000,joint_shoulder_Callback);
-    joint_elbow_sub = nh.subscribe<std_msgs::Float64>("/joint_elbow_command",1000,joint_elbow_Callback);
-    joint_wrist_sub = nh.subscribe<std_msgs::Float64>("/joint_wrist_command",1000,joint_wrist_Callback);
+
 
     //More Template code here.  Do not edit.
-    resource_pub =  nh.advertise<icarus_rover_v2::resource>("/arm_controller/resource",1000);
     pid = get_pid();
     if(pid < 0)
     {
     	logger->log_fatal("Couldn't retrieve PID. Exiting");
     	return false;
     }
-
+    resource_pub =  nh.advertise<icarus_rover_v2::resource>("/usercontrol_node/resource",1000); //This is a pps source.
     logger->log_info("Initialized!");
     return true;
 }
