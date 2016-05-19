@@ -30,7 +30,7 @@ std::string verbosity_level = "";
 ros::Publisher pps_pub;  //Not used as this is a pps consumer only.
 ros::Subscriber pps_sub;  
 ros::Publisher resource_pub;
-ros::Subscriber resource_sub;
+//ros::Subscriber resource_sub;
 ros::Subscriber diagnostic_sub;
 Logger *logger;
 bool require_pps_to_start = false;
@@ -195,25 +195,24 @@ bool initialize(ros::NodeHandle nh)
 		}
 
     }
-
-
+    ros::Subscriber * resource_subs;
+    resource_subs = new ros::Subscriber[resource_topics.size()];
     for(int i = 0; i < resource_topics.size();i++)
     {
     	char tempstr[50];
     	sprintf(tempstr,"Subscribing to resource topic: %s",resource_topics.at(i).c_str());
     	logger->log_info(tempstr);
-    	//resource_sub = nh.subscribe<icarus_rover_v2::resource>(resource_topics.at(i),1000,resource_Callback);
-    	 message_filters::Subscriber<icarus_rover_v2::resource> sub(nh,resource_topics.at(i),1);
-
-    	 sub.registerCallback(resource_Callback);
+    	resource_subs[i] = nh.subscribe<icarus_rover_v2::resource>(resource_topics.at(i),1000,resource_Callback);
     }
 
+    ros::Subscriber * diagnostic_subs;
+    diagnostic_subs = new ros::Subscriber[diagnostic_topics.size()];
     for(int i = 0; i < diagnostic_topics.size();i++)
 	{
 		char tempstr[50];
 		sprintf(tempstr,"Subscribing to diagnostic topic: %s",diagnostic_topics.at(i).c_str());
 		logger->log_info(tempstr);
-		//diagnostic_sub = nh.subscribe<icarus_rover_v2::diagnostic>(diagnostic_topics.at(i),1000,diagnostic_Callback);
+		diagnostic_subs[i] = nh.subscribe<icarus_rover_v2::diagnostic>(diagnostic_topics.at(i),1000,diagnostic_Callback);
 	}
     //More Template code here.  Do not edit.
     pid = get_pid();
