@@ -30,8 +30,6 @@ std::string verbosity_level = "";
 ros::Publisher pps_pub;  //Not used as this is a pps consumer only.
 ros::Subscriber pps_sub;  
 ros::Publisher resource_pub;
-//ros::Subscriber resource_sub;
-ros::Subscriber diagnostic_sub;
 Logger *logger;
 bool require_pps_to_start = false;
 bool received_pps = false;
@@ -46,6 +44,12 @@ double mtime;
 
 
 //Define program variables.  These will vary based on the application.
+struct Task
+{
+	std::string Task_Name;
+	ros::Time last_message_received;
+};
+std::vector<Task> TaskList;
 
 bool run_fastrate_code()
 {
@@ -80,17 +84,58 @@ void PPS_Callback(const std_msgs::Bool::ConstPtr& msg)
 }
 void resource_Callback(const icarus_rover_v2::resource::ConstPtr& msg)
 {
-	std::string name = msg->Node_Name;
-	char tempstr[50];
-	sprintf(tempstr,"Resource message from: %s",name.c_str());
-	logger->log_debug(tempstr);
+	//std::string name = msg->Node_Name;
+	//char tempstr[50];
+	//sprintf(tempstr,"Resource message from: %s",name.c_str());
+	//logger->log_debug(tempstr);
 }
 void diagnostic_Callback(const icarus_rover_v2::diagnostic::ConstPtr& msg)
 {
+	//icarus_rover_v2::diagnostic dumb;
+	//dumb.Description
 	std::string name = msg->Node_Name;
 	char tempstr[50];
-	sprintf(tempstr,"Diagnostic message from: %s",name.c_str());
-	logger->log_debug(tempstr);
+	sprintf(tempstr,"Node: %s: %s",msg->Node_Name.c_str(),msg->Description.c_str());
+
+	switch(msg->Level)
+	{
+		case DEBUG:
+			logger->log_debug(tempstr);
+			break;
+		case INFO:
+			logger->log_info(tempstr);
+			break;
+		case NOTICE:
+			logger->log_notice(tempstr);
+			break;
+		case WARN:
+			logger->log_warn(tempstr);
+			break;
+		case ERROR:
+			logger->log_error(tempstr);
+			break;
+		case FATAL:
+			logger->log_fatal(tempstr);
+			break;
+		default:
+			break;
+	}
+	bool add_me = true;
+	for(int i = 0; i < TaskList.size();i++)
+	{
+		if(	TaskList.at(i).Task_Name == msg->Node_Name)
+		{
+			add_me = false;
+			TaskList.at(i).last_message_received = ros::Time::now();
+		}
+	}
+	if(add_me == true)
+	{
+		Task newTask;
+		newTask.Task_Name = msg->Node_Name;
+		newTask.last_message_received = ros::Time::now();
+		TaskList.push_back(newTask);
+	}
 }
 int main(int argc, char **argv)
 {
