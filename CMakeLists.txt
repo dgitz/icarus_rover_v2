@@ -13,8 +13,10 @@ find_package(catkin REQUIRED COMPONENTS
 )
 
 ## System dependencies are found with CMake's conventions
-# find_package(Boost REQUIRED COMPONENTS system)
-
+find_package(Boost REQUIRED COMPONENTS system thread)
+ 
+#rosbuild_add_boost_directories()
+#rosbuild_link_boost(icarus_rover_v2 thread signals system)
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -49,6 +51,7 @@ find_package(catkin REQUIRED COMPONENTS
 add_message_files(
   FILES
   resource.msg
+  diagnostic.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -116,7 +119,9 @@ catkin_package(
 # include_directories(include)
 include_directories(
   ${catkin_INCLUDE_DIRS}
+  ${Boost_INCLUDE_DIRS}
 )
+
 
 ## Declare a C++ library
 # add_library(icarus_rover_v2
@@ -196,3 +201,5 @@ add_executable(time_master src/time_master.cpp)
 target_link_libraries(time_master ${catkin_LIBRARIES} logger)
 add_executable(time_slave src/time_slave.cpp)
 target_link_libraries(time_slave ${catkin_LIBRARIES} logger)
+add_executable(diagnostic_node src/Diagnostics/diagnostic_node.cpp)
+target_link_libraries(diagnostic_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} logger)

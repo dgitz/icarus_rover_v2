@@ -5,6 +5,8 @@
 #include <std_msgs/Bool.h>
 #include <sstream>
 #include <stdlib.h>
+#include <unistd.h>
+#include "message_filters/subscriber.h"
 #include <icarus_rover_v2/Definitions.h>
 #include <icarus_rover_v2/resource.h>
 #include <icarus_rover_v2/diagnostic.h>
@@ -25,11 +27,11 @@ double measure_time_diff(ros::Time timer_a, ros::Time tiber_b);
 std::string node_name;
 int rate = 1;
 std::string verbosity_level = "";
-ros::Publisher pps_pub;
-ros::Subscriber pps_sub;  //Not used as this is a pps producer only.
+ros::Publisher pps_pub;  //Not used as this is a pps consumer only.
+ros::Subscriber pps_sub;  
 ros::Publisher resource_pub;
-ros::Publisher diagnostic_pub;
-icarus_rover_v2::diagnostic diagnostic_status;
+ros::Subscriber resource_sub;
+ros::Subscriber diagnostic_sub;
 Logger *logger;
 bool require_pps_to_start = false;
 bool received_pps = false;
@@ -44,7 +46,6 @@ double mtime;
 
 
 //Define program variables.  These will vary based on the application.
-ros::Time pps_timer;
 
 bool run_fastrate_code()
 {
@@ -65,11 +66,6 @@ bool run_slowrate_code()
 		return false;
 	}
 	resource_pub.publish(resources_used);
-	diagnostic_status.Diagnostic_Type = SOFTWARE;
-	diagnostic_status.Level = DEBUG;
-	diagnostic_status.Diagnostic_Message = NO_ERROR;
-	diagnostic_status.Description = "Node Executing.";
-	diagnostic_pub.publish(diagnostic_status);
 	return true;
 }
 bool run_veryslowrate_code()
@@ -77,26 +73,33 @@ bool run_veryslowrate_code()
 	//logger->log_debug("Running very slow rate code.");
 	return true;
 }
-bool publish_pps()
+void PPS_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
-	std_msgs::Bool newstate;
-	newstate.data = true;
-	pps_pub.publish(newstate);
-	logger->log_debug("Sending pps");
-	return true;
+	//logger->log_info("Got pps");
+	received_pps = true;
+}
+void resource_Callback(const icarus_rover_v2::resource::ConstPtr& msg)
+{
+	std::string name = msg->Node_Name;
+	char tempstr[50];
+	sprintf(tempstr,"Resource message from: %s",name.c_str());
+	logger->log_debug(tempstr);
+}
+void diagnostic_Callback(const icarus_rover_v2::diagnostic::ConstPtr& msg)
+{
+	std::string name = msg->Node_Name;
+	char tempstr[50];
+	sprintf(tempstr,"Diagnostic message from: %s",name.c_str());
+	logger->log_debug(tempstr);
 }
 int main(int argc, char **argv)
 {
-	node_name = "time_master";
+	usleep(2000000); //Wait 2 seconds for other nodes to start.
+	node_name = "diagnostic_node";
     ros::init(argc, argv, node_name);
     ros::NodeHandle n;
     if(initialize(n) == false)
     {
-    	diagnostic_status.Diagnostic_Type = SOFTWARE;
-		diagnostic_status.Level = FATAL;
-		diagnostic_status.Diagnostic_Message = INITIALIZING_ERROR;
-		diagnostic_status.Description = "Node Initializing Error.";
-		diagnostic_pub.publish(diagnostic_status);
         return 0; 
     }
     ros::Rate loop_rate(rate);
@@ -105,39 +108,42 @@ int main(int argc, char **argv)
     medium_timer = now;
     slow_timer = now;
     veryslow_timer = now;
-    pps_timer = now;
     while (ros::ok())
     {
-        now = ros::Time::now();
-        mtime = measure_time_diff(now,pps_timer);
-        if(mtime > 1.0)
-        {
-        	publish_pps();
-			pps_timer = ros::Time::now();
-        }
-        mtime = measure_time_diff(now,fast_timer);
-		if(mtime > .02)
-		{
-			run_fastrate_code();
-			fast_timer = ros::Time::now();
+    	bool ok_to_start = false;
+		if(require_pps_to_start == false) { ok_to_start = true;}
+		else if(require_pps_to_start == true && received_pps == true) { ok_to_start = true; }
+    	if(ok_to_start == true)
+    	{
+    		now = ros::Time::now();
+    		mtime = measure_time_diff(now,fast_timer);
+			if(mtime > .02)
+			{
+				run_fastrate_code();
+				fast_timer = ros::Time::now();
+			}
+			mtime = measure_time_diff(now,medium_timer);
+			if(mtime > 0.1)
+			{
+				run_mediumrate_code();
+				medium_timer = ros::Time::now();
+			}
+			mtime = measure_time_diff(now,slow_timer);
+			if(mtime > 1.0)
+			{
+				run_slowrate_code();
+				slow_timer = ros::Time::now();
+			}
+			mtime = measure_time_diff(now,veryslow_timer);
+			if(mtime > 10.0)
+			{
+				run_veryslowrate_code();
+				veryslow_timer = ros::Time::now();
+			}
 		}
-		mtime = measure_time_diff(now,medium_timer);
-		if(mtime > 0.1)
+		else
 		{
-			run_mediumrate_code();
-			medium_timer = ros::Time::now();
-		}
-		mtime = measure_time_diff(now,slow_timer);
-		if(mtime > 1.0)
-		{
-			run_slowrate_code();
-			slow_timer = ros::Time::now();
-		}
-		mtime = measure_time_diff(now,veryslow_timer);
-		if(mtime > 10.0)
-		{
-			run_veryslowrate_code();
-			veryslow_timer = ros::Time::now();
+			logger->log_warn("Waiting on PPS to Start.");
 		}
 		ros::spinOnce();
 		loop_rate.sleep();
@@ -148,18 +154,7 @@ int main(int argc, char **argv)
 bool initialize(ros::NodeHandle nh)
 {
     //Template code.  This should not be changed.
-	diagnostic_pub =  nh.advertise<icarus_rover_v2::diagnostic>("/time_master/diagnostic",1000);
-	diagnostic_status.Node_Name = node_name;
-	diagnostic_status.System = ROVER;
-	diagnostic_status.SubSystem = ROBOT_CONTROLLER;
-	diagnostic_status.Component = TIMING_NODE;
-
-	diagnostic_status.Diagnostic_Type = NO_ERROR;
-	diagnostic_status.Level = INFO;
-	diagnostic_status.Diagnostic_Message = INITIALIZING;
-	diagnostic_status.Description = "Node Initializing";
-	diagnostic_pub.publish(diagnostic_status);
-    if(nh.getParam("time_master/verbosity_level",verbosity_level) == false)
+    if(nh.getParam("diagnostic_node/verbosity_level",verbosity_level) == false)
     {
         logger = new Logger("FATAL",ros::this_node::getName());    
         logger->log_fatal("Missing Parameter: verbosity_level. Exiting");
@@ -169,20 +164,57 @@ bool initialize(ros::NodeHandle nh)
     {
         logger = new Logger(verbosity_level,ros::this_node::getName());      
     }
-    if(nh.getParam("time_master/loop_rate",rate) == false)
+    if(nh.getParam("diagnostic_node/loop_rate",rate) == false)
     {
         logger->log_fatal("Missing Parameter: loop_rate.  Exiting.");
         return false;
     }
-    pps_pub = nh.advertise<std_msgs::Bool>("/pps",1000); //This is a pps source.
-    if(nh.getParam("time_master/require_pps_to_start",require_pps_to_start) == false)
-    {
-    	logger->log_fatal("Missing Parameter: require_pps_to_start.  Exiting.");
-    	return false;
-    }
+    pps_sub = nh.subscribe<std_msgs::Bool>("/pps",1000,PPS_Callback);  //This is a pps consumer.
 
+    if(nh.getParam("diagnostic_node/require_pps_to_start",require_pps_to_start) == false)
+	{
+		logger->log_fatal("Missing Parameter: require_pps_to_start.  Exiting.");
+		return false;
+	}
     //Free to edit code from here.
 
+    ros::master::V_TopicInfo master_topics;
+    ros::master::getTopics(master_topics);
+    std::vector<std::string> resource_topics;
+    std::vector<std::string> diagnostic_topics;
+    for (ros::master::V_TopicInfo::iterator it = master_topics.begin() ; it != master_topics.end(); it++)
+    {
+    	const ros::master::TopicInfo& info = *it;
+    	if(info.datatype == "icarus_rover_v2/resource")
+    	{
+    		resource_topics.push_back(info.name);
+    	}
+    	else if(info.datatype == "icarus_rover_v2/diagnostic")
+		{
+    		diagnostic_topics.push_back(info.name);
+		}
+
+    }
+
+
+    for(int i = 0; i < resource_topics.size();i++)
+    {
+    	char tempstr[50];
+    	sprintf(tempstr,"Subscribing to resource topic: %s",resource_topics.at(i).c_str());
+    	logger->log_info(tempstr);
+    	//resource_sub = nh.subscribe<icarus_rover_v2::resource>(resource_topics.at(i),1000,resource_Callback);
+    	 message_filters::Subscriber<icarus_rover_v2::resource> sub(nh,resource_topics.at(i),1);
+
+    	 sub.registerCallback(resource_Callback);
+    }
+
+    for(int i = 0; i < diagnostic_topics.size();i++)
+	{
+		char tempstr[50];
+		sprintf(tempstr,"Subscribing to diagnostic topic: %s",diagnostic_topics.at(i).c_str());
+		logger->log_info(tempstr);
+		//diagnostic_sub = nh.subscribe<icarus_rover_v2::diagnostic>(diagnostic_topics.at(i),1000,diagnostic_Callback);
+	}
     //More Template code here.  Do not edit.
     pid = get_pid();
     if(pid < 0)
@@ -190,12 +222,7 @@ bool initialize(ros::NodeHandle nh)
     	logger->log_fatal("Couldn't retrieve PID. Exiting");
     	return false;
     }
-    resource_pub =  nh.advertise<icarus_rover_v2::resource>("/time_master/resource",1000); //This is a pps source.
-	diagnostic_status.Diagnostic_Type = NO_ERROR;
-	diagnostic_status.Level = INFO;
-	diagnostic_status.Diagnostic_Message = NO_ERROR;
-	diagnostic_status.Description = "Node Initialized";
-	diagnostic_pub.publish(diagnostic_status);
+    resource_pub =  nh.advertise<icarus_rover_v2::resource>("/diagnostic_node/resource",1000); //This is a pps source.
     logger->log_info("Initialized!");
     return true;
 }
@@ -238,7 +265,6 @@ bool check_resources()
 		getline(myfile,line);
 		std::vector<std::string> strs;
 		boost::split(strs,line,boost::is_any_of(" "),boost::token_compress_on);
-		resources_used.Node_Name = node_name;
 		resources_used.PID = pid;
 		resources_used.CPU_Perc = atoi(strs.at(9).c_str());
 		resources_used.RAM_MB = atoi(strs.at(6).c_str())/1000.0;
