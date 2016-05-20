@@ -1,4 +1,3 @@
 Author: David Gitz
 Task: Diagnostics
-Purpose:
-
+Purpose: Report and respond to various health issues with different nodes.
