@@ -16,5 +16,7 @@
         <param name="loop_rate"       value="100"/>
 	    <param name="verbosity_level" value="DEBUG"/>
         <param name="require_pps_to_start" value="false" />
+        <param name="RAM_usage_threshold_MB"    value="50" />
+        <param name="CPU_usage_threshold_percent"    value="5" />
     </node>
 </launch>

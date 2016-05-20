@@ -22,6 +22,7 @@ bool run_mediumrate_code();
 bool run_slowrate_code();
 bool run_veryslowrate_code();
 double measure_time_diff(ros::Time timer_a, ros::Time tiber_b);
+bool check_tasks();
 
 //Define general variables, these should be defined for every node.
 std::string node_name;
@@ -40,6 +41,7 @@ ros::Time medium_timer; //10 Hz
 ros::Time slow_timer; //1 Hz
 ros::Time veryslow_timer; //1 Hz
 ros::Time now;
+ros::Time boot_time;
 double mtime;
 
 
@@ -48,9 +50,13 @@ struct Task
 {
 	std::string Task_Name;
 	ros::Time last_message_received;
+	int RAM_MB;
+	int CPU_Perc;
+	int last_diagnostic_level;
 };
 std::vector<Task> TaskList;
-
+int RAM_usage_threshold_MB;
+int CPU_usage_threshold_percent;
 bool run_fastrate_code()
 {
 	//logger->log_debug("Running fast rate code.");
@@ -70,11 +76,16 @@ bool run_slowrate_code()
 		return false;
 	}
 	resource_pub.publish(resources_used);
+	if(check_tasks() == false)
+	{
+		logger->log_fatal("Not able to check Tasks. Exiting");
+	}
 	return true;
 }
 bool run_veryslowrate_code()
 {
 	//logger->log_debug("Running very slow rate code.");
+
 	return true;
 }
 void PPS_Callback(const std_msgs::Bool::ConstPtr& msg)
@@ -84,16 +95,52 @@ void PPS_Callback(const std_msgs::Bool::ConstPtr& msg)
 }
 void resource_Callback(const icarus_rover_v2::resource::ConstPtr& msg)
 {
-	//std::string name = msg->Node_Name;
-	//char tempstr[50];
-	//sprintf(tempstr,"Resource message from: %s",name.c_str());
-	//logger->log_debug(tempstr);
+	bool add_me = true;
+	for(int i = 0; i < TaskList.size();i++)
+	{
+		if(	TaskList.at(i).Task_Name == msg->Node_Name)
+		{
+			add_me = false;
+			TaskList.at(i).last_message_received = ros::Time::now();//measure_time_diff(ros::Time::now(),boot_time);
+			TaskList.at(i).CPU_Perc = msg->CPU_Perc;
+			TaskList.at(i).RAM_MB = msg->RAM_MB;
+		}
+	}
+	if(add_me == true)
+	{
+		Task newTask;
+		newTask.Task_Name = msg->Node_Name;
+		newTask.last_message_received = ros::Time::now();//measure_time_diff(ros::Time::now(),boot_time);
+		newTask.CPU_Perc = msg->CPU_Perc;
+		newTask.RAM_MB = msg->RAM_MB;
+		TaskList.push_back(newTask);
+	}
+
 }
 void diagnostic_Callback(const icarus_rover_v2::diagnostic::ConstPtr& msg)
 {
-	//icarus_rover_v2::diagnostic dumb;
-	//dumb.Description
-	std::string name = msg->Node_Name;
+
+	bool add_me = true;
+	for(int i = 0; i < TaskList.size();i++)
+	{
+		if(	TaskList.at(i).Task_Name == msg->Node_Name)
+		{
+			add_me = false;
+
+			TaskList.at(i).last_message_received = ros::Time::now();//measure_time_diff(ros::Time::now(),boot_time);
+			TaskList.at(i).last_diagnostic_level = msg->Level;
+		}
+	}
+	if(add_me == true)
+	{
+		Task newTask;
+		newTask.Task_Name = msg->Node_Name;
+		newTask.last_message_received = ros::Time::now();//measure_time_diff(ros::Time::now(),boot_time);
+		newTask.last_diagnostic_level = msg->Level;
+		TaskList.push_back(newTask);
+	}
+	//sprintf(tempstr,"TaskList size: %d",TaskList.size());
+	//logger->log_debug(tempstr);
 	char tempstr[50];
 	sprintf(tempstr,"Node: %s: %s",msg->Node_Name.c_str(),msg->Description.c_str());
 
@@ -120,22 +167,6 @@ void diagnostic_Callback(const icarus_rover_v2::diagnostic::ConstPtr& msg)
 		default:
 			break;
 	}
-	bool add_me = true;
-	for(int i = 0; i < TaskList.size();i++)
-	{
-		if(	TaskList.at(i).Task_Name == msg->Node_Name)
-		{
-			add_me = false;
-			TaskList.at(i).last_message_received = ros::Time::now();
-		}
-	}
-	if(add_me == true)
-	{
-		Task newTask;
-		newTask.Task_Name = msg->Node_Name;
-		newTask.last_message_received = ros::Time::now();
-		TaskList.push_back(newTask);
-	}
 }
 int main(int argc, char **argv)
 {
@@ -153,6 +184,7 @@ int main(int argc, char **argv)
     medium_timer = now;
     slow_timer = now;
     veryslow_timer = now;
+    boot_time = now;
     while (ros::ok())
     {
     	bool ok_to_start = false;
@@ -222,6 +254,16 @@ bool initialize(ros::NodeHandle nh)
 		return false;
 	}
     //Free to edit code from here.
+    if(nh.getParam("diagnostic_node/RAM_usage_threshold_MB",RAM_usage_threshold_MB) == false)
+	{
+		logger->log_fatal("Missing Parameter: RAM_usage_threshold_MB.  Exiting.");
+		return false;
+	}
+    if(nh.getParam("diagnostic_node/CPU_usage_threshold_percent",CPU_usage_threshold_percent) == false)
+	{
+		logger->log_fatal("Missing Parameter: CPU_usage_threshold_percent.  Exiting.");
+		return false;
+	}
 
     ros::master::V_TopicInfo master_topics;
     ros::master::getTopics(master_topics);
@@ -293,6 +335,92 @@ int get_pid()
 	}
 	myfile.close();
 	return id;
+}
+bool check_tasks()
+{
+	int task_ok_counter = 0;
+	for(int i = 0; i < TaskList.size();i++)
+	{
+		bool task_ok = false;
+		//char tempstr[100];
+		//sprintf(tempstr,"Task: %s last msg: %f",TaskList.at(i).Task_Name.c_str(),TaskList.at(i).last_message_received);
+		//logger->log_debug(std::string(tempstr));
+		if(TaskList.at(i).RAM_MB > RAM_usage_threshold_MB)
+		{
+			task_ok = false;
+			char tempstr[100];
+			sprintf(tempstr,"Task: %s exceeds RAM:  %d/%d",
+					TaskList.at(i).Task_Name.c_str(),TaskList.at(i).RAM_MB,RAM_usage_threshold_MB);
+			double ram_exceeded_factor = (double)(TaskList.at(i).RAM_MB/RAM_usage_threshold_MB);
+			if(ram_exceeded_factor < 2.0)
+			{
+				logger->log_warn(std::string(tempstr));
+			}
+			else if(ram_exceeded_factor < 4.0)
+			{
+				logger->log_error(std::string(tempstr));
+			}
+			else
+			{
+				logger->log_fatal(std::string(tempstr));
+			}
+		}
+		if(TaskList.at(i).CPU_Perc > CPU_usage_threshold_percent)
+		{
+			task_ok = false;
+			char tempstr[100];
+			sprintf(tempstr,"Task: %s exceeds CPU Usage:  %d/%d",
+					TaskList.at(i).Task_Name.c_str(),TaskList.at(i).CPU_Perc,CPU_usage_threshold_percent);
+			double cpu_exceeded_factor = (double)(TaskList.at(i).CPU_Perc/CPU_usage_threshold_percent);
+			if(cpu_exceeded_factor < 2.0)
+			{
+				logger->log_warn(std::string(tempstr));
+			}
+			else if(cpu_exceeded_factor < 4.0)
+			{
+				logger->log_error(std::string(tempstr));
+			}
+			else
+			{
+				logger->log_fatal(std::string(tempstr));
+			}
+		}
+		double etime;
+		etime = measure_time_diff(ros::Time::now(),TaskList.at(i).last_message_received);
+		char tempstr[100];
+		sprintf(tempstr,"Task: %s not heard from for: %f seconds",TaskList.at(i).Task_Name.c_str(),etime);
+		if(etime < 1.0)
+		{
+			task_ok = true;
+		}
+		else if(etime < 2.0)
+		{
+			task_ok = false;
+			logger->log_warn(std::string(tempstr));
+		}
+		else
+		{
+			task_ok = false;
+			logger->log_fatal(std::string(tempstr));
+		}
+		if(TaskList.at(i).last_diagnostic_level >= WARN)
+		{
+			task_ok = false;
+		}
+		if(task_ok == true){ task_ok_counter++;}
+
+	}
+	if(task_ok_counter == TaskList.size())
+	{
+		logger->log_info("All Tasks Operational!");
+	}
+	else
+	{
+		char tempstr[100];
+		sprintf(tempstr,"%d/%d Tasks are WARN or Higher!",TaskList.size()-task_ok_counter,TaskList.size());
+		logger->log_error(std::string(tempstr));
+	}
+	return true;
 }
 bool check_resources()
 {
