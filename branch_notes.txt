@@ -11,3 +11,5 @@ Issues: None.
 
 Feature: timed loops
 
+Feature: diagnostics & resources
+

@@ -319,6 +319,7 @@ int get_pid()
 	std::string pid_filename;
 	pid_filename = "/tmp/output/PID/" + node_name;
 	char tempstr[130];
+
 	sprintf(tempstr,"top -bn1 | grep %s | awk ' { print $1 }' > %s",node_name.c_str(),pid_filename.c_str());
 	system(tempstr);  //First entry should be PID
 	ifstream myfile;
