@@ -1,5 +1,4 @@
 #include "ros/ros.h"
-#include "Definitions.h"
 #include "std_msgs/String.h"
 #include "logger.h"
 #include <boost/algorithm/string.hpp>
@@ -9,7 +8,9 @@
 #include <sstream>
 #include <stdlib.h>
 #include <math.h>
+#include <icarus_rover_v2/Definitions.h>
 #include <icarus_rover_v2/resource.h>
+#include <icarus_rover_v2/diagnostic.h>
 
 
 //Template Code.  This should not be removed.

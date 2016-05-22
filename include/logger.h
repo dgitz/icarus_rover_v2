@@ -2,7 +2,7 @@
 #define LOGGER_H
 
 #include "ros/ros.h"
-#include "Definitions.h"
+#include <icarus_rover_v2/Definitions.h>
 #include "ros/time.h"
 #include <stdio.h>
 #include <iostream>

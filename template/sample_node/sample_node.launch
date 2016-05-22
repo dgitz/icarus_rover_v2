@@ -1,7 +1,0 @@
-<!--xml-->
-<launch>
-   <node name="sample_node" pkg="icarus_rover_v2" type="sample_node"  output="screen">
-      <param name="loop_rate"       value="100"/>
-	  <param name="verbosity_level" value="INFO"/>
-  </node>
-</launch>

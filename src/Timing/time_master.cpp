@@ -1,12 +1,13 @@
 #include "ros/ros.h"
-#include "Definitions.h"
 #include "std_msgs/String.h"
 #include "logger.h"
 #include <boost/algorithm/string.hpp>
 #include <std_msgs/Bool.h>
 #include <sstream>
 #include <stdlib.h>
+#include <icarus_rover_v2/Definitions.h>
 #include <icarus_rover_v2/resource.h>
+#include <icarus_rover_v2/diagnostic.h>
 
 
 //Template Code.  This should not be removed.
@@ -27,6 +28,8 @@ std::string verbosity_level = "";
 ros::Publisher pps_pub;
 ros::Subscriber pps_sub;  //Not used as this is a pps producer only.
 ros::Publisher resource_pub;
+ros::Publisher diagnostic_pub;
+icarus_rover_v2::diagnostic diagnostic_status;
 Logger *logger;
 bool require_pps_to_start = false;
 bool received_pps = false;
@@ -62,6 +65,11 @@ bool run_slowrate_code()
 		return false;
 	}
 	resource_pub.publish(resources_used);
+	diagnostic_status.Diagnostic_Type = SOFTWARE;
+	diagnostic_status.Level = DEBUG;
+	diagnostic_status.Diagnostic_Message = NOERROR;
+	diagnostic_status.Description = "Node Executing.";
+	diagnostic_pub.publish(diagnostic_status);
 	return true;
 }
 bool run_veryslowrate_code()
@@ -84,6 +92,11 @@ int main(int argc, char **argv)
     ros::NodeHandle n;
     if(initialize(n) == false)
     {
+    	diagnostic_status.Diagnostic_Type = SOFTWARE;
+		diagnostic_status.Level = FATAL;
+		diagnostic_status.Diagnostic_Message = INITIALIZING_ERROR;
+		diagnostic_status.Description = "Node Initializing Error.";
+		diagnostic_pub.publish(diagnostic_status);
         return 0; 
     }
     ros::Rate loop_rate(rate);
@@ -135,12 +148,22 @@ int main(int argc, char **argv)
 bool initialize(ros::NodeHandle nh)
 {
     //Template code.  This should not be changed.
+	diagnostic_pub =  nh.advertise<icarus_rover_v2::diagnostic>("/time_master/diagnostic",1000);
+	diagnostic_status.Node_Name = node_name;
+	diagnostic_status.System = ROVER;
+	diagnostic_status.SubSystem = ROBOT_CONTROLLER;
+	diagnostic_status.Component = TIMING_NODE;
+
+	diagnostic_status.Diagnostic_Type = NOERROR;
+	diagnostic_status.Level = INFO;
+	diagnostic_status.Diagnostic_Message = INITIALIZING;
+	diagnostic_status.Description = "Node Initializing";
+	diagnostic_pub.publish(diagnostic_status);
     if(nh.getParam("time_master/verbosity_level",verbosity_level) == false)
     {
         logger = new Logger("FATAL",ros::this_node::getName());    
         logger->log_fatal("Missing Parameter: verbosity_level. Exiting");
         return false;
-
     }
     else
     {
@@ -157,6 +180,7 @@ bool initialize(ros::NodeHandle nh)
     	logger->log_fatal("Missing Parameter: require_pps_to_start.  Exiting.");
     	return false;
     }
+
     //Free to edit code from here.
 
     //More Template code here.  Do not edit.
@@ -167,6 +191,11 @@ bool initialize(ros::NodeHandle nh)
     	return false;
     }
     resource_pub =  nh.advertise<icarus_rover_v2::resource>("/time_master/resource",1000); //This is a pps source.
+	diagnostic_status.Diagnostic_Type = NOERROR;
+	diagnostic_status.Level = INFO;
+	diagnostic_status.Diagnostic_Message = NOERROR;
+	diagnostic_status.Description = "Node Initialized";
+	diagnostic_pub.publish(diagnostic_status);
     logger->log_info("Initialized!");
     return true;
 }
@@ -209,6 +238,7 @@ bool check_resources()
 		getline(myfile,line);
 		std::vector<std::string> strs;
 		boost::split(strs,line,boost::is_any_of(" "),boost::token_compress_on);
+		resources_used.Node_Name = node_name;
 		resources_used.PID = pid;
 		resources_used.CPU_Perc = atoi(strs.at(9).c_str());
 		resources_used.RAM_MB = atoi(strs.at(6).c_str())/1000.0;
@@ -216,6 +246,7 @@ bool check_resources()
 	}
 	else
 	{
+		logger->log_fatal("Unable to check Node Resources. Exiting");
 		return false;
 	}
 	myfile.close();

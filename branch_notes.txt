@@ -1,3 +1,5 @@
 Author: David Gitz
 Purpose: Contains the source code for development of improvements ros functionality.
 
+Feature: diagnostics & resources
+
