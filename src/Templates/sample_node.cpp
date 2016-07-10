@@ -93,8 +93,13 @@ void PPS_Callback(const std_msgs::Bool::ConstPtr& msg)
 //Finish User Code: Function Definitions
 int main(int argc, char **argv)
 {
+ 
 	node_name = "sample_node";
+
+
     ros::init(argc, argv, node_name);
+    node_name = ros::this_node::getName();
+
     ros::NodeHandle n;
     if(initialize(n) == false)
     {
@@ -156,8 +161,11 @@ int main(int argc, char **argv)
 
 bool initialize(ros::NodeHandle nh)
 {
+    
     //Start Template Code: Initialization and Parameters
-	diagnostic_pub =  nh.advertise<icarus_rover_v2::diagnostic>("/sample_node/diagnostic",1000);
+    printf("Node name: %s",node_name.c_str());
+    std::string diagnostic_topic = "/" + node_name + "/diagnostic";
+	diagnostic_pub =  nh.advertise<icarus_rover_v2::diagnostic>(diagnostic_topic,1000);
 	diagnostic_status.Node_Name = node_name;
 	diagnostic_status.System = ROVER;
 	diagnostic_status.SubSystem = ROBOT_CONTROLLER;
@@ -189,6 +197,7 @@ bool initialize(ros::NodeHandle nh)
 		logger->log_fatal("Missing Parameter: require_pps_to_start.  Exiting.");
 		return false;
 	}
+
     //End Template Code: Initialization and Parameters
 
     //Start User Code: Initialization and Parameters
@@ -201,7 +210,8 @@ bool initialize(ros::NodeHandle nh)
     	logger->log_fatal("Couldn't retrieve PID. Exiting");
     	return false;
     }
-    resource_pub =  nh.advertise<icarus_rover_v2::resource>("/sample_node/resource",1000); //This is a pps source.
+    std::string topic = "/" + node_name + "/resource";
+    resource_pub =  nh.advertise<icarus_rover_v2::resource>(topic,1000); //This is a pps source.
 	diagnostic_status.Diagnostic_Type = NOERROR;
 	diagnostic_status.Level = INFO;
 	diagnostic_status.Diagnostic_Message = NOERROR;
@@ -217,7 +227,7 @@ int get_pid()
 {
 	int id = -1;
 	std::string pid_filename;
-	pid_filename = "/tmp/output/PID/" + node_name;
+	pid_filename = "/home/robot/logs/output/PID/" + node_name;
 	char tempstr[130];
 	sprintf(tempstr,"top -bn1 | grep %s | awk ' { print $1 }' > %s",node_name.c_str(),pid_filename.c_str());
 	system(tempstr);  //First entry should be PID
@@ -239,7 +249,7 @@ int get_pid()
 bool check_resources()
 {
 	std::string resource_filename;
-	resource_filename = "/tmp/output/RESOURCE/" + node_name;
+	resource_filename = "/home/robot/logs/output/RESOURCE/" + node_name;
 	char tempstr[130];
 	sprintf(tempstr,"top -bn1 | grep %d > %s",pid,resource_filename.c_str());
 	system(tempstr); //RAM used is column 6, in KB.  CPU used is column 9, in percentage.

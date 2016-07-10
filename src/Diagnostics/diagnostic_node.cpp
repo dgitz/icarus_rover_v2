@@ -317,7 +317,7 @@ int get_pid()
 {
 	int id = -1;
 	std::string pid_filename;
-	pid_filename = "/tmp/output/PID/" + node_name;
+	pid_filename = "/home/robot/logs/output/PID/" + node_name;
 	char tempstr[130];
 
 	sprintf(tempstr,"top -bn1 | grep %s | awk ' { print $1 }' > %s",node_name.c_str(),pid_filename.c_str());
@@ -426,7 +426,7 @@ bool check_tasks()
 bool check_resources()
 {
 	std::string resource_filename;
-	resource_filename = "/tmp/output/RESOURCE/" + node_name;
+	resource_filename = "/home/robot/logs/output/RESOURCE/" + node_name;
 	char tempstr[130];
 	sprintf(tempstr,"top -bn1 | grep %d > %s",pid,resource_filename.c_str());
 	system(tempstr); //RAM used is column 6, in KB.  CPU used is column 9, in percentage.
