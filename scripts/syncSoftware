@@ -1,0 +1,8 @@
+#!/bin/bash
+Devices="ControlModule1"
+for device in "$Devices"
+do
+  echo "Syncing with: "$device
+  rsync -ar /home/robot/scripts/* robot@$device:~/scripts
+  rsync -ar /home/robot/config/* robot@$device:~/config
+done

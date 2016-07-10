@@ -12,6 +12,9 @@
 #include <tf/transform_broadcaster.h>
 #include <geometry_msgs/TransformStamped.h>
 #include <math.h>
+#include <moveit/robot_model_loader/robot_model_loader.h>
+#include <moveit/robot_model/robot_model.h>
+#include <moveit/robot_state/robot_state.h>
 #include <icarus_rover_v2/Definitions.h>
 #include <icarus_rover_v2/resource.h>
 #include <icarus_rover_v2/diagnostic.h>
@@ -63,6 +66,10 @@ float joint_base_rotate_angle_command_rad = 0;
 float joint_shoulder_angle_command_rad = 0;
 float joint_elbow_angle_command_rad = 0; //Stowed
 float joint_wrist_angle_command_rad = 0; //Stowed
+
+
+robot_model::RobotModelPtr kinematic_model;// = robot_loader.getModel();
+
 bool run_fastrate_code()
 {
 	//logger->log_debug("Running fast rate code.");
@@ -169,6 +176,7 @@ int main(int argc, char **argv)
     medium_timer = now;
     slow_timer = now;
     veryslow_timer = now;
+
     while (ros::ok())
     {
     	bool ok_to_start = false;
@@ -270,6 +278,10 @@ bool initialize(ros::NodeHandle nh)
     joint_elbow_sub = nh.subscribe<std_msgs::Float64>("/joint_elbow_command",1000,joint_elbow_Callback);
     joint_wrist_sub = nh.subscribe<std_msgs::Float64>("/joint_wrist_command",1000,joint_wrist_Callback);
 
+
+    robot_model_loader::RobotModelLoader robot_loader("robot_description");
+    kinematic_model = robot_loader.getModel();
+    printf("Model: %s",kinematic_model->getModelFrame().c_str());
     //More Template code here.  Do not edit.
     resource_pub =  nh.advertise<icarus_rover_v2::resource>("/arm_controller/resource",1000);
     pid = get_pid();

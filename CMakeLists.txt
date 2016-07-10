@@ -12,6 +12,9 @@ find_package(catkin REQUIRED COMPONENTS
     message_generation
   urdf
   tf
+  moveit_ros_planning_interface
+ # moveit_ros_planning
+ # moveit_core
 )
 
 ## System dependencies are found with CMake's conventions
