@@ -1,6 +1,6 @@
 <!--xml-->
 <launch>
-    <node name="$(optenv ROS_HOSTNAME)_sample_node" pkg="icarus_rover_v2" type="sample_node"  output="screen">
+    <node name="$(env ROS_HOSTNAME)_sample_node" pkg="icarus_rover_v2" type="sample_node"  output="screen">
         
         <param name="loop_rate"             value="500"/>
 	    <param name="verbosity_level"       value="DEBUG"/>

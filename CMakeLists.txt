@@ -10,9 +10,9 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   roslaunch
     message_generation
-  urdf
-  tf
-  moveit_ros_planning_interface
+  #urdf
+  #tf
+  #moveit_ros_planning_interface
  # moveit_ros_planning
  # moveit_core
 )
@@ -188,7 +188,7 @@ include_directories(
 #############
 ## Testing ##
 #############
-roslaunch_add_file_check(/home/dgitz/catkin_ws/src/icarus_rover_v2/launch)
+#roslaunch_add_file_check(/home/dgitz/catkin_ws/src/icarus_rover_v2/launch)
 ## Add gtest based cpp test target and link libraries
 # catkin_add_gtest(${PROJECT_NAME}-test test/test_icarus_rover_v2.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
@@ -202,15 +202,15 @@ add_library(logger util/logger.cpp)
 
 #add_executable(sample_node src/sample_node.cpp)
 #target_link_libraries(sample_node ${catkin_LIBRARIES} logger)
-add_executable(time_master src/Timing/time_master.cpp)
-target_link_libraries(time_master ${catkin_LIBRARIES} logger)
-add_executable(time_slave src/Timing/time_slave.cpp)
-target_link_libraries(time_slave ${catkin_LIBRARIES} logger)
-add_executable(arm_controller src/Arm_Controller/arm_controller.cpp)
-target_link_libraries(arm_controller ${catkin_LIBRARIES} logger)
-add_executable(usercontrol_node src/User_Control/usercontrol_node.cpp)
-target_link_libraries(usercontrol_node ${catkin_LIBRARIES} logger)
-add_executable(diagnostic_node src/Diagnostics/diagnostic_node.cpp)
-target_link_libraries(diagnostic_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} logger)
+#add_executable(time_master src/Timing/time_master.cpp)
+#target_link_libraries(time_master ${catkin_LIBRARIES} logger)
+#add_executable(time_slave src/Timing/time_slave.cpp)
+#target_link_libraries(time_slave ${catkin_LIBRARIES} logger)
+#add_executable(arm_controller src/Arm_Controller/arm_controller.cpp)
+#target_link_libraries(arm_controller ${catkin_LIBRARIES} logger)
+#add_executable(usercontrol_node src/User_Control/usercontrol_node.cpp)
+#target_link_libraries(usercontrol_node ${catkin_LIBRARIES} logger)
+#add_executable(diagnostic_node src/Diagnostics/diagnostic_node.cpp)
+#target_link_libraries(diagnostic_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} logger)
 add_executable(sample_node src/Templates/sample_node.cpp)
 target_link_libraries(sample_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} logger)
