@@ -1,0 +1,10 @@
+<!--xml-->
+<launch>
+    <node name="$(env ROS_HOSTNAME)_sample_node" pkg="icarus_rover_v2" type="sample_node"  output="screen">
+        
+        <param name="loop_rate"             value="500"/>
+	    <param name="verbosity_level"       value="DEBUG"/>
+        <param name="require_pps_to_start"  value="false"/>    
+    </node>
+
+</launch>

@@ -63,16 +63,17 @@ bool run_mediumrate_code()
 }
 bool run_slowrate_code()
 {
-	//logger->log_debug("Running slow rate code.");
+	logger->log_debug("Running slow rate code.");
 	if(check_resources() == false)
 	{
-		logger->log_fatal("Not able to check Node Resources.  Exiting.");
-		return false;
+		//logger->log_fatal("Not able to check Node Resources.  Exiting.");
+		logger->log_warn("Not able to check Node Resources.");
+		//return false;
 	}
 	resource_pub.publish(resources_used);
 	diagnostic_status.Diagnostic_Type = SOFTWARE;
 	diagnostic_status.Level = DEBUG;
-	diagnostic_status.Diagnostic_Message = NO_ERROR;
+	diagnostic_status.Diagnostic_Message = NOERROR;
 	diagnostic_status.Description = "Node Executing.";
 	diagnostic_pub.publish(diagnostic_status);
 	return true;
@@ -93,8 +94,13 @@ void PPS_Callback(const std_msgs::Bool::ConstPtr& msg)
 //Finish User Code: Function Definitions
 int main(int argc, char **argv)
 {
+ 
 	node_name = "sample_node";
+
+
     ros::init(argc, argv, node_name);
+    node_name = ros::this_node::getName();
+
     ros::NodeHandle n;
     if(initialize(n) == false)
     {
@@ -156,23 +162,28 @@ int main(int argc, char **argv)
 
 bool initialize(ros::NodeHandle nh)
 {
+    
     //Start Template Code: Initialization and Parameters
-	diagnostic_pub =  nh.advertise<icarus_rover_v2::diagnostic>("/sample_node/diagnostic",1000);
+    printf("Node name: %s",node_name.c_str());
+    std::string diagnostic_topic = "/" + node_name + "/diagnostic";
+	diagnostic_pub =  nh.advertise<icarus_rover_v2::diagnostic>(diagnostic_topic,1000);
 	diagnostic_status.Node_Name = node_name;
 	diagnostic_status.System = ROVER;
 	diagnostic_status.SubSystem = ROBOT_CONTROLLER;
 	diagnostic_status.Component = TIMING_NODE;
 
-	diagnostic_status.Diagnostic_Type = NO_ERROR;
+	diagnostic_status.Diagnostic_Type = NOERROR;
 	diagnostic_status.Level = INFO;
 	diagnostic_status.Diagnostic_Message = INITIALIZING;
 	diagnostic_status.Description = "Node Initializing";
 	diagnostic_pub.publish(diagnostic_status);
     if(nh.getParam("sample_node/verbosity_level",verbosity_level) == false)
     {
-        logger = new Logger("FATAL",ros::this_node::getName());    
-        logger->log_fatal("Missing Parameter: verbosity_level. Exiting");
-        return false;
+    	logger->log_warn("Missing Parameter: verbosity_level");
+        logger = new Logger("WARN",ros::this_node::getName());
+        verbosity_level = "DEBUG";
+
+        //return false;
     }
     else
     {
@@ -180,15 +191,18 @@ bool initialize(ros::NodeHandle nh)
     }
     if(nh.getParam("sample_node/loop_rate",rate) == false)
     {
-        logger->log_fatal("Missing Parameter: loop_rate.  Exiting.");
-        return false;
+        logger->log_warn("Missing Parameter: loop_rate.");
+        rate = 10;
+        //return false;
     }
     pps_sub = nh.subscribe<std_msgs::Bool>("/pps",1000,PPS_Callback);  //This is a pps consumer.
     if(nh.getParam("sample_node/require_pps_to_start",require_pps_to_start) == false)
 	{
-		logger->log_fatal("Missing Parameter: require_pps_to_start.  Exiting.");
-		return false;
+		logger->log_warn("Missing Parameter: require_pps_to_start.");
+		require_pps_to_start = false;
+		//return false;
 	}
+
     //End Template Code: Initialization and Parameters
 
     //Start User Code: Initialization and Parameters
@@ -198,13 +212,15 @@ bool initialize(ros::NodeHandle nh)
     pid = get_pid();
     if(pid < 0)
     {
-    	logger->log_fatal("Couldn't retrieve PID. Exiting");
-    	return false;
+    	//logger->log_fatal("Couldn't retrieve PID. Exiting");
+    	//return false;
+    	logger->log_warn("Couldn't retrieve PID");
     }
-    resource_pub =  nh.advertise<icarus_rover_v2::resource>("/sample_node/resource",1000); //This is a pps source.
-	diagnostic_status.Diagnostic_Type = NO_ERROR;
+    std::string topic = "/" + node_name + "/resource";
+    resource_pub =  nh.advertise<icarus_rover_v2::resource>(topic,1000); //This is a pps source.
+	diagnostic_status.Diagnostic_Type = NOERROR;
 	diagnostic_status.Level = INFO;
-	diagnostic_status.Diagnostic_Message = NO_ERROR;
+	diagnostic_status.Diagnostic_Message = NOERROR;
 	diagnostic_status.Description = "Node Initialized";
 	diagnostic_pub.publish(diagnostic_status);
     logger->log_info("Initialized!");
@@ -215,9 +231,10 @@ bool initialize(ros::NodeHandle nh)
 //Start Template Code: Function Definitions
 int get_pid()
 {
+	return -1; //For now
 	int id = -1;
 	std::string pid_filename;
-	pid_filename = "/tmp/output/PID/" + node_name;
+	pid_filename = "/home/robot/logs/output/PID/" + node_name;
 	char tempstr[130];
 	sprintf(tempstr,"top -bn1 | grep %s | awk ' { print $1 }' > %s",node_name.c_str(),pid_filename.c_str());
 	system(tempstr);  //First entry should be PID
@@ -238,8 +255,9 @@ int get_pid()
 }
 bool check_resources()
 {
+	return false; //For now.
 	std::string resource_filename;
-	resource_filename = "/tmp/output/RESOURCE/" + node_name;
+	resource_filename = "/home/robot/logs/output/RESOURCE/" + node_name;
 	char tempstr[130];
 	sprintf(tempstr,"top -bn1 | grep %d > %s",pid,resource_filename.c_str());
 	system(tempstr); //RAM used is column 6, in KB.  CPU used is column 9, in percentage.

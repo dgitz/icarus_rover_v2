@@ -1,0 +1,18 @@
+Author: David Gitz
+Purpose: Contains the source code for development of improvements ros functionality.
+
+<<<<<<< HEAD
+=======
+Feature: logger
+Supported levels: DEBUG,INFO,NOTICE,WARN,ERROR,FATAL
+Issues: None
+
+Feature: pps
+Subscribe to time_master/pps.  Also allows node sync on startup.
+Issues: None.
+
+Feature: timed loops
+
+Feature: diagnostics & resources
+
+>>>>>>> ALPHA_V0.15

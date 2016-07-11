@@ -3,8 +3,11 @@
 #include "logger.h"
 #include <boost/algorithm/string.hpp>
 #include <std_msgs/Bool.h>
+#include <sensor_msgs/Joy.h>
+#include <std_msgs/Float64.h>
 #include <sstream>
 #include <stdlib.h>
+#include <math.h>
 #include <icarus_rover_v2/Definitions.h>
 #include <icarus_rover_v2/resource.h>
 #include <icarus_rover_v2/diagnostic.h>
@@ -28,8 +31,6 @@ std::string verbosity_level = "";
 ros::Publisher pps_pub;  //Not used as this is a pps consumer only.
 ros::Subscriber pps_sub;  
 ros::Publisher resource_pub;
-ros::Publisher diagnostic_pub;
-icarus_rover_v2::diagnostic diagnostic_status;
 Logger *logger;
 bool require_pps_to_start = false;
 bool received_pps = false;
@@ -44,15 +45,46 @@ double mtime;
 
 
 //Define program variables.  These will vary based on the application.
+std::string Operation_Mode;
+ros::Subscriber joy_sub;
+//Publishers used to control an Arm
+ros::Publisher joint_base_rotate_pub;
+ros::Publisher joint_shoulder_pub;
+ros::Publisher joint_elbow_pub;
+ros::Publisher joint_wrist_pub;
+std_msgs::Float64 base_rotate_command;
+std_msgs::Float64 shoulder_command;
+std_msgs::Float64 elbow_command;
+std_msgs::Float64 wrist_command;
+int JOY_BASE_ROTATE_AXIS = 0;
+int JOY_SHOULDER_AXIS = 1;
+int JOY_ELBOW_AXIS = 2;
+int JOY_WRIST_AXIS = 3;
+void joy_Callback(const sensor_msgs::Joy::ConstPtr& msg)
+{
+	//logger->log_info("Got joy");
+	base_rotate_command.data = M_PI*msg->axes[JOY_BASE_ROTATE_AXIS];
+	shoulder_command.data = M_PI*msg->axes[JOY_SHOULDER_AXIS]/2.0;
+	elbow_command.data = M_PI*msg->axes[JOY_ELBOW_AXIS]/2.0;
+	wrist_command.data = M_PI*msg->axes[JOY_WRIST_AXIS]/2.0;
+}
 
+//More Template code here.
 bool run_fastrate_code()
 {
+	//har tempstr[40];
+	//sprintf(tempstr,"v:%f",shoulder_command.data);
+	//logger->log_debug(std::string(tempstr));
 	//logger->log_debug("Running fast rate code.");
 	return true;
 }
 bool run_mediumrate_code()
 {
 	//logger->log_debug("Running medium rate code.");
+	joint_base_rotate_pub.publish(base_rotate_command);
+	joint_shoulder_pub.publish(shoulder_command);
+	joint_elbow_pub.publish(elbow_command);
+	joint_wrist_pub.publish(wrist_command);
 	return true;
 }
 bool run_slowrate_code()
@@ -64,11 +96,6 @@ bool run_slowrate_code()
 		return false;
 	}
 	resource_pub.publish(resources_used);
-	diagnostic_status.Diagnostic_Type = SOFTWARE;
-	diagnostic_status.Level = DEBUG;
-	diagnostic_status.Diagnostic_Message = NOERROR;
-	diagnostic_status.Description = "Node Executing.";
-	diagnostic_pub.publish(diagnostic_status);
 	return true;
 }
 bool run_veryslowrate_code()
@@ -83,16 +110,11 @@ void PPS_Callback(const std_msgs::Bool::ConstPtr& msg)
 }
 int main(int argc, char **argv)
 {
-	node_name = "time_slave";
+	node_name = "usercontrol_node";
     ros::init(argc, argv, node_name);
     ros::NodeHandle n;
     if(initialize(n) == false)
     {
-    	diagnostic_status.Diagnostic_Type = SOFTWARE;
-		diagnostic_status.Level = FATAL;
-		diagnostic_status.Diagnostic_Message = INITIALIZING_ERROR;
-		diagnostic_status.Description = "Node Initializing Error.";
-		diagnostic_pub.publish(diagnostic_status);
         return 0; 
     }
     ros::Rate loop_rate(rate);
@@ -147,18 +169,7 @@ int main(int argc, char **argv)
 bool initialize(ros::NodeHandle nh)
 {
     //Template code.  This should not be changed.
-	diagnostic_pub =  nh.advertise<icarus_rover_v2::diagnostic>("/time_slave/diagnostic",1000);
-	diagnostic_status.Node_Name = node_name;
-	diagnostic_status.System = ROVER;
-	diagnostic_status.SubSystem = ROBOT_CONTROLLER;
-	diagnostic_status.Component = TIMING_NODE;
-
-	diagnostic_status.Diagnostic_Type = NOERROR;
-	diagnostic_status.Level = INFO;
-	diagnostic_status.Diagnostic_Message = INITIALIZING;
-	diagnostic_status.Description = "Node Initializing";
-	diagnostic_pub.publish(diagnostic_status);
-    if(nh.getParam("time_master/verbosity_level",verbosity_level) == false)
+    if(nh.getParam("usercontrol_node/verbosity_level",verbosity_level) == false)
     {
         logger = new Logger("FATAL",ros::this_node::getName());    
         logger->log_fatal("Missing Parameter: verbosity_level. Exiting");
@@ -168,18 +179,38 @@ bool initialize(ros::NodeHandle nh)
     {
         logger = new Logger(verbosity_level,ros::this_node::getName());      
     }
-    if(nh.getParam("time_slave/loop_rate",rate) == false)
+    if(nh.getParam("usercontrol_node/loop_rate",rate) == false)
     {
         logger->log_fatal("Missing Parameter: loop_rate.  Exiting.");
         return false;
     }
     pps_sub = nh.subscribe<std_msgs::Bool>("/pps",1000,PPS_Callback);  //This is a pps consumer.
-    if(nh.getParam("time_slave/require_pps_to_start",require_pps_to_start) == false)
+    if(nh.getParam("usercontrol_node/require_pps_to_start",require_pps_to_start) == false)
 	{
 		logger->log_fatal("Missing Parameter: require_pps_to_start.  Exiting.");
 		return false;
 	}
     //Free to edit code from here.
+
+    joy_sub = nh.subscribe<sensor_msgs::Joy>("/joy",1000,joy_Callback);  //Joystick subscriber
+    if(nh.getParam("usercontrol_node/Operation_Mode",Operation_Mode) == false)
+    {
+    	logger->log_fatal("Missing Parameter: Operation_Mode.  Available Options: 'Arm'.  Exiting");
+    	return false;
+    }
+    if(Operation_Mode == "Arm")
+    {
+    	logger->log_debug("Operation Mode: Arm");
+    	joint_base_rotate_pub = nh.advertise<std_msgs::Float64>("/joint_base_rotate_command",1000);
+    	joint_shoulder_pub = nh.advertise<std_msgs::Float64>("/joint_shoulder_command",1000);
+    	joint_elbow_pub = nh.advertise<std_msgs::Float64>("/joint_elbow_command",1000);
+    	joint_wrist_pub = nh.advertise<std_msgs::Float64>("/joint_wrist_command",1000);
+    	base_rotate_command.data = 0.0;
+		shoulder_command.data = 0.0;
+		elbow_command.data = 0.0;
+		wrist_command.data = 0.0;
+    }
+
 
     //More Template code here.  Do not edit.
     pid = get_pid();
@@ -188,12 +219,7 @@ bool initialize(ros::NodeHandle nh)
     	logger->log_fatal("Couldn't retrieve PID. Exiting");
     	return false;
     }
-    resource_pub =  nh.advertise<icarus_rover_v2::resource>("/time_slave/resource",1000); //This is a pps source.
-	diagnostic_status.Diagnostic_Type = NOERROR;
-	diagnostic_status.Level = INFO;
-	diagnostic_status.Diagnostic_Message = NOERROR;
-	diagnostic_status.Description = "Node Initialized";
-	diagnostic_pub.publish(diagnostic_status);
+    resource_pub =  nh.advertise<icarus_rover_v2::resource>("/usercontrol_node/resource",1000); //This is a pps source.
     logger->log_info("Initialized!");
     return true;
 }
@@ -202,7 +228,7 @@ int get_pid()
 {
 	int id = -1;
 	std::string pid_filename;
-	pid_filename = "~/logs/output/PID/" + node_name;
+	pid_filename = "/tmp/output/PID/" + node_name;
 	char tempstr[130];
 	sprintf(tempstr,"top -bn1 | grep %s | awk ' { print $1 }' > %s",node_name.c_str(),pid_filename.c_str());
 	system(tempstr);  //First entry should be PID
@@ -224,7 +250,7 @@ int get_pid()
 bool check_resources()
 {
 	std::string resource_filename;
-	resource_filename = "~/logs/output/RESOURCE/" + node_name;
+	resource_filename = "/tmp/output/RESOURCE/" + node_name;
 	char tempstr[130];
 	sprintf(tempstr,"top -bn1 | grep %d > %s",pid,resource_filename.c_str());
 	system(tempstr); //RAM used is column 6, in KB.  CPU used is column 9, in percentage.
@@ -236,7 +262,6 @@ bool check_resources()
 		getline(myfile,line);
 		std::vector<std::string> strs;
 		boost::split(strs,line,boost::is_any_of(" "),boost::token_compress_on);
-		resources_used.Node_Name = node_name;
 		resources_used.PID = pid;
 		resources_used.CPU_Perc = atoi(strs.at(9).c_str());
 		resources_used.RAM_MB = atoi(strs.at(6).c_str())/1000.0;

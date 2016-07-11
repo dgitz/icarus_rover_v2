@@ -67,7 +67,7 @@ bool run_slowrate_code()
 	resource_pub.publish(resources_used);
 	diagnostic_status.Diagnostic_Type = SOFTWARE;
 	diagnostic_status.Level = DEBUG;
-	diagnostic_status.Diagnostic_Message = NO_ERROR;
+	diagnostic_status.Diagnostic_Message = NOERROR;
 	diagnostic_status.Description = "Node Executing.";
 	diagnostic_pub.publish(diagnostic_status);
 	return true;
@@ -154,7 +154,7 @@ bool initialize(ros::NodeHandle nh)
 	diagnostic_status.SubSystem = ROBOT_CONTROLLER;
 	diagnostic_status.Component = TIMING_NODE;
 
-	diagnostic_status.Diagnostic_Type = NO_ERROR;
+	diagnostic_status.Diagnostic_Type = NOERROR;
 	diagnostic_status.Level = INFO;
 	diagnostic_status.Diagnostic_Message = INITIALIZING;
 	diagnostic_status.Description = "Node Initializing";
@@ -191,9 +191,9 @@ bool initialize(ros::NodeHandle nh)
     	return false;
     }
     resource_pub =  nh.advertise<icarus_rover_v2::resource>("/time_master/resource",1000); //This is a pps source.
-	diagnostic_status.Diagnostic_Type = NO_ERROR;
+	diagnostic_status.Diagnostic_Type = NOERROR;
 	diagnostic_status.Level = INFO;
-	diagnostic_status.Diagnostic_Message = NO_ERROR;
+	diagnostic_status.Diagnostic_Message = NOERROR;
 	diagnostic_status.Description = "Node Initialized";
 	diagnostic_pub.publish(diagnostic_status);
     logger->log_info("Initialized!");
@@ -204,7 +204,7 @@ int get_pid()
 {
 	int id = -1;
 	std::string pid_filename;
-	pid_filename = "/tmp/output/PID/" + node_name;
+	pid_filename = "~/logs/output/PID/" + node_name;
 	char tempstr[130];
 	sprintf(tempstr,"top -bn1 | grep %s | awk ' { print $1 }' > %s",node_name.c_str(),pid_filename.c_str());
 	system(tempstr);  //First entry should be PID
@@ -226,7 +226,7 @@ int get_pid()
 bool check_resources()
 {
 	std::string resource_filename;
-	resource_filename = "/tmp/output/RESOURCE/" + node_name;
+	resource_filename = "~/logs/output/RESOURCE/" + node_name;
 	char tempstr[130];
 	sprintf(tempstr,"top -bn1 | grep %d > %s",pid,resource_filename.c_str());
 	system(tempstr); //RAM used is column 6, in KB.  CPU used is column 9, in percentage.
