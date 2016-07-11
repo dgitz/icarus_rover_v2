@@ -63,11 +63,12 @@ bool run_mediumrate_code()
 }
 bool run_slowrate_code()
 {
-	//logger->log_debug("Running slow rate code.");
+	logger->log_debug("Running slow rate code.");
 	if(check_resources() == false)
 	{
-		logger->log_fatal("Not able to check Node Resources.  Exiting.");
-		return false;
+		//logger->log_fatal("Not able to check Node Resources.  Exiting.");
+		logger->log_warn("Not able to check Node Resources.");
+		//return false;
 	}
 	resource_pub.publish(resources_used);
 	diagnostic_status.Diagnostic_Type = SOFTWARE;
@@ -178,9 +179,11 @@ bool initialize(ros::NodeHandle nh)
 	diagnostic_pub.publish(diagnostic_status);
     if(nh.getParam("sample_node/verbosity_level",verbosity_level) == false)
     {
-        logger = new Logger("FATAL",ros::this_node::getName());    
-        logger->log_fatal("Missing Parameter: verbosity_level. Exiting");
-        return false;
+    	logger->log_warn("Missing Parameter: verbosity_level");
+        logger = new Logger("WARN",ros::this_node::getName());
+        verbosity_level = "DEBUG";
+
+        //return false;
     }
     else
     {
@@ -188,14 +191,16 @@ bool initialize(ros::NodeHandle nh)
     }
     if(nh.getParam("sample_node/loop_rate",rate) == false)
     {
-        logger->log_fatal("Missing Parameter: loop_rate.  Exiting.");
-        return false;
+        logger->log_warn("Missing Parameter: loop_rate.");
+        rate = 10;
+        //return false;
     }
     pps_sub = nh.subscribe<std_msgs::Bool>("/pps",1000,PPS_Callback);  //This is a pps consumer.
     if(nh.getParam("sample_node/require_pps_to_start",require_pps_to_start) == false)
 	{
-		logger->log_fatal("Missing Parameter: require_pps_to_start.  Exiting.");
-		return false;
+		logger->log_warn("Missing Parameter: require_pps_to_start.");
+		require_pps_to_start = false;
+		//return false;
 	}
 
     //End Template Code: Initialization and Parameters
@@ -207,8 +212,9 @@ bool initialize(ros::NodeHandle nh)
     pid = get_pid();
     if(pid < 0)
     {
-    	logger->log_fatal("Couldn't retrieve PID. Exiting");
-    	return false;
+    	//logger->log_fatal("Couldn't retrieve PID. Exiting");
+    	//return false;
+    	logger->log_warn("Couldn't retrieve PID");
     }
     std::string topic = "/" + node_name + "/resource";
     resource_pub =  nh.advertise<icarus_rover_v2::resource>(topic,1000); //This is a pps source.
@@ -225,6 +231,7 @@ bool initialize(ros::NodeHandle nh)
 //Start Template Code: Function Definitions
 int get_pid()
 {
+	return -1; //For now
 	int id = -1;
 	std::string pid_filename;
 	pid_filename = "/home/robot/logs/output/PID/" + node_name;
@@ -248,6 +255,7 @@ int get_pid()
 }
 bool check_resources()
 {
+	return false; //For now.
 	std::string resource_filename;
 	resource_filename = "/home/robot/logs/output/RESOURCE/" + node_name;
 	char tempstr[130];
