@@ -5,6 +5,7 @@ project(icarus_rover_v2)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
+  cmake_modules
   roscpp
   rospy
   std_msgs
@@ -19,6 +20,7 @@ find_package(catkin REQUIRED COMPONENTS
 
 ## System dependencies are found with CMake's conventions
 find_package(Boost REQUIRED COMPONENTS system thread)
+find_package(TinyXML REQUIRED)
  
 #rosbuild_add_boost_directories()
 #rosbuild_link_boost(icarus_rover_v2 thread signals system)
@@ -112,7 +114,7 @@ catkin_package(
   INCLUDE_DIRS include
   LIBRARIES icarus_rover_v2
   CATKIN_DEPENDS roscpp rospy std_msgs
-  DEPENDS system_lib message_runtime
+  DEPENDS system_lib message_runtime TinyXML
 )
 
 ###########
@@ -125,6 +127,7 @@ catkin_package(
 include_directories(
   ${catkin_INCLUDE_DIRS}
   ${Boost_INCLUDE_DIRS}
+  ${TinyXML_INCLUDE_DIRS}
 )
 
 
@@ -214,3 +217,5 @@ add_library(logger util/logger.cpp)
 #target_link_libraries(diagnostic_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} logger)
 add_executable(sample_node src/Templates/sample_node.cpp)
 target_link_libraries(sample_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} logger)
+add_executable(master_node src/Control/master_node.cpp)
+target_link_libraries(master_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} logger)

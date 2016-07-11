@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <icarus_rover_v2/Definitions.h>
 #include <icarus_rover_v2/diagnostic.h>
+#include <tinyxml.h>
 
 
 //Start Template Code: Function Prototypes
@@ -20,7 +21,6 @@ double measure_time_diff(ros::Time timer_a, ros::Time tiber_b);
 
 //Start User Code: Function Prototypes
 //End User Code: Function Prototypes
-
 
 //Start Template Code: Define Global variables
 std::string node_name;
@@ -82,7 +82,7 @@ void PPS_Callback(const std_msgs::Bool::ConstPtr& msg)
 int main(int argc, char **argv)
 {
  
-	node_name = "sample_node";
+	node_name = "master_node";
 
 
     ros::init(argc, argv, node_name);
@@ -159,7 +159,7 @@ bool initialize(ros::NodeHandle nh)
 	diagnostic_status.Node_Name = node_name;
 	diagnostic_status.System = ROVER;
 	diagnostic_status.SubSystem = ROBOT_CONTROLLER;
-	diagnostic_status.Component = TIMING_NODE;
+	diagnostic_status.Component = CONTROLLER_NODE;
 
 	diagnostic_status.Diagnostic_Type = NOERROR;
 	diagnostic_status.Level = INFO;
