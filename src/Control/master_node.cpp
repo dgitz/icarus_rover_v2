@@ -17,6 +17,7 @@ bool run_mediumrate_code();
 bool run_slowrate_code();
 bool run_veryslowrate_code();
 double measure_time_diff(ros::Time timer_a, ros::Time tiber_b);
+void load_devicefile(TiXmlDocument doc);
 //Stop Template Code: Function Prototypes
 
 //Start User Code: Function Prototypes
@@ -195,6 +196,17 @@ bool initialize(ros::NodeHandle nh)
     //End Template Code: Initialization and Parameters
 
     //Start User Code: Initialization and Parameters
+    TiXmlDocument doc("/home/robot/config/DeviceFile.xml");
+    bool loaded = doc.LoadFile();
+    if(loaded == true)
+    {
+    	load_devicefile(doc);
+    }
+    else
+    {
+    	logger->log_fatal("Couldnot load DeviceFile.xml. Exiting.");
+    	return false;
+    }
     //Finish User Code: Initialization and Parameters
 
     //Start Template Code: Final Initialization.
@@ -211,5 +223,42 @@ double measure_time_diff(ros::Time timer_a, ros::Time timer_b)
 {
 	ros::Duration etime = timer_a - timer_b;
 	return etime.toSec();
+}
+void load_devicefile(TiXmlDocument doc)
+{
+	TiXmlElement *l_pRootElement = doc.RootElement();
+
+	if( NULL != l_pRootElement )
+	{
+	    // set of &lt;person&gt; tags
+	    TiXmlElement *l_pPeople = l_pRootElement->FirstChildElement( "DeviceList" );
+
+	    if ( NULL != l_pPeople )
+	    {
+	        TiXmlElement *l_pPerson = l_pPeople->FirstChildElement( "Device" );
+
+	        while( l_pPerson )
+	        {
+	            TiXmlElement *l_pForename = l_pPerson->FirstChildElement( "DeviceName" );
+
+	            if ( NULL != l_pForename )
+	            {
+	                std::cout << l_pForename->GetText();
+	            }
+
+	            TiXmlElement *l_pSurname = l_pPerson->FirstChildElement( "DeviceType" );
+
+	            if ( NULL != l_pSurname )
+	            {
+	                std::cout << " " << l_pSurname->GetText();
+	            }
+
+	            std::cout << std::endl;
+
+	            l_pPerson = l_pPerson->NextSiblingElement( "Device" );
+	        }
+	    }
+	}
+
 }
 //End Template Code: Function Definitions
