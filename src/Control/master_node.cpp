@@ -1,51 +1,5 @@
-#include "ros/ros.h"
-#include "std_msgs/String.h"
-#include "logger.h"
-#include <boost/algorithm/string.hpp>
-#include <std_msgs/Bool.h>
-#include <sstream>
-#include <stdlib.h>
-#include <icarus_rover_v2/Definitions.h>
-#include <icarus_rover_v2/diagnostic.h>
-#include <tinyxml.h>
+#include "master_node.h"
 
-
-//Start Template Code: Function Prototypes
-bool initialize(ros::NodeHandle nh);
-bool run_fastrate_code();
-bool run_mediumrate_code();
-bool run_slowrate_code();
-bool run_veryslowrate_code();
-double measure_time_diff(ros::Time timer_a, ros::Time tiber_b);
-void load_devicefile(TiXmlDocument doc);
-//Stop Template Code: Function Prototypes
-
-//Start User Code: Function Prototypes
-//End User Code: Function Prototypes
-
-//Start Template Code: Define Global variables
-std::string node_name;
-int rate = 1;
-std::string verbosity_level = "";
-ros::Publisher pps_pub;  //Not used as this is a pps consumer only.
-ros::Subscriber pps_sub;  
-ros::Publisher diagnostic_pub;
-icarus_rover_v2::diagnostic diagnostic_status;
-Logger *logger;
-bool require_pps_to_start = false;
-bool received_pps = false;
-ros::Time fast_timer; //50 Hz
-ros::Time medium_timer; //10 Hz
-ros::Time slow_timer; //1 Hz
-ros::Time veryslow_timer; //1 Hz
-ros::Time now;
-double mtime;
-//End Template Code: Define Global Variables
-
-//Start User Code: Define Global Variables
-//End User Code: Define Global Variables
-
-//Start Template Code: Function Definitions
 bool run_fastrate_code()
 {
 	//logger->log_debug("Running fast rate code.");
@@ -58,6 +12,7 @@ bool run_mediumrate_code()
 }
 bool run_slowrate_code()
 {
+	publish_deviceinfo();
 	//logger->log_debug("Running slow rate code.");
 	diagnostic_status.Diagnostic_Type = SOFTWARE;
 	diagnostic_status.Level = DEBUG;
@@ -69,7 +24,12 @@ bool run_slowrate_code()
 bool run_veryslowrate_code()
 {
 	//logger->log_debug("Running very slow rate code.");
+
 	return true;
+}
+void publish_deviceinfo()
+{
+	device_pub.publish(myDevice);
 }
 void PPS_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
@@ -152,9 +112,16 @@ int main(int argc, char **argv)
 
 bool initialize(ros::NodeHandle nh)
 {
-    
+	rate = 1;
+	verbosity_level = "";
+	require_pps_to_start = false;
+	received_pps = false;
+	char hostname[1024];
+	hostname[1023] = '\0';
+	gethostname(hostname,1023);
+	myDevice.DeviceName = hostname;
     //Start Template Code: Initialization and Parameters
-    printf("Node name: %s",node_name.c_str());
+    //printf("Node name: %s",node_name.c_str());
     std::string diagnostic_topic = "/" + node_name + "/diagnostic";
 	diagnostic_pub =  nh.advertise<icarus_rover_v2::diagnostic>(diagnostic_topic,1000);
 	diagnostic_status.Node_Name = node_name;
@@ -168,6 +135,10 @@ bool initialize(ros::NodeHandle nh)
 	diagnostic_status.Description = "Node Initializing";
 	diagnostic_pub.publish(diagnostic_status);
     std::string param_verbosity_level = node_name +"/verbosity_level";
+
+    std::string device_topic = "/" + node_name + "/device";
+    device_pub = nh.advertise<icarus_rover_v2::device>(device_topic,1000);
+
     if(nh.getParam(param_verbosity_level,verbosity_level) == false)
     {
     	
@@ -193,18 +164,19 @@ bool initialize(ros::NodeHandle nh)
 		return false;
 	}
 
+
     //End Template Code: Initialization and Parameters
 
     //Start User Code: Initialization and Parameters
-    TiXmlDocument doc("/home/robot/config/DeviceFile.xml");
-    bool loaded = doc.LoadFile();
-    if(loaded == true)
+    TiXmlDocument device_doc("/home/robot/config/DeviceFile.xml");
+    bool devicefile_loaded = device_doc.LoadFile();
+    if(devicefile_loaded == true)
     {
-    	load_devicefile(doc);
+    	parse_devicefile(device_doc);
     }
     else
     {
-    	logger->log_fatal("Couldnot load DeviceFile.xml. Exiting.");
+    	logger->log_fatal("Could not load or parse /home/robot/config/DeviceFile.xml. Exiting.");
     	return false;
     }
     //Finish User Code: Initialization and Parameters
@@ -216,6 +188,8 @@ bool initialize(ros::NodeHandle nh)
 	diagnostic_status.Description = "Node Initialized";
 	diagnostic_pub.publish(diagnostic_status);
     logger->log_info("Initialized!");
+    //print_myDevice();
+    //print_otherDevices();
     return true;
     //End Template Code: Finish Initialization.
 }
@@ -224,41 +198,76 @@ double measure_time_diff(ros::Time timer_a, ros::Time timer_b)
 	ros::Duration etime = timer_a - timer_b;
 	return etime.toSec();
 }
-void load_devicefile(TiXmlDocument doc)
+void parse_devicefile(TiXmlDocument doc)
 {
 	TiXmlElement *l_pRootElement = doc.RootElement();
 
 	if( NULL != l_pRootElement )
 	{
 	    // set of &lt;person&gt; tags
-	    TiXmlElement *l_pPeople = l_pRootElement->FirstChildElement( "DeviceList" );
+	    TiXmlElement *l_pDeviceList = l_pRootElement->FirstChildElement( "DeviceList" );
 
-	    if ( NULL != l_pPeople )
+	    if ( NULL != l_pDeviceList )
 	    {
-	        TiXmlElement *l_pPerson = l_pPeople->FirstChildElement( "Device" );
+	        TiXmlElement *l_pDevice = l_pDeviceList->FirstChildElement( "Device" );
 
-	        while( l_pPerson )
+	        while( l_pDevice )
 	        {
-	            TiXmlElement *l_pForename = l_pPerson->FirstChildElement( "DeviceName" );
+	        	icarus_rover_v2::device newDevice;
+	            TiXmlElement *l_pDeviceName = l_pDevice->FirstChildElement( "DeviceName" );
 
-	            if ( NULL != l_pForename )
+	            if ( NULL != l_pDeviceName )
 	            {
-	                std::cout << l_pForename->GetText();
+	                newDevice.DeviceName = l_pDeviceName->GetText();
 	            }
 
-	            TiXmlElement *l_pSurname = l_pPerson->FirstChildElement( "DeviceType" );
+	            TiXmlElement *l_pDeviceType = l_pDevice->FirstChildElement( "DeviceType" );
 
-	            if ( NULL != l_pSurname )
+	            if ( NULL != l_pDeviceType )
 	            {
-	                std::cout << " " << l_pSurname->GetText();
+	                //std::cout << " " << l_pDeviceType->GetText();
 	            }
 
-	            std::cout << std::endl;
+	            TiXmlElement *l_pDeviceArchitecture = l_pDevice->FirstChildElement( "Architecture" );
 
-	            l_pPerson = l_pPerson->NextSiblingElement( "Device" );
+				if ( NULL != l_pDeviceArchitecture )
+				{
+					//std::cout << " " << l_pDeviceArchitecture->GetText();
+					newDevice.Architecture = l_pDeviceArchitecture->GetText();
+				}
+
+	            //std::cout << std::endl;
+	            if(newDevice.DeviceName == myDevice.DeviceName)
+	            {
+	            	//This is me.
+	            	myDevice = newDevice;
+	            }
+	            else
+	            {
+	            	otherDevices.push_back(newDevice);
+	            }
+	            l_pDevice = l_pDevice->NextSiblingElement( "Device" );
 	        }
 	    }
 	}
+}
+void print_myDevice()
+{
+	printf("MY DEVICE\r\n------------------------\r\n");
+	printf("Device Name: %s\r\n",myDevice.DeviceName.c_str());
+	printf("Architecture: %s\r\n",myDevice.Architecture.c_str());
 
+	printf("----------------------\r\n");
+}
+void print_otherDevices()
+{
+	printf("OTHER DEVICES\r\n------------------------\r\n");
+	for(int i = 0; i < otherDevices.size();i++)
+	{
+		printf("Device Name: %s\r\n",otherDevices.at(i).DeviceName.c_str());
+		printf("Architecture: %s\r\n",otherDevices.at(i).Architecture.c_str());
+	}
+
+	printf("----------------------\r\n");
 }
 //End Template Code: Function Definitions

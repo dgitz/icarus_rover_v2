@@ -1,50 +1,5 @@
-#include "ros/ros.h"
-#include "std_msgs/String.h"
-#include "logger.h"
-#include <boost/algorithm/string.hpp>
-#include <std_msgs/Bool.h>
-#include <sstream>
-#include <stdlib.h>
-#include <icarus_rover_v2/Definitions.h>
-#include <icarus_rover_v2/diagnostic.h>
+#include "sample_node.h"
 
-
-//Start Template Code: Function Prototypes
-bool initialize(ros::NodeHandle nh);
-bool run_fastrate_code();
-bool run_mediumrate_code();
-bool run_slowrate_code();
-bool run_veryslowrate_code();
-double measure_time_diff(ros::Time timer_a, ros::Time tiber_b);
-//Stop Template Code: Function Prototypes
-
-//Start User Code: Function Prototypes
-//End User Code: Function Prototypes
-
-
-//Start Template Code: Define Global variables
-std::string node_name;
-int rate = 1;
-std::string verbosity_level = "";
-ros::Publisher pps_pub;  //Not used as this is a pps consumer only.
-ros::Subscriber pps_sub;  
-ros::Publisher diagnostic_pub;
-icarus_rover_v2::diagnostic diagnostic_status;
-Logger *logger;
-bool require_pps_to_start = false;
-bool received_pps = false;
-ros::Time fast_timer; //50 Hz
-ros::Time medium_timer; //10 Hz
-ros::Time slow_timer; //1 Hz
-ros::Time veryslow_timer; //1 Hz
-ros::Time now;
-double mtime;
-//End Template Code: Define Global Variables
-
-//Start User Code: Define Global Variables
-//End User Code: Define Global Variables
-
-//Start Template Code: Function Definitions
 bool run_fastrate_code()
 {
 	//logger->log_debug("Running fast rate code.");
@@ -52,6 +7,9 @@ bool run_fastrate_code()
 }
 bool run_mediumrate_code()
 {
+	char tempstr[50];
+	sprintf(tempstr,"MY DEVICE: %s/%s",myDevice.DeviceName.c_str(),myDevice.Architecture.c_str());
+	logger->log_info(tempstr);
 	//logger->log_debug("Running medium rate code.");
 	return true;
 }
@@ -74,6 +32,14 @@ void PPS_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
 	logger->log_info("Got pps");
 	received_pps = true;
+}
+void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg)
+{
+	icarus_rover_v2::device newdevice;
+	newdevice.DeviceName = msg->DeviceName;
+	newdevice.Architecture = msg->Architecture;
+	myDevice = newdevice;
+
 }
 //End Template Code: Function Definitions
 
@@ -154,6 +120,8 @@ bool initialize(ros::NodeHandle nh)
     
     //Start Template Code: Initialization and Parameters
     printf("Node name: %s",node_name.c_str());
+    myDevice.DeviceName = "";
+    myDevice.Architecture = "";
     std::string diagnostic_topic = "/" + node_name + "/diagnostic";
 	diagnostic_pub =  nh.advertise<icarus_rover_v2::diagnostic>(diagnostic_topic,1000);
 	diagnostic_status.Node_Name = node_name;
@@ -184,6 +152,12 @@ bool initialize(ros::NodeHandle nh)
         logger->log_warn("Missing Parameter: loop_rate.");
         return false;
     }
+    char hostname[1024];
+	hostname[1023] = '\0';
+	gethostname(hostname,1023);
+    std::string device_topic = "/" + std::string(hostname) +"_master_node/device";
+    device_sub = nh.subscribe<icarus_rover_v2::device>(device_topic,1000,Device_Callback);
+
     pps_sub = nh.subscribe<std_msgs::Bool>("/pps",1000,PPS_Callback);  //This is a pps consumer.
     std::string param_require_pps_to_start = node_name +"/require_pps_to_start";
     if(nh.getParam(param_require_pps_to_start,require_pps_to_start) == false)

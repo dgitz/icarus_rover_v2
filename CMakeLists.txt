@@ -59,6 +59,7 @@ add_message_files(
   FILES
   resource.msg
   diagnostic.msg
+  device.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -200,7 +201,7 @@ include_directories(
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
-include_directories(include ${catkin_INCLUDE_DIRS})
+include_directories(include ${catkin_INCLUDE_DIRS} ${roscpp_INCLUDE_DIRS})
 add_library(logger util/logger.cpp)
 
 #add_executable(sample_node src/sample_node.cpp)
@@ -218,4 +219,4 @@ add_library(logger util/logger.cpp)
 add_executable(sample_node src/Templates/sample_node.cpp)
 target_link_libraries(sample_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} logger)
 add_executable(master_node src/Control/master_node.cpp)
-target_link_libraries(master_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} logger)
+target_link_libraries(master_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger)
