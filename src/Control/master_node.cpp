@@ -13,6 +13,22 @@ bool run_mediumrate_code()
 bool run_slowrate_code()
 {
 	publish_deviceinfo();
+	pid = get_pid();
+	if(pid < 0)
+	{
+		logger->log_warn("Couldn't retrieve PID.");
+	}
+	else
+	{
+		if(check_resources(pid))
+		{
+			resource_pub.publish(resources_used);
+		}
+		else
+		{
+			logger->log_warn("Couldn't read resources used.");
+		}
+	}
 	//logger->log_debug("Running slow rate code.");
 	diagnostic_status.Diagnostic_Type = SOFTWARE;
 	diagnostic_status.Level = DEBUG;
@@ -24,7 +40,7 @@ bool run_slowrate_code()
 bool run_veryslowrate_code()
 {
 	//logger->log_debug("Running very slow rate code.");
-
+	logger->log_info("Node Running.");
 	return true;
 }
 void publish_deviceinfo()
@@ -120,6 +136,7 @@ bool initialize(ros::NodeHandle nh)
 	hostname[1023] = '\0';
 	gethostname(hostname,1023);
 	myDevice.DeviceName = hostname;
+	pid = -1;
     //Start Template Code: Initialization and Parameters
     //printf("Node name: %s",node_name.c_str());
     std::string diagnostic_topic = "/" + node_name + "/diagnostic";
@@ -138,6 +155,9 @@ bool initialize(ros::NodeHandle nh)
 
     std::string device_topic = "/" + node_name + "/device";
     device_pub = nh.advertise<icarus_rover_v2::device>(device_topic,1000);
+
+	std::string resource_topic = "/" + node_name + "/resource";
+	resource_pub = nh.advertise<icarus_rover_v2::resource>(resource_topic,1000);
 
     if(nh.getParam(param_verbosity_level,verbosity_level) == false)
     {
@@ -269,5 +289,69 @@ void print_otherDevices()
 	}
 
 	printf("----------------------\r\n");
+}
+bool check_resources(int procid)
+{
+	std::string resource_filename;
+	resource_filename = "/home/robot/logs/output/RESOURCE/" + node_name;
+	char tempstr[130];
+	sprintf(tempstr,"top -bn1 | grep %d > %s",procid,resource_filename.c_str());
+	//printf("Command: %s\r\n",tempstr);
+	system(tempstr); //RAM used is column 6, in KB.  CPU used is column 8, in percentage.
+	ifstream myfile;
+	myfile.open(resource_filename.c_str());
+	if(myfile.is_open())
+	{
+		std::string line;
+		getline(myfile,line);
+		std::vector<std::string> strs;
+		boost::split(strs,line,boost::is_any_of(" "),boost::token_compress_on);
+		resources_used.Node_Name = node_name;
+		resources_used.PID = pid;
+		resources_used.CPU_Perc = atoi(strs.at(8).c_str());
+		resources_used.RAM_MB = atoi(strs.at(6).c_str())/1000.0;
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+	myfile.close();
+	return false;
+}
+int get_pid()
+{
+	int id = -1;
+	std::string local_node_name;
+	local_node_name = node_name.substr(1,node_name.size());
+	std::string pid_filename;
+	pid_filename = "/home/robot/logs/output/PID" + node_name;
+	char tempstr[130];
+	sprintf(tempstr,"ps aux | grep __name:=%s > %s",local_node_name.c_str(),pid_filename.c_str());
+	system(tempstr);
+	ifstream myfile;
+	myfile.open(pid_filename.c_str());
+	if(myfile.is_open())
+	{
+		std::string line;
+		getline(myfile,line);
+		//printf("Line:%s\r\n",line.c_str());
+		std::size_t found = line.find("icarus_rover_v2/master_node");
+		if(found != std::string::npos)
+		{
+			std::vector <string> fields;
+			boost::split(fields,line,boost::is_any_of("\t "),boost::token_compress_on);
+			id =  atoi(fields.at(1).c_str());
+		}
+	}
+	else
+	{
+		id = -1;
+	}
+	myfile.close();
+	//printf("ID: %d\r\n",id);
+	//id = -1;
+	return id;
+
 }
 //End Template Code: Function Definitions

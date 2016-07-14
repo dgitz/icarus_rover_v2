@@ -10,6 +10,16 @@
 #include <icarus_rover_v2/device.h>
 #include <icarus_rover_v2/resource.h>
 
+//Start User Code: Data Structures
+struct Task
+{
+	std::string Task_Name;
+	ros::Time last_message_received;
+	int16_t CPU_Perc;
+	int64_t RAM_MB;
+	uint8_t last_diagnostic_level;
+};
+//End User Code: Data Structures
 
 //Start Template Code: Function Prototypes
 bool initialize(ros::NodeHandle nh);
@@ -25,8 +35,8 @@ bool check_resources(int procid);
 //Stop Template Code: Function Prototypes
 
 //Start User Code: Function Prototypes
+bool check_tasks();
 //End User Code: Function Prototypes
-
 
 //Start Template Code: Define Global variables
 std::string node_name;
@@ -53,4 +63,12 @@ bool device_initialized;
 int pid;
 //End Template Code: Define Global Variables
 
-//End Template Code: Function Definitions
+//Start User Code: Define Global Variables
+std::vector<Task> TaskList;
+int RAM_usage_threshold_MB;
+int CPU_usage_threshold_percent;
+ros::Time boot_time;
+//End User Code: Define Global Variables
+
+
+

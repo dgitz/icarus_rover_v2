@@ -1,62 +1,47 @@
-#include "ros/ros.h"
-#include "std_msgs/String.h"
-#include "logger.h"
-#include <boost/algorithm/string.hpp>
-#include <std_msgs/Bool.h>
-#include <sstream>
-#include <stdlib.h>
-#include <unistd.h>
-#include "message_filters/subscriber.h"
-#include <icarus_rover_v2/Definitions.h>
-#include <icarus_rover_v2/resource.h>
-#include <icarus_rover_v2/diagnostic.h>
+#include "diagnostic_node.h"
 
-
-//Template Code.  This should not be removed.
-//Function Prototypes
-bool initialize(ros::NodeHandle nh);
-int get_pid();
-bool check_resources();
-bool run_fastrate_code();
-bool run_mediumrate_code();
-bool run_slowrate_code();
-bool run_veryslowrate_code();
-double measure_time_diff(ros::Time timer_a, ros::Time tiber_b);
-bool check_tasks();
-
-//Define general variables, these should be defined for every node.
-std::string node_name;
-int rate = 1;
-std::string verbosity_level = "";
-ros::Publisher pps_pub;  //Not used as this is a pps consumer only.
-ros::Subscriber pps_sub;  
-ros::Publisher resource_pub;
-Logger *logger;
-bool require_pps_to_start = false;
-bool received_pps = false;
-int pid = -1;
-icarus_rover_v2::resource resources_used;
-ros::Time fast_timer; //50 Hz
-ros::Time medium_timer; //10 Hz
-ros::Time slow_timer; //1 Hz
-ros::Time veryslow_timer; //1 Hz
-ros::Time now;
-ros::Time boot_time;
-double mtime;
-
-
-//Define program variables.  These will vary based on the application.
-struct Task
+//Start User Code: Functions
+bool check_tasks()
 {
-	std::string Task_Name;
-	ros::Time last_message_received;
-	int RAM_MB;
-	int CPU_Perc;
-	int last_diagnostic_level;
-};
-std::vector<Task> TaskList;
-int RAM_usage_threshold_MB;
-int CPU_usage_threshold_percent;
+	std::vector<Task> TasksToCheck = TaskList;
+	int task_ok_counter = 0;
+	for(int i = 0; i < TasksToCheck.size(); i++)
+	{
+		bool task_ok = true;
+		Task newTask = TasksToCheck.at(i);
+		if(newTask.CPU_Perc > CPU_usage_threshold_percent)
+		{
+			task_ok = false;
+			char tempstr[200];
+			sprintf(tempstr,"Task: %s is using high CPU resource: %d/%d %",
+					newTask.Task_Name.c_str(),newTask.CPU_Perc,CPU_usage_threshold_percent);
+			logger->log_warn(tempstr);
+		}
+		if(newTask.RAM_MB > RAM_usage_threshold_MB)
+		{
+			task_ok = false;
+			char tempstr[200];
+			sprintf(tempstr,"Task: %s is using high RAM resource: %ld/%ld (MB)",
+					newTask.Task_Name.c_str(),newTask.RAM_MB,RAM_usage_threshold_MB);
+			logger->log_warn(tempstr);
+		}
+
+		if(task_ok == true){task_ok_counter++;}
+	}
+	if(task_ok_counter == TasksToCheck.size())
+	{
+		char tempstr[100];
+		sprintf(tempstr,"%d/%d (All) Tasks Operational.",task_ok_counter,TasksToCheck.size());
+		logger->log_info(tempstr);
+	}
+	else
+	{
+		char tempstr[100];
+		sprintf(tempstr,"%d/%d Tasks are in WARN state or Higher!",TasksToCheck.size()-task_ok_counter,TasksToCheck.size());
+		logger->log_warn(tempstr);
+	}
+	return true;
+}
 bool run_fastrate_code()
 {
 	//logger->log_debug("Running fast rate code.");
@@ -69,17 +54,35 @@ bool run_mediumrate_code()
 }
 bool run_slowrate_code()
 {
-	//logger->log_debug("Running slow rate code.");
-	if(check_resources() == false)
+	if(device_initialized == true)
 	{
-		logger->log_fatal("Not able to check Node Resources.  Exiting.");
-		return false;
+		pid = get_pid();
+		if(pid < 0)
+		{
+			logger->log_warn("Couldn't retrieve PID.");
+		}
+		else
+		{
+			if(check_resources(pid))
+			{
+				resource_pub.publish(resources_used);
+			}
+			else
+			{
+				logger->log_warn("Couldn't read resources used.");
+			}
+		}
 	}
-	resource_pub.publish(resources_used);
 	if(check_tasks() == false)
 	{
-		logger->log_fatal("Not able to check Tasks. Exiting");
+		logger->log_warn("Not able to check Tasks.");
 	}
+	//logger->log_debug("Running slow rate code.");
+	diagnostic_status.Diagnostic_Type = SOFTWARE;
+	diagnostic_status.Level = DEBUG;
+	diagnostic_status.Diagnostic_Message = NOERROR;
+	diagnostic_status.Description = "Node Executing.";
+	diagnostic_pub.publish(diagnostic_status);
 	return true;
 }
 bool run_veryslowrate_code()
@@ -87,11 +90,6 @@ bool run_veryslowrate_code()
 	//logger->log_debug("Running very slow rate code.");
 
 	return true;
-}
-void PPS_Callback(const std_msgs::Bool::ConstPtr& msg)
-{
-	//logger->log_info("Got pps");
-	received_pps = true;
 }
 void resource_Callback(const icarus_rover_v2::resource::ConstPtr& msg)
 {
@@ -115,11 +113,9 @@ void resource_Callback(const icarus_rover_v2::resource::ConstPtr& msg)
 		newTask.RAM_MB = msg->RAM_MB;
 		TaskList.push_back(newTask);
 	}
-
 }
 void diagnostic_Callback(const icarus_rover_v2::diagnostic::ConstPtr& msg)
 {
-
 	bool add_me = true;
 	for(int i = 0; i < TaskList.size();i++)
 	{
@@ -168,14 +164,135 @@ void diagnostic_Callback(const icarus_rover_v2::diagnostic::ConstPtr& msg)
 			break;
 	}
 }
+//End User Code: Functions
+
+//Start Initialize Function
+bool initialize(ros::NodeHandle nh)
+{
+    //Start Template Code: Initialization, Parameters and Topics
+    printf("Node name: %s\r\n",node_name.c_str());
+    myDevice.DeviceName = "";
+    myDevice.Architecture = "";
+    device_initialized = false;
+    pid = -1;
+    std::string diagnostic_topic = "/" + node_name + "/diagnostic";
+	diagnostic_pub =  nh.advertise<icarus_rover_v2::diagnostic>(diagnostic_topic,1000);
+	std::string resource_topic = "/" + node_name + "/resource";
+	resource_pub = nh.advertise<icarus_rover_v2::resource>(resource_topic,1000);
+
+	std::string param_verbosity_level = node_name +"/verbosity_level";
+	if(nh.getParam(param_verbosity_level,verbosity_level) == false)
+	{
+		logger = new Logger("FATAL",ros::this_node::getName());
+		logger->log_fatal("Missing Parameter: verbosity_level. Exiting");
+		return false;
+	}
+	else
+	{
+		logger = new Logger(verbosity_level,ros::this_node::getName());
+	}
+	std::string param_loop_rate = node_name +"/loop_rate";
+	if(nh.getParam(param_loop_rate,rate) == false)
+	{
+		logger->log_fatal("Missing Parameter: loop_rate.  Exiting.");
+		return false;
+	}
+	char hostname[1024];
+	hostname[1023] = '\0';
+	gethostname(hostname,1023);
+	std::string device_topic = "/" + std::string(hostname) +"_master_node/device";
+	device_sub = nh.subscribe<icarus_rover_v2::device>(device_topic,1000,Device_Callback);
+	pps_sub = nh.subscribe<std_msgs::Bool>("/pps",1000,PPS_Callback);  //This is a pps consumer.
+	 std::string param_require_pps_to_start = node_name +"/require_pps_to_start";
+	    if(nh.getParam(param_require_pps_to_start,require_pps_to_start) == false)
+		{
+			logger->log_fatal("Missing Parameter: require_pps_to_start.  Exiting.");
+			return false;
+		}
+	//End Template Code: Initialization, Parameters and Topics
+
+	//Start User Code: Initialization, Parameters and Topics
+	diagnostic_status.Node_Name = node_name;
+	diagnostic_status.System = ROVER;
+	diagnostic_status.SubSystem = ROBOT_CONTROLLER;
+	diagnostic_status.Component = TIMING_NODE;
+
+	diagnostic_status.Diagnostic_Type = NOERROR;
+	diagnostic_status.Level = INFO;
+	diagnostic_status.Diagnostic_Message = INITIALIZING;
+	diagnostic_status.Description = "Node Initializing";
+	diagnostic_pub.publish(diagnostic_status);
+	std::string param_ram_usage_threshold = node_name +"/RAM_usage_threshold_MB";
+	if(nh.getParam(param_ram_usage_threshold,RAM_usage_threshold_MB) == false)
+	{
+		logger->log_fatal("Missing Parameter: RAM_usage_threshold_MB.  Exiting.");
+		return false;
+	}
+	std::string param_CPU_usage_threshold = node_name + "/CPU_usage_threshold_percent";
+	if(nh.getParam(param_CPU_usage_threshold,CPU_usage_threshold_percent) == false)
+	{
+		logger->log_fatal("Missing Parameter: CPU_usage_threshold_percent.  Exiting.");
+		return false;
+	}
+
+	ros::master::V_TopicInfo master_topics;
+	ros::master::getTopics(master_topics);
+	std::vector<std::string> resource_topics;
+	std::vector<std::string> diagnostic_topics;
+	for (ros::master::V_TopicInfo::iterator it = master_topics.begin() ; it != master_topics.end(); it++)
+	{
+		const ros::master::TopicInfo& info = *it;
+		if(info.datatype == "icarus_rover_v2/resource")
+		{
+			resource_topics.push_back(info.name);
+		}
+		else if(info.datatype == "icarus_rover_v2/diagnostic")
+		{
+			diagnostic_topics.push_back(info.name);
+		}
+
+	}
+	ros::Subscriber * resource_subs;
+	resource_subs = new ros::Subscriber[resource_topics.size()];
+	for(int i = 0; i < resource_topics.size();i++)
+	{
+		char tempstr[50];
+		sprintf(tempstr,"Subscribing to resource topic: %s",resource_topics.at(i).c_str());
+		logger->log_info(tempstr);
+		resource_subs[i] = nh.subscribe<icarus_rover_v2::resource>(resource_topics.at(i),1000,resource_Callback);
+	}
+
+	ros::Subscriber * diagnostic_subs;
+	diagnostic_subs = new ros::Subscriber[diagnostic_topics.size()];
+	for(int i = 0; i < diagnostic_topics.size();i++)
+	{
+		char tempstr[50];
+		sprintf(tempstr,"Subscribing to diagnostic topic: %s",diagnostic_topics.at(i).c_str());
+		logger->log_info(tempstr);
+		diagnostic_subs[i] = nh.subscribe<icarus_rover_v2::diagnostic>(diagnostic_topics.at(i),1000,diagnostic_Callback);
+	}
+	//End User Code: Initialization, Parameters and Topics
+    logger->log_info("Initialized!");
+    return true;
+}
+//End Initialize Function
+
+//Start Main Loop
 int main(int argc, char **argv)
 {
 	usleep(2000000); //Wait 2 seconds for other nodes to start.
 	node_name = "diagnostic_node";
     ros::init(argc, argv, node_name);
+    node_name = ros::this_node::getName();
     ros::NodeHandle n;
     if(initialize(n) == false)
     {
+        logger->log_fatal("Unable to Initialize.  Exiting.");
+    	diagnostic_status.Diagnostic_Type = SOFTWARE;
+		diagnostic_status.Level = FATAL;
+		diagnostic_status.Diagnostic_Message = INITIALIZING_ERROR;
+		diagnostic_status.Description = "Node Initializing Error.";
+		diagnostic_pub.publish(diagnostic_status);
         return 0; 
     }
     ros::Rate loop_rate(rate);
@@ -227,209 +344,73 @@ int main(int argc, char **argv)
     }
     return 0;
 }
+//End Main Loop
 
-bool initialize(ros::NodeHandle nh)
+//Start Template Code: Functions
+void PPS_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
-    //Template code.  This should not be changed.
-    if(nh.getParam("diagnostic_node/verbosity_level",verbosity_level) == false)
-    {
-        logger = new Logger("FATAL",ros::this_node::getName());    
-        logger->log_fatal("Missing Parameter: verbosity_level. Exiting");
-        return false;
-    }
-    else
-    {
-        logger = new Logger(verbosity_level,ros::this_node::getName());      
-    }
-    if(nh.getParam("diagnostic_node/loop_rate",rate) == false)
-    {
-        logger->log_fatal("Missing Parameter: loop_rate.  Exiting.");
-        return false;
-    }
-    pps_sub = nh.subscribe<std_msgs::Bool>("/pps",1000,PPS_Callback);  //This is a pps consumer.
-
-    if(nh.getParam("diagnostic_node/require_pps_to_start",require_pps_to_start) == false)
-	{
-		logger->log_fatal("Missing Parameter: require_pps_to_start.  Exiting.");
-		return false;
-	}
-    //Free to edit code from here.
-    if(nh.getParam("diagnostic_node/RAM_usage_threshold_MB",RAM_usage_threshold_MB) == false)
-	{
-		logger->log_fatal("Missing Parameter: RAM_usage_threshold_MB.  Exiting.");
-		return false;
-	}
-    if(nh.getParam("diagnostic_node/CPU_usage_threshold_percent",CPU_usage_threshold_percent) == false)
-	{
-		logger->log_fatal("Missing Parameter: CPU_usage_threshold_percent.  Exiting.");
-		return false;
-	}
-
-    ros::master::V_TopicInfo master_topics;
-    ros::master::getTopics(master_topics);
-    std::vector<std::string> resource_topics;
-    std::vector<std::string> diagnostic_topics;
-    for (ros::master::V_TopicInfo::iterator it = master_topics.begin() ; it != master_topics.end(); it++)
-    {
-    	const ros::master::TopicInfo& info = *it;
-    	if(info.datatype == "icarus_rover_v2/resource")
-    	{
-    		resource_topics.push_back(info.name);
-    	}
-    	else if(info.datatype == "icarus_rover_v2/diagnostic")
-		{
-    		diagnostic_topics.push_back(info.name);
-		}
-
-    }
-    ros::Subscriber * resource_subs;
-    resource_subs = new ros::Subscriber[resource_topics.size()];
-    for(int i = 0; i < resource_topics.size();i++)
-    {
-    	char tempstr[50];
-    	sprintf(tempstr,"Subscribing to resource topic: %s",resource_topics.at(i).c_str());
-    	logger->log_info(tempstr);
-    	resource_subs[i] = nh.subscribe<icarus_rover_v2::resource>(resource_topics.at(i),1000,resource_Callback);
-    }
-
-    ros::Subscriber * diagnostic_subs;
-    diagnostic_subs = new ros::Subscriber[diagnostic_topics.size()];
-    for(int i = 0; i < diagnostic_topics.size();i++)
-	{
-		char tempstr[50];
-		sprintf(tempstr,"Subscribing to diagnostic topic: %s",diagnostic_topics.at(i).c_str());
-		logger->log_info(tempstr);
-		diagnostic_subs[i] = nh.subscribe<icarus_rover_v2::diagnostic>(diagnostic_topics.at(i),1000,diagnostic_Callback);
-	}
-    //More Template code here.  Do not edit.
-    pid = get_pid();
-    if(pid < 0)
-    {
-    	logger->log_fatal("Couldn't retrieve PID. Exiting");
-    	return false;
-    }
-    resource_pub =  nh.advertise<icarus_rover_v2::resource>("/diagnostic_node/resource",1000); //This is a pps source.
-    logger->log_info("Initialized!");
-    return true;
+	//logger->log_info("Got pps");
+	received_pps = true;
 }
-
 int get_pid()
 {
 	int id = -1;
+	std::string local_node_name;
+	local_node_name = node_name.substr(1,node_name.size());
 	std::string pid_filename;
-	pid_filename = "/home/robot/logs/output/PID/" + node_name;
+	pid_filename = "/home/robot/logs/output/PID" + node_name;
 	char tempstr[130];
-
-	sprintf(tempstr,"top -bn1 | grep %s | awk ' { print $1 }' > %s",node_name.c_str(),pid_filename.c_str());
-	system(tempstr);  //First entry should be PID
+	sprintf(tempstr,"ps aux | grep __name:=%s > %s",local_node_name.c_str(),pid_filename.c_str());
+	system(tempstr);
 	ifstream myfile;
 	myfile.open(pid_filename.c_str());
 	if(myfile.is_open())
 	{
 		std::string line;
 		getline(myfile,line);
-		id =  atoi(line.c_str());
+		//printf("Line:%s\r\n",line.c_str());
+		std::size_t found = line.find("icarus_rover_v2/diagnostic_node");
+		if(found != std::string::npos)
+		{
+			std::vector <string> fields;
+			boost::split(fields,line,boost::is_any_of("\t "),boost::token_compress_on);
+			id =  atoi(fields.at(1).c_str());
+		}
 	}
 	else
 	{
 		id = -1;
 	}
 	myfile.close();
+	//printf("ID: %d\r\n",id);
+	//id = -1;
 	return id;
-}
-bool check_tasks()
-{
-	int task_ok_counter = 0;
-	for(int i = 0; i < TaskList.size();i++)
-	{
-		bool task_ok = false;
-		//char tempstr[100];
-		//sprintf(tempstr,"Task: %s last msg: %f",TaskList.at(i).Task_Name.c_str(),TaskList.at(i).last_message_received);
-		//logger->log_debug(std::string(tempstr));
-		if(TaskList.at(i).RAM_MB > RAM_usage_threshold_MB)
-		{
-			task_ok = false;
-			char tempstr[100];
-			sprintf(tempstr,"Task: %s exceeds RAM:  %d/%d",
-					TaskList.at(i).Task_Name.c_str(),TaskList.at(i).RAM_MB,RAM_usage_threshold_MB);
-			double ram_exceeded_factor = (double)(TaskList.at(i).RAM_MB/RAM_usage_threshold_MB);
-			if(ram_exceeded_factor < 2.0)
-			{
-				logger->log_warn(std::string(tempstr));
-			}
-			else if(ram_exceeded_factor < 4.0)
-			{
-				logger->log_error(std::string(tempstr));
-			}
-			else
-			{
-				logger->log_fatal(std::string(tempstr));
-			}
-		}
-		if(TaskList.at(i).CPU_Perc > CPU_usage_threshold_percent)
-		{
-			task_ok = false;
-			char tempstr[100];
-			sprintf(tempstr,"Task: %s exceeds CPU Usage:  %d/%d",
-					TaskList.at(i).Task_Name.c_str(),TaskList.at(i).CPU_Perc,CPU_usage_threshold_percent);
-			double cpu_exceeded_factor = (double)(TaskList.at(i).CPU_Perc/CPU_usage_threshold_percent);
-			if(cpu_exceeded_factor < 2.0)
-			{
-				logger->log_warn(std::string(tempstr));
-			}
-			else if(cpu_exceeded_factor < 4.0)
-			{
-				logger->log_error(std::string(tempstr));
-			}
-			else
-			{
-				logger->log_fatal(std::string(tempstr));
-			}
-		}
-		double etime;
-		etime = measure_time_diff(ros::Time::now(),TaskList.at(i).last_message_received);
-		char tempstr[100];
-		sprintf(tempstr,"Task: %s not heard from for: %f seconds",TaskList.at(i).Task_Name.c_str(),etime);
-		if(etime < 1.0)
-		{
-			task_ok = true;
-		}
-		else if(etime < 2.0)
-		{
-			task_ok = false;
-			logger->log_warn(std::string(tempstr));
-		}
-		else
-		{
-			task_ok = false;
-			logger->log_fatal(std::string(tempstr));
-		}
-		if(TaskList.at(i).last_diagnostic_level >= WARN)
-		{
-			task_ok = false;
-		}
-		if(task_ok == true){ task_ok_counter++;}
 
-	}
-	if(task_ok_counter == TaskList.size())
-	{
-		logger->log_info("All Tasks Operational!");
-	}
-	else
-	{
-		char tempstr[100];
-		sprintf(tempstr,"%d/%d Tasks are WARN or Higher!",TaskList.size()-task_ok_counter,TaskList.size());
-		logger->log_error(std::string(tempstr));
-	}
-	return true;
 }
-bool check_resources()
+void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg)
+{
+	icarus_rover_v2::device newdevice;
+	newdevice.DeviceName = msg->DeviceName;
+	newdevice.Architecture = msg->Architecture;
+	myDevice = newdevice;
+	if(myDevice.DeviceName != "")
+	{
+		device_initialized = true;
+	}
+}
+double measure_time_diff(ros::Time timer_a, ros::Time timer_b)
+{
+	ros::Duration etime = timer_a - timer_b;
+	return etime.toSec();
+}
+bool check_resources(int procid)
 {
 	std::string resource_filename;
 	resource_filename = "/home/robot/logs/output/RESOURCE/" + node_name;
 	char tempstr[130];
-	sprintf(tempstr,"top -bn1 | grep %d > %s",pid,resource_filename.c_str());
-	system(tempstr); //RAM used is column 6, in KB.  CPU used is column 9, in percentage.
+	sprintf(tempstr,"top -bn1 | grep %d > %s",procid,resource_filename.c_str());
+	//printf("Command: %s\r\n",tempstr);
+	system(tempstr); //RAM used is column 6, in KB.  CPU used is column 8, in percentage.
 	ifstream myfile;
 	myfile.open(resource_filename.c_str());
 	if(myfile.is_open())
@@ -438,21 +419,17 @@ bool check_resources()
 		getline(myfile,line);
 		std::vector<std::string> strs;
 		boost::split(strs,line,boost::is_any_of(" "),boost::token_compress_on);
+		resources_used.Node_Name = node_name;
 		resources_used.PID = pid;
-		resources_used.CPU_Perc = atoi(strs.at(9).c_str());
+		resources_used.CPU_Perc = atoi(strs.at(8).c_str());
 		resources_used.RAM_MB = atoi(strs.at(6).c_str())/1000.0;
 		return true;
 	}
 	else
 	{
-		logger->log_fatal("Unable to check Node Resources. Exiting");
 		return false;
 	}
 	myfile.close();
-
+	return false;
 }
-double measure_time_diff(ros::Time timer_a, ros::Time timer_b)
-{
-	ros::Duration etime = timer_a - timer_b;
-	return etime.toSec();
-}
+//End Template Code: Functions
