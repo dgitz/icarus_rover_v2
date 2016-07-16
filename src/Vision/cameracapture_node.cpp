@@ -1,10 +1,6 @@
-#include "vision_node.h"
+#include "cameracapture_node.h"
 
 //Start User Code: Functions
-void image_Callback(const sensor_msgs::ImageConstPtr& msg)
-{
-	logger->log_debug("Got Image.");
-}
 bool run_fastrate_code()
 {
 	//logger->log_debug("Running fast rate code.");
@@ -36,6 +32,7 @@ bool run_slowrate_code()
 			}
 		}*/
 	}
+    
 	//logger->log_debug("Running slow rate code.");
 	diagnostic_status.Diagnostic_Type = SOFTWARE;
 	diagnostic_status.Level = DEBUG;
@@ -110,17 +107,15 @@ bool initialize(ros::NodeHandle nh)
 	diagnostic_status.Description = "Node Initializing";
 	diagnostic_pub.publish(diagnostic_status);
 
-
-	//std::string image_topic = node_name + "/image_raw";
-	std::string image_topic = "/" + std::string(hostname) +"_usb_cam/image_raw";
-	//printf("Subscribing to: %s\r\n",image_topic.c_str());
-	//device_sub = nh.subscribe<icarus_rover_v2::device>(device_topic,1000,Device_Callback);
-	image_sub = nh.subscribe<sensor_msgs::Image>(image_topic, 1, image_Callback);
-	printf("Subscribing to: %s\r\n",image_sub.getTopic().c_str());
-	//image_transport::ImageTransport imagetransport(nh);;
-	//image_transport::Subscriber image_sub = imagetransport.subscribe(image_topic, 1, image_Callback);
-
-	//image_sub = it.subscribe("camera/image",1,image_Callback);
+    capture = cvCaptureFromCAM(0);
+    if(!capture)
+    {
+        printf("Can't initialize camera!\r\n");
+    }
+    else
+    {
+        printf("Camera working!\r\n");
+    }
 	//End User Code: Initialization, Parameters and Topics
     logger->log_info("Initialized!");
     return true;
@@ -130,7 +125,7 @@ bool initialize(ros::NodeHandle nh)
 //Start Main Loop
 int main(int argc, char **argv)
 {
-	node_name = "vision_node";
+	node_name = "cameracapture_node";
     ros::init(argc, argv, node_name);
     node_name = ros::this_node::getName();
     ros::NodeHandle n;

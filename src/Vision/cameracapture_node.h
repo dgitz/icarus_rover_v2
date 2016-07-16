@@ -10,9 +10,11 @@
 #include <icarus_rover_v2/device.h>
 #include <icarus_rover_v2/resource.h>
 //Start User Code: Includes
-#include <cv_bridge/cv_bridge.h>
-#include <sensor_msgs/image_encodings.h>
-#include <sensor_msgs/Image.h>
+#include <cv.h>
+#include "highgui.h"
+//#include <cv_bridge/cv_bridge.h>
+//#include <sensor_msgs/image_encodings.h>
+//#include <sensor_msgs/Image.h>
 //End User Code: Includes
 
 //Start User Code: Data Structures
@@ -61,8 +63,7 @@ int pid;
 //End Template Code: Define Global Variables
 
 //Start User Code: Define Global Variables
-ros::Subscriber image_sub;
-void image_Callback(sensor_msgs::ImageConstPtr& msg);
+CvCapture *capture;
 //End User Code: Define Global Variables
 
 
