@@ -1,6 +1,20 @@
 #include "cameracapture_node.h"
 
 //Start User Code: Functions
+bool acquire_image(cv::VideoCapture cap)
+{
+    cv_bridge::CvImage cv_image;
+    cap >> cv_image;
+    sensor_msgs::Image ros_image;
+    cv_image.toImageMsg(ros_image);
+    //char tempstr[30];
+    //cv_bridge::CvImage cv_image;
+    //sprintf(tempstr,"/home/robot/temp/test_%d.png",counter);
+ 
+    //bool status = cv::imwrite(tempstr,image,compression_params);
+    //counter++;
+    return true;
+}
 bool run_fastrate_code()
 {
 	//logger->log_debug("Running fast rate code.");
@@ -13,7 +27,7 @@ bool run_mediumrate_code()
 }
 bool run_slowrate_code()
 {
-	if(device_initialized == true)
+ 	if(device_initialized == true)
 	{
 		/*pid = get_pid();
 		if(pid < 0)
@@ -107,15 +121,8 @@ bool initialize(ros::NodeHandle nh)
 	diagnostic_status.Description = "Node Initializing";
 	diagnostic_pub.publish(diagnostic_status);
 
-    capture = cvCaptureFromCAM(0);
-    if(!capture)
-    {
-        printf("Can't initialize camera!\r\n");
-    }
-    else
-    {
-        printf("Camera working!\r\n");
-    }
+    image_pub = nh.advertise<sensor_msgs::Image>("/camera_image",1000);
+    counter = 0;
 	//End User Code: Initialization, Parameters and Topics
     logger->log_info("Initialized!");
     return true;
@@ -145,6 +152,19 @@ int main(int argc, char **argv)
     medium_timer = now;
     slow_timer = now;
     veryslow_timer = now;
+    cv::VideoCapture capture(0);
+    capture.set(CV_CAP_PROP_FRAME_WIDTH, 320);
+    capture.set(CV_CAP_PROP_FRAME_HEIGHT, 240);
+    compression_params.push_back(CV_IMWRITE_PNG_COMPRESSION);
+    compression_params.push_back(3);
+    if(!capture.isOpened())  // check if we succeeded
+    {
+        printf("Can't initialize camera!\r\n");
+    }
+    else
+    {
+        printf("Camera working!\r\n");
+    }
     while (ros::ok())
     {
     	bool ok_to_start = false;
@@ -169,6 +189,7 @@ int main(int argc, char **argv)
 			if(mtime > 1.0)
 			{
 				run_slowrate_code();
+                acquire_image(capture);
 				slow_timer = ros::Time::now();
 			}
 			mtime = measure_time_diff(now,veryslow_timer);

@@ -10,11 +10,10 @@
 #include <icarus_rover_v2/device.h>
 #include <icarus_rover_v2/resource.h>
 //Start User Code: Includes
-#include <cv.h>
-#include "highgui.h"
+#include "opencv2/opencv.hpp"
+#include "sensor_msgs/Image.h"
 //#include <cv_bridge/cv_bridge.h>
-//#include <sensor_msgs/image_encodings.h>
-//#include <sensor_msgs/Image.h>
+//#include <image_transport/image_transport.h>
 //End User Code: Includes
 
 //Start User Code: Data Structures
@@ -35,6 +34,7 @@ bool check_resources(int procid);
 
 //Start User Code: Function Prototypes
 bool check_tasks();
+bool acquire_image(cv::VideoCapture cap);
 //End User Code: Function Prototypes
 
 //Start Template Code: Define Global variables
@@ -63,7 +63,11 @@ int pid;
 //End Template Code: Define Global Variables
 
 //Start User Code: Define Global Variables
-CvCapture *capture;
+//cv::VideoCapture *capture2;
+vector<int> compression_params;
+ros::Publisher image_pub;
+int16_t counter;
+//CvCapture *capture;
 //End User Code: Define Global Variables
 
 
