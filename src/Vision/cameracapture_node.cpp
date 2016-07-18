@@ -3,10 +3,17 @@
 //Start User Code: Functions
 bool acquire_image(cv::VideoCapture cap)
 {
+    ros::Time start = ros::Time::now();
     cv_bridge::CvImage cv_image;
-    //cap >> cv_image;
-    sensor_msgs::Image ros_image;
-    cv_image.toImageMsg(ros_image);
+    cv::Mat frame;
+    cap >> frame;
+    cv_image.encoding = "rgb8";
+    cv_image.header.stamp = ros::Time::now();
+    cv_image.header.frame_id = "/world";
+    cv_image.image = frame;
+    image_pub.publish(cv_image.toImageMsg());
+    ros::Duration how_long = ros::Time::now() - start;
+    printf("Duration: %f\r\n",how_long.toSec());
     //char tempstr[30];
     //cv_bridge::CvImage cv_image;
     //sprintf(tempstr,"/home/robot/temp/test_%d.png",counter);
@@ -177,19 +184,21 @@ int main(int argc, char **argv)
 			if(mtime > .02)
 			{
 				run_fastrate_code();
+                acquire_image(capture);
 				fast_timer = ros::Time::now();
 			}
 			mtime = measure_time_diff(now,medium_timer);
 			if(mtime > 0.1)
 			{
 				run_mediumrate_code();
+                
 				medium_timer = ros::Time::now();
 			}
 			mtime = measure_time_diff(now,slow_timer);
 			if(mtime > 1.0)
 			{
 				run_slowrate_code();
-                acquire_image(capture);
+                
 				slow_timer = ros::Time::now();
 			}
 			mtime = measure_time_diff(now,veryslow_timer);
