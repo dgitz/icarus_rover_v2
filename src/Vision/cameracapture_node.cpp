@@ -4,7 +4,7 @@
 bool acquire_image(cv::VideoCapture cap)
 {
     cv_bridge::CvImage cv_image;
-    cap >> cv_image;
+    //cap >> cv_image;
     sensor_msgs::Image ros_image;
     cv_image.toImageMsg(ros_image);
     //char tempstr[30];

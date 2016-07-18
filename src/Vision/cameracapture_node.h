@@ -12,7 +12,7 @@
 //Start User Code: Includes
 #include "opencv2/opencv.hpp"
 #include "sensor_msgs/Image.h"
-//#include <cv_bridge/cv_bridge.h>
+#include <cv_bridge/cv_bridge.h>
 //#include <image_transport/image_transport.h>
 //End User Code: Includes
 

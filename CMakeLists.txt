@@ -12,7 +12,7 @@ find_package(catkin REQUIRED COMPONENTS
   roslaunch
     message_generation
   sensor_msgs
-  #cv_bridge
+  cv_bridge
   #urdf
   #tf
   #moveit_ros_planning_interface
