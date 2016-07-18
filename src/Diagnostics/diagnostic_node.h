@@ -14,7 +14,9 @@
 struct Task
 {
 	std::string Task_Name;
-	ros::Time last_message_received;
+	ros::Time last_diagnostic_received;
+	ros::Time last_resource_received;
+	int16_t PID;
 	int16_t CPU_Perc;
 	int64_t RAM_MB;
 	uint8_t last_diagnostic_level;

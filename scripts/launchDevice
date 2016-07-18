@@ -9,8 +9,8 @@ function launch_device ()
     cd ~/catkin_ws
     source devel/setup.bash
     source ~/.bashrc
-    touch ~/$1
-    boot_file="/home/robot/logs/"$1"_log.txt"
+    #touch ~/$1
+    boot_file="/home/robot/logs/output/"$1"_log.txt"
     echo "MY HOSTNAME:" $HOSTNAME >> $boot_file
     export ROS_HOSTNAME=$HOSTNAME
     export ROS_IP=$HOSTNAME

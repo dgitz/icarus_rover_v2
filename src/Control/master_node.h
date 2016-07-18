@@ -1,5 +1,6 @@
 #ifndef MASTER_H
 #define MASTER_H
+//Start Template Code: Includes
 #include "ros/ros.h"
 #include "std_msgs/String.h"
 #include "logger.h"
@@ -11,7 +12,12 @@
 #include <icarus_rover_v2/diagnostic.h>
 #include <icarus_rover_v2/device.h>
 #include <icarus_rover_v2/resource.h>
+//End Template Code: Includes
+//Start User Code: Includes
 #include <tinyxml.h>
+#include <iostream>
+#include <string>
+//End User Code: Includes
 
 
 //Start Template Code: Function Prototypes
@@ -28,7 +34,13 @@ void print_otherDevices();
 void publish_deviceinfo();
 int get_pid();
 bool check_resources(int procid);
+//End Template Code: Function Prototypes
 
+//Start User Code: Function Prototypes
+double read_device_temperature();
+//End User Code: Function Prototypes
+
+//Start Template Code: Global Variables
 std::string node_name;
 int rate;
 std::string verbosity_level;
@@ -48,9 +60,13 @@ ros::Time veryslow_timer;
 ros::Time now;
 double mtime;
 int pid;
+//End Template Code: Global Variables
+
+//Start User Code: Global Variables
 icarus_rover_v2::device myDevice;
 std::vector<icarus_rover_v2::device> otherDevices;
-
 std::vector<std::string> NodeList;
-//End Template Code: Function Definitions
+double device_temperature;
+//End User Code: Global Variables
+
 #endif

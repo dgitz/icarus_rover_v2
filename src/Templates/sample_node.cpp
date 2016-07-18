@@ -1,5 +1,5 @@
 #include "sample_node.h"
-
+//Start User Code: Functions
 bool run_fastrate_code()
 {
 	//logger->log_debug("Running fast rate code.");
@@ -46,11 +46,9 @@ bool run_veryslowrate_code()
 	logger->log_info("Node Running.");
 	return true;
 }
+//End User Code: Functions
 
-//End Template Code: Function Definitions
-
-//Start User Code: Function Definitions
-//Finish User Code: Function Definitions
+//Start Template Code: Functions
 int main(int argc, char **argv)
 {
  
@@ -123,9 +121,7 @@ int main(int argc, char **argv)
 
 bool initialize(ros::NodeHandle nh)
 {
-    
     //Start Template Code: Initialization and Parameters
-    printf("Node name: %s\r\n",node_name.c_str());
     myDevice.DeviceName = "";
     myDevice.Architecture = "";
     device_initialized = false;
@@ -149,7 +145,6 @@ bool initialize(ros::NodeHandle nh)
     std::string param_verbosity_level = node_name +"/verbosity_level";
     if(nh.getParam(param_verbosity_level,verbosity_level) == false)
     {
-    	
         logger = new Logger("WARN",ros::this_node::getName());
         logger->log_warn("Missing Parameter: verbosity_level");
         return false;
@@ -205,6 +200,11 @@ void PPS_Callback(const std_msgs::Bool::ConstPtr& msg)
 }
 bool check_resources(int procid)
 {
+	if(procid <= 0)
+	{
+		resources_used.PID = procid;
+		return false;
+	}
 	std::string resource_filename;
 	resource_filename = "/home/robot/logs/output/RESOURCE/" + node_name;
 	char tempstr[130];
@@ -220,7 +220,7 @@ bool check_resources(int procid)
 		std::vector<std::string> strs;
 		boost::split(strs,line,boost::is_any_of(" "),boost::token_compress_on);
 		resources_used.Node_Name = node_name;
-		resources_used.PID = pid;
+		resources_used.PID = procid;
 		resources_used.CPU_Perc = atoi(strs.at(8).c_str());
 		resources_used.RAM_MB = atoi(strs.at(6).c_str())/1000.0;
 		return true;
@@ -262,10 +262,7 @@ int get_pid()
 		id = -1;
 	}
 	myfile.close();
-	//printf("ID: %d\r\n",id);
-	//id = -1;
 	return id;
-
 }
 void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg)
 {
@@ -278,4 +275,4 @@ void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg)
 		device_initialized = true;
 	}
 }
-//End Template Code: Function Definitions
+//End Template Code: Functions

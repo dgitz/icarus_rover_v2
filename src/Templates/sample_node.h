@@ -1,3 +1,6 @@
+#ifndef SAMPLE_H
+#define SAMPLE_H
+//Start Template Code: Includes
 #include "ros/ros.h"
 #include "std_msgs/String.h"
 #include "logger.h"
@@ -9,6 +12,10 @@
 #include <icarus_rover_v2/diagnostic.h>
 #include <icarus_rover_v2/device.h>
 #include <icarus_rover_v2/resource.h>
+//End Template Code: Includes
+
+//Start User Code: Includes
+//End User Code: Includes
 
 
 //Start Template Code: Function Prototypes
@@ -53,4 +60,6 @@ bool device_initialized;
 int pid;
 //End Template Code: Define Global Variables
 
-//End Template Code: Function Definitions
+//Start User Code: Define Global Variables
+//End User Code: Define Global Variables
+#endif

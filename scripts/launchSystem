@@ -17,7 +17,7 @@ function launch_device_remote ()
 function launch_device_local ()
 {
     #echo "Going to Local Launch: roslaunch icarus_rover_v2 "$1".launch"
-    launch_command="screen -dmS robot ./scripts/launchDevice -d $1"
+    launch_command="cd ~ && screen -dmS robot ./scripts/launchDevice -d $1"
     eval $launch_command
 }
 

@@ -25,6 +25,31 @@ bool check_tasks()
 					newTask.Task_Name.c_str(),newTask.RAM_MB,RAM_usage_threshold_MB);
 			logger->log_warn(tempstr);
 		}
+		if(newTask.PID <= 0)
+		{
+			task_ok = false;
+			char tempstr[200];
+			sprintf(tempstr,"Task: %s does not have a valid PID.",newTask.Task_Name.c_str());
+			logger->log_warn(tempstr);
+		}
+		double resource_time_duration = measure_time_diff(ros::Time::now(),newTask.last_resource_received);
+		//printf("Task: %s Resource Time: %f\r\n",newTask.Task_Name.c_str(),resource_time_duration);
+		if( resource_time_duration > 5.0)
+		{
+			task_ok = false;
+			char tempstr[200];
+			sprintf(tempstr,"Task: %s has not reported resources used in %.1f seconds",newTask.Task_Name.c_str(),resource_time_duration);
+			logger->log_warn(tempstr);
+		}
+		double diagnostic_time_duration = measure_time_diff(ros::Time::now(),newTask.last_diagnostic_received);
+		if( resource_time_duration > 5.0)
+		{
+			task_ok = false;
+			char tempstr[200];
+			sprintf(tempstr,"Task: %s has not reported diagnostics in %.1f seconds",newTask.Task_Name.c_str(),diagnostic_time_duration);
+			logger->log_warn(tempstr);
+		}
+
 
 		if(task_ok == true){task_ok_counter++;}
 	}
@@ -93,25 +118,16 @@ bool run_veryslowrate_code()
 }
 void resource_Callback(const icarus_rover_v2::resource::ConstPtr& msg)
 {
-	bool add_me = true;
 	for(int i = 0; i < TaskList.size();i++)
 	{
+		//printf("------------------\r\n%s/%s\r\n",TaskList.at(i).Task_Name.c_str(),msg->Node_Name.c_str());
 		if(	TaskList.at(i).Task_Name == msg->Node_Name)
 		{
-			add_me = false;
-			TaskList.at(i).last_message_received = ros::Time::now();//measure_time_diff(ros::Time::now(),boot_time);
+			TaskList.at(i).last_resource_received = ros::Time::now();//measure_time_diff(ros::Time::now(),boot_time);
 			TaskList.at(i).CPU_Perc = msg->CPU_Perc;
 			TaskList.at(i).RAM_MB = msg->RAM_MB;
+			TaskList.at(i).PID = msg->PID;
 		}
-	}
-	if(add_me == true)
-	{
-		Task newTask;
-		newTask.Task_Name = msg->Node_Name;
-		newTask.last_message_received = ros::Time::now();//measure_time_diff(ros::Time::now(),boot_time);
-		newTask.CPU_Perc = msg->CPU_Perc;
-		newTask.RAM_MB = msg->RAM_MB;
-		TaskList.push_back(newTask);
 	}
 }
 void diagnostic_Callback(const icarus_rover_v2::diagnostic::ConstPtr& msg)
@@ -123,7 +139,7 @@ void diagnostic_Callback(const icarus_rover_v2::diagnostic::ConstPtr& msg)
 		{
 			add_me = false;
 
-			TaskList.at(i).last_message_received = ros::Time::now();//measure_time_diff(ros::Time::now(),boot_time);
+			TaskList.at(i).last_diagnostic_received = ros::Time::now();//measure_time_diff(ros::Time::now(),boot_time);
 			TaskList.at(i).last_diagnostic_level = msg->Level;
 		}
 	}
@@ -131,7 +147,7 @@ void diagnostic_Callback(const icarus_rover_v2::diagnostic::ConstPtr& msg)
 	{
 		Task newTask;
 		newTask.Task_Name = msg->Node_Name;
-		newTask.last_message_received = ros::Time::now();//measure_time_diff(ros::Time::now(),boot_time);
+		newTask.last_diagnostic_received = ros::Time::now();//measure_time_diff(ros::Time::now(),boot_time);
 		newTask.last_diagnostic_level = msg->Level;
 		TaskList.push_back(newTask);
 	}

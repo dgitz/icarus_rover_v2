@@ -1,5 +1,20 @@
 #include "master_node.h"
-
+//Start User Code: Functions
+double read_device_temperature()
+{
+	double temp = -100.0;
+	ifstream temp_file ("/sys/class/thermal/thermal_zone0/temp");
+	std::string line;
+	if (temp_file.is_open())
+	{
+		getline (temp_file,line);
+		int t = atoi(line.c_str());
+		temp = (double)(t/1000.0); //In Degrees Celcius
+		temp = temp*(9.0/5.0) + 32.0;  //To Degrees Farenheit
+		temp_file.close();
+	}
+	return temp;
+}
 bool run_fastrate_code()
 {
 	//logger->log_debug("Running fast rate code.");
@@ -29,6 +44,34 @@ bool run_slowrate_code()
 			logger->log_warn("Couldn't read resources used.");
 		}
 	}
+	if(myDevice.Architecture == "armv7l")
+	{
+		//diagnostic_status.Diagnostic_Type = SENSORS;
+		device_temperature = read_device_temperature();
+
+		if(device_temperature > 130.0)
+		{
+			diagnostic_status.Diagnostic_Type = SENSORS;
+			diagnostic_status.Level = WARN;
+			diagnostic_status.Diagnostic_Message = TEMPERATURE_HIGH;
+			char tempstr[200];
+			sprintf(tempstr,"Device Temperature: %f",device_temperature);
+			logger->log_info(tempstr);
+			diagnostic_status.Description = tempstr;
+			diagnostic_pub.publish(diagnostic_status);
+		}
+		else if(device_temperature < 50.0)
+		{
+			diagnostic_status.Diagnostic_Type = SENSORS;
+			diagnostic_status.Level = WARN;
+			diagnostic_status.Diagnostic_Message = TEMPERATURE_LOW;
+			char tempstr[200];
+			sprintf(tempstr,"Device Temperature: %f",device_temperature);
+			logger->log_info(tempstr);
+			diagnostic_status.Description = tempstr;
+			diagnostic_pub.publish(diagnostic_status);
+		}
+	}
 	//logger->log_debug("Running slow rate code.");
 	diagnostic_status.Diagnostic_Type = SOFTWARE;
 	diagnostic_status.Level = DEBUG;
@@ -52,10 +95,8 @@ void PPS_Callback(const std_msgs::Bool::ConstPtr& msg)
 	logger->log_info("Got pps");
 	received_pps = true;
 }
-//End Template Code: Function Definitions
-
-//Start User Code: Function Definitions
-//Finish User Code: Function Definitions
+//End User Code: Functions
+//Start Template Code: Functions
 int main(int argc, char **argv)
 {
  
@@ -128,6 +169,7 @@ int main(int argc, char **argv)
 
 bool initialize(ros::NodeHandle nh)
 {
+	//Start Template Code: Initialization and Parameters
 	rate = 1;
 	verbosity_level = "";
 	require_pps_to_start = false;
@@ -199,6 +241,7 @@ bool initialize(ros::NodeHandle nh)
     	logger->log_fatal("Could not load or parse /home/robot/config/DeviceFile.xml. Exiting.");
     	return false;
     }
+    device_temperature = -100.0;
     //Finish User Code: Initialization and Parameters
 
     //Start Template Code: Final Initialization.

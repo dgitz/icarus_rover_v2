@@ -4,22 +4,30 @@
 
 declare -a Devices=("ControlModule1" "dgitzrosmaster")
 
-function sync_config_local()  #This method is not correct, the account my personal development machine is dgitz, not robot.  This should be fixed in the future.
+function sync_config_local()  
 {
     #Determine what the name of the ActiveScenario is:
     ActiveScenario=$(cat /home/robot/config/ActiveScenario)
 
     #Remove old launch files
-    rm -r -f /home/dgitz/catkin_ws/src/icarus_rover_v2/launch/*
+    rm -r -f /home/robot/catkin_ws/src/icarus_rover_v2/launch/*
 
-    #Copy contents of /home/robot/config/scenarios/<ActiveScenario>/* to /home/dgitz/catkin_ws/src/icarus_rover_v2/launch/
-    cp /home/robot/config/scenarios/$ActiveScenario/* /home/dgitz/catkin_ws/src/icarus_rover_v2/launch/
+    #Copy contents of /home/robot/config/scenarios/<ActiveScenario>/* to /home/robot/catkin_ws/src/icarus_rover_v2/launch/
+    cp /home/robot/config/scenarios/$ActiveScenario/launch/* /home/robot/catkin_ws/src/icarus_rover_v2/launch/
 
-     
+    #Sync CMakeLists.txt to the correct device
+    source_file="/home/robot/config/scenarios/"$ActiveScenario"/CMakeLists/"$1".txt"
+    cp $source_file /home/robot/catkin_ws/src/icarus_rover_v2/CMakeLists.txt
+
+    #Sync package.xml to the correct device
+    source_file="/home/robot/config/scenarios/"$ActiveScenario"/package/"$1".xml"
+    cp $source_file /home/robot/catkin_ws/src/icarus_rover_v2/package.xml
 }
 
-function sync_config_remote()
+
+function sync_software_remote()
 {
+    #Sync config
     #Copy ActiveScenario name over.  This isn't used, just for information.
     rsync -ar /home/robot/config/ActiveScenario robot@$1:/home/robot/config 
     
@@ -27,22 +35,39 @@ function sync_config_remote()
     ActiveScenario=$(cat /home/robot/config/ActiveScenario)
     
     #Remove old launch files
-    ssh robot@$device 'rm -r -f /home/robot/catkin_ws/src/icarus_rover_v2/launch/*'
+    ssh robot@$1 'rm -r -f /home/robot/catkin_ws/src/icarus_rover_v2/launch/*'
 
     #Copy contents of /home/robot/config/scenarios/<ActiveScenario>/* to /home/robot/catkin_ws/src/icarus_rover_v2/launch/
-    rsync -ar /home/robot/config/scenarios/$ActiveScenario/* robot@$device:/home/robot/catkin_ws/src/icarus_rover_v2/launch/
+    rsync -ar /home/robot/config/scenarios/$ActiveScenario/launch/* robot@$1:/home/robot/catkin_ws/src/icarus_rover_v2/launch/
+    rsync -ar /home/robot/config/DeviceFile.xml robot@$device:/home/robot/config/   
+    rsync -avr /home/robot/scripts/* robot@$1:~/scripts
+
+    #Sync CMakeLists.txt to the correct device
+    source_file="/home/robot/config/scenarios/"$ActiveScenario"/CMakeLists/"$1".txt"
+    echo "source:"$source_file
+    rsync -ar $source_file robot@$1:/home/robot/catkin_ws/src/icarus_rover_v2/CMakeLists.txt
+
+    #Sync package.xml to the correct device
+    source_file="/home/robot/config/scenarios/"$ActiveScenario"/package/"$1".xml"
+    echo "source:"$source_file
+    rsync -ar $source_file robot@$1:/home/robot/catkin_ws/src/icarus_rover_v2/package.xml
+    #Sync source code and make 
+
+	rsync -avr /home/robot/catkin_ws/src/icarus_rover_v2/src/* robot@$1:/home/robot/catkin_ws/src/icarus_rover_v2/src/
+    rsync -avr /home/robot/catkin_ws/src/icarus_rover_v2/util/* robot@$1:/home/robot/catkin_ws/src/icarus_rover_v2/util/
+    rsync -avr /home/robot/catkin_ws/src/icarus_rover_v2/msg/* robot@$1:/home/robot/catkin_ws/src/icarus_rover_v2/msg/
+    rsync -avr /home/robot/catkin_ws/src/icarus_rover_v2/include/* robot@$1:/home/robot/catkin_ws/src/icarus_rover_v2/include/
+    rsync -avr /home/robot/catkin_ws/devel/include/icarus_rover_v2/* robot@$1:/home/robot/catkin_ws/devel/include/icarus_rover_v2
+    ssh robot@$1 "cd ~/catkin_ws && source devel/setup.bash && catkin_make"
 }
+
 
 for device in "${Devices[@]}"
 do
     if [ $device != $HOSTNAME ]; then
         echo "Syncing with Remote Device: "$device
-        sync_config_remote $device
-        rsync -avr /home/robot/scripts/* robot@$device:~/scripts
-        rsync -avr /home/dgitz/catkin_ws/src/icarus_rover_v2/* robot@$device:/home/robot/catkin_ws/src/icarus_rover_v2
-        rsync -avr /home/dgitz/catkin_ws/devel/include/icarus_rover_v2/* robot@$device:/home/robot/catkin_ws/devel/include/icarus_rover_v2/
-        rsync -avr /home/dgitz/catkin_ws/build/* robot@$device:/home/robot/catkin_ws/build
-        rsync -avr /home/dgitz/catkin_ws/*       robot@$device:/home/robot/catkin_ws
+      
+	    sync_software_remote $device
     else 
         echo "Syncing with Local Device: "$device
         sync_config_local $device

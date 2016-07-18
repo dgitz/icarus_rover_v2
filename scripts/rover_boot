@@ -14,8 +14,8 @@ function comm_bad()
 
 
 #Turn off RED POWER LED
-ros_master="davidgitz-p7-1234"
-boot_file="/home/robot/logs/"$(hostname)"_log.txt"
+ros_master="dgitzrosmaster"
+boot_file="/home/robot/logs/output/"$(hostname)"_log.txt"
 export ROS_HOSTNAME=$HOSTNAME
 export ROS_MASTER_URI=http://$ros_master:11311
 export ROS_IP=$HOSTNAME
