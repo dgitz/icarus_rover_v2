@@ -70,6 +70,10 @@ std::vector<Task> TaskList;
 int RAM_usage_threshold_MB;
 int CPU_usage_threshold_percent;
 ros::Time boot_time;
+int Log_Resources_Used;
+bool logging_initialized;
+ofstream ram_used_file;
+ofstream cpu_used_file;
 //End User Code: Define Global Variables
 
 

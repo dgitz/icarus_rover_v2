@@ -1,6 +1,76 @@
 #include "diagnostic_node.h"
 
 //Start User Code: Functions
+bool log_resources()
+{
+	std::string ram_used_file_path = "/home/robot/logs/ram_used.csv";
+	std::string cpu_used_file_path = "/home/robot/logs/cpu_used.csv";
+	if(logging_initialized == false)
+	{
+		ram_used_file.open(ram_used_file_path.c_str(),ios::out);
+		if(ram_used_file.is_open() == false)
+		{
+			logger->log_error("Couldn't open ram_used.csv file.  Exiting.");
+		}
+		else
+		{
+			for(int i = 0; i < TaskList.size();i++)
+			{
+				ram_used_file << TaskList.at(i).Task_Name << ",";
+			}
+			ram_used_file << endl;
+		}
+		ram_used_file.close();
+		cpu_used_file.open(cpu_used_file_path.c_str(),ios::out);
+		if(cpu_used_file.is_open() == false)
+		{
+			logger->log_error("Couldn't open cpuused.csv file.  Exiting.");
+		}
+		else
+		{
+			for(int i = 0; i < TaskList.size();i++)
+			{
+				cpu_used_file << TaskList.at(i).Task_Name << ",";
+			}
+			cpu_used_file << endl;
+		}
+		cpu_used_file.close();
+		logging_initialized = true;
+	}
+	else
+	{
+		ram_used_file.open(ram_used_file_path.c_str(),ios::app);
+		if(ram_used_file.is_open() == false)
+		{
+			logger->log_error("Couldn't open ram_used.csv file.  Exiting.");
+		}
+		else
+		{
+			for(int i = 0; i < TaskList.size();i++)
+			{
+				ram_used_file << TaskList.at(i).RAM_MB << ",";
+			}
+			ram_used_file << endl;
+		}
+		ram_used_file.close();
+		cpu_used_file.open(cpu_used_file_path.c_str(),ios::app);
+		if(cpu_used_file.is_open() == false)
+		{
+			logger->log_error("Couldn't open cpu_used.csv file.  Exiting.");
+		}
+		else
+		{
+			for(int i = 0; i < TaskList.size();i++)
+			{
+				cpu_used_file << TaskList.at(i).CPU_Perc << ",";
+			}
+			cpu_used_file << endl;
+		}
+		cpu_used_file.close();
+
+	}
+	return true;
+}
 bool check_tasks()
 {
 	std::vector<Task> TasksToCheck = TaskList;
@@ -75,6 +145,13 @@ bool run_fastrate_code()
 bool run_mediumrate_code()
 {
 	//logger->log_debug("Running medium rate code.");
+	if(measure_time_diff(ros::Time::now(),boot_time) > 10.0) //Wait 5 seconds for all Nodes to start.
+	{
+		if(Log_Resources_Used == 1)
+		{
+			log_resources();
+		}
+	}
 	return true;
 }
 bool run_slowrate_code()
@@ -251,6 +328,12 @@ bool initialize(ros::NodeHandle nh)
 		return false;
 	}
 
+	std::string param_log_resources_used = node_name +"/Log_Resources_Used";
+	if(nh.getParam(param_log_resources_used,Log_Resources_Used) == false)
+	{
+		logger->log_warn("Missing Parameter: Log_Resources Used.  Using Default: 0");
+	}
+	logging_initialized = false;
 	ros::master::V_TopicInfo master_topics;
 	ros::master::getTopics(master_topics);
 	std::vector<std::string> resource_topics;
