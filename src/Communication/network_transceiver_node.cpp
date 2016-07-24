@@ -6,7 +6,7 @@ void diagnostic_Callback(const icarus_rover_v2::diagnostic::ConstPtr& msg)
 	sprintf(tempstr,"Got Diagnostic from Task: %s",msg->Node_Name.c_str());
 	logger->log_info(tempstr);
 	std::ostringstream stream;
-	stream << msg->Node_Name << "," << (int)(msg->System) << "," << (int)(msg->SubSystem) << "," << (int)(msg->Component) << ","
+	stream << (int)(DIAGNOSTIC_ID) << "," << msg->Node_Name << "," << (int)(msg->System) << "," << (int)(msg->SubSystem) << "," << (int)(msg->Component) << ","
 			<< (int)(msg->Diagnostic_Type) << "," << (int)(msg->Level) << "," << (int)(msg->Diagnostic_Message) << "," << msg->Description;
 	std::string send_string = stream.str();
 	if(sendto(device_sock, send_string.c_str(), send_string.size(), 0, (struct sockaddr *)&device_addr, sizeof(device_addr))!=send_string.size())
@@ -242,7 +242,7 @@ bool initialize(ros::NodeHandle nh)
 		logger->log_warn("Missing Parameter: Mode.");
 		return false;
 	}
-	sleep(2);
+	sleep(5);
 	if(Mode=="Diagnostics_GUI")
 	{
 		ros::master::V_TopicInfo master_topics;
