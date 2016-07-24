@@ -42,6 +42,7 @@ bool check_resources(int procid);
 //Start User Code: Function Prototypes
 bool initialize_socket();
 void diagnostic_Callback(const icarus_rover_v2::diagnostic::ConstPtr& msg);
+void device_Callback(const icarus_rover_v2::device::ConstPtr& msg);
 //End User Code: Function Prototypes
 
 

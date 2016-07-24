@@ -14,6 +14,20 @@ void diagnostic_Callback(const icarus_rover_v2::diagnostic::ConstPtr& msg)
 		  logger->log_warn("Mismatch in number of bytes sent");
 
 	}
+}
+void device_Callback(const icarus_rover_v2::device::ConstPtr& msg)
+{
+	char tempstr[240];
+	sprintf(tempstr,"Got Device from Task: %s",msg->DeviceName.c_str());
+	logger->log_info(tempstr);
+	std::ostringstream stream;
+	stream << (int)(DEVICE_ID) << "," << msg->DeviceName << "," << msg->Architecture;
+	std::string send_string = stream.str();
+	if(sendto(device_sock, send_string.c_str(), send_string.size(), 0, (struct sockaddr *)&device_addr, sizeof(device_addr))!=send_string.size())
+	{
+		  logger->log_warn("Mismatch in number of bytes sent");
+
+	}
 	else
 	{
 		logger->log_info("Sent!");
@@ -265,6 +279,26 @@ bool initialize(ros::NodeHandle nh)
 			sprintf(tempstr,"Subscribing to diagnostic topic: %s",diagnostic_topics.at(i).c_str());
 			logger->log_info(tempstr);
 			diagnostic_subs[i] = nh.subscribe<icarus_rover_v2::diagnostic>(diagnostic_topics.at(i),1000,diagnostic_Callback);
+		}
+
+		std::vector<std::string> device_topics;
+		for (ros::master::V_TopicInfo::iterator it = master_topics.begin() ; it != master_topics.end(); it++)
+		{
+			const ros::master::TopicInfo& info = *it;
+			if(info.datatype == "icarus_rover_v2/device")
+			{
+				device_topics.push_back(info.name);
+			}
+
+		}
+		ros::Subscriber * device_subs;
+		device_subs = new ros::Subscriber[device_topics.size()];
+		for(int i = 0; i < device_topics.size();i++)
+		{
+			char tempstr[50];
+			sprintf(tempstr,"Subscribing to device topic: %s",device_topics.at(i).c_str());
+			logger->log_info(tempstr);
+			device_subs[i] = nh.subscribe<icarus_rover_v2::device>(device_topics.at(i),1000,device_Callback);
 		}
 	}
     //Finish User Code: Initialization and Parameters
