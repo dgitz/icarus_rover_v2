@@ -12,6 +12,7 @@
 #include <icarus_rover_v2/diagnostic.h>
 #include <icarus_rover_v2/device.h>
 #include <icarus_rover_v2/resource.h>
+#include <icarus_rover_v2/pin.h>
 //End Template Code: Includes
 //Start User Code: Includes
 #include <tinyxml.h>

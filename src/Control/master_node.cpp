@@ -89,6 +89,15 @@ bool run_veryslowrate_code()
 void publish_deviceinfo()
 {
 	device_pub.publish(myDevice);
+	for(int i = 0; i < otherDevices.size();i++)
+	{
+		icarus_rover_v2::device other = otherDevices.at(i);
+		if(other.DeviceParent == myDevice.DeviceName)
+		{
+			device_pub.publish(other);
+		}
+	}
+
 }
 void PPS_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
@@ -277,29 +286,64 @@ void parse_devicefile(TiXmlDocument doc)
 	        while( l_pDevice )
 	        {
 	        	icarus_rover_v2::device newDevice;
-	            TiXmlElement *l_pDeviceName = l_pDevice->FirstChildElement( "DeviceName" );
+	        	std::vector<icarus_rover_v2::pin> pins;
+	        	TiXmlElement *l_pDeviceParent = l_pDevice->FirstChildElement( "ParentDevice" );
+				if ( NULL != l_pDeviceParent )
+				{
+					newDevice.DeviceParent = l_pDeviceParent->GetText();
+				}
 
+	            TiXmlElement *l_pDeviceName = l_pDevice->FirstChildElement( "DeviceName" );
 	            if ( NULL != l_pDeviceName )
 	            {
 	                newDevice.DeviceName = l_pDeviceName->GetText();
 	            }
 
 	            TiXmlElement *l_pDeviceType = l_pDevice->FirstChildElement( "DeviceType" );
-
 	            if ( NULL != l_pDeviceType )
 	            {
-	                //std::cout << " " << l_pDeviceType->GetText();
+	                newDevice.DeviceType = l_pDeviceType->GetText();
 	            }
 
 	            TiXmlElement *l_pDeviceArchitecture = l_pDevice->FirstChildElement( "Architecture" );
-
 				if ( NULL != l_pDeviceArchitecture )
 				{
-					//std::cout << " " << l_pDeviceArchitecture->GetText();
 					newDevice.Architecture = l_pDeviceArchitecture->GetText();
 				}
 
-	            //std::cout << std::endl;
+				TiXmlElement *l_pBoardCount = l_pDevice->FirstChildElement( "BoardCount" );
+				if ( NULL != l_pBoardCount )
+				{
+					newDevice.BoardCount = atoi(l_pBoardCount->GetText());
+				}
+
+				TiXmlElement *l_pPin = l_pDevice->FirstChildElement( "Pin" );
+				while( l_pPin )
+				{
+					icarus_rover_v2::pin newpin;
+					TiXmlElement *l_pPinName = l_pPin->FirstChildElement( "Name" );
+					if ( NULL != l_pPinName )
+					{
+						newpin.Name = l_pPinName->GetText();
+					}
+
+					TiXmlElement *l_pPinNumber = l_pPin->FirstChildElement( "Number" );
+					if ( NULL != l_pPinNumber )
+					{
+						newpin.Number = l_pPinNumber->GetText();
+					}
+
+					TiXmlElement *l_pPinFunction = l_pPin->FirstChildElement( "Function" );
+					if ( NULL != l_pPinFunction )
+					{
+						newpin.Function = l_pPinFunction->GetText();
+					}
+					l_pPin = l_pPin->NextSiblingElement( "Pin" );
+					pins.push_back(newpin);
+
+				}
+
+				newDevice.pins = pins;
 	            if(newDevice.DeviceName == myDevice.DeviceName)
 	            {
 	            	//This is me.

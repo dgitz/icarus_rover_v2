@@ -1,5 +1,5 @@
-#ifndef SAMPLE_H
-#define SAMPLE_H
+#ifndef GPIONODE_H
+#define GPIONODE_H
 //Start Template Code: Includes
 #include "ros/ros.h"
 #include "std_msgs/String.h"
@@ -12,10 +12,13 @@
 #include <icarus_rover_v2/diagnostic.h>
 #include <icarus_rover_v2/device.h>
 #include <icarus_rover_v2/resource.h>
-#include <icarus_rover_v2/pin.h>
 //End Template Code: Includes
 
 //Start User Code: Includes
+
+#include <wiringPi.h>
+#include <wiringPiSPI.h>
+//#include <max5322.h>
 //End User Code: Includes
 
 
@@ -62,5 +65,7 @@ int pid;
 //End Template Code: Define Global Variables
 
 //Start User Code: Define Global Variables
+int device_fid;
+std::vector<icarus_rover_v2::device> boards;
 //End User Code: Define Global Variables
 #endif
