@@ -82,7 +82,7 @@ bool check_tasks()
 		if(newTask.CPU_Perc > CPU_usage_threshold_percent)
 		{
 			task_ok = false;
-			char tempstr[200];
+			char tempstr[250];
 			sprintf(tempstr,"Task: %s is using high CPU resource: %d/%d %",
 					newTask.Task_Name.c_str(),newTask.CPU_Perc,CPU_usage_threshold_percent);
 			logger->log_warn(tempstr);
@@ -90,7 +90,7 @@ bool check_tasks()
 		if(newTask.RAM_MB > RAM_usage_threshold_MB)
 		{
 			task_ok = false;
-			char tempstr[200];
+			char tempstr[250];
 			sprintf(tempstr,"Task: %s is using high RAM resource: %ld/%ld (MB)",
 					newTask.Task_Name.c_str(),newTask.RAM_MB,RAM_usage_threshold_MB);
 			logger->log_warn(tempstr);
@@ -98,7 +98,7 @@ bool check_tasks()
 		if(newTask.PID <= 0)
 		{
 			task_ok = false;
-			char tempstr[200];
+			char tempstr[250];
 			sprintf(tempstr,"Task: %s does not have a valid PID.",newTask.Task_Name.c_str());
 			logger->log_warn(tempstr);
 		}
@@ -107,7 +107,7 @@ bool check_tasks()
 		if( resource_time_duration > 5.0)
 		{
 			task_ok = false;
-			char tempstr[200];
+			char tempstr[250];
 			sprintf(tempstr,"Task: %s has not reported resources used in %.1f seconds",newTask.Task_Name.c_str(),resource_time_duration);
 			logger->log_warn(tempstr);
 		}
@@ -115,7 +115,7 @@ bool check_tasks()
 		if( resource_time_duration > 5.0)
 		{
 			task_ok = false;
-			char tempstr[200];
+			char tempstr[250];
 			sprintf(tempstr,"Task: %s has not reported diagnostics in %.1f seconds",newTask.Task_Name.c_str(),diagnostic_time_duration);
 			logger->log_warn(tempstr);
 		}
@@ -152,6 +152,11 @@ bool run_mediumrate_code()
 			log_resources();
 		}
 	}
+	diagnostic_status.Diagnostic_Type = SOFTWARE;
+	diagnostic_status.Level = INFO;
+	diagnostic_status.Diagnostic_Message = NOERROR;
+	diagnostic_status.Description = "Node Executing.";
+	diagnostic_pub.publish(diagnostic_status);
 	return true;
 }
 bool run_slowrate_code()
@@ -180,11 +185,7 @@ bool run_slowrate_code()
 		logger->log_warn("Not able to check Tasks.");
 	}
 	//logger->log_debug("Running slow rate code.");
-	diagnostic_status.Diagnostic_Type = SOFTWARE;
-	diagnostic_status.Level = DEBUG;
-	diagnostic_status.Diagnostic_Message = NOERROR;
-	diagnostic_status.Description = "Node Executing.";
-	diagnostic_pub.publish(diagnostic_status);
+
 	return true;
 }
 bool run_veryslowrate_code()
@@ -230,7 +231,7 @@ void diagnostic_Callback(const icarus_rover_v2::diagnostic::ConstPtr& msg)
 	}
 	//sprintf(tempstr,"TaskList size: %d",TaskList.size());
 	//logger->log_debug(tempstr);
-	char tempstr[50];
+	char tempstr[150];
 	sprintf(tempstr,"Node: %s: %s",msg->Node_Name.c_str(),msg->Description.c_str());
 
 	switch(msg->Level)
@@ -355,7 +356,7 @@ bool initialize(ros::NodeHandle nh)
 	resource_subs = new ros::Subscriber[resource_topics.size()];
 	for(int i = 0; i < resource_topics.size();i++)
 	{
-		char tempstr[50];
+		char tempstr[150];
 		sprintf(tempstr,"Subscribing to resource topic: %s",resource_topics.at(i).c_str());
 		logger->log_info(tempstr);
 		resource_subs[i] = nh.subscribe<icarus_rover_v2::resource>(resource_topics.at(i),1000,resource_Callback);
@@ -365,7 +366,7 @@ bool initialize(ros::NodeHandle nh)
 	diagnostic_subs = new ros::Subscriber[diagnostic_topics.size()];
 	for(int i = 0; i < diagnostic_topics.size();i++)
 	{
-		char tempstr[50];
+		char tempstr[150];
 		sprintf(tempstr,"Subscribing to diagnostic topic: %s",diagnostic_topics.at(i).c_str());
 		logger->log_info(tempstr);
 		diagnostic_subs[i] = nh.subscribe<icarus_rover_v2::diagnostic>(diagnostic_topics.at(i),1000,diagnostic_Callback);
@@ -458,7 +459,7 @@ int get_pid()
 	local_node_name = node_name.substr(1,node_name.size());
 	std::string pid_filename;
 	pid_filename = "/home/robot/logs/output/PID" + node_name;
-	char tempstr[130];
+	char tempstr[200];
 	sprintf(tempstr,"ps aux | grep __name:=%s > %s",local_node_name.c_str(),pid_filename.c_str());
 	system(tempstr);
 	ifstream myfile;
@@ -506,7 +507,7 @@ bool check_resources(int procid)
 {
 	std::string resource_filename;
 	resource_filename = "/home/robot/logs/output/RESOURCE/" + node_name;
-	char tempstr[130];
+	char tempstr[200];
 	sprintf(tempstr,"top -bn1 | grep %d > %s",procid,resource_filename.c_str());
 	//printf("Command: %s\r\n",tempstr);
 	system(tempstr); //RAM used is column 6, in KB.  CPU used is column 8, in percentage.
