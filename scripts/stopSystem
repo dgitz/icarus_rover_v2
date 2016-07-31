@@ -1,0 +1,37 @@
+#!/bin/bash
+#Author: David Gitz
+#Purpose: Kills Software on all Devices
+
+declare -a Devices=("ControlModule1" "dgitzrosmaster")
+
+function stop_device_remote ()
+{
+    echo "Attempting to stop on remote."  
+}
+
+function stop_device_local ()
+{
+    echo "Attempting to stop on local."
+}
+
+function stop_all_devices()
+{
+    echo "Stopping on all Devices"
+    #First attempt a graceful close
+    stop_command="rosnode kill --all"
+    eval $stop_command
+    
+    #Then go through all devices to make sure all nodes are stopped.  
+    for device in "${Devices[@]}"
+    do
+        if [ $device != $HOSTNAME ]; then
+            stop_device_remote $device
+        else
+            stop_device_local $device
+        fi
+    done
+    exit 0
+}
+#No arguments present.  Launch everywhere.
+stop_all_devices
+

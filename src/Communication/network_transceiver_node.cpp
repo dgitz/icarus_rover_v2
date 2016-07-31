@@ -61,6 +61,11 @@ bool run_fastrate_code()
 bool run_mediumrate_code()
 {
 	//logger->log_debug("Running medium rate code.");
+	diagnostic_status.Diagnostic_Type = SOFTWARE;
+	diagnostic_status.Level = INFO;
+	diagnostic_status.Diagnostic_Message = NOERROR;
+	diagnostic_status.Description = "Node Executing.";
+	diagnostic_pub.publish(diagnostic_status);
 	return true;
 }
 bool run_slowrate_code()
@@ -86,11 +91,7 @@ bool run_slowrate_code()
 	}
 
 	//logger->log_debug("Running slow rate code.");
-	diagnostic_status.Diagnostic_Type = SOFTWARE;
-	diagnostic_status.Level = DEBUG;
-	diagnostic_status.Diagnostic_Message = NOERROR;
-	diagnostic_status.Description = "Node Executing.";
-	diagnostic_pub.publish(diagnostic_status);
+
 	return true;
 }
 bool run_veryslowrate_code()
