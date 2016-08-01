@@ -3,6 +3,9 @@
 bool run_fastrate_code()
 {
 	//logger->log_debug("Running fast rate code.");
+	unsigned char buffer[100];
+		buffer[0] = 0x76;
+		wiringPiSPIDataRW(1, buffer, 1);
 	return true;
 }
 bool run_mediumrate_code()
@@ -13,6 +16,8 @@ bool run_mediumrate_code()
 	diagnostic_status.Diagnostic_Message = NOERROR;
 	diagnostic_status.Description = "Node Executing.";
 	diagnostic_pub.publish(diagnostic_status);
+
+
 	return true;
 }
 bool run_slowrate_code()
