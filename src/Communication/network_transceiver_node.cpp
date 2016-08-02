@@ -3,7 +3,7 @@
 void diagnostic_Callback(const icarus_rover_v2::diagnostic::ConstPtr& msg)
 {
 	char tempstr[240];
-	sprintf(tempstr,"Got Diagnostic from Task: %s",msg->Node_Name.c_str());
+	sprintf(tempstr,"Got Diagnostic from Task: %s with Level: %d",msg->Node_Name.c_str(),msg->Level);
 	logger->log_info(tempstr);
 	std::string send_string = udpmessagehandler->encode_DiagnosticUDP(msg->Node_Name,
 																(uint8_t)msg->System,

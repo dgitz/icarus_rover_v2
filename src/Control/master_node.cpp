@@ -107,6 +107,34 @@ void PPS_Callback(const std_msgs::Bool::ConstPtr& msg)
 }
 //End User Code: Functions
 //Start Template Code: Functions
+void Command_Callback(const icarus_rover_v2::command::ConstPtr& msg)
+{
+	logger->log_info("Got command");
+	if (msg->Command ==  DIAGNOSTIC_ID)
+	{
+		if(msg->Option1 == LEVEL1)
+		{
+			diagnostic_pub.publish(diagnostic_status);
+		}
+		else if(msg->Option1 == LEVEL2)
+		{
+			icarus_rover_v2::diagnostic diag = check_program_variables();
+			diagnostic_pub.publish(diag);
+		}
+		else if(msg->Option1 == LEVEL3)
+		{
+
+		}
+		else if(msg->Option1 == LEVEL4)
+		{
+
+		}
+		else
+		{
+			logger->log_error("Shouldn't get here!!!");
+		}
+	}
+}
 int main(int argc, char **argv)
 {
  
@@ -229,6 +257,7 @@ bool initialize(ros::NodeHandle nh)
         return false;
     }
     pps_sub = nh.subscribe<std_msgs::Bool>("/pps",1000,PPS_Callback);  //This is a pps consumer.
+    command_sub = nh.subscribe<icarus_rover_v2::command>("/command",1000,Command_Callback);
     std::string param_require_pps_to_start = node_name +"/require_pps_to_start";
     if(nh.getParam(param_require_pps_to_start,require_pps_to_start) == false)
 	{
@@ -441,5 +470,15 @@ int get_pid()
 	//id = -1;
 	return id;
 
+}
+icarus_rover_v2::diagnostic check_program_variables()
+{
+	icarus_rover_v2::diagnostic diag;
+	logger->log_notice("checking program variables.");
+	diag.Diagnostic_Type = SOFTWARE;
+	diag.Level = NOTICE;
+	diag.Diagnostic_Message = NOERROR;
+	diag.Description = "Checked Program Variables";
+	return diag;
 }
 //End Template Code: Function Definitions

@@ -1,5 +1,5 @@
-#ifndef MASTER_H
-#define MASTER_H
+#ifndef COMMAND_H
+#define COMMAND_H
 //Start Template Code: Includes
 #include "ros/ros.h"
 #include "std_msgs/String.h"
@@ -15,10 +15,8 @@
 #include <icarus_rover_v2/pin.h>
 #include <icarus_rover_v2/command.h>
 //End Template Code: Includes
+
 //Start User Code: Includes
-#include <tinyxml.h>
-#include <iostream>
-#include <string>
 //End User Code: Includes
 
 
@@ -29,49 +27,42 @@ bool run_mediumrate_code();
 bool run_slowrate_code();
 bool run_veryslowrate_code();
 double measure_time_diff(ros::Time timer_a, ros::Time tiber_b);
-void parse_devicefile(TiXmlDocument doc);
 void PPS_Callback(const std_msgs::Bool::ConstPtr& msg);
-void Command_Callback(const icarus_rover_v2::command& msg);
-void print_myDevice();
-void print_otherDevices();
-void publish_deviceinfo();
+void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg);
 int get_pid();
 bool check_resources(int procid);
-icarus_rover_v2::diagnostic check_program_variables();
-//End Template Code: Function Prototypes
+//Stop Template Code: Function Prototypes
 
 //Start User Code: Function Prototypes
-double read_device_temperature();
 //End User Code: Function Prototypes
 
-//Start Template Code: Global Variables
+
+//Start Template Code: Define Global variables
 std::string node_name;
-int rate;
-std::string verbosity_level;
-ros::Subscriber pps_sub;
-ros::Subscriber command_sub;
+int rate = 1;
+std::string verbosity_level = "";
+ros::Publisher pps_pub;  //Not used as this is a pps consumer only.
+ros::Subscriber pps_sub;  
+ros::Subscriber device_sub;
 ros::Publisher diagnostic_pub;
 ros::Publisher resource_pub;
 icarus_rover_v2::diagnostic diagnostic_status;
-ros::Publisher device_pub;
+icarus_rover_v2::device myDevice;
 icarus_rover_v2::resource resources_used;
 Logger *logger;
-bool require_pps_to_start;
-bool received_pps;
-ros::Time fast_timer;
-ros::Time medium_timer;
-ros::Time slow_timer;
-ros::Time veryslow_timer;
+bool require_pps_to_start = false;
+bool received_pps = false;
+ros::Time fast_timer; //50 Hz
+ros::Time medium_timer; //10 Hz
+ros::Time slow_timer; //1 Hz
+ros::Time veryslow_timer; //1 Hz
 ros::Time now;
 double mtime;
+bool device_initialized;
 int pid;
-//End Template Code: Global Variables
+//End Template Code: Define Global Variables
 
-//Start User Code: Global Variables
-icarus_rover_v2::device myDevice;
-std::vector<icarus_rover_v2::device> otherDevices;
-std::vector<std::string> NodeList;
-double device_temperature;
-//End User Code: Global Variables
-
+//Start User Code: Define Global Variables
+ros::Publisher command_pub;
+//End User Code: Define Global Variables
 #endif

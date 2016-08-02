@@ -1,4 +1,4 @@
-#include "sample_node.h"
+#include "command_node.h"
 //Start User Code: Functions
 bool run_fastrate_code()
 {
@@ -45,6 +45,10 @@ bool run_veryslowrate_code()
 {
 	//logger->log_debug("Running very slow rate code.");
 	logger->log_info("Node Running.");
+	icarus_rover_v2::command newcommand;
+	newcommand.Command=DIAGNOSTIC_ID;
+	newcommand.Option1 = LEVEL2;
+	command_pub.publish(newcommand);
 	return true;
 }
 //End User Code: Functions
@@ -53,7 +57,7 @@ bool run_veryslowrate_code()
 int main(int argc, char **argv)
 {
  
-	node_name = "sample_node";
+	node_name = "command_node";
 
 
     ros::init(argc, argv, node_name);
@@ -177,6 +181,8 @@ bool initialize(ros::NodeHandle nh)
     //End Template Code: Initialization and Parameters
 
     //Start User Code: Initialization and Parameters
+    std::string command_topic = "/command";
+    command_pub =  nh.advertise<icarus_rover_v2::command>(command_topic,1000);
     //Finish User Code: Initialization and Parameters
 
     //Start Template Code: Final Initialization.
@@ -250,7 +256,7 @@ int get_pid()
 		std::string line;
 		getline(myfile,line);
 		//printf("Line:%s\r\n",line.c_str());
-		std::size_t found = line.find("icarus_rover_v2/sample_node");
+		std::size_t found = line.find("icarus_rover_v2/command_node");
 		if(found != std::string::npos)
 		{
 			std::vector <string> fields;
