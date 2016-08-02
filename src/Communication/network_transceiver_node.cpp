@@ -5,10 +5,14 @@ void diagnostic_Callback(const icarus_rover_v2::diagnostic::ConstPtr& msg)
 	char tempstr[240];
 	sprintf(tempstr,"Got Diagnostic from Task: %s",msg->Node_Name.c_str());
 	logger->log_info(tempstr);
-	std::ostringstream stream;
-	stream << (int)(DIAGNOSTIC_ID) << "," << msg->Node_Name << "," << (int)(msg->System) << "," << (int)(msg->SubSystem) << "," << (int)(msg->Component) << ","
-			<< (int)(msg->Diagnostic_Type) << "," << (int)(msg->Level) << "," << (int)(msg->Diagnostic_Message) << "," << msg->Description;
-	std::string send_string = stream.str();
+	std::string send_string = udpmessagehandler->encode_DiagnosticUDP(msg->Node_Name,
+																(uint8_t)msg->System,
+																(uint8_t)msg->SubSystem,
+																(uint8_t)msg->Component,
+																(uint8_t)msg->Diagnostic_Type,
+																(uint8_t)msg->Level,
+																(uint8_t)msg->Diagnostic_Message,
+																msg->Description);
 	if(sendto(device_sock, send_string.c_str(), send_string.size(), 0, (struct sockaddr *)&device_addr, sizeof(device_addr))!=send_string.size())
 	{
 		  logger->log_warn("Mismatch in number of bytes sent");
@@ -20,9 +24,10 @@ void device_Callback(const icarus_rover_v2::device::ConstPtr& msg)
 	char tempstr[240];
 	sprintf(tempstr,"Got Device from Task: %s",msg->DeviceName.c_str());
 	logger->log_info(tempstr);
-	std::ostringstream stream;
-	stream << (int)(DEVICE_ID) << "," << msg->DeviceName << "," << msg->Architecture;
-	std::string send_string = stream.str();
+	std::string send_string = udpmessagehandler->encode_DeviceUDP(msg->DeviceParent,
+																msg->DeviceName,
+																msg->DeviceType,
+																msg->Architecture);
 	if(sendto(device_sock, send_string.c_str(), send_string.size(), 0, (struct sockaddr *)&device_addr, sizeof(device_addr))!=send_string.size())
 	{
 		  logger->log_warn("Mismatch in number of bytes sent");
@@ -302,6 +307,7 @@ bool initialize(ros::NodeHandle nh)
 			device_subs[i] = nh.subscribe<icarus_rover_v2::device>(device_topics.at(i),1000,device_Callback);
 		}
 	}
+	udpmessagehandler = new UDPMessageHandler();
     //Finish User Code: Initialization and Parameters
 
     //Start Template Code: Final Initialization.
