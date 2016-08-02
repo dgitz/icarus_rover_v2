@@ -60,7 +60,7 @@ def generate_message(xmlfile):
                 if(item.datatype =='std::string'):
                     udpmessagefile_cpp.write('\ttempstr.append(' + item.name +');\r\n')
                 else:
-                    udpmessagefile_cpp.write('\ttempstr.append(boost::lexical_cast<std::string>(' + item.name + '));\r\n')
+                    udpmessagefile_cpp.write('\ttempstr.append(boost::lexical_cast<std::string>((int)' + item.name + '));\r\n')
 
                 index += 1
 

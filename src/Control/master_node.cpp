@@ -118,8 +118,9 @@ void Command_Callback(const icarus_rover_v2::command::ConstPtr& msg)
 		}
 		else if(msg->Option1 == LEVEL2)
 		{
-			icarus_rover_v2::diagnostic diag = check_program_variables();
-			diagnostic_pub.publish(diag);
+			std::vector<icarus_rover_v2::diagnostic> diaglist = check_program_variables();
+			for(int i = 0; i < diaglist.size();i++) { diagnostic_pub.publish(diaglist.at(i)); }
+
 		}
 		else if(msg->Option1 == LEVEL3)
 		{
@@ -471,14 +472,41 @@ int get_pid()
 	return id;
 
 }
-icarus_rover_v2::diagnostic check_program_variables()
+std::vector<icarus_rover_v2::diagnostic> check_program_variables()
 {
-	icarus_rover_v2::diagnostic diag;
+	std::vector<icarus_rover_v2::diagnostic> diaglist;
+	bool status = true;
 	logger->log_notice("checking program variables.");
-	diag.Diagnostic_Type = SOFTWARE;
-	diag.Level = NOTICE;
-	diag.Diagnostic_Message = NOERROR;
-	diag.Description = "Checked Program Variables";
-	return diag;
+
+	if(otherDevices.size() < 0)
+	{
+		status = false;
+		icarus_rover_v2::diagnostic diag=diagnostic_status;
+		diag.Diagnostic_Type = SOFTWARE;
+		diag.Level = WARN;
+		diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
+		diag.Description = "Checked Program Variables: otherDevices.size() <= 0";
+		diaglist.push_back(diag);
+	}
+
+	if(status == true)
+	{
+		icarus_rover_v2::diagnostic diag=diagnostic_status;
+		diag.Diagnostic_Type = SOFTWARE;
+		diag.Level = NOTICE;
+		diag.Diagnostic_Message = DIAGNOSTIC_PASSED;
+		diag.Description = "Checked Program Variables -> PASSED";
+		diaglist.push_back(diag);
+	}
+	else
+	{
+		icarus_rover_v2::diagnostic diag=diagnostic_status;
+		diag.Diagnostic_Type = SOFTWARE;
+		diag.Level = WARN;
+		diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
+		diag.Description = "Checked Program Variables -> FAILED";
+		diaglist.push_back(diag);
+	}
+	return diaglist;
 }
 //End Template Code: Function Definitions

@@ -37,7 +37,7 @@ void print_otherDevices();
 void publish_deviceinfo();
 int get_pid();
 bool check_resources(int procid);
-icarus_rover_v2::diagnostic check_program_variables();
+std::vector<icarus_rover_v2::diagnostic> check_program_variables();
 //End Template Code: Function Prototypes
 
 //Start User Code: Function Prototypes

@@ -50,6 +50,32 @@ bool run_veryslowrate_code()
 //End User Code: Functions
 
 //Start Template Code: Functions
+void Command_Callback(const icarus_rover_v2::command::ConstPtr& msg)
+{
+	logger->log_info("Got command");
+	if (msg->Command ==  DIAGNOSTIC_ID)
+	{
+		if(msg->Option1 == LEVEL1)
+		{
+			diagnostic_pub.publish(diagnostic_status);
+		}
+		else if(msg->Option1 == LEVEL2)
+		{
+			std::vector<icarus_rover_v2::diagnostic> diaglist = check_program_variables();
+			for(int i = 0; i < diaglist.size();i++) { diagnostic_pub.publish(diaglist.at(i)); }
+		}
+		else if(msg->Option1 == LEVEL3)
+		{
+		}
+		else if(msg->Option1 == LEVEL4)
+		{
+		}
+		else
+		{
+			logger->log_error("Shouldn't get here!!!");
+		}
+	}
+}
 int main(int argc, char **argv)
 {
  
@@ -167,6 +193,7 @@ bool initialize(ros::NodeHandle nh)
     device_sub = nh.subscribe<icarus_rover_v2::device>(device_topic,1000,Device_Callback);
 
     pps_sub = nh.subscribe<std_msgs::Bool>("/pps",1000,PPS_Callback);  //This is a pps consumer.
+    command_sub = nh.subscribe<icarus_rover_v2::command>("/command",1000,Command_Callback);
     std::string param_require_pps_to_start = node_name +"/require_pps_to_start";
     if(nh.getParam(param_require_pps_to_start,require_pps_to_start) == false)
 	{
@@ -275,5 +302,43 @@ void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg)
 	{
 		device_initialized = true;
 	}
+}
+std::vector<icarus_rover_v2::diagnostic> check_program_variables()
+{
+	std::vector<icarus_rover_v2::diagnostic> diaglist;
+	bool status = true;
+	logger->log_notice("checking program variables.");
+	//Start: User Code Diagnostic Checks
+	/*if(otherDevices.size() < 0) //SAMPLE
+	{
+		status = false;
+		icarus_rover_v2::diagnostic diag=diagnostic_status;
+		diag.Diagnostic_Type = SOFTWARE;
+		diag.Level = WARN;
+		diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
+		diag.Description = "Checked Program Variables: otherDevices.size() <= 0";
+		diaglist.push_back(diag);
+	}
+	*/
+	//End: User Code Diagnostic Checks
+	if(status == true)
+	{
+		icarus_rover_v2::diagnostic diag=diagnostic_status;
+		diag.Diagnostic_Type = SOFTWARE;
+		diag.Level = NOTICE;
+		diag.Diagnostic_Message = DIAGNOSTIC_PASSED;
+		diag.Description = "Checked Program Variables -> PASSED";
+		diaglist.push_back(diag);
+	}
+	else
+	{
+		icarus_rover_v2::diagnostic diag=diagnostic_status;
+		diag.Diagnostic_Type = SOFTWARE;
+		diag.Level = WARN;
+		diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
+		diag.Description = "Checked Program Variables -> FAILED";
+		diaglist.push_back(diag);
+	}
+	return diaglist;
 }
 //End Template Code: Functions

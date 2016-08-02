@@ -13,6 +13,7 @@
 #include <icarus_rover_v2/device.h>
 #include <icarus_rover_v2/resource.h>
 #include <icarus_rover_v2/pin.h>
+#include <icarus_rover_v2/command.h>
 //End Template Code: Includes
 
 //Start User Code: Includes
@@ -28,9 +29,11 @@ bool run_veryslowrate_code();
 double measure_time_diff(ros::Time timer_a, ros::Time tiber_b);
 void PPS_Callback(const std_msgs::Bool::ConstPtr& msg);
 void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg);
+void Command_Callback(const icarus_rover_v2::command& msg);
 int get_pid();
 bool check_resources(int procid);
-//Stop Template Code: Function Prototypes
+std::vector<icarus_rover_v2::diagnostic> check_program_variables();
+//End Template Code: Function Prototypes
 
 //Start User Code: Function Prototypes
 //End User Code: Function Prototypes
@@ -45,6 +48,7 @@ ros::Subscriber pps_sub;
 ros::Subscriber device_sub;
 ros::Publisher diagnostic_pub;
 ros::Publisher resource_pub;
+ros::Subscriber command_sub;
 icarus_rover_v2::diagnostic diagnostic_status;
 icarus_rover_v2::device myDevice;
 icarus_rover_v2::resource resources_used;

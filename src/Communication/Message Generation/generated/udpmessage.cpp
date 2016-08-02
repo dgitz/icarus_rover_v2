@@ -1,5 +1,5 @@
 /***************AUTO-GENERATED.  DO NOT EDIT********************/
-/***Created on:2016-08-01 19:03:33.269182***/
+/***Created on:2016-08-02 17:27:48.691542***/
 #include "udpmessage.h"
 UDPMessageHandler::UDPMessageHandler(){}
 UDPMessageHandler::~UDPMessageHandler(){}
@@ -10,17 +10,17 @@ std::string UDPMessageHandler::encode_DiagnosticUDP(std::string Node_Name,uint8_
 	tempstr.append(",");
 	tempstr.append(Node_Name);
 	tempstr.append(",");
-	tempstr.append(boost::lexical_cast<std::string>(System));
+	tempstr.append(boost::lexical_cast<std::string>((int)System));
 	tempstr.append(",");
-	tempstr.append(boost::lexical_cast<std::string>(SubSystem));
+	tempstr.append(boost::lexical_cast<std::string>((int)SubSystem));
 	tempstr.append(",");
-	tempstr.append(boost::lexical_cast<std::string>(Component));
+	tempstr.append(boost::lexical_cast<std::string>((int)Component));
 	tempstr.append(",");
-	tempstr.append(boost::lexical_cast<std::string>(Diagnostic_Type));
+	tempstr.append(boost::lexical_cast<std::string>((int)Diagnostic_Type));
 	tempstr.append(",");
-	tempstr.append(boost::lexical_cast<std::string>(Level));
+	tempstr.append(boost::lexical_cast<std::string>((int)Level));
 	tempstr.append(",");
-	tempstr.append(boost::lexical_cast<std::string>(Diagnostic_Message));
+	tempstr.append(boost::lexical_cast<std::string>((int)Diagnostic_Message));
 	tempstr.append(",");
 	tempstr.append(Description);
 	return tempstr;
