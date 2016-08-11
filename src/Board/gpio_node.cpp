@@ -2,14 +2,44 @@
 //Start User Code: Functions
 bool run_fastrate_code()
 {
-	//logger->log_debug("Running fast rate code.");
-	unsigned char buffer[100];
-		buffer[0] = 0x76;
-		wiringPiSPIDataRW(1, buffer, 1);
+	/*unsigned char rx_buffer[5];
+	int rx_length = read(device_fid, (void*)rx_buffer, 4);		//Filestream, buffer to store in, number of bytes to read (max)
+	//tcflush(device_fid, TCIFLUSH);
+	if (rx_length < 0)
+	{
+		//An error occured (will occur if there are no bytes)
+	}
+	else if (rx_length == 0)
+	{
+		//No data waiting
+	}
+	else
+	{
+		//Bytes received
+		rx_buffer[rx_length] = '\0';
+		//printf("%i bytes read : %s\r\n", rx_length, rx_buffer);
+	}
+	if(rx_buffer[0] == 0xAB)
+	{
+		last_num = current_num;
+		current_num = rx_buffer[3];
+		int missed = abs(current_num-last_num)-1;
+		missed_counter+= missed;
+		if(missed_counter > 256) { missed_counter = 0; }
+		printf("%02x:%02x:%02x:%d missed: %d\r\n",rx_buffer[0],rx_buffer[1],rx_buffer[2],current_num,missed_counter);
+	}
+	else if(rx_buffer[0] == 0xAC)
+	{
+		int num = rx_buffer[3];
+		printf("%02x:%02x:%02x:%d\r\n",rx_buffer[0],rx_buffer[1],rx_buffer[2],num);
+	}
+	*/
+	
 	return true;
 }
 bool run_mediumrate_code()
 {
+
 	//logger->log_debug("Running medium rate code.");
 	diagnostic_status.Diagnostic_Type = SOFTWARE;
 	diagnostic_status.Level = INFO;
@@ -17,7 +47,12 @@ bool run_mediumrate_code()
 	diagnostic_status.Description = "Node Executing.";
 	diagnostic_pub.publish(diagnostic_status);
 
-
+	/*unsigned char buffer[1];
+	buffer[0] = 0xAB;
+	wiringPiSPIDataRW(0, buffer, 1);
+	printf("%s",buffer);
+	*/
+	
 	return true;
 }
 bool run_slowrate_code()
@@ -41,9 +76,43 @@ bool run_slowrate_code()
 			}
 		}
 	}
-
+	
 	//logger->log_debug("Running slow rate code.");
-
+	//logger->log_debug("Running fast rate code.");
+	unsigned char tx_buffer[9];
+	unsigned char *p_tx_buffer;
+	
+	p_tx_buffer = &tx_buffer[0];
+	*p_tx_buffer++ = 0xAB;
+	*p_tx_buffer++ = 0x14;
+	*p_tx_buffer++ = 8;
+	*p_tx_buffer++ = 0; //Start checksum here
+	*p_tx_buffer++ = 1;
+	*p_tx_buffer++ = 2;
+	*p_tx_buffer++ = 3;
+	*p_tx_buffer++ = 4;
+	*p_tx_buffer++ = 5;
+	*p_tx_buffer++ = 6;
+	*p_tx_buffer++ = 6;
+	
+	//*p_tx_buffer++ = 128;
+	int checksum = 0;
+	for(int i = 3; i < 11; i++)
+	{
+		printf("i: %d D: %d\r\n",i,tx_buffer[i]);
+		checksum ^= tx_buffer[i];  //Should this be: &tx_buffer[i]
+	}
+	printf("Checksum: %d\r\n",checksum);
+	*p_tx_buffer++ = checksum;
+	if (device_fid != -1)
+	{
+		tcflush(device_fid, TCIFLUSH);
+		int count = write(device_fid, &tx_buffer[0], (p_tx_buffer - &tx_buffer[0]));		//Filestream, bytes to write, number of bytes to write
+		if (count < 0)
+		{
+			printf("UART TX error\n");
+		}
+	}
 	return true;
 }
 bool run_veryslowrate_code()
@@ -122,6 +191,7 @@ int main(int argc, char **argv)
 		ros::spinOnce();
 		loop_rate.sleep();
     }
+	close(device_fid);
     return 0;
 }
 
@@ -185,12 +255,24 @@ bool initialize(ros::NodeHandle nh)
     //End Template Code: Initialization and Parameters
 
     //Start User Code: Initialization and Parameters
-    device_fid = wiringPiSPISetup(1,500000);
+	current_num = -1;
+	last_num = -1;
+	missed_counter = 0;
+    //device_fid = wiringPiSPISetup(0,100000);
+	device_fid = open("/dev/ttyAMA0", O_RDWR | O_NOCTTY | O_NDELAY);
     if(device_fid < 0)
     {
-    	logger->log_fatal("Unable to setup SPI.  Exiting.");
+    	logger->log_fatal("Unable to setup UART.  Exiting.");
 		return false;
     }
+	struct termios options;
+	tcgetattr(device_fid, &options);
+	options.c_cflag = B115200 | CS8 | CLOCAL | CREAD;		//<Set baud rate
+	options.c_iflag = IGNPAR;
+	options.c_oflag = 0;
+	options.c_lflag = 0;
+	tcflush(device_fid, TCIFLUSH);
+	tcsetattr(device_fid, TCSANOW, &options);
     //Finish User Code: Initialization and Parameters
 
     //Start Template Code: Final Initialization.

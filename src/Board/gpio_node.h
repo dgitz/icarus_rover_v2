@@ -15,10 +15,11 @@
 //End Template Code: Includes
 
 //Start User Code: Includes
-
+#include <unistd.h>			//Used for UART
+#include <fcntl.h>			//Used for UART
+#include <termios.h>		//Used for UART
 #include <wiringPi.h>
 #include <wiringPiSPI.h>
-//#include <max5322.h>
 //End User Code: Includes
 
 
@@ -67,5 +68,8 @@ int pid;
 //Start User Code: Define Global Variables
 int device_fid;
 std::vector<icarus_rover_v2::device> boards;
+int current_num;
+int last_num;
+int missed_counter;
 //End User Code: Define Global Variables
 #endif
