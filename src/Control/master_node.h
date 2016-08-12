@@ -13,6 +13,7 @@
 #include <icarus_rover_v2/device.h>
 #include <icarus_rover_v2/resource.h>
 #include <icarus_rover_v2/pin.h>
+#include <icarus_rover_v2/command.h>
 //End Template Code: Includes
 //Start User Code: Includes
 #include <tinyxml.h>
@@ -30,11 +31,13 @@ bool run_veryslowrate_code();
 double measure_time_diff(ros::Time timer_a, ros::Time tiber_b);
 void parse_devicefile(TiXmlDocument doc);
 void PPS_Callback(const std_msgs::Bool::ConstPtr& msg);
+void Command_Callback(const icarus_rover_v2::command& msg);
 void print_myDevice();
 void print_otherDevices();
 void publish_deviceinfo();
 int get_pid();
 bool check_resources(int procid);
+std::vector<icarus_rover_v2::diagnostic> check_program_variables();
 //End Template Code: Function Prototypes
 
 //Start User Code: Function Prototypes
@@ -46,6 +49,7 @@ std::string node_name;
 int rate;
 std::string verbosity_level;
 ros::Subscriber pps_sub;
+ros::Subscriber command_sub;
 ros::Publisher diagnostic_pub;
 ros::Publisher resource_pub;
 icarus_rover_v2::diagnostic diagnostic_status;

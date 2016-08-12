@@ -15,6 +15,7 @@
 //End Template Code: Includes
 
 //Start User Code: Includes
+#include "udpmessage.h"
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -72,6 +73,7 @@ int pid;
 //End Template Code: Define Global Variables
 
 //Start User Code: Define Global Variables
+UDPMessageHandler *udpmessagehandler;
 struct sockaddr_in device_addr;
 int device_sock;
 std::string multicast_group;

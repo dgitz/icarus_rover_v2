@@ -1,63 +1,5 @@
-#include "network_transceiver_node.h"
+#include "command_node.h"
 //Start User Code: Functions
-void diagnostic_Callback(const icarus_rover_v2::diagnostic::ConstPtr& msg)
-{
-	char tempstr[240];
-	sprintf(tempstr,"Got Diagnostic from Task: %s with System: %d Level: %d",msg->Node_Name.c_str(),msg->Level,msg->System);
-	logger->log_info(tempstr);
-	std::string send_string = udpmessagehandler->encode_DiagnosticUDP(msg->Node_Name,
-																(uint8_t)msg->System,
-																(uint8_t)msg->SubSystem,
-																(uint8_t)msg->Component,
-																(uint8_t)msg->Diagnostic_Type,
-																(uint8_t)msg->Level,
-																(uint8_t)msg->Diagnostic_Message,
-																msg->Description);
-	if(sendto(device_sock, send_string.c_str(), send_string.size(), 0, (struct sockaddr *)&device_addr, sizeof(device_addr))!=send_string.size())
-	{
-		  logger->log_warn("Mismatch in number of bytes sent");
-
-	}
-}
-void device_Callback(const icarus_rover_v2::device::ConstPtr& msg)
-{
-	char tempstr[240];
-	sprintf(tempstr,"Got Device from Task: %s",msg->DeviceName.c_str());
-	logger->log_info(tempstr);
-	std::string send_string = udpmessagehandler->encode_DeviceUDP(msg->DeviceParent,
-																msg->DeviceName,
-																msg->DeviceType,
-																msg->Architecture);
-	if(sendto(device_sock, send_string.c_str(), send_string.size(), 0, (struct sockaddr *)&device_addr, sizeof(device_addr))!=send_string.size())
-	{
-		  logger->log_warn("Mismatch in number of bytes sent");
-
-	}
-	else
-	{
-		logger->log_info("Sent!");
-	}
-}
-bool initialize_socket()
-{
-	memset(&device_addr, 0, sizeof(device_addr));
-	device_addr.sin_family=AF_INET;
-	//Create the socket
-	if((device_sock=socket(AF_INET, SOCK_DGRAM, 0))<0)
-	{
-		logger->log_error("Failed to create socket");
-		return false;
-	}
-
-	if(bind(device_sock,( struct sockaddr *) &device_addr, sizeof(device_addr))<0)
-	{
-		logger->log_error("Failed to bind socket");
-		return false;
-	}
-	inet_pton(AF_INET,multicast_group.c_str(),&device_addr.sin_addr.s_addr);
-	device_addr.sin_port=htons(multicast_port);
-	return true;
-}
 bool run_fastrate_code()
 {
 	//logger->log_debug("Running fast rate code.");
@@ -103,6 +45,10 @@ bool run_veryslowrate_code()
 {
 	//logger->log_debug("Running very slow rate code.");
 	logger->log_info("Node Running.");
+	icarus_rover_v2::command newcommand;
+	newcommand.Command=DIAGNOSTIC_ID;
+	newcommand.Option1 = LEVEL2;
+	command_pub.publish(newcommand);
 	return true;
 }
 //End User Code: Functions
@@ -111,7 +57,7 @@ bool run_veryslowrate_code()
 int main(int argc, char **argv)
 {
  
-	node_name = "network_transceiver_node";
+	node_name = "command_node";
 
 
     ros::init(argc, argv, node_name);
@@ -135,9 +81,6 @@ int main(int argc, char **argv)
     medium_timer = now;
     slow_timer = now;
     veryslow_timer = now;
-
-
-	int counter = 0;
     while (ros::ok())
     {
     	bool ok_to_start = false;
@@ -193,7 +136,7 @@ bool initialize(ros::NodeHandle nh)
 	diagnostic_status.Node_Name = node_name;
 	diagnostic_status.System = ROVER;
 	diagnostic_status.SubSystem = ROBOT_CONTROLLER;
-	diagnostic_status.Component = COMMUNICATION_NODE;
+	diagnostic_status.Component = TIMING_NODE;
 
 	diagnostic_status.Diagnostic_Type = NOERROR;
 	diagnostic_status.Level = INFO;
@@ -238,76 +181,8 @@ bool initialize(ros::NodeHandle nh)
     //End Template Code: Initialization and Parameters
 
     //Start User Code: Initialization and Parameters
-    std::string param_multicast_address = node_name +"/Multicast_Group";
-    if(nh.getParam(param_multicast_address,multicast_group) == false)
-   	{
-   		logger->log_warn("Missing Parameter: Multicast_Group.");
-   		return false;
-   	}
-
-    std::string param_multicast_port = node_name +"/Multicast_Port";
-   	if(nh.getParam(param_multicast_port,multicast_port) == false)
-   	{
-   		logger->log_warn("Missing Parameter: Multicast_Port.");
-   		return false;
-   	}
-   	if(initialize_socket() == false)
-   	{
-   		logger->log_error("Couldn't initialize socket.  Exiting.");
-   		return false;
-   	}
-   	std::string param_Mode = node_name +"/Mode";
-	if(nh.getParam(param_Mode,Mode) == false)
-	{
-		logger->log_warn("Missing Parameter: Mode.");
-		return false;
-	}
-	sleep(5);
-	if(Mode=="Diagnostics_GUI")
-	{
-		ros::master::V_TopicInfo master_topics;
-		ros::master::getTopics(master_topics);
-		std::vector<std::string> diagnostic_topics;
-		for (ros::master::V_TopicInfo::iterator it = master_topics.begin() ; it != master_topics.end(); it++)
-		{
-			const ros::master::TopicInfo& info = *it;
-			if(info.datatype == "icarus_rover_v2/diagnostic")
-			{
-				diagnostic_topics.push_back(info.name);
-			}
-
-		}
-		ros::Subscriber * diagnostic_subs;
-		diagnostic_subs = new ros::Subscriber[diagnostic_topics.size()];
-		for(int i = 0; i < diagnostic_topics.size();i++)
-		{
-			char tempstr[50];
-			sprintf(tempstr,"Subscribing to diagnostic topic: %s",diagnostic_topics.at(i).c_str());
-			logger->log_info(tempstr);
-			diagnostic_subs[i] = nh.subscribe<icarus_rover_v2::diagnostic>(diagnostic_topics.at(i),1000,diagnostic_Callback);
-		}
-
-		std::vector<std::string> device_topics;
-		for (ros::master::V_TopicInfo::iterator it = master_topics.begin() ; it != master_topics.end(); it++)
-		{
-			const ros::master::TopicInfo& info = *it;
-			if(info.datatype == "icarus_rover_v2/device")
-			{
-				device_topics.push_back(info.name);
-			}
-
-		}
-		ros::Subscriber * device_subs;
-		device_subs = new ros::Subscriber[device_topics.size()];
-		for(int i = 0; i < device_topics.size();i++)
-		{
-			char tempstr[50];
-			sprintf(tempstr,"Subscribing to device topic: %s",device_topics.at(i).c_str());
-			logger->log_info(tempstr);
-			device_subs[i] = nh.subscribe<icarus_rover_v2::device>(device_topics.at(i),1000,device_Callback);
-		}
-	}
-	udpmessagehandler = new UDPMessageHandler();
+    std::string command_topic = "/command";
+    command_pub =  nh.advertise<icarus_rover_v2::command>(command_topic,1000);
     //Finish User Code: Initialization and Parameters
 
     //Start Template Code: Final Initialization.
@@ -381,7 +256,7 @@ int get_pid()
 		std::string line;
 		getline(myfile,line);
 		//printf("Line:%s\r\n",line.c_str());
-		std::size_t found = line.find("icarus_rover_v2/network_transceiver_node");
+		std::size_t found = line.find("icarus_rover_v2/command_node");
 		if(found != std::string::npos)
 		{
 			std::vector <string> fields;
