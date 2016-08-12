@@ -23,4 +23,48 @@
             <field type="std::string" name="Architecture"/>
         </Fields>
     </Message>
+    <Message name="TestMessageCounter" id="0xAB14">
+        <Description>
+            <![CDATA[
+                All fields in this message should increment.  When the value for each reaches 255 they will be reset.  This message is to be
+                used for diagnostic purposes.
+            ]]>
+        </Description>
+        <Type>Serial</Type>
+        <Retry>false</Retry>
+        <Origin>Master</Origin>
+        <Origin>Slave</Origin>
+        <Fields>
+            <field type="uint8_t" name="value1"/>
+            <field type="uint8_t" name="value2"/>
+            <field type="uint8_t" name="value3"/>
+            <field type="uint8_t" name="value4"/>
+            <field type="uint8_t" name="value5"/>
+            <field type="uint8_t" name="value6"/>
+            <field type="uint8_t" name="value7"/>
+            <field type="uint8_t" name="value8"/>
+        </Fields>
+    </Message>
+    <Message name="TestMessageCommand" id="0xAB15">
+        <Description>
+            <![CDATA[
+                This message is used to command the receiving device to output data of type TestMessageCounter.  All fields in 
+                this message are assumed to be 0.
+            ]]>
+        </Description>
+        <Type>Serial</Type>
+        <Retry>true</Retry>
+        <Origin>Master</Origin>
+        <Origin>Slave</Origin>
+        <Fields>
+            <field type="uint8_t" name="value1"/>
+            <field type="uint8_t" name="value2"/>
+            <field type="uint8_t" name="value3"/>
+            <field type="uint8_t" name="value4"/>
+            <field type="uint8_t" name="value5"/>
+            <field type="uint8_t" name="value6"/>
+            <field type="uint8_t" name="value7"/>
+            <field type="uint8_t" name="value8"/>
+        </Fields>
+    </Message>
 </Messages>
