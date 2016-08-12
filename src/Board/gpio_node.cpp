@@ -2,39 +2,41 @@
 //Start User Code: Functions
 bool run_fastrate_code()
 {
-	/*unsigned char rx_buffer[5];
-	int rx_length = read(device_fid, (void*)rx_buffer, 4);		//Filestream, buffer to store in, number of bytes to read (max)
-	//tcflush(device_fid, TCIFLUSH);
-	if (rx_length < 0)
+	unsigned char rx_buffer[12];
+	memset(rx_buffer, 0, sizeof(rx_buffer));
+	memset(packet_data,0,sizeof(packet_data));
+	int rx_length = read(device_fid, rx_buffer, sizeof(rx_buffer));		//Filestream, buffer to store in, number of bytes to read (max)
+	if(rx_length > 0)
 	{
-		//An error occured (will occur if there are no bytes)
+		if(rx_buffer[0] == 0xAB)
+		{
+			packet_length = rx_buffer[2];
+			int checksum = 0;
+			for(int i = 3; i < 3+packet_length;i++)
+			{
+				packet_data[i-3] = rx_buffer[i];
+				checksum ^= packet_data[i-3];
+				//printf("b: %d c: %d,",packet_data[i-3],checksum);
+			}
+			int recv_checksum = rx_buffer[11];
+			if(recv_checksum == checksum)
+			{
+				packet_type = rx_buffer[1];
+				new_message = true;
+			}
+			//printf("Checksum: %d/%d\r\n",checksum,recv_checksum);
+		}
 	}
-	else if (rx_length == 0)
+	if(new_message == true)
 	{
-		//No data waiting
+		new_message = false;
+		printf("New Message with Type: %d\r\n",packet_type);
+		printf("Payload: ");
+		for(int i = 0; i < packet_length; i++)
+		{
+			printf("b: %d ",packet_data[i]);
+		}
 	}
-	else
-	{
-		//Bytes received
-		rx_buffer[rx_length] = '\0';
-		//printf("%i bytes read : %s\r\n", rx_length, rx_buffer);
-	}
-	if(rx_buffer[0] == 0xAB)
-	{
-		last_num = current_num;
-		current_num = rx_buffer[3];
-		int missed = abs(current_num-last_num)-1;
-		missed_counter+= missed;
-		if(missed_counter > 256) { missed_counter = 0; }
-		printf("%02x:%02x:%02x:%d missed: %d\r\n",rx_buffer[0],rx_buffer[1],rx_buffer[2],current_num,missed_counter);
-	}
-	else if(rx_buffer[0] == 0xAC)
-	{
-		int num = rx_buffer[3];
-		printf("%02x:%02x:%02x:%d\r\n",rx_buffer[0],rx_buffer[1],rx_buffer[2],num);
-	}
-	*/
-	
 	return true;
 }
 bool run_mediumrate_code()
@@ -47,12 +49,6 @@ bool run_mediumrate_code()
 	diagnostic_status.Description = "Node Executing.";
 	diagnostic_pub.publish(diagnostic_status);
 
-	/*unsigned char buffer[1];
-	buffer[0] = 0xAB;
-	wiringPiSPIDataRW(0, buffer, 1);
-	printf("%s",buffer);
-	*/
-	
 	return true;
 }
 bool run_slowrate_code()
@@ -79,7 +75,7 @@ bool run_slowrate_code()
 	
 	//logger->log_debug("Running slow rate code.");
 	//logger->log_debug("Running fast rate code.");
-	unsigned char tx_buffer[9];
+	unsigned char tx_buffer[12];
 	unsigned char *p_tx_buffer;
 	
 	p_tx_buffer = &tx_buffer[0];
@@ -99,14 +95,14 @@ bool run_slowrate_code()
 	int checksum = 0;
 	for(int i = 3; i < 11; i++)
 	{
-		printf("i: %d D: %d\r\n",i,tx_buffer[i]);
+		//printf("i: %d D: %d\r\n",i,tx_buffer[i]);
 		checksum ^= tx_buffer[i];  //Should this be: &tx_buffer[i]
 	}
-	printf("Checksum: %d\r\n",checksum);
+	//printf("Checksum: %d\r\n",checksum);
 	*p_tx_buffer++ = checksum;
 	if (device_fid != -1)
 	{
-		tcflush(device_fid, TCIFLUSH);
+		//tcflush(device_fid, TCIFLUSH);
 		int count = write(device_fid, &tx_buffer[0], (p_tx_buffer - &tx_buffer[0]));		//Filestream, bytes to write, number of bytes to write
 		if (count < 0)
 		{
@@ -258,6 +254,7 @@ bool initialize(ros::NodeHandle nh)
 	current_num = -1;
 	last_num = -1;
 	missed_counter = 0;
+	new_message = false;
     //device_fid = wiringPiSPISetup(0,100000);
 	device_fid = open("/dev/ttyAMA0", O_RDWR | O_NOCTTY | O_NDELAY);
     if(device_fid < 0)

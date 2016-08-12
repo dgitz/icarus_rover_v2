@@ -71,5 +71,9 @@ std::vector<icarus_rover_v2::device> boards;
 int current_num;
 int last_num;
 int missed_counter;
+bool new_message;
+int packet_type;
+int packet_data[12];
+int packet_length;
 //End User Code: Define Global Variables
 #endif
