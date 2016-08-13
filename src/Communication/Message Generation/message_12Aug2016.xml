@@ -23,6 +23,26 @@
             <field type="std::string" name="Architecture"/>
         </Fields>
     </Message>
+    <Message name="TestMessageCounter" id="0xAB14">
+        <Description>
+            <![CDATA[
+            ]]>
+        </Description>
+        <Type>Serial</Type>
+        <Retry>false</Retry>
+        <Origin>Master</Origin>
+        <Origin>Slave</Origin>
+        <Fields>
+            <field type="char" name="value1"/>
+            <field type="char" name="value2"/>
+            <field type="char" name="value3"/>
+            <field type="char" name="value4"/>
+            <field type="char" name="value5"/>
+            <field type="char" name="value6"/>
+            <field type="char" name="value7"/>
+            <field type="char" name="value8"/>
+        </Fields>
+    </Message>
     <Message name="TestMessageCommand" id="0xAB15">
         <Description>
             <![CDATA[

@@ -15,11 +15,10 @@
 //End Template Code: Includes
 
 //Start User Code: Includes
+#include <serialmessage.h>
 #include <unistd.h>			//Used for UART
 #include <fcntl.h>			//Used for UART
 #include <termios.h>		//Used for UART
-#include <wiringPi.h>
-#include <wiringPiSPI.h>
 //End User Code: Includes
 
 
@@ -66,14 +65,16 @@ int pid;
 //End Template Code: Define Global Variables
 
 //Start User Code: Define Global Variables
+SerialMessageHandler *serialmessagehandler;
 int device_fid;
 std::vector<icarus_rover_v2::device> boards;
 int current_num;
 int last_num;
 int missed_counter;
+int bad_checksum_counter;
 bool new_message;
 int packet_type;
-int packet_data[12];
+unsigned char packet_data[12];
 int packet_length;
 //End User Code: Define Global Variables
 #endif

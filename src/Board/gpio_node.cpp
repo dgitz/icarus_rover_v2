@@ -5,7 +5,10 @@ bool run_fastrate_code()
 	unsigned char rx_buffer[12];
 	memset(rx_buffer, 0, sizeof(rx_buffer));
 	memset(packet_data,0,sizeof(packet_data));
-	int rx_length = read(device_fid, rx_buffer, sizeof(rx_buffer));		//Filestream, buffer to store in, number of bytes to read (max)
+	ros::Time start_time = ros::Time::now();
+	int rx_length = read(device_fid, rx_buffer, sizeof(rx_buffer));
+	double readtime = measure_time_diff(ros::Time::now(),start_time);
+	printf("Read Time: %f Bytes Read: %d\r\n",readtime,rx_length);
 	if(rx_length > 0)
 	{
 		if(rx_buffer[0] == 0xAB)
@@ -16,7 +19,6 @@ bool run_fastrate_code()
 			{
 				packet_data[i-3] = rx_buffer[i];
 				checksum ^= packet_data[i-3];
-				//printf("b: %d c: %d,",packet_data[i-3],checksum);
 			}
 			int recv_checksum = rx_buffer[11];
 			if(recv_checksum == checksum)
@@ -24,17 +26,31 @@ bool run_fastrate_code()
 				packet_type = rx_buffer[1];
 				new_message = true;
 			}
-			//printf("Checksum: %d/%d\r\n",checksum,recv_checksum);
+			else
+			{
+				bad_checksum_counter++;
+			}
 		}
 	}
 	if(new_message == true)
 	{
 		new_message = false;
-		printf("New Message with Type: %d\r\n",packet_type);
-		printf("Payload: ");
-		for(int i = 0; i < packet_length; i++)
+		if(packet_type ==SERIAL_TestMessageCounter_ID)
 		{
-			printf("b: %d ",packet_data[i]);
+			char value1,value2,value3,value4,value5,value6,value7,value8;
+			serialmessagehandler->decode_TestMessageCounterSerial(packet_data,&value1,&value2,&value3,&value4,&value5,&value6,&value7,&value8);
+			//printf("TestMessage Counter: 1: %d 2: %d 3: %d 4: %d 5: %d 6: %d 7: %d 8: %d\r\n",value1,value2,value3,value4,value5,value6,value7,value8);
+			last_num = current_num;
+			current_num = value1;
+			missed_counter += abs(current_num-last_num)-1;
+			
+			
+		}
+		else if(packet_type ==SERIAL_TestMessageCommand_ID)
+		{
+			char value1,value2,value3,value4,value5,value6,value7,value8;
+			serialmessagehandler->decode_TestMessageCommandSerial(packet_data,&value1,&value2,&value3,&value4,&value5,&value6,&value7,&value8);
+			//printf("TestMessage Command: 1: %d 2: %d 3: %d 4: %d 5: %d 6: %d 7: %d 8: %d\r\n",value1,value2,value3,value4,value5,value6,value7,value8);
 		}
 	}
 	return true;
@@ -42,6 +58,7 @@ bool run_fastrate_code()
 bool run_mediumrate_code()
 {
 
+	printf("Missed Counter: %d Bad checksum: %d\r\n",missed_counter,bad_checksum_counter);
 	//logger->log_debug("Running medium rate code.");
 	diagnostic_status.Diagnostic_Type = SOFTWARE;
 	diagnostic_status.Level = INFO;
@@ -72,43 +89,24 @@ bool run_slowrate_code()
 			}
 		}
 	}
-	
-	//logger->log_debug("Running slow rate code.");
-	//logger->log_debug("Running fast rate code.");
 	unsigned char tx_buffer[12];
-	unsigned char *p_tx_buffer;
-	
-	p_tx_buffer = &tx_buffer[0];
-	*p_tx_buffer++ = 0xAB;
-	*p_tx_buffer++ = 0x14;
-	*p_tx_buffer++ = 8;
-	*p_tx_buffer++ = 0; //Start checksum here
-	*p_tx_buffer++ = 1;
-	*p_tx_buffer++ = 2;
-	*p_tx_buffer++ = 3;
-	*p_tx_buffer++ = 4;
-	*p_tx_buffer++ = 5;
-	*p_tx_buffer++ = 6;
-	*p_tx_buffer++ = 6;
-	
-	//*p_tx_buffer++ = 128;
-	int checksum = 0;
-	for(int i = 3; i < 11; i++)
+	int length;
+	int status = serialmessagehandler->encode_TestMessageCommandSerial(tx_buffer,&length,0,1,2,3,4,5,6,6);
+	if (status == 1)
 	{
-		//printf("i: %d D: %d\r\n",i,tx_buffer[i]);
-		checksum ^= tx_buffer[i];  //Should this be: &tx_buffer[i]
-	}
-	//printf("Checksum: %d\r\n",checksum);
-	*p_tx_buffer++ = checksum;
-	if (device_fid != -1)
-	{
-		//tcflush(device_fid, TCIFLUSH);
-		int count = write(device_fid, &tx_buffer[0], (p_tx_buffer - &tx_buffer[0]));		//Filestream, bytes to write, number of bytes to write
+		/*int count = write(device_fid, &tx_buffer[0], length);
 		if (count < 0)
 		{
-			printf("UART TX error\n");
+			logger->log_error("UART TX error\n");
+			diagnostic_status.Diagnostic_Type = COMMUNICATIONS;
+			diagnostic_status.Level = ERROR;
+			diagnostic_status.Diagnostic_Message = DROPPING_PACKETS;
+			diagnostic_status.Description = "Cannot write to UART.";
+			diagnostic_pub.publish(diagnostic_status);
 		}
+		*/
 	}
+
 	return true;
 }
 bool run_veryslowrate_code()
@@ -156,7 +154,7 @@ int main(int argc, char **argv)
     	{
     		now = ros::Time::now();
     		mtime = measure_time_diff(now,fast_timer);
-			if(mtime > .02)
+			if(mtime > .001)
 			{
 				run_fastrate_code();
 				fast_timer = ros::Time::now();
@@ -254,8 +252,8 @@ bool initialize(ros::NodeHandle nh)
 	current_num = -1;
 	last_num = -1;
 	missed_counter = 0;
+	bad_checksum_counter = 0;
 	new_message = false;
-    //device_fid = wiringPiSPISetup(0,100000);
 	device_fid = open("/dev/ttyAMA0", O_RDWR | O_NOCTTY | O_NDELAY);
     if(device_fid < 0)
     {
@@ -270,6 +268,8 @@ bool initialize(ros::NodeHandle nh)
 	options.c_lflag = 0;
 	tcflush(device_fid, TCIFLUSH);
 	tcsetattr(device_fid, TCSANOW, &options);
+
+	serialmessagehandler = new SerialMessageHandler();
     //Finish User Code: Initialization and Parameters
 
     //Start Template Code: Final Initialization.
