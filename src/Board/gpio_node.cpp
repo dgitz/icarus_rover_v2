@@ -2,27 +2,35 @@
 //Start User Code: Functions
 bool run_fastrate_code()
 {
-	unsigned char rx_buffer[12];
+	
+	unsigned char rx_buffer[64];
+	unsigned char packet[8];
 	memset(rx_buffer, 0, sizeof(rx_buffer));
-	memset(packet_data,0,sizeof(packet_data));
-	ros::Time start_time = ros::Time::now();
+	memset(packet,0,sizeof(packet));
+	//ros::Time start_time = ros::Time::now();
 	int rx_length = read(device_fid, rx_buffer, sizeof(rx_buffer));
-	double readtime = measure_time_diff(ros::Time::now(),start_time);
-	printf("Read Time: %f Bytes Read: %d\r\n",readtime,rx_length);
-	if(rx_length > 0)
+	//tcflush(device_fid, TCIFLUSH);
+	//double readtime = measure_time_diff(ros::Time::now(),start_time);
+	//printf("Read Time: %f Bytes Read: %d\r\n",readtime,rx_length);
+	bool message_started = false;
+	bool message_complete = false;
+	if(rx_length == 12)
 	{
 		if(rx_buffer[0] == 0xAB)
 		{
+			message_started = true;
+			message_complete = true;
 			packet_length = rx_buffer[2];
 			int checksum = 0;
 			for(int i = 3; i < 3+packet_length;i++)
 			{
-				packet_data[i-3] = rx_buffer[i];
-				checksum ^= packet_data[i-3];
+				packet[i-3] = rx_buffer[i];
+				checksum ^= packet[i-3];
 			}
 			int recv_checksum = rx_buffer[11];
 			if(recv_checksum == checksum)
 			{
+				good_checksum_counter++;
 				packet_type = rx_buffer[1];
 				new_message = true;
 			}
@@ -32,24 +40,93 @@ bool run_fastrate_code()
 			}
 		}
 	}
+	else if(rx_length > 0)
+	{
+		if(message_started == false)
+		{
+			if(rx_buffer[0] == 0xAB)
+			{
+				message_started = true;
+			}
+		}
+		if((message_started == true) && (message_complete == false))
+		{
+			unsigned char rx_buffer2[64];
+			int rx_length2 = read(device_fid, rx_buffer2, sizeof(rx_buffer2));
+			unsigned char message_buffer[128];
+			memset(message_buffer, 0, sizeof(message_buffer));
+			if((rx_length + rx_length2) == 12)
+			{
+				for(int i = 0; i < rx_length;i++)
+				{
+					message_buffer[i] = rx_buffer[i];
+				}
+				for(int i = 0; i < rx_length2;i++)
+				{
+					message_buffer[i+rx_length] = rx_buffer2[i];
+				}
+				message_complete = true;
+				packet_length = message_buffer[2];
+				int checksum = 0;
+				for(int i = 3; i < 3+packet_length;i++)
+				{
+					packet[i-3] = message_buffer[i];
+					checksum ^= packet[i-3];
+				}
+				int recv_checksum = message_buffer[11];
+				if(recv_checksum == checksum)
+				{
+					good_checksum_counter++;
+					packet_type = message_buffer[1];
+					new_message = true;
+				}
+				else
+				{
+					bad_checksum_counter++;
+				}
+				/*printf("Bytes: ");
+				for(int i = 0; i < 12; i++)
+				{
+					printf("b: %d D: %d",i,message_buffer[i]);
+				}
+				printf("\r\n");
+				*/
+			}
+			else
+			{
+				bad_checksum_counter++;
+			}
+		}
+		/*bad_checksum_counter++;
+		for(int i = 0; i < rx_length; i++)
+		{
+			printf("b: %d d: %d",i,rx_buffer[i]);
+		}
+		printf("\r\n");
+		*/
+		//printf("Got %d bytes instead of 12.\r\n",rx_length);
+	}
 	if(new_message == true)
 	{
 		new_message = false;
 		if(packet_type ==SERIAL_TestMessageCounter_ID)
 		{
 			char value1,value2,value3,value4,value5,value6,value7,value8;
-			serialmessagehandler->decode_TestMessageCounterSerial(packet_data,&value1,&value2,&value3,&value4,&value5,&value6,&value7,&value8);
+			serialmessagehandler->decode_TestMessageCounterSerial(packet,&value1,&value2,&value3,&value4,&value5,&value6,&value7,&value8);
 			//printf("TestMessage Counter: 1: %d 2: %d 3: %d 4: %d 5: %d 6: %d 7: %d 8: %d\r\n",value1,value2,value3,value4,value5,value6,value7,value8);
 			last_num = current_num;
 			current_num = value1;
-			missed_counter += abs(current_num-last_num)-1;
-			
+			int num = abs(current_num-last_num)-1;
+			if(num > 150) { num = 0; }
+			if(num < 0){ num = 0; }
+			missed_counter += num;
+			//if(num > 0){printf("M: %d/%d/%d\r\n",current_num,last_num,num);};
 			
 		}
 		else if(packet_type ==SERIAL_TestMessageCommand_ID)
 		{
 			char value1,value2,value3,value4,value5,value6,value7,value8;
-			serialmessagehandler->decode_TestMessageCommandSerial(packet_data,&value1,&value2,&value3,&value4,&value5,&value6,&value7,&value8);
+			serialmessagehandler->decode_TestMessageCommandSerial(packet,&value1,&value2,&value3,&value4,&value5,&value6,&value7,&value8);
 			//printf("TestMessage Command: 1: %d 2: %d 3: %d 4: %d 5: %d 6: %d 7: %d 8: %d\r\n",value1,value2,value3,value4,value5,value6,value7,value8);
 		}
 	}
@@ -57,9 +134,18 @@ bool run_fastrate_code()
 }
 bool run_mediumrate_code()
 {
-
-	printf("Missed Counter: %d Bad checksum: %d\r\n",missed_counter,bad_checksum_counter);
+	double dropped_ratio = 100*(double)((double)bad_checksum_counter/((double)bad_checksum_counter+(double)good_checksum_counter));
+	double runtime = measure_time_diff(now,boot_time);
+	double missed_rate = (double)(missed_counter)/runtime;
+	printf("Missed Counter: %d Bad checksum: %d Good checksum: %d Dropped Ratio: %f Missed Rate: %f\r\n",missed_counter,bad_checksum_counter,good_checksum_counter,dropped_ratio,missed_rate);
 	//logger->log_debug("Running medium rate code.");
+	if(dropped_ratio > 3.0) //Diagnostic Message please
+	{
+		
+	}
+	else if(dropped_ratio > 6.0) //Diagnostic Message please
+	{
+	}
 	diagnostic_status.Diagnostic_Type = SOFTWARE;
 	diagnostic_status.Level = INFO;
 	diagnostic_status.Diagnostic_Message = NOERROR;
@@ -94,7 +180,7 @@ bool run_slowrate_code()
 	int status = serialmessagehandler->encode_TestMessageCommandSerial(tx_buffer,&length,0,1,2,3,4,5,6,6);
 	if (status == 1)
 	{
-		/*int count = write(device_fid, &tx_buffer[0], length);
+		int count = write(device_fid, &tx_buffer[0], length);
 		if (count < 0)
 		{
 			logger->log_error("UART TX error\n");
@@ -104,9 +190,9 @@ bool run_slowrate_code()
 			diagnostic_status.Description = "Cannot write to UART.";
 			diagnostic_pub.publish(diagnostic_status);
 		}
-		*/
+		
 	}
-
+	
 	return true;
 }
 bool run_veryslowrate_code()
@@ -141,6 +227,7 @@ int main(int argc, char **argv)
     }
     ros::Rate loop_rate(rate);
     now = ros::Time::now();
+	boot_time = now;
     fast_timer = now;
     medium_timer = now;
     slow_timer = now;
@@ -253,8 +340,9 @@ bool initialize(ros::NodeHandle nh)
 	last_num = -1;
 	missed_counter = 0;
 	bad_checksum_counter = 0;
+	good_checksum_counter = 0;
 	new_message = false;
-	device_fid = open("/dev/ttyAMA0", O_RDWR | O_NOCTTY | O_NDELAY);
+	device_fid = open("/dev/ttyAMA0", O_RDWR | O_NOCTTY /*| O_NDELAY*/);
     if(device_fid < 0)
     {
     	logger->log_fatal("Unable to setup UART.  Exiting.");

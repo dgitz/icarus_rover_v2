@@ -1,5 +1,5 @@
 /***************AUTO-GENERATED.  DO NOT EDIT********************/
-/***Created on:2016-08-12 21:01:44.417739***/
+/***Created on:2016-08-14 10:16:07.259785***/
 #ifndef SERIALMESSAGE_H
 #define SERIALMESSAGE_H
 #define SERIAL_TestMessageCounter_ID 0x14

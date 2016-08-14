@@ -15,6 +15,8 @@
 //End Template Code: Includes
 
 //Start User Code: Includes
+#include <stdio.h>
+#include <string.h>
 #include <serialmessage.h>
 #include <unistd.h>			//Used for UART
 #include <fcntl.h>			//Used for UART
@@ -59,6 +61,7 @@ ros::Time medium_timer; //10 Hz
 ros::Time slow_timer; //1 Hz
 ros::Time veryslow_timer; //1 Hz
 ros::Time now;
+ros::Time boot_time;
 double mtime;
 bool device_initialized;
 int pid;
@@ -72,9 +75,10 @@ int current_num;
 int last_num;
 int missed_counter;
 int bad_checksum_counter;
+int good_checksum_counter;
 bool new_message;
 int packet_type;
-unsigned char packet_data[12];
+unsigned char packet_data[8];
 int packet_length;
 //End User Code: Define Global Variables
 #endif
