@@ -1,5 +1,5 @@
 /***************AUTO-GENERATED.  DO NOT EDIT********************/
-/***Created on:2016-08-15 18:02:44.558167***/
+/***Created on:2016-08-16 07:47:36.664382***/
 #include "serialmessage.h"
 SerialMessageHandler::SerialMessageHandler(){}
 SerialMessageHandler::~SerialMessageHandler(){}
@@ -107,5 +107,106 @@ int SerialMessageHandler::decode_TestMessageCommandSerial(unsigned char* inpacke
 	*value6=inpacket[5];
 	*value7=inpacket[6];
 	*value8=inpacket[7];
+	return 1;
+}
+int SerialMessageHandler::encode_Configure_GPIO_PortASerial(unsigned char* outbuffer,int* length,char Pin1_Mode,char Pin2_Mode,char Pin3_Mode,char Pin4_Mode,char Pin5_Mode,char Pin6_Mode,char Pin7_Mode,char Pin8_Mode)
+{
+	unsigned char *p_outbuffer;
+	p_outbuffer = &outbuffer[0];
+	*p_outbuffer++ = 0xAB;
+	*p_outbuffer++ = 0x16;
+	*p_outbuffer++ = 8;
+	*p_outbuffer++ = Pin1_Mode;
+	*p_outbuffer++ = Pin2_Mode;
+	*p_outbuffer++ = Pin3_Mode;
+	*p_outbuffer++ = Pin4_Mode;
+	*p_outbuffer++ = Pin5_Mode;
+	*p_outbuffer++ = Pin6_Mode;
+	*p_outbuffer++ = Pin7_Mode;
+	*p_outbuffer++ = Pin8_Mode;
+	int checksum = 0;
+	for(int i = 3; i < (3+8);i++)
+	{
+		checksum ^= outbuffer[i];
+	}
+	*p_outbuffer++ = checksum;
+	*length = p_outbuffer-&outbuffer[0];
+	return 1;
+}
+int SerialMessageHandler::decode_Configure_GPIO_PortASerial(unsigned char* inpacket,char* Pin1_Mode,char* Pin2_Mode,char* Pin3_Mode,char* Pin4_Mode,char* Pin5_Mode,char* Pin6_Mode,char* Pin7_Mode,char* Pin8_Mode)
+{
+	*Pin1_Mode=inpacket[0];
+	*Pin2_Mode=inpacket[1];
+	*Pin3_Mode=inpacket[2];
+	*Pin4_Mode=inpacket[3];
+	*Pin5_Mode=inpacket[4];
+	*Pin6_Mode=inpacket[5];
+	*Pin7_Mode=inpacket[6];
+	*Pin8_Mode=inpacket[7];
+	return 1;
+}
+int SerialMessageHandler::encode_GPIO_Board_ModeSerial(unsigned char* outbuffer,int* length,char Mode)
+{
+	unsigned char *p_outbuffer;
+	p_outbuffer = &outbuffer[0];
+	*p_outbuffer++ = 0xAB;
+	*p_outbuffer++ = 0x17;
+	*p_outbuffer++ = 8;
+	*p_outbuffer++ = Mode;
+	*p_outbuffer++ = 0;
+	*p_outbuffer++ = 0;
+	*p_outbuffer++ = 0;
+	*p_outbuffer++ = 0;
+	*p_outbuffer++ = 0;
+	*p_outbuffer++ = 0;
+	*p_outbuffer++ = 0;
+	int checksum = 0;
+	for(int i = 3; i < (3+8);i++)
+	{
+		checksum ^= outbuffer[i];
+	}
+	*p_outbuffer++ = checksum;
+	*length = p_outbuffer-&outbuffer[0];
+	return 1;
+}
+int SerialMessageHandler::decode_GPIO_Board_ModeSerial(unsigned char* inpacket,char* Mode)
+{
+	*Mode=inpacket[0];
+	return 1;
+}
+int SerialMessageHandler::encode_Set_GPIO_PortASerial(unsigned char* outbuffer,int* length,char Pin1_Value,char Pin2_Value,char Pin3_Value,char Pin4_Value,char Pin5_Value,char Pin6_Value,char Pin7_Value,char Pin8_Value)
+{
+	unsigned char *p_outbuffer;
+	p_outbuffer = &outbuffer[0];
+	*p_outbuffer++ = 0xAB;
+	*p_outbuffer++ = 0x18;
+	*p_outbuffer++ = 8;
+	*p_outbuffer++ = Pin1_Value;
+	*p_outbuffer++ = Pin2_Value;
+	*p_outbuffer++ = Pin3_Value;
+	*p_outbuffer++ = Pin4_Value;
+	*p_outbuffer++ = Pin5_Value;
+	*p_outbuffer++ = Pin6_Value;
+	*p_outbuffer++ = Pin7_Value;
+	*p_outbuffer++ = Pin8_Value;
+	int checksum = 0;
+	for(int i = 3; i < (3+8);i++)
+	{
+		checksum ^= outbuffer[i];
+	}
+	*p_outbuffer++ = checksum;
+	*length = p_outbuffer-&outbuffer[0];
+	return 1;
+}
+int SerialMessageHandler::decode_Set_GPIO_PortASerial(unsigned char* inpacket,char* Pin1_Value,char* Pin2_Value,char* Pin3_Value,char* Pin4_Value,char* Pin5_Value,char* Pin6_Value,char* Pin7_Value,char* Pin8_Value)
+{
+	*Pin1_Value=inpacket[0];
+	*Pin2_Value=inpacket[1];
+	*Pin3_Value=inpacket[2];
+	*Pin4_Value=inpacket[3];
+	*Pin5_Value=inpacket[4];
+	*Pin6_Value=inpacket[5];
+	*Pin7_Value=inpacket[6];
+	*Pin8_Value=inpacket[7];
 	return 1;
 }

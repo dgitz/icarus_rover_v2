@@ -87,4 +87,66 @@
             </Protocol>
         </Protocols>
     </Message>
+    <Message name="Configure_GPIO_PortA" id="0xAB16">
+        <Description>
+            <![CDATA[
+                This message is used to configure GPIO Port A.
+            ]]>
+        </Description>
+        <Protocols>
+            <Protocol name="Serial">
+                <Retry>true</Retry>
+                <Origin>Master</Origin>
+                <Fields>
+                    <field type="char" name="Pin1_Mode"/>
+                    <field type="char" name="Pin2_Mode"/>
+                    <field type="char" name="Pin3_Mode"/>
+                    <field type="char" name="Pin4_Mode"/>
+                    <field type="char" name="Pin5_Mode"/>
+                    <field type="char" name="Pin6_Mode"/>
+                    <field type="char" name="Pin7_Mode"/>
+                    <field type="char" name="Pin8_Mode"/>
+                </Fields>
+            </Protocol>
+        </Protocols>
+    </Message>
+    <Message name="GPIO_Board_Mode" id="0xAB17">
+        <Description>
+            <![CDATA[
+                After configuring the GPIO Board, this message is used to commence operation.  
+            ]]>
+        </Description>
+        <Protocols>
+            <Protocol name="Serial">
+                <Retry>true</Retry>
+                <Origin>Master</Origin>
+                <Fields>
+                    <field type="char" name="Mode"/>
+                </Fields>
+            </Protocol>
+        </Protocols>
+    </Message>
+    <Message name="Set_GPIO_PortA" id="0xAB18">
+        <Description>
+            <![CDATA[
+                This message is used to set outputs on PortA. If a pin is not configured as an output this value is discarded.
+            ]]>
+        </Description>
+        <Protocols>
+            <Protocol name="Serial">
+                <Retry>false</Retry>
+                <Origin>Master</Origin>
+                <Fields>
+                    <field type="char" name="Pin1_Value"/>
+                    <field type="char" name="Pin2_Value"/>
+                    <field type="char" name="Pin3_Value"/>
+                    <field type="char" name="Pin4_Value"/>
+                    <field type="char" name="Pin5_Value"/>
+                    <field type="char" name="Pin6_Value"/>
+                    <field type="char" name="Pin7_Value"/>
+                    <field type="char" name="Pin8_Value"/>
+                </Fields>
+            </Protocol>
+        </Protocols>
+    </Message>
 </Messages>

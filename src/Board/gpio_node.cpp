@@ -94,6 +94,76 @@ bool run_fastrate_code()
 }
 bool run_mediumrate_code()
 {
+	if(gpio_board_mode == GPIOBOARD_MODE_INITIALIZING)
+	{
+		unsigned char tx_buffer[12];
+		int length;
+		int tx_status = serialmessagehandler->encode_Configure_GPIO_PortASerial(tx_buffer,&length,
+		PINMODE_DIGITAL_OUTPUT,PINMODE_DIGITAL_OUTPUT,PINMODE_DIGITAL_OUTPUT,PINMODE_DIGITAL_OUTPUT,
+		PINMODE_UNDEFINED,PINMODE_UNDEFINED,PINMODE_UNDEFINED,PINMODE_UNDEFINED);
+		if (tx_status == 1)
+		{
+			int count = write(device_fid, &tx_buffer[0], length);
+			if (count < 0)
+			{
+				logger->log_error("UART TX error\n");
+				icarus_rover_v2::diagnostic diag=diagnostic_status;
+				diag.Diagnostic_Type = COMMUNICATIONS;
+				diag.Level = ERROR;
+				diag.Diagnostic_Message = DROPPING_PACKETS;
+				diag.Description = "Cannot write to UART.";
+				diagnostic_pub.publish(diag);
+			}
+			
+		}
+		gpio_board_mode = GPIOBOARD_MODE_START;
+	}
+	else if(gpio_board_mode == GPIOBOARD_MODE_START)
+	{
+		unsigned char tx_buffer[12];
+		int length;
+		int tx_status = serialmessagehandler->encode_GPIO_Board_ModeSerial(tx_buffer,&length,GPIOBOARD_MODE_START);
+		if (tx_status == 1)
+		{
+			int count = write(device_fid, &tx_buffer[0], length);
+			if (count < 0)
+			{
+				logger->log_error("UART TX error\n");
+				icarus_rover_v2::diagnostic diag=diagnostic_status;
+				diag.Diagnostic_Type = COMMUNICATIONS;
+				diag.Level = ERROR;
+				diag.Diagnostic_Message = DROPPING_PACKETS;
+				diag.Description = "Cannot write to UART.";
+				diagnostic_pub.publish(diag);
+			}
+			
+		}
+		gpio_board_mode = GPIOBOARD_MODE_RUNNING;
+	}
+	else if(gpio_board_mode == GPIOBOARD_MODE_RUNNING)
+	{
+		if(pin1_value > 0){pin1_value = 0; }
+		else{pin1_value = 1; }
+		unsigned char tx_buffer[12];
+		int length;
+		int tx_status = serialmessagehandler->encode_Set_GPIO_PortASerial(tx_buffer,&length,pin1_value,pin1_value,pin1_value,pin1_value,pin1_value,pin1_value,pin1_value,pin1_value);
+		if (tx_status == 1)
+		{
+			int count = write(device_fid, &tx_buffer[0], length);
+			if (count < 0)
+			{
+				logger->log_error("UART TX error\n");
+				icarus_rover_v2::diagnostic diag=diagnostic_status;
+				diag.Diagnostic_Type = COMMUNICATIONS;
+				diag.Level = ERROR;
+				diag.Diagnostic_Message = DROPPING_PACKETS;
+				diag.Description = "Cannot write to UART.";
+				diagnostic_pub.publish(diag);
+			}
+			
+		}
+		gpio_board_mode = GPIOBOARD_MODE_RUNNING;
+	}
 	double dropped_ratio = 100*(double)((double)bad_checksum_counter/((double)bad_checksum_counter+(double)good_checksum_counter));
 	double runtime = measure_time_diff(now,boot_time);
 	double missed_rate = (double)(missed_counter)/runtime;
@@ -402,6 +472,8 @@ bool initialize(ros::NodeHandle nh)
 	new_message = false;
 	checking_gpio_comm = false;
 	message_receive_counter = 0;
+	pin1_value = 0;
+	gpio_board_mode = GPIOBOARD_MODE_INITIALIZING;
 	device_fid = open("/dev/ttyAMA0", O_RDWR | O_NOCTTY /*| O_NDELAY*/);
     if(device_fid < 0)
     {

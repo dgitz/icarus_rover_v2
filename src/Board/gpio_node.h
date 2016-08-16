@@ -72,6 +72,7 @@ int pid;
 //End Template Code: Define Global Variables
 
 //Start User Code: Define Global Variables
+int gpio_board_mode;
 bool checking_gpio_comm;
 int message_receive_counter;
 SerialMessageHandler *serialmessagehandler;
@@ -88,7 +89,7 @@ bool message_started;
 bool message_completed;
 int message_buffer_index;
 unsigned char message_buffer[64];
-
+int pin1_value;
 int packet_length;
 //End User Code: Define Global Variables
 #endif

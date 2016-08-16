@@ -1,5 +1,5 @@
 /***************AUTO-GENERATED.  DO NOT EDIT********************/
-/***Created on:2016-08-15 18:02:44.558240***/
+/***Created on:2016-08-16 07:47:36.664450***/
 #include "serialmessage.h"
 int encode_DiagnosticSerial(int* outbuffer,int* length,char System,char SubSystem,char Component,char Diagnostic_Type,char Level,char Diagnostic_Message)
 {
@@ -120,5 +120,121 @@ int decode_TestMessageCommandSerial(int* inpacket,int length,int checksum,char* 
 	*value6=inpacket[5];
 	*value7=inpacket[6];
 	*value8=inpacket[7];
+	return 1;
+}
+int encode_Configure_GPIO_PortASerial(int* outbuffer,int* length,char Pin1_Mode,char Pin2_Mode,char Pin3_Mode,char Pin4_Mode,char Pin5_Mode,char Pin6_Mode,char Pin7_Mode,char Pin8_Mode)
+{
+	int byte_counter=0;
+	outbuffer[byte_counter++] = 0xAB;
+	outbuffer[byte_counter++] = 0x16;
+	outbuffer[byte_counter++] = 8;
+	outbuffer[byte_counter++] = Pin1_Mode;
+	outbuffer[byte_counter++] = Pin2_Mode;
+	outbuffer[byte_counter++] = Pin3_Mode;
+	outbuffer[byte_counter++] = Pin4_Mode;
+	outbuffer[byte_counter++] = Pin5_Mode;
+	outbuffer[byte_counter++] = Pin6_Mode;
+	outbuffer[byte_counter++] = Pin7_Mode;
+	outbuffer[byte_counter++] = Pin8_Mode;
+	int checksum = 0;
+	for(int i = 3; i < (3+8);i++)
+	{
+		checksum ^= outbuffer[i];
+	}
+	outbuffer[byte_counter] = checksum;
+	length[0] = 3+8+1;
+	return 1;
+}
+int decode_Configure_GPIO_PortASerial(int* inpacket,int length,int checksum,char* Pin1_Mode,char* Pin2_Mode,char* Pin3_Mode,char* Pin4_Mode,char* Pin5_Mode,char* Pin6_Mode,char* Pin7_Mode,char* Pin8_Mode)
+{
+	int computed_checksum = 0;
+	for(int i = 0; i < length; i++)
+	{
+		computed_checksum ^= inpacket[i];
+	}
+	if(computed_checksum != checksum) { return -1; }
+	*Pin1_Mode=inpacket[0];
+	*Pin2_Mode=inpacket[1];
+	*Pin3_Mode=inpacket[2];
+	*Pin4_Mode=inpacket[3];
+	*Pin5_Mode=inpacket[4];
+	*Pin6_Mode=inpacket[5];
+	*Pin7_Mode=inpacket[6];
+	*Pin8_Mode=inpacket[7];
+	return 1;
+}
+int encode_GPIO_Board_ModeSerial(int* outbuffer,int* length,char Mode)
+{
+	int byte_counter=0;
+	outbuffer[byte_counter++] = 0xAB;
+	outbuffer[byte_counter++] = 0x17;
+	outbuffer[byte_counter++] = 1;
+	outbuffer[byte_counter++] = Mode;
+	outbuffer[byte_counter++] = 0;
+	outbuffer[byte_counter++] = 0;
+	outbuffer[byte_counter++] = 0;
+	outbuffer[byte_counter++] = 0;
+	outbuffer[byte_counter++] = 0;
+	outbuffer[byte_counter++] = 0;
+	outbuffer[byte_counter++] = 0;
+	int checksum = 0;
+	for(int i = 3; i < (3+1);i++)
+	{
+		checksum ^= outbuffer[i];
+	}
+	outbuffer[byte_counter] = checksum;
+	length[0] = 3+8+1;
+	return 1;
+}
+int decode_GPIO_Board_ModeSerial(int* inpacket,int length,int checksum,char* Mode)
+{
+	int computed_checksum = 0;
+	for(int i = 0; i < length; i++)
+	{
+		computed_checksum ^= inpacket[i];
+	}
+	if(computed_checksum != checksum) { return -1; }
+	*Mode=inpacket[0];
+	return 1;
+}
+int encode_Set_GPIO_PortASerial(int* outbuffer,int* length,char Pin1_Value,char Pin2_Value,char Pin3_Value,char Pin4_Value,char Pin5_Value,char Pin6_Value,char Pin7_Value,char Pin8_Value)
+{
+	int byte_counter=0;
+	outbuffer[byte_counter++] = 0xAB;
+	outbuffer[byte_counter++] = 0x18;
+	outbuffer[byte_counter++] = 8;
+	outbuffer[byte_counter++] = Pin1_Value;
+	outbuffer[byte_counter++] = Pin2_Value;
+	outbuffer[byte_counter++] = Pin3_Value;
+	outbuffer[byte_counter++] = Pin4_Value;
+	outbuffer[byte_counter++] = Pin5_Value;
+	outbuffer[byte_counter++] = Pin6_Value;
+	outbuffer[byte_counter++] = Pin7_Value;
+	outbuffer[byte_counter++] = Pin8_Value;
+	int checksum = 0;
+	for(int i = 3; i < (3+8);i++)
+	{
+		checksum ^= outbuffer[i];
+	}
+	outbuffer[byte_counter] = checksum;
+	length[0] = 3+8+1;
+	return 1;
+}
+int decode_Set_GPIO_PortASerial(int* inpacket,int length,int checksum,char* Pin1_Value,char* Pin2_Value,char* Pin3_Value,char* Pin4_Value,char* Pin5_Value,char* Pin6_Value,char* Pin7_Value,char* Pin8_Value)
+{
+	int computed_checksum = 0;
+	for(int i = 0; i < length; i++)
+	{
+		computed_checksum ^= inpacket[i];
+	}
+	if(computed_checksum != checksum) { return -1; }
+	*Pin1_Value=inpacket[0];
+	*Pin2_Value=inpacket[1];
+	*Pin3_Value=inpacket[2];
+	*Pin4_Value=inpacket[3];
+	*Pin5_Value=inpacket[4];
+	*Pin6_Value=inpacket[5];
+	*Pin7_Value=inpacket[6];
+	*Pin8_Value=inpacket[7];
 	return 1;
 }
