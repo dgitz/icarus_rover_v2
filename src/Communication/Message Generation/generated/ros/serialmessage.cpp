@@ -1,8 +1,42 @@
 /***************AUTO-GENERATED.  DO NOT EDIT********************/
-/***Created on:2016-08-14 10:16:07.259816***/
+/***Created on:2016-08-15 18:02:44.558167***/
 #include "serialmessage.h"
 SerialMessageHandler::SerialMessageHandler(){}
 SerialMessageHandler::~SerialMessageHandler(){}
+int SerialMessageHandler::encode_DiagnosticSerial(unsigned char* outbuffer,int* length,char System,char SubSystem,char Component,char Diagnostic_Type,char Level,char Diagnostic_Message)
+{
+	unsigned char *p_outbuffer;
+	p_outbuffer = &outbuffer[0];
+	*p_outbuffer++ = 0xAB;
+	*p_outbuffer++ = 0x12;
+	*p_outbuffer++ = 8;
+	*p_outbuffer++ = System;
+	*p_outbuffer++ = SubSystem;
+	*p_outbuffer++ = Component;
+	*p_outbuffer++ = Diagnostic_Type;
+	*p_outbuffer++ = Level;
+	*p_outbuffer++ = Diagnostic_Message;
+	*p_outbuffer++ = 0;
+	*p_outbuffer++ = 0;
+	int checksum = 0;
+	for(int i = 3; i < (3+8);i++)
+	{
+		checksum ^= outbuffer[i];
+	}
+	*p_outbuffer++ = checksum;
+	*length = p_outbuffer-&outbuffer[0];
+	return 1;
+}
+int SerialMessageHandler::decode_DiagnosticSerial(unsigned char* inpacket,char* System,char* SubSystem,char* Component,char* Diagnostic_Type,char* Level,char* Diagnostic_Message)
+{
+	*System=inpacket[0];
+	*SubSystem=inpacket[1];
+	*Component=inpacket[2];
+	*Diagnostic_Type=inpacket[3];
+	*Level=inpacket[4];
+	*Diagnostic_Message=inpacket[5];
+	return 1;
+}
 int SerialMessageHandler::encode_TestMessageCounterSerial(unsigned char* outbuffer,int* length,char value1,char value2,char value3,char value4,char value5,char value6,char value7,char value8)
 {
 	unsigned char *p_outbuffer;

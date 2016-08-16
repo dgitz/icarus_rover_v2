@@ -8,7 +8,7 @@
 #include <std_msgs/Bool.h>
 #include <sstream>
 #include <stdlib.h>
-#include <icarus_rover_v2/Definitions.h>
+#include "Definitions.h"
 #include <icarus_rover_v2/diagnostic.h>
 #include <icarus_rover_v2/device.h>
 #include <icarus_rover_v2/resource.h>

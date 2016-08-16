@@ -8,10 +8,11 @@
 #include <std_msgs/Bool.h>
 #include <sstream>
 #include <stdlib.h>
-#include <icarus_rover_v2/Definitions.h>
+#include "Definitions.h"
 #include <icarus_rover_v2/diagnostic.h>
 #include <icarus_rover_v2/device.h>
 #include <icarus_rover_v2/resource.h>
+#include <icarus_rover_v2/command.h>
 //End Template Code: Includes
 
 //Start User Code: Includes
@@ -35,9 +36,11 @@ void PPS_Callback(const std_msgs::Bool::ConstPtr& msg);
 void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg);
 int get_pid();
 bool check_resources(int procid);
+std::vector<icarus_rover_v2::diagnostic> check_program_variables();
 //Stop Template Code: Function Prototypes
 
 //Start User Code: Function Prototypes
+//std::vector<icarus_rover_v2::diagnostic> check_gpioboard_comm();
 //End User Code: Function Prototypes
 
 
@@ -50,6 +53,7 @@ ros::Subscriber pps_sub;
 ros::Subscriber device_sub;
 ros::Publisher diagnostic_pub;
 ros::Publisher resource_pub;
+ros::Subscriber command_sub;
 icarus_rover_v2::diagnostic diagnostic_status;
 icarus_rover_v2::device myDevice;
 icarus_rover_v2::resource resources_used;
@@ -68,6 +72,8 @@ int pid;
 //End Template Code: Define Global Variables
 
 //Start User Code: Define Global Variables
+bool checking_gpio_comm;
+int message_receive_counter;
 SerialMessageHandler *serialmessagehandler;
 int device_fid;
 std::vector<icarus_rover_v2::device> boards;
@@ -78,7 +84,11 @@ int bad_checksum_counter;
 int good_checksum_counter;
 bool new_message;
 int packet_type;
-unsigned char packet_data[8];
+bool message_started;
+bool message_completed;
+int message_buffer_index;
+unsigned char message_buffer[64];
+
 int packet_length;
 //End User Code: Define Global Variables
 #endif
