@@ -9,9 +9,10 @@ bool run_fastrate_code()
 	//memset(packet,0,sizeof(packet));
 	//ros::Time start_time = ros::Time::now();
 	int rx_length = read(device_fid, rx_buffer, sizeof(rx_buffer));
+	
 	for(int i = 0; i < rx_length; i++)
 	{
-		if(rx_buffer[i] == 0xAB)
+		if((rx_buffer[i] == 0xAB) and (message_started == false))
 		{
 			memset(message_buffer, 0, sizeof(message_buffer));
 			message_started = true;
@@ -43,7 +44,7 @@ bool run_fastrate_code()
 		if(recv_checksum == checksum)
 		{
 			good_checksum_counter++;
-			packet_type = rx_buffer[1];
+			packet_type = message_buffer[1];
 			new_message = true;
 		}
 		else
@@ -73,13 +74,7 @@ bool run_fastrate_code()
 			//if(num > 0){printf("M: %d/%d/%d\r\n",current_num,last_num,num);};
 			
 		}
-		else if(packet_type ==SERIAL_TestMessageCommand_ID)
-		{
-			char value1,value2,value3,value4,value5,value6,value7,value8;
-			serialmessagehandler->decode_TestMessageCommandSerial(packet,&value1,&value2,&value3,&value4,&value5,&value6,&value7,&value8);
-			//printf("TestMessage Command: 1: %d 2: %d 3: %d 4: %d 5: %d 6: %d 7: %d 8: %d\r\n",value1,value2,value3,value4,value5,value6,value7,value8);
-		}
-		else if(packet_type == SERIAL_Diagnostic_ID)
+		if(packet_type == SERIAL_Diagnostic_ID)
 		{
 			logger->log_info("Got Diagnostics from GPIO Board.");
 			char gpio_board_system,gpio_board_subsystem,gpio_board_component,gpio_board_diagtype,gpio_board_level,gpio_board_message;
@@ -88,6 +83,32 @@ bool run_fastrate_code()
 			diagnostic_status.Diagnostic_Message = gpio_board_level;
 			diagnostic_status.Description = "GPIO Board Empty Message.";
 			diagnostic_pub.publish(diagnostic_status);
+		}
+		if(packet_type == SERIAL_Get_ANA_PortA_ID)
+		{
+			logger->log_info("Got ANA PortA from GPIO Board.");
+			int v1,v2,v3,v4;
+			int status = serialmessagehandler->decode_Get_ANA_PortASerial(packet,&v1,&v2,&v3,&v4);
+			if(status == 1)
+			{
+				ANA_PortA.Pin1_Value = v1;
+				ANA_PortA.Pin2_Value = v2;
+				ANA_PortA.Pin3_Value = v3;
+				ANA_PortA.Pin4_Value = v4;
+			}
+		}
+		if(packet_type == SERIAL_Get_ANA_PortB_ID)
+		{
+			logger->log_info("Got ANA PortB from GPIO Board.");
+			int v1,v2,v3,v4;
+			int status = serialmessagehandler->decode_Get_ANA_PortBSerial(packet,&v1,&v2,&v3,&v4);
+			if(status == 1)
+			{
+				ANA_PortB.Pin1_Value = v1;
+				ANA_PortB.Pin2_Value = v2;
+				ANA_PortB.Pin3_Value = v3;
+				ANA_PortB.Pin4_Value = v4;
+			}
 		}
 	}
 	return true;
@@ -98,8 +119,8 @@ bool run_mediumrate_code()
 	{
 		unsigned char tx_buffer[12];
 		int length;
-		int tx_status = serialmessagehandler->encode_Configure_GPIO_PortASerial(tx_buffer,&length,
-		PINMODE_DIGITAL_OUTPUT,PINMODE_DIGITAL_OUTPUT,PINMODE_DIGITAL_OUTPUT,PINMODE_DIGITAL_OUTPUT,
+		int tx_status = serialmessagehandler->encode_Configure_DIO_PortASerial(tx_buffer,&length,
+		PINMODE_PWM_OUTPUT,PINMODE_PWM_OUTPUT,PINMODE_PWM_OUTPUT,PINMODE_PWM_OUTPUT,
 		PINMODE_UNDEFINED,PINMODE_UNDEFINED,PINMODE_UNDEFINED,PINMODE_UNDEFINED);
 		if (tx_status == 1)
 		{
@@ -142,11 +163,11 @@ bool run_mediumrate_code()
 	}
 	else if(gpio_board_mode == GPIOBOARD_MODE_RUNNING)
 	{
-		if(pin1_value > 0){pin1_value = 0; }
-		else{pin1_value = 1; }
+		pin1_value++;
+		if(pin1_value > 255){pin1_value = 0; }
 		unsigned char tx_buffer[12];
 		int length;
-		int tx_status = serialmessagehandler->encode_Set_GPIO_PortASerial(tx_buffer,&length,pin1_value,pin1_value,pin1_value,pin1_value,pin1_value,pin1_value,pin1_value,pin1_value);
+		int tx_status = serialmessagehandler->encode_Set_DIO_PortASerial(tx_buffer,&length,pin1_value,pin1_value,pin1_value,pin1_value,pin1_value,pin1_value,pin1_value,pin1_value);
 		if (tx_status == 1)
 		{
 			int count = write(device_fid, &tx_buffer[0], length);
@@ -165,17 +186,20 @@ bool run_mediumrate_code()
 		gpio_board_mode = GPIOBOARD_MODE_RUNNING;
 	}
 	double dropped_ratio = 100*(double)((double)bad_checksum_counter/((double)bad_checksum_counter+(double)good_checksum_counter));
-	double runtime = measure_time_diff(now,boot_time);
-	double missed_rate = (double)(missed_counter)/runtime;
-	printf("Missed Counter: %d Bad checksum: %d Good checksum: %d Dropped Ratio: %f Missed Rate: %f\r\n",missed_counter,bad_checksum_counter,good_checksum_counter,dropped_ratio,missed_rate);
-	//logger->log_debug("Running medium rate code.");
+	{
+		
+		double runtime = measure_time_diff(now,boot_time);
+		double missed_rate = (double)(missed_counter)/runtime;
+		char tempstr[256];
+		sprintf(tempstr,"Missed Counter: %d Bad checksum: %d Good checksum: %d Dropped Ratio: %f Missed Rate: %f\r\n",missed_counter,bad_checksum_counter,good_checksum_counter,dropped_ratio,missed_rate);
+		logger->log_debug(tempstr);
+	}
 	if(dropped_ratio < 3.0)
 	{
 		diagnostic_status.Diagnostic_Type = SOFTWARE;
 		diagnostic_status.Level = INFO;
 		diagnostic_status.Diagnostic_Message = NOERROR;
 		diagnostic_status.Description = "Node Executing.";
-		logger->log_info(diagnostic_status.Description);
 	}
 	else if((dropped_ratio >= 3.0) && (dropped_ratio < 6.0)) 
 	{
@@ -195,7 +219,11 @@ bool run_mediumrate_code()
 	}
 	
 	diagnostic_pub.publish(diagnostic_status);
-
+	char tempstr[128];
+	sprintf(tempstr,"ANA Port A p1: %d p2: %d p3: %d p4: %d Port B: p1: %d p2: %d p3: %d p4: %d",
+	ANA_PortA.Pin1_Value,ANA_PortA.Pin2_Value,ANA_PortA.Pin3_Value,ANA_PortA.Pin4_Value,
+	ANA_PortB.Pin1_Value,ANA_PortB.Pin2_Value,ANA_PortB.Pin3_Value,ANA_PortB.Pin4_Value);
+	logger->log_debug(tempstr);
 	return true;
 }
 bool run_slowrate_code()
@@ -473,6 +501,14 @@ bool initialize(ros::NodeHandle nh)
 	checking_gpio_comm = false;
 	message_receive_counter = 0;
 	pin1_value = 0;
+	ANA_PortA.Pin1_Value = 0;
+	ANA_PortA.Pin2_Value = 0;
+	ANA_PortA.Pin3_Value = 0;
+	ANA_PortA.Pin4_Value = 0;
+	ANA_PortA.Pin5_Value = 0;
+	ANA_PortA.Pin6_Value = 0;
+	ANA_PortA.Pin7_Value = 0;
+	ANA_PortA.Pin8_Value = 0;
 	gpio_board_mode = GPIOBOARD_MODE_INITIALIZING;
 	device_fid = open("/dev/ttyAMA0", O_RDWR | O_NOCTTY /*| O_NDELAY*/);
     if(device_fid < 0)
@@ -482,7 +518,7 @@ bool initialize(ros::NodeHandle nh)
     }
 	struct termios options;
 	tcgetattr(device_fid, &options);
-	options.c_cflag = B115200 /*B4800 */| CS8 | CLOCAL | CREAD;		//<Set baud rate
+	options.c_cflag = B115200 | CS8 | CLOCAL | CREAD;		//<Set baud rate
 	options.c_iflag = IGNPAR;
 	options.c_oflag = 0;
 	options.c_lflag = 0;

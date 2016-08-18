@@ -91,5 +91,19 @@ int message_buffer_index;
 unsigned char message_buffer[64];
 int pin1_value;
 int packet_length;
+struct Port_Info{
+	int Pin1_Value;
+	int Pin2_Value;
+	int Pin3_Value;
+	int Pin4_Value;
+	int Pin5_Value;
+	int Pin6_Value;
+	int Pin7_Value;
+	int Pin8_Value;
+};
+Port_Info DIO_PortA;
+Port_Info DIO_PortB;
+Port_Info ANA_PortA;
+Port_Info ANA_PortB;
 //End User Code: Define Global Variables
 #endif

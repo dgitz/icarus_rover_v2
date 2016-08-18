@@ -4,6 +4,7 @@
     <Message name="Diagnostic" id="0xAB12">
         <Protocols>
             <Protocol name="UDP">
+    
                 <Fields>
                     <field type="std::string" name="Node_Name"/>
                     <field type="uint8_t" name="System"/>
@@ -16,6 +17,7 @@
                 </Fields>
             </Protocol>
             <Protocol name="Serial">
+                <Origin>Slave</Origin>
                 <Fields>
                     <field type="char" name="System"/>
                     <field type="char" name="SubSystem"/>
@@ -73,7 +75,6 @@
             <Protocol name="Serial">
                 <Retry>true</Retry>
                 <Origin>Master</Origin>
-                <Origin>Slave</Origin>
                 <Fields>
                     <field type="char" name="value1"/>
                     <field type="char" name="value2"/>
@@ -87,7 +88,7 @@
             </Protocol>
         </Protocols>
     </Message>
-    <Message name="Configure_GPIO_PortA" id="0xAB16">
+    <Message name="Configure_DIO_PortA" id="0xAB16">
         <Description>
             <![CDATA[
                 This message is used to configure GPIO Port A.
@@ -126,7 +127,7 @@
             </Protocol>
         </Protocols>
     </Message>
-    <Message name="Set_GPIO_PortA" id="0xAB18">
+    <Message name="Set_DIO_PortA" id="0xAB18">
         <Description>
             <![CDATA[
                 This message is used to set outputs on PortA. If a pin is not configured as an output this value is discarded.
@@ -136,6 +137,134 @@
             <Protocol name="Serial">
                 <Retry>false</Retry>
                 <Origin>Master</Origin>
+                <Fields>
+                    <field type="char" name="Pin1_Value"/>
+                    <field type="char" name="Pin2_Value"/>
+                    <field type="char" name="Pin3_Value"/>
+                    <field type="char" name="Pin4_Value"/>
+                    <field type="char" name="Pin5_Value"/>
+                    <field type="char" name="Pin6_Value"/>
+                    <field type="char" name="Pin7_Value"/>
+                    <field type="char" name="Pin8_Value"/>
+                </Fields>
+            </Protocol>
+        </Protocols>
+    </Message>
+    <Message name="Get_ANA_PortA" id="0xAB19">
+        <Description>
+            <![CDATA[
+                This message is used to get the Analog Inpurt PortA on the GPIO Board.  The max value of these fields is 4095.
+            ]]>
+        </Description>
+        <Protocols>
+            <Protocol name="Serial">
+                <Origin>Slave</Origin>
+                <Fields>
+                    <field type="uint16_t" name="Pin1_Value"/>
+                    <field type="uint16_t" name="Pin2_Value"/>
+                    <field type="uint16_t" name="Pin3_Value"/>
+                    <field type="uint16_t" name="Pin4_Value"/>
+                </Fields>
+            </Protocol>
+        </Protocols>
+    </Message>
+    <Message name="Get_ANA_PortB" id="0xAB20">
+        <Description>
+            <![CDATA[
+                This message is used to get the Analog Inpurt PortA on the GPIO Board.  The max value of these fields is 4095.
+            ]]>
+        </Description>
+        <Protocols>
+            <Protocol name="Serial">
+                <Origin>Slave</Origin>
+                <Fields>
+                    <field type="uint16_t" name="Pin1_Value"/>
+                    <field type="uint16_t" name="Pin2_Value"/>
+                    <field type="uint16_t" name="Pin3_Value"/>
+                    <field type="uint16_t" name="Pin4_Value"/>
+                </Fields>
+            </Protocol>
+        </Protocols>
+    </Message>
+    <Message name="Configure_DIO_PortB" id="0xAB21">
+        <Description>
+            <![CDATA[
+                This message is used to configure GPIO Port B.
+            ]]>
+        </Description>
+        <Protocols>
+            <Protocol name="Serial">
+                <Retry>true</Retry>
+                <Origin>Master</Origin>
+                <Fields>
+                    <field type="char" name="Pin1_Mode"/>
+                    <field type="char" name="Pin2_Mode"/>
+                    <field type="char" name="Pin3_Mode"/>
+                    <field type="char" name="Pin4_Mode"/>
+                    <field type="char" name="Pin5_Mode"/>
+                    <field type="char" name="Pin6_Mode"/>
+                    <field type="char" name="Pin7_Mode"/>
+                    <field type="char" name="Pin8_Mode"/>
+                </Fields>
+            </Protocol>
+        </Protocols>
+    </Message>
+    <Message name="Set_DIO_PortB" id="0xAB22">
+        <Description>
+            <![CDATA[
+                This message is used to set outputs on PortB. If a pin is not configured as an output this value is discarded.
+            ]]>
+        </Description>
+        <Protocols>
+            <Protocol name="Serial">
+                <Retry>false</Retry>
+                <Origin>Master</Origin>
+                <Fields>
+                    <field type="char" name="Pin1_Value"/>
+                    <field type="char" name="Pin2_Value"/>
+                    <field type="char" name="Pin3_Value"/>
+                    <field type="char" name="Pin4_Value"/>
+                    <field type="char" name="Pin5_Value"/>
+                    <field type="char" name="Pin6_Value"/>
+                    <field type="char" name="Pin7_Value"/>
+                    <field type="char" name="Pin8_Value"/>
+                </Fields>
+            </Protocol>
+        </Protocols>
+    </Message>
+    <Message name="Get_DIO_PortA" id="0xAB23">
+        <Description>
+            <![CDATA[
+                This message is used to get the inputs on PortA. If a pin is not configured as an input this value is discarded.
+            ]]>
+        </Description>
+        <Protocols>
+            <Protocol name="Serial">
+                <Retry>false</Retry>
+                <Origin>Slave</Origin>
+                <Fields>
+                    <field type="char" name="Pin1_Value"/>
+                    <field type="char" name="Pin2_Value"/>
+                    <field type="char" name="Pin3_Value"/>
+                    <field type="char" name="Pin4_Value"/>
+                    <field type="char" name="Pin5_Value"/>
+                    <field type="char" name="Pin6_Value"/>
+                    <field type="char" name="Pin7_Value"/>
+                    <field type="char" name="Pin8_Value"/>
+                </Fields>
+            </Protocol>
+        </Protocols>
+    </Message>
+    <Message name="Get_DIO_PortB" id="0xAB24">
+        <Description>
+            <![CDATA[
+                This message is used to get the inputs on PortB. If a pin is not configured as an input this value is discarded.
+            ]]>
+        </Description>
+        <Protocols>
+            <Protocol name="Serial">
+                <Retry>false</Retry>
+                <Origin>Slave</Origin>
                 <Fields>
                     <field type="char" name="Pin1_Value"/>
                     <field type="char" name="Pin2_Value"/>
