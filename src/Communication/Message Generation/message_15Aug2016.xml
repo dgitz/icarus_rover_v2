@@ -1,10 +1,20 @@
 <?xml version="1.0" ?>
 <!--Message Definition file-->
 <Messages>
+    <Message name="Resource" id="0xAB11">
+        <Protocols>
+            <Protocol name="UDP">
+                <Fields>
+                    <field type="std::string" name="Node_Name"/>
+                    <field type="uint16_t" name="RAM_Mb"/>
+                    <field type="uint8_t" name="CPU_Used"/>
+                </Fields>
+            </Protocol>
+        </Protocols>
+    </Message>    
     <Message name="Diagnostic" id="0xAB12">
         <Protocols>
             <Protocol name="UDP">
-    
                 <Fields>
                     <field type="std::string" name="Node_Name"/>
                     <field type="uint8_t" name="System"/>

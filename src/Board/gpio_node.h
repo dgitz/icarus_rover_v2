@@ -22,6 +22,13 @@
 #include <unistd.h>			//Used for UART
 #include <fcntl.h>			//Used for UART
 #include <termios.h>		//Used for UART
+
+struct Port_Info{
+	std::string PortName;
+	bool Available[8];
+	int Value[8];
+	int Mode[8];
+};
 //End User Code: Includes
 
 
@@ -41,6 +48,13 @@ std::vector<icarus_rover_v2::diagnostic> check_program_variables();
 
 //Start User Code: Function Prototypes
 //std::vector<icarus_rover_v2::diagnostic> check_gpioboard_comm();
+bool initialize_gpioboard_ports();
+bool configure_pin(std::string BoardName,std::string Port, uint8_t Number, std::string Function);
+void DigitalOutput_Callback(const icarus_rover_v2::pin::ConstPtr& msg);
+void PwmOutput_Callback(const icarus_rover_v2::pin::ConstPtr& msg);
+bool publish_port_info(Port_Info pi);
+std::string map_PinFunction_ToString(int function);
+int map_PinFunction_ToInt(std::string Function);
 //End User Code: Function Prototypes
 
 
@@ -72,6 +86,11 @@ int pid;
 //End Template Code: Define Global Variables
 
 //Start User Code: Define Global Variables
+ros::Publisher digitalinput_pub;
+ros::Subscriber pwmoutput_sub;
+ros::Subscriber digitaloutput_sub;
+ros::Publisher analoginput_pub;
+ros::Publisher forcesensorinput_pub;
 int gpio_board_mode;
 bool checking_gpio_comm;
 int message_receive_counter;
@@ -89,18 +108,8 @@ bool message_started;
 bool message_completed;
 int message_buffer_index;
 unsigned char message_buffer[64];
-int pin1_value;
 int packet_length;
-struct Port_Info{
-	int Pin1_Value;
-	int Pin2_Value;
-	int Pin3_Value;
-	int Pin4_Value;
-	int Pin5_Value;
-	int Pin6_Value;
-	int Pin7_Value;
-	int Pin8_Value;
-};
+
 Port_Info DIO_PortA;
 Port_Info DIO_PortB;
 Port_Info ANA_PortA;

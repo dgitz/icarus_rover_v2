@@ -18,12 +18,4 @@
         <param name="CPU_usage_threshold_percent"    value="15"/> 
         <param name="Log_Resources_Used"        value="0"/>  
     </node>
-    <node name="$(env ROS_HOSTNAME)_network_transceiver_node" pkg="icarus_rover_v2" type="network_transceiver_node"  output="screen">
-        <param name="loop_rate"             value="500"/>
-        <param name="verbosity_level"       value="DEBUG"/>
-        <param name="require_pps_to_start"  value="false"/> 
-        <param name="Multicast_Group"       value="239.255.43.21"/>
-        <param name="Multicast_Port"        value="45454"/>
-        <param name="Mode"                  value="Diagnostics_GUI"/> <!--Diagnostics_GUI-->
-    </node>
 </launch>

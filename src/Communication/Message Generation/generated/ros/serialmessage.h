@@ -1,5 +1,5 @@
 /***************AUTO-GENERATED.  DO NOT EDIT********************/
-/***Created on:2016-08-17 20:37:30.944353***/
+/***Created on:2016-08-19 17:30:23.135381***/
 /***Target: Raspberry Pi ***/
 #ifndef SERIALMESSAGE_H
 #define SERIALMESSAGE_H

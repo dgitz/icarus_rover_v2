@@ -352,16 +352,15 @@ void parse_devicefile(TiXmlDocument doc)
 				while( l_pPin )
 				{
 					icarus_rover_v2::pin newpin;
-					TiXmlElement *l_pPinName = l_pPin->FirstChildElement( "Name" );
-					if ( NULL != l_pPinName )
+					TiXmlElement *l_pPinPort = l_pPin->FirstChildElement( "Port" );
+					if ( NULL != l_pPinPort )
 					{
-						newpin.Name = l_pPinName->GetText();
+						newpin.Port = l_pPinPort->GetText();
 					}
-
 					TiXmlElement *l_pPinNumber = l_pPin->FirstChildElement( "Number" );
 					if ( NULL != l_pPinNumber )
 					{
-						newpin.Number = l_pPinNumber->GetText();
+						newpin.Number = atoi(l_pPinNumber->GetText());
 					}
 
 					TiXmlElement *l_pPinFunction = l_pPin->FirstChildElement( "Function" );

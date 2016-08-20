@@ -1,6 +1,7 @@
 #ifndef __DEFINITIONS_INCLUDED__   
 #define __DEFINITIONS_INCLUDED__
 
+#define RESOURCE_ID 0xAB11  //Should be the same as UDP_Resource_ID
 #define DIAGNOSTIC_ID 0xAB12  //Should be the same as UDP_Diagnostic_ID
 #define DEVICE_ID 0xAB13 //Should be the same as UDP_Device_ID
 

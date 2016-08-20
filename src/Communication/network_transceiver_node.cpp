@@ -19,6 +19,20 @@ void diagnostic_Callback(const icarus_rover_v2::diagnostic::ConstPtr& msg)
 
 	}
 }
+void resource_Callback(const icarus_rover_v2::resource::ConstPtr& msg)
+{
+	char tempstr[240];
+	sprintf(tempstr,"Got Resource from Task: %s",msg->Node_Name.c_str());
+	logger->log_info(tempstr);
+	std::string send_string = udpmessagehandler->encode_ResourceUDP(msg->Node_Name,
+																	msg->RAM_MB,
+																	msg->CPU_Perc);
+	if(sendto(device_sock, send_string.c_str(), send_string.size(), 0, (struct sockaddr *)&device_addr, sizeof(device_addr))!=send_string.size())
+	{
+		  logger->log_warn("Mismatch in number of bytes sent");
+
+	}
+}
 void device_Callback(const icarus_rover_v2::device::ConstPtr& msg)
 {
 	char tempstr[240];
@@ -32,10 +46,6 @@ void device_Callback(const icarus_rover_v2::device::ConstPtr& msg)
 	{
 		  logger->log_warn("Mismatch in number of bytes sent");
 
-	}
-	else
-	{
-		logger->log_info("Sent!");
 	}
 }
 bool initialize_socket()
@@ -183,6 +193,7 @@ int main(int argc, char **argv)
 
 bool initialize(ros::NodeHandle nh)
 {
+	sleep(5);
     //Start Template Code: Initialization and Parameters
     myDevice.DeviceName = "";
     myDevice.Architecture = "";
@@ -267,6 +278,7 @@ bool initialize(ros::NodeHandle nh)
 	{
 		ros::master::V_TopicInfo master_topics;
 		ros::master::getTopics(master_topics);
+
 		std::vector<std::string> diagnostic_topics;
 		for (ros::master::V_TopicInfo::iterator it = master_topics.begin() ; it != master_topics.end(); it++)
 		{
@@ -305,6 +317,26 @@ bool initialize(ros::NodeHandle nh)
 			sprintf(tempstr,"Subscribing to device topic: %s",device_topics.at(i).c_str());
 			logger->log_info(tempstr);
 			device_subs[i] = nh.subscribe<icarus_rover_v2::device>(device_topics.at(i),1000,device_Callback);
+		}
+
+		std::vector<std::string> resource_topics;
+		for (ros::master::V_TopicInfo::iterator it = master_topics.begin() ; it != master_topics.end(); it++)
+		{
+			const ros::master::TopicInfo& info = *it;
+			if(info.datatype == "icarus_rover_v2/resource")
+			{
+				resource_topics.push_back(info.name);
+			}
+
+		}
+		ros::Subscriber * resource_subs;
+		resource_subs = new ros::Subscriber[resource_topics.size()];
+		for(int i = 0; i < resource_topics.size();i++)
+		{
+			char tempstr[50];
+			sprintf(tempstr,"Subscribing to resource topic: %s",resource_topics.at(i).c_str());
+			logger->log_info(tempstr);
+			resource_subs[i] = nh.subscribe<icarus_rover_v2::resource>(resource_topics.at(i),1000,resource_Callback);
 		}
 	}
 	udpmessagehandler = new UDPMessageHandler();

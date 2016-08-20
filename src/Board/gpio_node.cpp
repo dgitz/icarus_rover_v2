@@ -1,5 +1,102 @@
 #include "gpio_node.h"
 //Start User Code: Functions
+bool initialize_gpioboard_ports()
+{
+	ANA_PortA.PortName = "ANA_PortA";
+	ANA_PortB.PortName = "ANA_PortB";
+	DIO_PortA.PortName = "DIO_PortA";
+	DIO_PortB.PortName = "DIO_PortB";
+	for(int i = 0; i < 4; i++) //These Pins can only be used as an ANALOG INPUT
+	{
+		ANA_PortA.Value[i] = 0;
+		ANA_PortA.Mode[i] = PINMODE_ANALOG_INPUT;
+		ANA_PortA.Available[i] = false;
+	}
+	for(int i = 4; i < 8; i++) //These Pins are not used on the current GPIO Board.
+	{
+		ANA_PortA.Value[i] = 0;
+		ANA_PortA.Mode[i] = PINMODE_UNDEFINED;
+		ANA_PortA.Available[i] = false;
+	}
+
+	for(int i = 0; i < 4; i++) //These Pins can only be used as an ANALOG INPUT or as a FORCESENSOR INPUT
+	{
+		ANA_PortB.Value[i] = 0;
+		ANA_PortB.Mode[i] = PINMODE_UNDEFINED;
+		ANA_PortB.Available[i] = false;
+	}
+	for(int i = 4; i < 8; i++) //These Pins are not used on the current GPIO Board.
+	{
+		ANA_PortB.Value[i] = 0;
+		ANA_PortB.Mode[i] = PINMODE_UNDEFINED;
+		ANA_PortB.Available[i] = false;
+	}
+	for(int i = 0; i < 8; i++)
+	{
+		DIO_PortA.Value[i] = 0;
+		DIO_PortA.Mode[i] = PINMODE_UNDEFINED;
+		DIO_PortA.Available[i] = false;
+		DIO_PortB.Value[i] = 0;
+		DIO_PortB.Mode[i] = PINMODE_UNDEFINED;
+		DIO_PortB.Available[i] = false;
+	}
+	return true;
+}
+std::string map_PinFunction_ToString(int function)  //Put in helper class
+{
+	switch(function)
+	{
+		case PINMODE_UNDEFINED:						return "Undefined";					break;
+		case PINMODE_DIGITAL_OUTPUT: 				return "DigitalOutput"; 			break;
+		case PINMODE_DIGITAL_INPUT: 				return "DigitalInput"; 				break;
+		case PINMODE_ANALOG_INPUT: 					return "AnalogInput"; 				break;
+		case PINMODE_FORCESENSOR_INPUT: 			return "ForceSensorInput"; 			break;
+		case PINMODE_ULTRASONIC_INPUT: 				return "UltraSonicSensorInput"; 	break;
+		case PINMODE_QUADRATUREENCODER_INPUT: 		return "QuadratureEncoderInput";	break;
+		case PINMODE_PWM_OUTPUT: 					return "PwmOutput"; 				break;
+		default: 									return ""; 							break;
+	}
+}
+int map_PinFunction_ToInt(std::string Function)  //Put in helper class
+{
+	if(Function == "DigitalInput")				{	return PINMODE_DIGITAL_INPUT;		}
+	else if(Function == "DigitalOutput")		{	return PINMODE_DIGITAL_OUTPUT;		}
+	else if(Function == "AnalogInput")			{	return PINMODE_ANALOG_INPUT;		}
+	else if(Function == "ForceSensorInput")		{	return PINMODE_FORCESENSOR_INPUT;	}
+	else if(Function == "UltraSonicSensorInput"){	return PINMODE_ULTRASONIC_INPUT;	}
+	else if(Function == "PWMOutput")			{	return PINMODE_PWM_OUTPUT;			}
+	else { return PINMODE_UNDEFINED; }
+}
+bool configure_pin(std::string BoardName,std::string Port, uint8_t Number, std::string Function)
+{
+	bool status = true;
+	int function = map_PinFunction_ToInt(Function);
+	if(function == PINMODE_UNDEFINED) { return false; }
+	if((Number < 1) || (Number > 8)) { return false; }
+
+	if(Port == "DIO_PortA")
+	{
+		DIO_PortA.Mode[Number-1] = function;
+		DIO_PortA.Available[Number-1] = true;
+	}
+	else if(Port == "DIO_PortB")
+	{
+		DIO_PortB.Mode[Number-1] = function;
+		DIO_PortB.Available[Number-1] = true;
+	}
+	else if(Port == "ANA_PortA")
+	{
+		ANA_PortA.Mode[Number-1] = function;
+		ANA_PortA.Available[Number-1] = true;
+	}
+	else if(Port == "ANA_PortB")
+	{
+		ANA_PortB.Mode[Number-1] = function;
+		ANA_PortB.Available[Number-1] = true;
+	}
+	else { 	status = false; }
+	return status;
+}
 bool run_fastrate_code()
 {
 	
@@ -57,6 +154,7 @@ bool run_fastrate_code()
 		new_message = false;
 		if(packet_type ==SERIAL_TestMessageCounter_ID)
 		{
+			logger->log_debug("Got TestMessageCounter from GPIO Board.");
 			char value1,value2,value3,value4,value5,value6,value7,value8;
 			serialmessagehandler->decode_TestMessageCounterSerial(packet,&value1,&value2,&value3,&value4,&value5,&value6,&value7,&value8);
 			//printf("TestMessage Counter: 1: %d 2: %d 3: %d 4: %d 5: %d 6: %d 7: %d 8: %d\r\n",value1,value2,value3,value4,value5,value6,value7,value8);
@@ -76,7 +174,7 @@ bool run_fastrate_code()
 		}
 		if(packet_type == SERIAL_Diagnostic_ID)
 		{
-			logger->log_info("Got Diagnostics from GPIO Board.");
+			logger->log_debug("Got Diagnostics from GPIO Board.");
 			char gpio_board_system,gpio_board_subsystem,gpio_board_component,gpio_board_diagtype,gpio_board_level,gpio_board_message;
 			serialmessagehandler->decode_DiagnosticSerial(packet,&gpio_board_system,&gpio_board_subsystem,&gpio_board_component,&gpio_board_diagtype,&gpio_board_level,&gpio_board_message);
 			diagnostic_status.Level = gpio_board_level;
@@ -86,28 +184,110 @@ bool run_fastrate_code()
 		}
 		if(packet_type == SERIAL_Get_ANA_PortA_ID)
 		{
-			logger->log_info("Got ANA PortA from GPIO Board.");
+			logger->log_debug("Got ANA PortA from GPIO Board.");
 			int v1,v2,v3,v4;
 			int status = serialmessagehandler->decode_Get_ANA_PortASerial(packet,&v1,&v2,&v3,&v4);
 			if(status == 1)
 			{
-				ANA_PortA.Pin1_Value = v1;
-				ANA_PortA.Pin2_Value = v2;
-				ANA_PortA.Pin3_Value = v3;
-				ANA_PortA.Pin4_Value = v4;
+				ANA_PortA.Value[0] = v1;
+				ANA_PortA.Value[1] = v2;
+				ANA_PortA.Value[2] = v3;
+				ANA_PortA.Value[3] = v4;
 			}
 		}
 		if(packet_type == SERIAL_Get_ANA_PortB_ID)
 		{
-			logger->log_info("Got ANA PortB from GPIO Board.");
+			logger->log_debug("Got ANA PortB from GPIO Board.");
 			int v1,v2,v3,v4;
 			int status = serialmessagehandler->decode_Get_ANA_PortBSerial(packet,&v1,&v2,&v3,&v4);
 			if(status == 1)
 			{
-				ANA_PortB.Pin1_Value = v1;
-				ANA_PortB.Pin2_Value = v2;
-				ANA_PortB.Pin3_Value = v3;
-				ANA_PortB.Pin4_Value = v4;
+				ANA_PortB.Value[0] = v1;
+				ANA_PortB.Value[1] = v2;
+				ANA_PortB.Value[2] = v3;
+				ANA_PortB.Value[3] = v4;
+			}
+		}
+		if(packet_type == SERIAL_Get_DIO_PortA_ID)
+		{
+			logger->log_debug("Got DIO PortA from GPIO Board.");
+			char v1,v2,v3,v4,v5,v6,v7,v8;
+			int status = serialmessagehandler->decode_Get_DIO_PortASerial(packet,&v1,&v2,&v3,&v4,&v5,&v6,&v7,&v8);
+			if(status == 1)
+			{
+				if((DIO_PortA.Mode[0] == PINMODE_DIGITAL_INPUT) || (DIO_PortA.Mode[0] == PINMODE_ULTRASONIC_INPUT) || (DIO_PortA.Mode[0] == PINMODE_QUADRATUREENCODER_INPUT))
+				{
+					DIO_PortA.Value[0] = (int)v1;
+				}
+				if((DIO_PortA.Mode[1] == PINMODE_DIGITAL_INPUT) || (DIO_PortA.Mode[1] == PINMODE_ULTRASONIC_INPUT) || (DIO_PortA.Mode[1] == PINMODE_QUADRATUREENCODER_INPUT))
+				{
+					DIO_PortA.Value[1] = (int)v2;
+				}
+				if((DIO_PortA.Mode[2] == PINMODE_DIGITAL_INPUT) || (DIO_PortA.Mode[2] == PINMODE_ULTRASONIC_INPUT) || (DIO_PortA.Mode[2] == PINMODE_QUADRATUREENCODER_INPUT))
+				{
+					DIO_PortA.Value[2] = (int)v3;
+				}
+				if((DIO_PortA.Mode[3] == PINMODE_DIGITAL_INPUT) || (DIO_PortA.Mode[3] == PINMODE_ULTRASONIC_INPUT) || (DIO_PortA.Mode[3] == PINMODE_QUADRATUREENCODER_INPUT))
+				{
+					DIO_PortA.Value[3] = (int)v4;
+				}
+				if((DIO_PortA.Mode[4] == PINMODE_DIGITAL_INPUT) || (DIO_PortA.Mode[4] == PINMODE_ULTRASONIC_INPUT) || (DIO_PortA.Mode[4] == PINMODE_QUADRATUREENCODER_INPUT))
+				{
+					DIO_PortA.Value[4] = (int)v5;
+				}
+				if((DIO_PortA.Mode[5] == PINMODE_DIGITAL_INPUT) || (DIO_PortA.Mode[5] == PINMODE_ULTRASONIC_INPUT) || (DIO_PortA.Mode[5] == PINMODE_QUADRATUREENCODER_INPUT))
+				{
+					DIO_PortA.Value[5] = (int)v6;
+				}
+				if((DIO_PortA.Mode[6] == PINMODE_DIGITAL_INPUT) || (DIO_PortA.Mode[6] == PINMODE_ULTRASONIC_INPUT) || (DIO_PortA.Mode[6] == PINMODE_QUADRATUREENCODER_INPUT))
+				{
+					DIO_PortA.Value[6] = (int)v7;
+				}
+				if((DIO_PortA.Mode[7] == PINMODE_DIGITAL_INPUT) || (DIO_PortA.Mode[7] == PINMODE_ULTRASONIC_INPUT) || (DIO_PortA.Mode[7] == PINMODE_QUADRATUREENCODER_INPUT))
+				{
+					DIO_PortA.Value[7] = (int)v8;
+				}
+			}
+		}
+		if(packet_type == SERIAL_Get_DIO_PortB_ID)
+		{
+			logger->log_debug("Got DIO PortB from GPIO Board.");
+			char v1,v2,v3,v4,v5,v6,v7,v8;
+			int status = serialmessagehandler->decode_Get_DIO_PortBSerial(packet,&v1,&v2,&v3,&v4,&v5,&v6,&v7,&v8);
+			if(status == 1)
+			{
+				if((DIO_PortB.Mode[0] == PINMODE_DIGITAL_INPUT) || (DIO_PortB.Mode[0] == PINMODE_ULTRASONIC_INPUT) || (DIO_PortB.Mode[0] == PINMODE_QUADRATUREENCODER_INPUT))
+				{
+					DIO_PortB.Value[0] = (int)v1;
+				}
+				if((DIO_PortB.Mode[1] == PINMODE_DIGITAL_INPUT) || (DIO_PortB.Mode[1] == PINMODE_ULTRASONIC_INPUT) || (DIO_PortB.Mode[1] == PINMODE_QUADRATUREENCODER_INPUT))
+				{
+					DIO_PortB.Value[1] = (int)v2;
+				}
+				if((DIO_PortB.Mode[2] == PINMODE_DIGITAL_INPUT) || (DIO_PortB.Mode[2] == PINMODE_ULTRASONIC_INPUT) || (DIO_PortB.Mode[2] == PINMODE_QUADRATUREENCODER_INPUT))
+				{
+					DIO_PortB.Value[2] = (int)v3;
+				}
+				if((DIO_PortB.Mode[3] == PINMODE_DIGITAL_INPUT) || (DIO_PortB.Mode[3] == PINMODE_ULTRASONIC_INPUT) || (DIO_PortB.Mode[3] == PINMODE_QUADRATUREENCODER_INPUT))
+				{
+					DIO_PortB.Value[3] = (int)v4;
+				}
+				if((DIO_PortB.Mode[4] == PINMODE_DIGITAL_INPUT) || (DIO_PortB.Mode[4] == PINMODE_ULTRASONIC_INPUT) || (DIO_PortB.Mode[4] == PINMODE_QUADRATUREENCODER_INPUT))
+				{
+					DIO_PortB.Value[4] = (int)v5;
+				}
+				if((DIO_PortB.Mode[5] == PINMODE_DIGITAL_INPUT) || (DIO_PortB.Mode[5] == PINMODE_ULTRASONIC_INPUT) || (DIO_PortB.Mode[5] == PINMODE_QUADRATUREENCODER_INPUT))
+				{
+					DIO_PortB.Value[5] = (int)v6;
+				}
+				if((DIO_PortB.Mode[6] == PINMODE_DIGITAL_INPUT) || (DIO_PortB.Mode[6] == PINMODE_ULTRASONIC_INPUT) || (DIO_PortB.Mode[6] == PINMODE_QUADRATUREENCODER_INPUT))
+				{
+					DIO_PortB.Value[6] = (int)v7;
+				}
+				if((DIO_PortB.Mode[7] == PINMODE_DIGITAL_INPUT) || (DIO_PortB.Mode[7] == PINMODE_ULTRASONIC_INPUT) || (DIO_PortB.Mode[7] == PINMODE_QUADRATUREENCODER_INPUT))
+				{
+					DIO_PortB.Value[7] = (int)v8;
+				}
 			}
 		}
 	}
@@ -115,16 +295,22 @@ bool run_fastrate_code()
 }
 bool run_mediumrate_code()
 {
+	char tempstr2[128];
+	sprintf(tempstr2,"mode: %d",gpio_board_mode);
+	logger->log_debug(tempstr2);
 	if(gpio_board_mode == GPIOBOARD_MODE_INITIALIZING)
 	{
 		unsigned char tx_buffer[12];
 		int length;
 		int tx_status = serialmessagehandler->encode_Configure_DIO_PortASerial(tx_buffer,&length,
-		PINMODE_PWM_OUTPUT,PINMODE_PWM_OUTPUT,PINMODE_PWM_OUTPUT,PINMODE_PWM_OUTPUT,
-		PINMODE_UNDEFINED,PINMODE_UNDEFINED,PINMODE_UNDEFINED,PINMODE_UNDEFINED);
+		DIO_PortA.Mode[0],DIO_PortA.Mode[1],DIO_PortA.Mode[2],DIO_PortA.Mode[3],DIO_PortA.Mode[4],DIO_PortA.Mode[5],DIO_PortA.Mode[6],DIO_PortA.Mode[7]);
+	
 		if (tx_status == 1)
 		{
 			int count = write(device_fid, &tx_buffer[0], length);
+			char tempstr[128];
+			sprintf(tempstr,"Sent command1: %d,%d,%d",tx_buffer[1],DIO_PortA.Mode[0],tx_buffer[3]);
+			logger->log_debug(tempstr);
 			if (count < 0)
 			{
 				logger->log_error("UART TX error\n");
@@ -135,9 +321,12 @@ bool run_mediumrate_code()
 				diag.Description = "Cannot write to UART.";
 				diagnostic_pub.publish(diag);
 			}
-			
+			else
+			{
+				gpio_board_mode = GPIOBOARD_MODE_START;
+			}
 		}
-		gpio_board_mode = GPIOBOARD_MODE_START;
+		
 	}
 	else if(gpio_board_mode == GPIOBOARD_MODE_START)
 	{
@@ -147,6 +336,9 @@ bool run_mediumrate_code()
 		if (tx_status == 1)
 		{
 			int count = write(device_fid, &tx_buffer[0], length);
+			char tempstr[128];
+			sprintf(tempstr,"Sent command2: %d",tx_buffer[1]);
+			logger->log_debug(tempstr);
 			if (count < 0)
 			{
 				logger->log_error("UART TX error\n");
@@ -163,14 +355,15 @@ bool run_mediumrate_code()
 	}
 	else if(gpio_board_mode == GPIOBOARD_MODE_RUNNING)
 	{
-		pin1_value++;
-		if(pin1_value > 255){pin1_value = 0; }
 		unsigned char tx_buffer[12];
 		int length;
-		int tx_status = serialmessagehandler->encode_Set_DIO_PortASerial(tx_buffer,&length,pin1_value,pin1_value,pin1_value,pin1_value,pin1_value,pin1_value,pin1_value,pin1_value);
+		int tx_status = 0;//serialmessagehandler->encode_Set_DIO_PortASerial(tx_buffer,&length,pin1_value,pin1_value,pin1_value,pin1_value,pin1_value,pin1_value,pin1_value,pin1_value);
 		if (tx_status == 1)
 		{
 			int count = write(device_fid, &tx_buffer[0], length);
+			char tempstr[128];
+			sprintf(tempstr,"Sent command3: %d",tx_buffer[1]);
+			logger->log_debug(tempstr);
 			if (count < 0)
 			{
 				logger->log_error("UART TX error\n");
@@ -183,6 +376,13 @@ bool run_mediumrate_code()
 			}
 			
 		}
+		publish_port_info(DIO_PortA);
+		char tempstr[128];
+		sprintf(tempstr,"mode: %d v: %d\n",DIO_PortA.Mode[0],DIO_PortA.Value[0]);
+		logger->log_debug(tempstr);
+		publish_port_info(DIO_PortB);
+		publish_port_info(ANA_PortA);
+		publish_port_info(ANA_PortB);
 		gpio_board_mode = GPIOBOARD_MODE_RUNNING;
 	}
 	double dropped_ratio = 100*(double)((double)bad_checksum_counter/((double)bad_checksum_counter+(double)good_checksum_counter));
@@ -219,11 +419,11 @@ bool run_mediumrate_code()
 	}
 	
 	diagnostic_pub.publish(diagnostic_status);
-	char tempstr[128];
-	sprintf(tempstr,"ANA Port A p1: %d p2: %d p3: %d p4: %d Port B: p1: %d p2: %d p3: %d p4: %d",
-	ANA_PortA.Pin1_Value,ANA_PortA.Pin2_Value,ANA_PortA.Pin3_Value,ANA_PortA.Pin4_Value,
-	ANA_PortB.Pin1_Value,ANA_PortB.Pin2_Value,ANA_PortB.Pin3_Value,ANA_PortB.Pin4_Value);
-	logger->log_debug(tempstr);
+	//char tempstr[128];
+	//sprintf(tempstr,"ANA Port A p1: %d p2: %d p3: %d p4: %d Port B: p1: %d p2: %d p3: %d p4: %d",
+	//ANA_PortA.Pin1_Value,ANA_PortA.Pin2_Value,ANA_PortA.Pin3_Value,ANA_PortA.Pin4_Value,
+	//ANA_PortB.Pin1_Value,ANA_PortB.Pin2_Value,ANA_PortB.Pin3_Value,ANA_PortB.Pin4_Value);
+	//logger->log_debug(tempstr);
 	return true;
 }
 bool run_slowrate_code()
@@ -251,78 +451,60 @@ bool run_slowrate_code()
 	
 	return true;
 }
+bool publish_port_info(Port_Info pi)
+{
+	for(int i = 0; i < 8; i++)
+	{
+		if(pi.Available[i] == true)
+		{
+			int mode = pi.Mode[i];
+			icarus_rover_v2::pin newpin;
+			newpin.Function = map_PinFunction_ToString(pi.Mode[i]);
+			newpin.Number = i+1;
+			newpin.Port = pi.PortName;
+			newpin.Value = pi.Value[i];
+			switch (mode)
+			{
+				case PINMODE_DIGITAL_INPUT:
+					digitalinput_pub.publish(newpin);
+					break;
+				case PINMODE_ANALOG_INPUT:
+					analoginput_pub.publish(newpin);
+					break;
+				case PINMODE_FORCESENSOR_INPUT:
+					forcesensorinput_pub.publish(newpin);
+					break;
+				default:
+					break;
+			}
+		}
+	}
+	return true;
+}
 bool run_veryslowrate_code()
 {
 	//logger->log_debug("Running very slow rate code.");
 	logger->log_info("Node Running.");
 	return true;
 }
-/*std::vector<icarus_rover_v2::diagnostic> check_gpioboard_comm()
+void DigitalOutput_Callback(const icarus_rover_v2::pin::ConstPtr& msg)
 {
-	std::vector<icarus_rover_v2::diagnostic> diaglist;
-	bool status = true;
-	logger->log_notice("Checking comm w/ gpio board.");
-	message_receive_counter = 0;
-	unsigned char tx_buffer[12];
-	int length;
-	int tx_status = serialmessagehandler->encode_TestMessageCommandSerial(tx_buffer,&length,0,0,0,0,0,0,0,0);
-	if (tx_status == 1)
+	if(msg->Function == "DigitalOutput")
 	{
-		checking_gpio_comm = true;
-		int count = write(device_fid, &tx_buffer[0], length);
-		if (count < 0)
-		{
-			logger->log_error("UART TX error\n");
-			icarus_rover_v2::diagnostic diag=diagnostic_status;
-			diag.Diagnostic_Type = COMMUNICATIONS;
-			diag.Level = ERROR;
-			diag.Diagnostic_Message = DROPPING_PACKETS;
-			diag.Description = "Cannot write to UART.";
-			diaglist.push_back(diag);
-		}
-		
+		char tempstr[128];
+		sprintf(tempstr,"Got DigitalOutput for Port: %s Pin: %d",msg->Port.c_str(),msg->Number);
+		logger->log_debug(tempstr);
 	}
-	ros::Time time_test_started = ros::Time::now();
-	bool run_test = true;
-	
-	while(run_test)
+}
+void PwmOutput_Callback(const icarus_rover_v2::pin::ConstPtr& msg)
+{
+	if(msg->Function == "PWMOutput")
 	{
-		double elaptime = measure_time_diff(ros::Time::now(),time_test_started);
-		if(message_receive_counter == 20) 
-		{ 
-			run_test = false; 
-			status = true;
-		}
-		if(elaptime > 3.0)
-		{
-			run_test = false;
-			status = false;
-		}
-		
+		char tempstr[128];
+		sprintf(tempstr,"Got PWMOutput for Port: %s Pin: %d",msg->Port.c_str(),msg->Number);
+		logger->log_debug(tempstr);
 	}
-	printf("Hoping for 20 messages, got: %d\r\n",message_receive_counter);
-	if(status == true)
-	{
-		icarus_rover_v2::diagnostic diag=diagnostic_status;
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Level = NOTICE;
-		diag.Diagnostic_Message = DIAGNOSTIC_PASSED;
-		diag.Description = "Checked Comm w/ GPIO Board -> PASSED";
-		diaglist.push_back(diag);
-	}
-	else
-	{
-		icarus_rover_v2::diagnostic diag=diagnostic_status;
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Level = WARN;
-		diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
-		diag.Description = "Checked Comm w/ GPIO Board -> FAILED";
-		diaglist.push_back(diag);
-	}
-	return diaglist;
-	
-	
-}*/
+}
 //End User Code: Functions
 
 //Start Template Code: Functions
@@ -387,6 +569,7 @@ int main(int argc, char **argv)
     veryslow_timer = now;
     while (ros::ok())
     {
+		
     	bool ok_to_start = false;
 		if(require_pps_to_start == false) { ok_to_start = true;}
 		else if(require_pps_to_start == true && received_pps == true) { ok_to_start = true; }
@@ -402,6 +585,7 @@ int main(int argc, char **argv)
 			mtime = measure_time_diff(now,medium_timer);
 			if(mtime > 0.1)
 			{
+				//printf("Executing\n");
 				run_mediumrate_code();
 				medium_timer = ros::Time::now();
 			}
@@ -476,7 +660,16 @@ bool initialize(ros::NodeHandle nh)
 	hostname[1023] = '\0';
 	gethostname(hostname,1023);
     std::string device_topic = "/" + std::string(hostname) +"_master_node/device";
+	printf("Subscribing to: %s\n",device_topic.c_str());
     device_sub = nh.subscribe<icarus_rover_v2::device>(device_topic,1000,Device_Callback);
+	if(device_sub)
+	{
+		printf("Created subscriber\n");
+	}
+	else
+	{
+		printf("Couldn't create subscriber\n");
+	}
 	
     pps_sub = nh.subscribe<std_msgs::Bool>("/pps",1000,PPS_Callback);  //This is a pps consumer.
 	command_sub = nh.subscribe<icarus_rover_v2::command>("/command",1000,Command_Callback);
@@ -490,6 +683,17 @@ bool initialize(ros::NodeHandle nh)
     //End Template Code: Initialization and Parameters
 
     //Start User Code: Initialization and Parameters
+    std::string digitalinput_topic = "/" + node_name + "/DigitalInput";
+    digitalinput_pub = nh.advertise<icarus_rover_v2::pin>(digitalinput_topic,1000);
+    std::string analoginput_topic = "/" + node_name + "/AnalogInput";
+	analoginput_pub = nh.advertise<icarus_rover_v2::pin>(analoginput_topic,1000);
+	std::string forcesensorinput_topic = "/" + node_name + "/ForceSensorInput";
+	forcesensorinput_pub = nh.advertise<icarus_rover_v2::pin>(forcesensorinput_topic,1000);
+	std::string digitaloutput_topic = "/" + node_name + "/DigitalOutput";
+	digitaloutput_sub = nh.subscribe<icarus_rover_v2::pin>(digitaloutput_topic,1000,DigitalOutput_Callback);
+	std::string pwmoutput_topic = "/" + node_name + "/PwmOutput";
+	pwmoutput_sub = nh.subscribe<icarus_rover_v2::pin>(pwmoutput_topic,1000,PwmOutput_Callback);
+
 	current_num = -1;
 	last_num = -1;
 	missed_counter = 0;
@@ -500,16 +704,11 @@ bool initialize(ros::NodeHandle nh)
 	new_message = false;
 	checking_gpio_comm = false;
 	message_receive_counter = 0;
-	pin1_value = 0;
-	ANA_PortA.Pin1_Value = 0;
-	ANA_PortA.Pin2_Value = 0;
-	ANA_PortA.Pin3_Value = 0;
-	ANA_PortA.Pin4_Value = 0;
-	ANA_PortA.Pin5_Value = 0;
-	ANA_PortA.Pin6_Value = 0;
-	ANA_PortA.Pin7_Value = 0;
-	ANA_PortA.Pin8_Value = 0;
-	gpio_board_mode = GPIOBOARD_MODE_INITIALIZING;
+	if(initialize_gpioboard_ports() == false)
+	{
+		logger->log_fatal("Couldn't initialize gpio board ports. Exiting.");
+	}
+	gpio_board_mode = GPIOBOARD_MODE_UNDEFINED;
 	device_fid = open("/dev/ttyAMA0", O_RDWR | O_NOCTTY /*| O_NDELAY*/);
     if(device_fid < 0)
     {
@@ -648,16 +847,30 @@ void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg)
 	newdevice.DeviceType = msg->DeviceType;
 	newdevice.DeviceParent = msg->DeviceParent;
 	newdevice.BoardCount = msg->BoardCount;
+	printf("Got device for: %s/%s",newdevice.DeviceParent.c_str(),newdevice.DeviceName.c_str());
 	if((newdevice.DeviceParent == "None") && (device_initialized == false))
 	{
 		myDevice = newdevice;
 	}
-	else
+	else if((newdevice.DeviceParent == myDevice.DeviceName) && (myDevice.DeviceName != "") && (device_initialized == false))
 	{
 		icarus_rover_v2::device board;
-		board = newdevice;
-		board.pins = newdevice.pins;
+		board.DeviceName = msg->DeviceName;
+		board.pins = msg->pins;
 		boards.push_back(board);
+		for(int i = 0; i < board.pins.size();i++)
+		{
+
+			if(configure_pin(board.DeviceName,board.pins.at(i).Port,board.pins.at(i).Number,board.pins.at(i).Function)==false)
+			{
+				char tempstr[256];
+				sprintf(tempstr,"Couldn't Configure Pin on Port: %s Number: %d Function: %s",
+					board.pins.at(i).Port.c_str(),
+					board.pins.at(i).Number,
+					board.pins.at(i).Function.c_str());
+				logger->log_error(tempstr);
+			}
+		}
 		if((myDevice.BoardCount == boards.size()) && (myDevice.BoardCount > 0) && (device_initialized == false))
 		{
 			diagnostic_status.Diagnostic_Type = NOERROR;
@@ -667,6 +880,7 @@ void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg)
 			diagnostic_pub.publish(diagnostic_status);
 			logger->log_info("Received all Device Info.");
 			device_initialized = true;
+			gpio_board_mode = GPIOBOARD_MODE_INITIALIZING;
 		}
 	}
 }
