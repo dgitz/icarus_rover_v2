@@ -295,9 +295,6 @@ bool run_fastrate_code()
 }
 bool run_mediumrate_code()
 {
-	char tempstr2[128];
-	sprintf(tempstr2,"mode: %d",gpio_board_mode);
-	logger->log_debug(tempstr2);
 	if(gpio_board_mode == GPIOBOARD_MODE_INITIALIZING)
 	{
 		unsigned char tx_buffer[12];
@@ -357,7 +354,8 @@ bool run_mediumrate_code()
 	{
 		unsigned char tx_buffer[12];
 		int length;
-		int tx_status = 0;//serialmessagehandler->encode_Set_DIO_PortASerial(tx_buffer,&length,pin1_value,pin1_value,pin1_value,pin1_value,pin1_value,pin1_value,pin1_value,pin1_value);
+		int tx_status = serialmessagehandler->encode_Set_DIO_PortASerial(tx_buffer,&length,DIO_PortA.Value[0],DIO_PortA.Value[1],DIO_PortA.Value[2],DIO_PortA.Value[3],
+		DIO_PortA.Value[4],DIO_PortA.Value[5],DIO_PortA.Value[6],DIO_PortA.Value[7]);
 		if (tx_status == 1)
 		{
 			int count = write(device_fid, &tx_buffer[0], length);
@@ -377,9 +375,6 @@ bool run_mediumrate_code()
 			
 		}
 		publish_port_info(DIO_PortA);
-		char tempstr[128];
-		sprintf(tempstr,"mode: %d v: %d\n",DIO_PortA.Mode[0],DIO_PortA.Value[0]);
-		logger->log_debug(tempstr);
 		publish_port_info(DIO_PortB);
 		publish_port_info(ANA_PortA);
 		publish_port_info(ANA_PortB);
@@ -492,8 +487,17 @@ void DigitalOutput_Callback(const icarus_rover_v2::pin::ConstPtr& msg)
 	if(msg->Function == "DigitalOutput")
 	{
 		char tempstr[128];
-		sprintf(tempstr,"Got DigitalOutput for Port: %s Pin: %d",msg->Port.c_str(),msg->Number);
+		sprintf(tempstr,"Got DigitalOutput for Port: %s Pin: %d for Value: %d",msg->Port.c_str(),msg->Number, msg->Value);
 		logger->log_debug(tempstr);
+		if(msg->Port == DIO_PortA.PortName) 		
+		{ 	
+			DIO_PortA.Value[msg->Number-1] = msg->Value;	
+		} 	
+		if(msg->Port == DIO_PortB.PortName)
+		{
+			DIO_PortB.Value[msg->Number-1] = msg->Value;
+		}
+		
 	}
 }
 void PwmOutput_Callback(const icarus_rover_v2::pin::ConstPtr& msg)
@@ -503,6 +507,15 @@ void PwmOutput_Callback(const icarus_rover_v2::pin::ConstPtr& msg)
 		char tempstr[128];
 		sprintf(tempstr,"Got PWMOutput for Port: %s Pin: %d",msg->Port.c_str(),msg->Number);
 		logger->log_debug(tempstr);
+		if(msg->Port == DIO_PortA.PortName) 		
+		{ 	
+			logger->log_debug("Setting DIO_PortA.");
+			DIO_PortA.Value[msg->Number-1] = msg->Value;	
+		} 	
+		if(msg->Port == DIO_PortB.PortName)
+		{
+			DIO_PortB.Value[msg->Number-1] = msg->Value;
+		}
 	}
 }
 //End User Code: Functions
@@ -691,7 +704,7 @@ bool initialize(ros::NodeHandle nh)
 	forcesensorinput_pub = nh.advertise<icarus_rover_v2::pin>(forcesensorinput_topic,1000);
 	std::string digitaloutput_topic = "/" + node_name + "/DigitalOutput";
 	digitaloutput_sub = nh.subscribe<icarus_rover_v2::pin>(digitaloutput_topic,1000,DigitalOutput_Callback);
-	std::string pwmoutput_topic = "/" + node_name + "/PwmOutput";
+	std::string pwmoutput_topic = "/" + node_name + "/PWMOutput";
 	pwmoutput_sub = nh.subscribe<icarus_rover_v2::pin>(pwmoutput_topic,1000,PwmOutput_Callback);
 
 	current_num = -1;
@@ -879,6 +892,16 @@ void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg)
 			diagnostic_status.Description = "Received all Device Info.";
 			diagnostic_pub.publish(diagnostic_status);
 			logger->log_info("Received all Device Info.");
+			for(int b = 0; b < boards.size(); b++)
+			{
+				for(int p = 0; p < boards.at(b).pins.size(); p++)
+				{
+					char tempstr[128];
+					icarus_rover_v2::pin newpin = boards.at(b).pins.at(p);
+					sprintf(tempstr,"Board: %d Port: %s Pin: %d Function: %s",b,newpin.Port.c_str(),newpin.Number,newpin.Function.c_str());
+					logger->log_debug(tempstr);
+				}
+			}
 			device_initialized = true;
 			gpio_board_mode = GPIOBOARD_MODE_INITIALIZING;
 		}
