@@ -1,18 +1,22 @@
 #include "ros/ros.h"
 #include "std_msgs/String.h"
 #include "logger.h"
+#include "resourcemonitor.h"
 #include <boost/algorithm/string.hpp>
 #include <std_msgs/Bool.h>
+#include <std_msgs/UInt8.h>
 #include <sstream>
 #include <stdlib.h>
 #include <icarus_rover_v2/Definitions.h>
 #include <icarus_rover_v2/diagnostic.h>
 #include <icarus_rover_v2/device.h>
 #include <icarus_rover_v2/resource.h>
+
 //Start User Code: Includes
 #include "opencv2/opencv.hpp"
 #include "sensor_msgs/Image.h"
 #include <cv_bridge/cv_bridge.h>
+#include "opencv2/imgproc/imgproc.hpp"
 //#include <image_transport/image_transport.h>
 //End User Code: Includes
 
@@ -28,13 +32,13 @@ bool run_veryslowrate_code();
 double measure_time_diff(ros::Time timer_a, ros::Time tiber_b);
 void PPS_Callback(const std_msgs::Bool::ConstPtr& msg);
 void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg);
-int get_pid();
-bool check_resources(int procid);
 //Stop Template Code: Function Prototypes
 
 //Start User Code: Function Prototypes
 bool check_tasks();
 bool acquire_image(cv::VideoCapture cap);
+bool Edge_Detection(cv::Mat gray_image,int, void*);
+void Edge_Detect_Threshold_Callback(const std_msgs::UInt8::ConstPtr& msg);
 //End User Code: Function Prototypes
 
 //Start Template Code: Define Global variables
@@ -50,6 +54,7 @@ icarus_rover_v2::diagnostic diagnostic_status;
 icarus_rover_v2::device myDevice;
 icarus_rover_v2::resource resources_used;
 Logger *logger;
+ResourceMonitor *resourcemonitor;
 bool require_pps_to_start = false;
 bool received_pps = false;
 ros::Time fast_timer; //50 Hz
@@ -59,14 +64,18 @@ ros::Time veryslow_timer; //1 Hz
 ros::Time now;
 double mtime;
 bool device_initialized;
-int pid;
 //End Template Code: Define Global Variables
 
 //Start User Code: Define Global Variables
-//cv::VideoCapture *capture2;
+cv::VideoCapture capture;
 vector<int> compression_params;
-ros::Publisher image_pub;
+ros::Publisher raw_image_pub;
+ros::Publisher proc_image_pub;
+ros::Subscriber edge_threshold_sub;
 int16_t counter;
+int edge_detect_threshold;
+int image_width;
+int image_height;
 //CvCapture *capture;
 //End User Code: Define Global Variables
 

@@ -4,11 +4,12 @@
 #include "ros/ros.h"
 #include "std_msgs/String.h"
 #include "logger.h"
+#include "resourcemonitor.h"
 #include <boost/algorithm/string.hpp>
 #include <std_msgs/Bool.h>
 #include <sstream>
 #include <stdlib.h>
-#include <icarus_rover_v2/Definitions.h>
+#include "Definitions.h"
 #include <icarus_rover_v2/diagnostic.h>
 #include <icarus_rover_v2/device.h>
 #include <icarus_rover_v2/resource.h>
@@ -30,8 +31,6 @@ double measure_time_diff(ros::Time timer_a, ros::Time tiber_b);
 void PPS_Callback(const std_msgs::Bool::ConstPtr& msg);
 void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg);
 void Command_Callback(const icarus_rover_v2::command& msg);
-int get_pid();
-bool check_resources(int procid);
 std::vector<icarus_rover_v2::diagnostic> check_program_variables();
 //End Template Code: Function Prototypes
 
@@ -53,6 +52,7 @@ icarus_rover_v2::diagnostic diagnostic_status;
 icarus_rover_v2::device myDevice;
 icarus_rover_v2::resource resources_used;
 Logger *logger;
+ResourceMonitor *resourcemonitor;
 bool require_pps_to_start = false;
 bool received_pps = false;
 ros::Time fast_timer; //50 Hz

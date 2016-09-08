@@ -19,6 +19,20 @@ void diagnostic_Callback(const icarus_rover_v2::diagnostic::ConstPtr& msg)
 
 	}
 }
+void resource_Callback(const icarus_rover_v2::resource::ConstPtr& msg)
+{
+	char tempstr[240];
+	sprintf(tempstr,"Got Resource from Task: %s",msg->Node_Name.c_str());
+	logger->log_info(tempstr);
+	std::string send_string = udpmessagehandler->encode_ResourceUDP(msg->Node_Name,
+																	msg->RAM_MB,
+																	msg->CPU_Perc);
+	if(sendto(device_sock, send_string.c_str(), send_string.size(), 0, (struct sockaddr *)&device_addr, sizeof(device_addr))!=send_string.size())
+	{
+		  logger->log_warn("Mismatch in number of bytes sent");
+
+	}
+}
 void device_Callback(const icarus_rover_v2::device::ConstPtr& msg)
 {
 	char tempstr[240];
@@ -32,10 +46,6 @@ void device_Callback(const icarus_rover_v2::device::ConstPtr& msg)
 	{
 		  logger->log_warn("Mismatch in number of bytes sent");
 
-	}
-	else
-	{
-		logger->log_info("Sent!");
 	}
 }
 bool initialize_socket()
@@ -77,24 +87,17 @@ bool run_slowrate_code()
 {
 	if(device_initialized == true)
 	{
-		pid = get_pid();
-		if(pid < 0)
+		bool status = resourcemonitor->update();
+		if(status == true)
 		{
-			logger->log_warn("Couldn't retrieve PID.");
+			resources_used = resourcemonitor->get_resourceused();
+			resource_pub.publish(resources_used);
 		}
 		else
 		{
-			if(check_resources(pid))
-			{
-				resource_pub.publish(resources_used);
-			}
-			else
-			{
-				logger->log_warn("Couldn't read resources used.");
-			}
+			logger->log_warn("Couldn't read resources used.");
 		}
 	}
-
 	//logger->log_debug("Running slow rate code.");
 
 	return true;
@@ -183,11 +186,11 @@ int main(int argc, char **argv)
 
 bool initialize(ros::NodeHandle nh)
 {
+	sleep(5);
     //Start Template Code: Initialization and Parameters
     myDevice.DeviceName = "";
     myDevice.Architecture = "";
     device_initialized = false;
-    pid = -1;
     std::string diagnostic_topic = "/" + node_name + "/diagnostic";
 	diagnostic_pub =  nh.advertise<icarus_rover_v2::diagnostic>(diagnostic_topic,1000);
 	diagnostic_status.Node_Name = node_name;
@@ -267,6 +270,7 @@ bool initialize(ros::NodeHandle nh)
 	{
 		ros::master::V_TopicInfo master_topics;
 		ros::master::getTopics(master_topics);
+
 		std::vector<std::string> diagnostic_topics;
 		for (ros::master::V_TopicInfo::iterator it = master_topics.begin() ; it != master_topics.end(); it++)
 		{
@@ -306,6 +310,26 @@ bool initialize(ros::NodeHandle nh)
 			logger->log_info(tempstr);
 			device_subs[i] = nh.subscribe<icarus_rover_v2::device>(device_topics.at(i),1000,device_Callback);
 		}
+
+		std::vector<std::string> resource_topics;
+		for (ros::master::V_TopicInfo::iterator it = master_topics.begin() ; it != master_topics.end(); it++)
+		{
+			const ros::master::TopicInfo& info = *it;
+			if(info.datatype == "icarus_rover_v2/resource")
+			{
+				resource_topics.push_back(info.name);
+			}
+
+		}
+		ros::Subscriber * resource_subs;
+		resource_subs = new ros::Subscriber[resource_topics.size()];
+		for(int i = 0; i < resource_topics.size();i++)
+		{
+			char tempstr[50];
+			sprintf(tempstr,"Subscribing to resource topic: %s",resource_topics.at(i).c_str());
+			logger->log_info(tempstr);
+			resource_subs[i] = nh.subscribe<icarus_rover_v2::resource>(resource_topics.at(i),1000,resource_Callback);
+		}
 	}
 	udpmessagehandler = new UDPMessageHandler();
     //Finish User Code: Initialization and Parameters
@@ -330,72 +354,6 @@ void PPS_Callback(const std_msgs::Bool::ConstPtr& msg)
 	logger->log_info("Got pps");
 	received_pps = true;
 }
-bool check_resources(int procid)
-{
-	if(procid <= 0)
-	{
-		resources_used.PID = procid;
-		return false;
-	}
-	std::string resource_filename;
-	resource_filename = "/home/robot/logs/output/RESOURCE/" + node_name;
-	char tempstr[130];
-	sprintf(tempstr,"top -bn1 | grep %d > %s",procid,resource_filename.c_str());
-	//printf("Command: %s\r\n",tempstr);
-	system(tempstr); //RAM used is column 6, in KB.  CPU used is column 8, in percentage.
-	ifstream myfile;
-	myfile.open(resource_filename.c_str());
-	if(myfile.is_open())
-	{
-		std::string line;
-		getline(myfile,line);
-		std::vector<std::string> strs;
-		boost::split(strs,line,boost::is_any_of(" "),boost::token_compress_on);
-		resources_used.Node_Name = node_name;
-		resources_used.PID = procid;
-		resources_used.CPU_Perc = atoi(strs.at(8).c_str());
-		resources_used.RAM_MB = atoi(strs.at(6).c_str())/1000.0;
-		return true;
-	}
-	else
-	{
-		return false;
-	}
-	myfile.close();
-	return false;
-}
-int get_pid()
-{
-	int id = -1;
-	std::string local_node_name;
-	local_node_name = node_name.substr(1,node_name.size());
-	std::string pid_filename;
-	pid_filename = "/home/robot/logs/output/PID" + node_name;
-	char tempstr[130];
-	sprintf(tempstr,"ps aux | grep __name:=%s > %s",local_node_name.c_str(),pid_filename.c_str());
-	system(tempstr);
-	ifstream myfile;
-	myfile.open(pid_filename.c_str());
-	if(myfile.is_open())
-	{
-		std::string line;
-		getline(myfile,line);
-		//printf("Line:%s\r\n",line.c_str());
-		std::size_t found = line.find("icarus_rover_v2/network_transceiver_node");
-		if(found != std::string::npos)
-		{
-			std::vector <string> fields;
-			boost::split(fields,line,boost::is_any_of("\t "),boost::token_compress_on);
-			id =  atoi(fields.at(1).c_str());
-		}
-	}
-	else
-	{
-		id = -1;
-	}
-	myfile.close();
-	return id;
-}
 void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg)
 {
 	icarus_rover_v2::device newdevice;
@@ -404,6 +362,7 @@ void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg)
 	myDevice = newdevice;
 	if(myDevice.DeviceName != "")
 	{
+		resourcemonitor = new ResourceMonitor(myDevice.Architecture,myDevice.DeviceName,node_name);
 		device_initialized = true;
 	}
 }

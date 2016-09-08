@@ -1,8 +1,20 @@
 /***************AUTO-GENERATED.  DO NOT EDIT********************/
-/***Created on:2016-08-02 17:27:48.691542***/
+/***Created on:2016-08-19 17:30:23.135347***/
 #include "udpmessage.h"
 UDPMessageHandler::UDPMessageHandler(){}
 UDPMessageHandler::~UDPMessageHandler(){}
+std::string UDPMessageHandler::encode_ResourceUDP(std::string Node_Name,uint16_t RAM_Mb,uint8_t CPU_Used)
+{
+	std::string tempstr = "";
+	tempstr.append(boost::lexical_cast<std::string>(UDP_Resource_ID));
+	tempstr.append(",");
+	tempstr.append(Node_Name);
+	tempstr.append(",");
+	tempstr.append(boost::lexical_cast<std::string>((int)RAM_Mb));
+	tempstr.append(",");
+	tempstr.append(boost::lexical_cast<std::string>((int)CPU_Used));
+	return tempstr;
+}
 std::string UDPMessageHandler::encode_DiagnosticUDP(std::string Node_Name,uint8_t System,uint8_t SubSystem,uint8_t Component,uint8_t Diagnostic_Type,uint8_t Level,uint8_t Diagnostic_Message,std::string Description)
 {
 	std::string tempstr = "";

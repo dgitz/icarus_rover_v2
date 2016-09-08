@@ -1,6 +1,10 @@
 #include "cameracapture_node.h"
 
 //Start User Code: Functions
+void Edge_Detect_Threshold_Callback(const std_msgs::UInt8::ConstPtr& msg)
+{
+	edge_detect_threshold = msg->data;
+}
 bool acquire_image(cv::VideoCapture cap)
 {
     ros::Time start = ros::Time::now();
@@ -11,16 +15,31 @@ bool acquire_image(cv::VideoCapture cap)
     cv_image.header.stamp = ros::Time::now();
     cv_image.header.frame_id = "/world";
     cv_image.image = frame;
-    image_pub.publish(cv_image.toImageMsg());
-    ros::Duration how_long = ros::Time::now() - start;
-    printf("Duration: %f\r\n",how_long.toSec());
-    //char tempstr[30];
-    //cv_bridge::CvImage cv_image;
-    //sprintf(tempstr,"/home/robot/temp/test_%d.png",counter);
- 
-    //bool status = cv::imwrite(tempstr,image,compression_params);
-    //counter++;
+    int bytes = frame.total() * frame.elemSize();
+    if(bytes > 0)
+    {
+		raw_image_pub.publish(cv_image.toImageMsg());
+    }
+    char tempstr[128];
+    sprintf(tempstr,"Image Data size: %d",bytes);
+    logger->log_debug(tempstr);
+    cv::Mat src_gray;
+    cv::cvtColor(frame,src_gray,cv::COLOR_BGR2GRAY);
+    Edge_Detection(src_gray,0,0);
     return true;
+}
+bool Edge_Detection(cv::Mat gray_image,int,void*)
+{
+	cv::Mat det_edges;
+	cv::blur(gray_image,det_edges,cv::Size(3,3));
+	cv::Canny(det_edges,det_edges,edge_detect_threshold,edge_detect_threshold*3,3);
+	cv_bridge::CvImage proc_image;
+	proc_image.encoding = "mono8";
+	proc_image.header.stamp = ros::Time::now();
+	proc_image.header.frame_id = "/world";
+	proc_image.image = det_edges;
+	proc_image_pub.publish(proc_image.toImageMsg());
+	return true;
 }
 bool run_fastrate_code()
 {
@@ -30,36 +49,24 @@ bool run_fastrate_code()
 bool run_mediumrate_code()
 {
 	//logger->log_debug("Running medium rate code.");
+	acquire_image(capture);
 	return true;
 }
 bool run_slowrate_code()
 {
- 	if(device_initialized == true)
+	if(device_initialized == true)
 	{
-		/*pid = get_pid();
-		if(pid < 0)
+		bool status = resourcemonitor->update();
+		if(status == true)
 		{
-			logger->log_warn("Couldn't retrieve PID.");
+			resources_used = resourcemonitor->get_resourceused();
+			resource_pub.publish(resources_used);
 		}
 		else
 		{
-			if(check_resources(pid))
-			{
-				resource_pub.publish(resources_used);
-			}
-			else
-			{
-				logger->log_warn("Couldn't read resources used.");
-			}
-		}*/
+			logger->log_warn("Couldn't read resources used.");
+		}
 	}
-    
-	//logger->log_debug("Running slow rate code.");
-	diagnostic_status.Diagnostic_Type = SOFTWARE;
-	diagnostic_status.Level = DEBUG;
-	diagnostic_status.Diagnostic_Message = NOERROR;
-	diagnostic_status.Description = "Node Executing.";
-	diagnostic_pub.publish(diagnostic_status);
 	return true;
 }
 bool run_veryslowrate_code()
@@ -72,6 +79,74 @@ bool run_veryslowrate_code()
 //End User Code: Functions
 
 //Start Initialize Function
+
+
+//Start Main Loop
+int main(int argc, char **argv)
+{
+	node_name = "cameracapture_node";
+    ros::init(argc, argv, node_name);
+    node_name = ros::this_node::getName();
+    ros::NodeHandle n;
+    if(initialize(n) == false)
+    {
+        logger->log_fatal("Unable to Initialize.  Exiting.");
+    	diagnostic_status.Diagnostic_Type = SOFTWARE;
+		diagnostic_status.Level = FATAL;
+		diagnostic_status.Diagnostic_Message = INITIALIZING_ERROR;
+		diagnostic_status.Description = "Node Initializing Error.";
+		diagnostic_pub.publish(diagnostic_status);
+        return 0; 
+    }
+    ros::Rate loop_rate(rate);
+    now = ros::Time::now();
+    fast_timer = now;
+    medium_timer = now;
+    slow_timer = now;
+    veryslow_timer = now;
+    while (ros::ok())
+    {
+    	bool ok_to_start = false;
+		if(require_pps_to_start == false) { ok_to_start = true;}
+		else if(require_pps_to_start == true && received_pps == true) { ok_to_start = true; }
+    	if(ok_to_start == true)
+    	{
+    		now = ros::Time::now();
+    		mtime = measure_time_diff(now,fast_timer);
+			if(mtime > .02)
+			{
+				run_fastrate_code();
+				fast_timer = ros::Time::now();
+			}
+			mtime = measure_time_diff(now,medium_timer);
+			if(mtime > 0.1)
+			{
+				run_mediumrate_code();
+				medium_timer = ros::Time::now();
+			}
+			mtime = measure_time_diff(now,slow_timer);
+			if(mtime > 1.0)
+			{
+				run_slowrate_code();           
+				slow_timer = ros::Time::now();
+			}
+			mtime = measure_time_diff(now,veryslow_timer);
+			if(mtime > 10.0)
+			{
+				run_veryslowrate_code();
+				veryslow_timer = ros::Time::now();
+			}
+		}
+		else
+		{
+			logger->log_warn("Waiting on PPS to Start.");
+		}
+		ros::spinOnce();
+		loop_rate.sleep();
+    }
+    return 0;
+}
+//End Main Loop
 bool initialize(ros::NodeHandle nh)
 {
     //Start Template Code: Initialization, Parameters and Topics
@@ -79,7 +154,6 @@ bool initialize(ros::NodeHandle nh)
     myDevice.DeviceName = "";
     myDevice.Architecture = "";
     device_initialized = false;
-    pid = -1;
     std::string diagnostic_topic = "/" + node_name + "/diagnostic";
 	diagnostic_pub =  nh.advertise<icarus_rover_v2::diagnostic>(diagnostic_topic,1000);
 	std::string resource_topic = "/" + node_name + "/resource";
@@ -128,137 +202,51 @@ bool initialize(ros::NodeHandle nh)
 	diagnostic_status.Description = "Node Initializing";
 	diagnostic_pub.publish(diagnostic_status);
 
-    image_pub = nh.advertise<sensor_msgs::Image>("/camera_image",1000);
+	std::string param_image_width = node_name +"/image_width";
+	if(nh.getParam(param_image_width,image_width) == false)
+	{
+		logger->log_fatal("Missing Parameter: image_width. Exiting");
+		return false;
+	}
+	std::string param_image_height = node_name +"/image_height";
+	if(nh.getParam(param_image_height,image_height) == false)
+	{
+		logger->log_fatal("Missing Parameter: image_height. Exiting");
+		return false;
+	}
+	std::string rawimage_topic = "/" + node_name + "/raw_image";
+    raw_image_pub = nh.advertise<sensor_msgs::Image>(rawimage_topic,1000);
+    std::string procimage_topic = "/" + node_name + "/proc_image";
+	proc_image_pub = nh.advertise<sensor_msgs::Image>(procimage_topic,1000);
     counter = 0;
+    edge_detect_threshold = 10;
+    std::string edge_detect_topic = "/" + node_name +"/edge_detect_threshold";
+    edge_threshold_sub = nh.subscribe<std_msgs::UInt8>(edge_detect_topic,1000,Edge_Detect_Threshold_Callback);
+    capture.open(0);
+	capture.set(CV_CAP_PROP_FRAME_WIDTH, image_width);
+	capture.set(CV_CAP_PROP_FRAME_HEIGHT, image_height);
+	compression_params.push_back(CV_IMWRITE_PNG_COMPRESSION); //CV_IMWRITE_PNG_COMPRESSION
+	compression_params.push_back(3);  //3
+ 	if(!capture.isOpened())  // check if we succeeded
+	{
+		logger->log_fatal("Can't initialize camera. Exiting.");
+		return false;
+	}
+	else
+	{
+	   logger->log_info("Camera working!");
+	}
 	//End User Code: Initialization, Parameters and Topics
     logger->log_info("Initialized!");
     return true;
 }
 //End Initialize Function
 
-//Start Main Loop
-int main(int argc, char **argv)
-{
-	node_name = "cameracapture_node";
-    ros::init(argc, argv, node_name);
-    node_name = ros::this_node::getName();
-    ros::NodeHandle n;
-    if(initialize(n) == false)
-    {
-        logger->log_fatal("Unable to Initialize.  Exiting.");
-    	diagnostic_status.Diagnostic_Type = SOFTWARE;
-		diagnostic_status.Level = FATAL;
-		diagnostic_status.Diagnostic_Message = INITIALIZING_ERROR;
-		diagnostic_status.Description = "Node Initializing Error.";
-		diagnostic_pub.publish(diagnostic_status);
-        return 0; 
-    }
-    ros::Rate loop_rate(rate);
-    now = ros::Time::now();
-    fast_timer = now;
-    medium_timer = now;
-    slow_timer = now;
-    veryslow_timer = now;
-    cv::VideoCapture capture(0);
-    capture.set(CV_CAP_PROP_FRAME_WIDTH, 320);
-    capture.set(CV_CAP_PROP_FRAME_HEIGHT, 240);
-    compression_params.push_back(CV_IMWRITE_PNG_COMPRESSION);
-    compression_params.push_back(3);
-    if(!capture.isOpened())  // check if we succeeded
-    {
-        printf("Can't initialize camera!\r\n");
-    }
-    else
-    {
-        printf("Camera working!\r\n");
-    }
-    while (ros::ok())
-    {
-    	bool ok_to_start = false;
-		if(require_pps_to_start == false) { ok_to_start = true;}
-		else if(require_pps_to_start == true && received_pps == true) { ok_to_start = true; }
-    	if(ok_to_start == true)
-    	{
-    		now = ros::Time::now();
-    		mtime = measure_time_diff(now,fast_timer);
-			if(mtime > .02)
-			{
-				run_fastrate_code();
-                acquire_image(capture);
-				fast_timer = ros::Time::now();
-			}
-			mtime = measure_time_diff(now,medium_timer);
-			if(mtime > 0.1)
-			{
-				run_mediumrate_code();
-                
-				medium_timer = ros::Time::now();
-			}
-			mtime = measure_time_diff(now,slow_timer);
-			if(mtime > 1.0)
-			{
-				run_slowrate_code();
-                
-				slow_timer = ros::Time::now();
-			}
-			mtime = measure_time_diff(now,veryslow_timer);
-			if(mtime > 10.0)
-			{
-				run_veryslowrate_code();
-				veryslow_timer = ros::Time::now();
-			}
-		}
-		else
-		{
-			logger->log_warn("Waiting on PPS to Start.");
-		}
-		ros::spinOnce();
-		loop_rate.sleep();
-    }
-    return 0;
-}
-//End Main Loop
-
 //Start Template Code: Functions
 void PPS_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
 	//logger->log_info("Got pps");
 	received_pps = true;
-}
-int get_pid()
-{
-	int id = -1;
-	std::string local_node_name;
-	local_node_name = node_name.substr(1,node_name.size());
-	std::string pid_filename;
-	pid_filename = "/home/robot/logs/output/PID" + node_name;
-	char tempstr[130];
-	sprintf(tempstr,"ps aux | grep __name:=%s > %s",local_node_name.c_str(),pid_filename.c_str());
-	system(tempstr);
-	ifstream myfile;
-	myfile.open(pid_filename.c_str());
-	if(myfile.is_open())
-	{
-		std::string line;
-		getline(myfile,line);
-		//printf("Line:%s\r\n",line.c_str());
-		std::size_t found = line.find("icarus_rover_v2/diagnostic_node");
-		if(found != std::string::npos)
-		{
-			std::vector <string> fields;
-			boost::split(fields,line,boost::is_any_of("\t "),boost::token_compress_on);
-			id =  atoi(fields.at(1).c_str());
-		}
-	}
-	else
-	{
-		id = -1;
-	}
-	myfile.close();
-	//printf("ID: %d\r\n",id);
-	//id = -1;
-	return id;
-
 }
 void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg)
 {
@@ -268,6 +256,7 @@ void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg)
 	myDevice = newdevice;
 	if(myDevice.DeviceName != "")
 	{
+		resourcemonitor = new ResourceMonitor(myDevice.Architecture,myDevice.DeviceName,node_name);
 		device_initialized = true;
 	}
 }
@@ -275,34 +264,5 @@ double measure_time_diff(ros::Time timer_a, ros::Time timer_b)
 {
 	ros::Duration etime = timer_a - timer_b;
 	return etime.toSec();
-}
-bool check_resources(int procid)
-{
-	std::string resource_filename;
-	resource_filename = "/home/robot/logs/output/RESOURCE/" + node_name;
-	char tempstr[130];
-	sprintf(tempstr,"top -bn1 | grep %d > %s",procid,resource_filename.c_str());
-	//printf("Command: %s\r\n",tempstr);
-	system(tempstr); //RAM used is column 6, in KB.  CPU used is column 8, in percentage.
-	ifstream myfile;
-	myfile.open(resource_filename.c_str());
-	if(myfile.is_open())
-	{
-		std::string line;
-		getline(myfile,line);
-		std::vector<std::string> strs;
-		boost::split(strs,line,boost::is_any_of(" "),boost::token_compress_on);
-		resources_used.Node_Name = node_name;
-		resources_used.PID = pid;
-		resources_used.CPU_Perc = atoi(strs.at(8).c_str());
-		resources_used.RAM_MB = atoi(strs.at(6).c_str())/1000.0;
-		return true;
-	}
-	else
-	{
-		return false;
-	}
-	myfile.close();
-	return false;
 }
 //End Template Code: Functions

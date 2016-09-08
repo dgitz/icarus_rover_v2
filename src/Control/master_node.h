@@ -9,7 +9,7 @@
 #include <std_msgs/Bool.h>
 #include <sstream>
 #include <stdlib.h>
-#include <icarus_rover_v2/Definitions.h>
+#include "Definitions.h"
 #include <icarus_rover_v2/diagnostic.h>
 #include <icarus_rover_v2/device.h>
 #include <icarus_rover_v2/resource.h>
@@ -36,8 +36,6 @@ void Command_Callback(const icarus_rover_v2::command& msg);
 void print_myDevice();
 void print_otherDevices();
 void publish_deviceinfo();
-int get_pid();
-bool check_resources(int procid);
 std::vector<icarus_rover_v2::diagnostic> check_program_variables();
 //End Template Code: Function Prototypes
 
@@ -57,6 +55,7 @@ icarus_rover_v2::diagnostic diagnostic_status;
 ros::Publisher device_pub;
 icarus_rover_v2::resource resources_used;
 Logger *logger;
+ResourceMonitor *resourcemonitor;
 bool require_pps_to_start;
 bool received_pps;
 ros::Time fast_timer;
@@ -65,7 +64,6 @@ ros::Time slow_timer;
 ros::Time veryslow_timer;
 ros::Time now;
 double mtime;
-int pid;
 //End Template Code: Global Variables
 
 //Start User Code: Global Variables
@@ -73,6 +71,7 @@ icarus_rover_v2::device myDevice;
 std::vector<icarus_rover_v2::device> otherDevices;
 std::vector<std::string> NodeList;
 double device_temperature;
+ros::Publisher device_resourceavail_pub;
 //End User Code: Global Variables
 
 #endif

@@ -33,22 +33,22 @@ bool run_mediumrate_code()
 bool run_slowrate_code()
 {
 	publish_deviceinfo();
-	pid = get_pid();
-	if(pid < 0)
+	bool status = resourcemonitor->update();
+	if(status == true)
 	{
-		logger->log_warn("Couldn't retrieve PID.");
+		resources_used = resourcemonitor->get_resourceused();
+		resource_pub.publish(resources_used);
 	}
 	else
 	{
-		if(check_resources(pid))
-		{
-			resource_pub.publish(resources_used);
-		}
-		else
-		{
-			logger->log_warn("Couldn't read resources used.");
-		}
+		logger->log_warn("Couldn't read resources used.");
 	}
+	icarus_rover_v2::resource device_resource_available;
+	device_resource_available.Node_Name = myDevice.DeviceName;
+	device_resource_available.PID = 0;
+	device_resource_available.CPU_Perc = resourcemonitor->get_CPUFree_perc();
+	device_resource_available.RAM_MB = (double)(resourcemonitor->get_RAMFree_kB()/1000.0);
+	device_resourceavail_pub.publish(device_resource_available);
 	if(myDevice.Architecture == "armv7l")
 	{
 		//diagnostic_status.Diagnostic_Type = SENSORS;
@@ -138,15 +138,10 @@ void Command_Callback(const icarus_rover_v2::command::ConstPtr& msg)
 }
 int main(int argc, char **argv)
 {
- 
 	node_name = "master_node";
-
-
     ros::init(argc, argv, node_name);
     node_name = ros::this_node::getName();
-
     ros::NodeHandle n;
-    
     if(initialize(n) == false)
     {
         logger->log_fatal("Unable to Initialize.  Exiting.");
@@ -217,7 +212,6 @@ bool initialize(ros::NodeHandle nh)
 	hostname[1023] = '\0';
 	gethostname(hostname,1023);
 	myDevice.DeviceName = hostname;
-	pid = -1;
     //Start Template Code: Initialization and Parameters
     //printf("Node name: %s",node_name.c_str());
     std::string diagnostic_topic = "/" + node_name + "/diagnostic";
@@ -239,10 +233,10 @@ bool initialize(ros::NodeHandle nh)
 
 	std::string resource_topic = "/" + node_name + "/resource";
 	resource_pub = nh.advertise<icarus_rover_v2::resource>(resource_topic,1000);
-
+	std::string device_resourceavail_topic = "/" + myDevice.DeviceName + "/resource_available";
+	device_resourceavail_pub = nh.advertise<icarus_rover_v2::resource>(device_resourceavail_topic,1000);
     if(nh.getParam(param_verbosity_level,verbosity_level) == false)
     {
-    	
         logger = new Logger("WARN",ros::this_node::getName());
         logger->log_warn("Missing Parameter: verbosity_level");
         return false;
@@ -275,6 +269,7 @@ bool initialize(ros::NodeHandle nh)
     if(devicefile_loaded == true)
     {
     	parse_devicefile(device_doc);
+    	resourcemonitor = new ResourceMonitor(myDevice.Architecture,hostname,node_name);
     }
     else
     {
@@ -352,16 +347,15 @@ void parse_devicefile(TiXmlDocument doc)
 				while( l_pPin )
 				{
 					icarus_rover_v2::pin newpin;
-					TiXmlElement *l_pPinName = l_pPin->FirstChildElement( "Name" );
-					if ( NULL != l_pPinName )
+					TiXmlElement *l_pPinPort = l_pPin->FirstChildElement( "Port" );
+					if ( NULL != l_pPinPort )
 					{
-						newpin.Name = l_pPinName->GetText();
+						newpin.Port = l_pPinPort->GetText();
 					}
-
 					TiXmlElement *l_pPinNumber = l_pPin->FirstChildElement( "Number" );
 					if ( NULL != l_pPinNumber )
 					{
-						newpin.Number = l_pPinNumber->GetText();
+						newpin.Number = atoi(l_pPinNumber->GetText());
 					}
 
 					TiXmlElement *l_pPinFunction = l_pPin->FirstChildElement( "Function" );
@@ -407,70 +401,6 @@ void print_otherDevices()
 	}
 
 	printf("----------------------\r\n");
-}
-bool check_resources(int procid)
-{
-	std::string resource_filename;
-	resource_filename = "/home/robot/logs/output/RESOURCE/" + node_name;
-	char tempstr[130];
-	sprintf(tempstr,"top -bn1 | grep %d > %s",procid,resource_filename.c_str());
-	//printf("Command: %s\r\n",tempstr);
-	system(tempstr); //RAM used is column 6, in KB.  CPU used is column 8, in percentage.
-	ifstream myfile;
-	myfile.open(resource_filename.c_str());
-	if(myfile.is_open())
-	{
-		std::string line;
-		getline(myfile,line);
-		std::vector<std::string> strs;
-		boost::split(strs,line,boost::is_any_of(" "),boost::token_compress_on);
-		resources_used.Node_Name = node_name;
-		resources_used.PID = pid;
-		resources_used.CPU_Perc = atoi(strs.at(8).c_str());
-		resources_used.RAM_MB = atoi(strs.at(6).c_str())/1000.0;
-		return true;
-	}
-	else
-	{
-		return false;
-	}
-	myfile.close();
-	return false;
-}
-int get_pid()
-{
-	int id = -1;
-	std::string local_node_name;
-	local_node_name = node_name.substr(1,node_name.size());
-	std::string pid_filename;
-	pid_filename = "/home/robot/logs/output/PID" + node_name;
-	char tempstr[130];
-	sprintf(tempstr,"ps aux | grep __name:=%s > %s",local_node_name.c_str(),pid_filename.c_str());
-	system(tempstr);
-	ifstream myfile;
-	myfile.open(pid_filename.c_str());
-	if(myfile.is_open())
-	{
-		std::string line;
-		getline(myfile,line);
-		//printf("Line:%s\r\n",line.c_str());
-		std::size_t found = line.find("icarus_rover_v2/master_node");
-		if(found != std::string::npos)
-		{
-			std::vector <string> fields;
-			boost::split(fields,line,boost::is_any_of("\t "),boost::token_compress_on);
-			id =  atoi(fields.at(1).c_str());
-		}
-	}
-	else
-	{
-		id = -1;
-	}
-	myfile.close();
-	//printf("ID: %d\r\n",id);
-	//id = -1;
-	return id;
-
 }
 std::vector<icarus_rover_v2::diagnostic> check_program_variables()
 {
