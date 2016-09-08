@@ -1,4 +1,9 @@
 #include "gpio_node.h"
+//Start Template Code: Firmware Definition
+#define GPIONODE_MAJOR_RELEASE 1
+#define GPIONODE_MINOR_RELEASE 1
+#define GPIONODE_BUILD_NUMBER 1
+//End Template Code: Firmware Definition
 //Start User Code: Functions
 bool initialize_gpioboard_ports()
 {
@@ -574,6 +579,14 @@ bool run_veryslowrate_code()
 {
 	//logger->log_debug("Running very slow rate code.");
 	logger->log_info("Node Running.");
+	icarus_rover_v2::firmware fw;
+	fw.Generic_Node_Name = "gpio_node";
+	fw.Node_Name = node_name;
+	fw.Description = "Latest Rev: 8-Sep-2016";
+	fw.Major_Release = GPIONODE_MAJOR_RELEASE;
+	fw.Minor_Release = GPIONODE_MINOR_RELEASE;
+	fw.Build_Number = GPIONODE_BUILD_NUMBER;
+	firmware_pub.publish(fw);
 	return true;
 }
 void DigitalOutput_Callback(const icarus_rover_v2::pin::ConstPtr& msg)
@@ -809,7 +822,8 @@ bool initialize(ros::NodeHandle nh)
 		logger->log_warn("Missing Parameter: require_pps_to_start.");
 		return false;
 	}
-
+    std::string firmware_topic = "/" + node_name + "/firmware";
+    firmware_pub =  nh.advertise<icarus_rover_v2::firmware>(firmware_topic,1000);
     //End Template Code: Initialization and Parameters
 
     //Start User Code: Initialization and Parameters

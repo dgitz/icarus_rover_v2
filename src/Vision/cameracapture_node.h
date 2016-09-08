@@ -11,6 +11,7 @@
 #include <icarus_rover_v2/diagnostic.h>
 #include <icarus_rover_v2/device.h>
 #include <icarus_rover_v2/resource.h>
+#include <icarus_rover_v2/firmware.h>
 
 //Start User Code: Includes
 #include "opencv2/opencv.hpp"
@@ -50,6 +51,7 @@ ros::Subscriber pps_sub;
 ros::Subscriber device_sub;
 ros::Publisher diagnostic_pub;
 ros::Publisher resource_pub;
+ros::Publisher firmware_pub;
 icarus_rover_v2::diagnostic diagnostic_status;
 icarus_rover_v2::device myDevice;
 icarus_rover_v2::resource resources_used;

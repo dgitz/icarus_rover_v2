@@ -14,6 +14,7 @@
 #include <cv_bridge/cv_bridge.h>
 #include <sensor_msgs/image_encodings.h>
 #include <sensor_msgs/Image.h>
+#include <icarus_rover_v2/firmware.h>
 //End User Code: Includes
 
 //Start User Code: Data Structures
@@ -42,6 +43,7 @@ ros::Subscriber pps_sub;
 ros::Subscriber device_sub;
 ros::Publisher diagnostic_pub;
 ros::Publisher resource_pub;
+ros::Publisher firmware_pub;
 icarus_rover_v2::diagnostic diagnostic_status;
 icarus_rover_v2::device myDevice;
 icarus_rover_v2::resource resources_used;

@@ -15,6 +15,7 @@
 #include <icarus_rover_v2/resource.h>
 #include <icarus_rover_v2/pin.h>
 #include <icarus_rover_v2/command.h>
+#include <icarus_rover_v2/firmware.h>
 //End Template Code: Includes
 //Start User Code: Includes
 #include <tinyxml.h>
@@ -51,6 +52,7 @@ ros::Subscriber pps_sub;
 ros::Subscriber command_sub;
 ros::Publisher diagnostic_pub;
 ros::Publisher resource_pub;
+ros::Publisher firmware_pub;
 icarus_rover_v2::diagnostic diagnostic_status;
 ros::Publisher device_pub;
 icarus_rover_v2::resource resources_used;

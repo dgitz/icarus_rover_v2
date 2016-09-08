@@ -1,5 +1,9 @@
 #include "diagnostic_node.h"
-
+//Start Template Code: Firmware Definition
+#define DIAGNOSTICNODE_MAJOR_RELEASE 1
+#define DIAGNOSTICNODE_MINOR_RELEASE 1
+#define DIAGNOSTICNODE_BUILD_NUMBER 1
+//End Template Code: Firmware Definition
 //Start User Code: Functions
 bool log_resources()
 {
@@ -185,7 +189,15 @@ bool run_slowrate_code()
 bool run_veryslowrate_code()
 {
 	//logger->log_debug("Running very slow rate code.");
-
+	logger->log_info("Node Running.");
+	icarus_rover_v2::firmware fw;
+	fw.Generic_Node_Name = "diagnostic_node";
+	fw.Node_Name = node_name;
+	fw.Description = "Latest Rev: 8-Sep-2016";
+	fw.Major_Release = DIAGNOSTICNODE_MAJOR_RELEASE;
+	fw.Minor_Release = DIAGNOSTICNODE_MINOR_RELEASE;
+	fw.Build_Number = DIAGNOSTICNODE_BUILD_NUMBER;
+	firmware_pub.publish(fw);
 	return true;
 }
 void resource_Callback(const icarus_rover_v2::resource::ConstPtr& msg)
@@ -290,12 +302,14 @@ bool initialize(ros::NodeHandle nh)
 	std::string device_topic = "/" + std::string(hostname) +"_master_node/device";
 	device_sub = nh.subscribe<icarus_rover_v2::device>(device_topic,1000,Device_Callback);
 	pps_sub = nh.subscribe<std_msgs::Bool>("/pps",1000,PPS_Callback);  //This is a pps consumer.
-	 std::string param_require_pps_to_start = node_name +"/require_pps_to_start";
-	    if(nh.getParam(param_require_pps_to_start,require_pps_to_start) == false)
-		{
-			logger->log_fatal("Missing Parameter: require_pps_to_start.  Exiting.");
-			return false;
-		}
+ 	std::string param_require_pps_to_start = node_name +"/require_pps_to_start";
+    if(nh.getParam(param_require_pps_to_start,require_pps_to_start) == false)
+	{
+		logger->log_fatal("Missing Parameter: require_pps_to_start.  Exiting.");
+		return false;
+	}
+	std::string firmware_topic = "/" + node_name + "/firmware";
+    firmware_pub =  nh.advertise<icarus_rover_v2::firmware>(firmware_topic,1000);
 	//End Template Code: Initialization, Parameters and Topics
 
 	//Start User Code: Initialization, Parameters and Topics

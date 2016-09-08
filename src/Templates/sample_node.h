@@ -15,6 +15,7 @@
 #include <icarus_rover_v2/resource.h>
 #include <icarus_rover_v2/pin.h>
 #include <icarus_rover_v2/command.h>
+#include <icarus_rover_v2/firmware.h>
 //End Template Code: Includes
 
 //Start User Code: Includes
@@ -48,6 +49,7 @@ ros::Subscriber device_sub;
 ros::Publisher diagnostic_pub;
 ros::Publisher resource_pub;
 ros::Subscriber command_sub;
+ros::Publisher firmware_pub;
 icarus_rover_v2::diagnostic diagnostic_status;
 icarus_rover_v2::device myDevice;
 icarus_rover_v2::resource resources_used;
@@ -62,7 +64,6 @@ ros::Time veryslow_timer; //1 Hz
 ros::Time now;
 double mtime;
 bool device_initialized;
-int pid;
 //End Template Code: Define Global Variables
 
 //Start User Code: Define Global Variables

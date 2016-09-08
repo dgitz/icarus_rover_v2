@@ -1,4 +1,9 @@
 #include "master_node.h"
+//Start Template Code: Firmware Definition
+#define MASTERNODE_MAJOR_RELEASE 1
+#define MASTERNODE_MINOR_RELEASE 1
+#define MASTERNODE_BUILD_NUMBER 1
+//End Template Code: Firmware Definition
 //Start User Code: Functions
 double read_device_temperature()
 {
@@ -85,6 +90,14 @@ bool run_veryslowrate_code()
 {
 	//logger->log_debug("Running very slow rate code.");
 	logger->log_info("Node Running.");
+	icarus_rover_v2::firmware fw;
+	fw.Generic_Node_Name = "master_node";
+	fw.Node_Name = node_name;
+	fw.Description = "Latest Rev: 8-Sep-2016";
+	fw.Major_Release = MASTERNODE_MAJOR_RELEASE;
+	fw.Minor_Release = MASTERNODE_MINOR_RELEASE;
+	fw.Build_Number = MASTERNODE_BUILD_NUMBER;
+	firmware_pub.publish(fw);
 	return true;
 }
 void publish_deviceinfo()
@@ -213,7 +226,6 @@ bool initialize(ros::NodeHandle nh)
 	gethostname(hostname,1023);
 	myDevice.DeviceName = hostname;
     //Start Template Code: Initialization and Parameters
-    //printf("Node name: %s",node_name.c_str());
     std::string diagnostic_topic = "/" + node_name + "/diagnostic";
 	diagnostic_pub =  nh.advertise<icarus_rover_v2::diagnostic>(diagnostic_topic,1000);
 	diagnostic_status.Node_Name = node_name;
@@ -259,8 +271,8 @@ bool initialize(ros::NodeHandle nh)
 		logger->log_warn("Missing Parameter: require_pps_to_start.");
 		return false;
 	}
-
-
+    std::string firmware_topic = "/" + node_name + "/firmware";
+    firmware_pub =  nh.advertise<icarus_rover_v2::firmware>(firmware_topic,1000);
     //End Template Code: Initialization and Parameters
 
     //Start User Code: Initialization and Parameters

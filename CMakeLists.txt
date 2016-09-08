@@ -66,6 +66,7 @@ add_message_files(
   device.msg
   pin.msg
   command.msg
+  firmware.msg
 )
 
 ## Generate services in the 'srv' folder
