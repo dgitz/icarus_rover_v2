@@ -18,7 +18,7 @@
         <param name="CPU_usage_threshold_percent"    value="15"/> 
         <param name="Log_Resources_Used"        value="0"/>  
     </node>
-    <node name="$(env ROS_HOSTNAME)_network_transceiver_node" pkg="icarus_rover_v2" type="network_transceiver_node"  output="screen">
+	<node name="$(env ROS_HOSTNAME)_network_transceiver_node" pkg="icarus_rover_v2" type="network_transceiver_node"  output="screen">
         <param name="loop_rate"             value="500"/>
         <param name="verbosity_level"       value="DEBUG"/>
         <param name="require_pps_to_start"  value="false"/> 

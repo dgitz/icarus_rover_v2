@@ -4,6 +4,7 @@
 #include "ros/ros.h"
 #include "std_msgs/String.h"
 #include "logger.h"
+#include "resourcemonitor.h"
 #include <boost/algorithm/string.hpp>
 #include <std_msgs/Bool.h>
 #include <sstream>
