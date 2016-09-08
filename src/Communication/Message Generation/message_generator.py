@@ -157,7 +157,7 @@ def generate_message(xmlfile):
                     propeller_serialmessagefile_cpp.write('\tint byte_counter=0;\r\n')
                     propeller_serialmessagefile_cpp.write('\toutbuffer[byte_counter++] = 0xAB;\r\n')
                     propeller_serialmessagefile_cpp.write('\toutbuffer[byte_counter++] = ' + message_id +';\r\n')
-                    propeller_serialmessagefile_cpp.write('\toutbuffer[byte_counter++] = ' + str(bytelength) +';\r\n')
+                    propeller_serialmessagefile_cpp.write('\toutbuffer[byte_counter++] = 8;\r\n')
                 for item in fieldlist:
                     if(item.datatype == 'char'):
                         if(encode_for_master == 1):
@@ -188,7 +188,7 @@ def generate_message(xmlfile):
                     ros_serialmessagefile_cpp.write('}\r\n')
                 if(encode_for_slave == 1):
                     propeller_serialmessagefile_cpp.write('\tint checksum = 0;\r\n')
-                    propeller_serialmessagefile_cpp.write('\tfor(int i = 3; i < (3+' + str(bytelength) + ');i++)\r\n\t{\r\n')
+                    propeller_serialmessagefile_cpp.write('\tfor(int i = 3; i < (3+8);i++)\r\n\t{\r\n')
                     propeller_serialmessagefile_cpp.write('\t\tchecksum ^= outbuffer[i];\r\n')
                     propeller_serialmessagefile_cpp.write('\t}\r\n\toutbuffer[byte_counter] = checksum;\r\n\tlength[0] = 3+8+1;\r\n')
                     propeller_serialmessagefile_cpp.write('\treturn 1;\r\n')

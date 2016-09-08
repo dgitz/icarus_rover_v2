@@ -97,9 +97,64 @@ bool configure_pin(std::string BoardName,std::string Port, uint8_t Number, std::
 	else { 	status = false; }
 	return status;
 }
+void process_message_thread()
+{
+	while(1)
+	{
+		unsigned char rx_buffer[64];
+		
+		memset(rx_buffer, 0, sizeof(rx_buffer));
+		//memset(packet,0,sizeof(packet));
+		//ros::Time start_time = ros::Time::now();
+		int rx_length = read(device_fid, rx_buffer, sizeof(rx_buffer));
+		
+		for(int i = 0; i < rx_length; i++)
+		{
+			if((rx_buffer[i] == 0xAB) and (message_started == false))
+			{
+				memset(message_buffer, 0, sizeof(message_buffer));
+				message_started = true;
+				message_completed = false;
+				message_buffer_index = 0;
+				message_buffer[message_buffer_index++] = rx_buffer[i];	
+			}
+			else if(message_started == true)
+			{
+				message_buffer[message_buffer_index++] = rx_buffer[i];	
+				if(message_buffer_index == 12)
+				{
+					message_completed = true;
+					
+					message_started = false;
+				}
+			}
+		}
+		if(message_completed == true)
+		{
+			packet_length = message_buffer[2];
+			int checksum = 0;
+			for(int i = 3; i < 3+packet_length;i++)
+			{
+				packet[i-3] = message_buffer[i];
+				checksum ^= packet[i-3];
+			}
+			int recv_checksum = message_buffer[11];
+			if(recv_checksum == checksum)
+			{
+				good_checksum_counter++;
+				packet_type = message_buffer[1];
+				new_message = true;
+			}
+			else
+			{
+				bad_checksum_counter++;
+			}
+		}
+	}
+}
 bool run_fastrate_code()
 {
-	
+	/*
 	unsigned char rx_buffer[64];
 	unsigned char packet[8];
 	memset(rx_buffer, 0, sizeof(rx_buffer));
@@ -149,6 +204,7 @@ bool run_fastrate_code()
 			bad_checksum_counter++;
 		}
 	}
+	*/
 	if(new_message == true)
 	{
 		new_message = false;
@@ -168,8 +224,21 @@ bool run_fastrate_code()
 			{
 				if(num == 0) { message_receive_counter++; }
 			}
-			if(value1 == 20) {checking_gpio_comm = false; }
 			//if(num > 0){printf("M: %d/%d/%d\r\n",current_num,last_num,num);};
+			
+		}
+		if(packet_type == SERIAL_FirmwareVersion_ID)
+		{
+			logger->log_debug("Got FirmwareVersion from GPIO Board.");
+			char majorVersion,minorVersion,buildNumber;
+			serialmessagehandler->decode_FirmwareVersionSerial(packet,&majorVersion,&minorVersion,&buildNumber);
+			char tempstr[128];
+			sprintf(tempstr,"GPIO Board Major Version: %d Minor Version: %d Build Number: %d",majorVersion,minorVersion,buildNumber);
+			logger->log_notice(tempstr);
+			diagnostic_status.Level = NOTICE;
+			diagnostic_status.Diagnostic_Message = INITIALIZING;
+			diagnostic_status.Description = tempstr;
+			diagnostic_pub.publish(diagnostic_status);
 			
 		}
 		if(packet_type == SERIAL_Diagnostic_ID)
@@ -291,6 +360,45 @@ bool run_fastrate_code()
 			}
 		}
 	}
+	if(checking_gpio_comm == true)
+	{
+		double test_runtime = measure_time_diff(ros::Time::now(),gpio_comm_test_start);
+		
+		if(test_runtime > 5.0)
+		{
+			checking_gpio_comm = false;
+			char tempstr[128];
+			sprintf(tempstr,"Finished testing GPIO comm, received %d messages.",message_receive_counter);
+			logger->log_debug(tempstr);
+			if(message_receive_counter > 10)
+			{
+				icarus_rover_v2::diagnostic diag=diagnostic_status;
+				diag.Diagnostic_Type = COMMUNICATIONS;
+				diag.Level = NOTICE;
+				diag.Diagnostic_Message = DIAGNOSTIC_PASSED;
+				diag.Description = "Checked Communication w/ GPIO Board -> PASSED";
+				diagnostic_pub.publish(diag);
+			}
+			else if(message_receive_counter > 5)
+			{
+				icarus_rover_v2::diagnostic diag=diagnostic_status;
+				diag.Diagnostic_Type = COMMUNICATIONS;
+				diag.Level = WARN;
+				diag.Diagnostic_Message = DIAGNOSTIC_PASSED;
+				diag.Description = "Checked Communication w/ GPIO Board -> PASSED MARGINALLY";
+				diagnostic_pub.publish(diag);
+			}
+			else
+			{
+				icarus_rover_v2::diagnostic diag=diagnostic_status;
+				diag.Diagnostic_Type = COMMUNICATIONS;
+				diag.Level = ERROR;
+				diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
+				diag.Description = "Checked Communication w/ GPIO Board -> FAILED";
+				diagnostic_pub.publish(diag);
+			}
+		}
+	}
 	return true;
 }
 bool run_mediumrate_code()
@@ -305,9 +413,6 @@ bool run_mediumrate_code()
 		if (tx_status == 1)
 		{
 			int count = write(device_fid, &tx_buffer[0], length);
-			char tempstr[128];
-			sprintf(tempstr,"Sent command1: %d,%d,%d",tx_buffer[1],DIO_PortA.Mode[0],tx_buffer[3]);
-			logger->log_debug(tempstr);
 			if (count < 0)
 			{
 				logger->log_error("UART TX error\n");
@@ -333,9 +438,6 @@ bool run_mediumrate_code()
 		if (tx_status == 1)
 		{
 			int count = write(device_fid, &tx_buffer[0], length);
-			char tempstr[128];
-			sprintf(tempstr,"Sent command2: %d",tx_buffer[1]);
-			logger->log_debug(tempstr);
 			if (count < 0)
 			{
 				logger->log_error("UART TX error\n");
@@ -350,7 +452,7 @@ bool run_mediumrate_code()
 		}
 		gpio_board_mode = GPIOBOARD_MODE_RUNNING;
 	}
-	else if(gpio_board_mode == GPIOBOARD_MODE_RUNNING)
+	else if((gpio_board_mode == GPIOBOARD_MODE_RUNNING) and (checking_gpio_comm == false))
 	{
 		unsigned char tx_buffer[12];
 		int length;
@@ -359,9 +461,6 @@ bool run_mediumrate_code()
 		if (tx_status == 1)
 		{
 			int count = write(device_fid, &tx_buffer[0], length);
-			char tempstr[128];
-			sprintf(tempstr,"Sent command3: %d",tx_buffer[1]);
-			logger->log_debug(tempstr);
 			if (count < 0)
 			{
 				logger->log_error("UART TX error\n");
@@ -446,6 +545,9 @@ bool run_slowrate_code()
 	
 	return true;
 }
+std::vector<icarus_rover_v2::diagnostic> check_gpioboard_comm()
+{
+}
 bool publish_port_info(Port_Info pi)
 {
 	for(int i = 0; i < 8; i++)
@@ -523,7 +625,9 @@ void PwmOutput_Callback(const icarus_rover_v2::pin::ConstPtr& msg)
 //Start Template Code: Functions
 void Command_Callback(const icarus_rover_v2::command::ConstPtr& msg)
 {
-	logger->log_info("Got command");
+	char tempstr[128];
+	sprintf(tempstr,"Got Command: %d Level: %d",msg->Command,msg->Option1);
+	logger->log_info(tempstr);
 	if (msg->Command ==  DIAGNOSTIC_ID)
 	{
 		if(msg->Option1 == LEVEL1)
@@ -532,6 +636,26 @@ void Command_Callback(const icarus_rover_v2::command::ConstPtr& msg)
 		}
 		else if(msg->Option1 == LEVEL2)
 		{
+			checking_gpio_comm = true;
+			gpio_comm_test_start = ros::Time::now();
+			message_receive_counter = 0;
+			unsigned char tx_buffer[12];
+			int length;
+			int tx_status = serialmessagehandler->encode_TestMessageCommandSerial(tx_buffer,&length,0,0,0,0,0,0,0,0);
+			if (tx_status == 1)
+			{
+				int count = write(device_fid, &tx_buffer[0], length);
+				if (count < 0)
+				{
+					logger->log_error("UART TX error\n");
+					icarus_rover_v2::diagnostic diag=diagnostic_status;
+					diag.Diagnostic_Type = COMMUNICATIONS;
+					diag.Level = ERROR;
+					diag.Diagnostic_Message = DROPPING_PACKETS;
+					diag.Description = "Cannot write to UART.";
+					diagnostic_pub.publish(diag);
+				}
+			}
 			//std::vector<icarus_rover_v2::diagnostic> diaglist1 = check_program_variables();
 			//for(int i = 0; i < diaglist1.size();i++) { diagnostic_pub.publish(diaglist1.at(i)); }
 			//std::vector<icarus_rover_v2::diagnostic> diaglist2 = check_gpioboard_comm();
@@ -580,6 +704,7 @@ int main(int argc, char **argv)
     medium_timer = now;
     slow_timer = now;
     veryslow_timer = now;
+	boost::thread processmessage_thread(&process_message_thread);
     while (ros::ok())
     {
 		
@@ -623,6 +748,7 @@ int main(int argc, char **argv)
 		loop_rate.sleep();
     }
 	close(device_fid);
+	processmessage_thread.join();
     return 0;
 }
 

@@ -3,16 +3,19 @@
 #include "logger.h"
 #include <boost/algorithm/string.hpp>
 #include <std_msgs/Bool.h>
+#include <std_msgs/UInt8.h>
 #include <sstream>
 #include <stdlib.h>
 #include <icarus_rover_v2/Definitions.h>
 #include <icarus_rover_v2/diagnostic.h>
 #include <icarus_rover_v2/device.h>
 #include <icarus_rover_v2/resource.h>
+
 //Start User Code: Includes
 #include "opencv2/opencv.hpp"
 #include "sensor_msgs/Image.h"
 #include <cv_bridge/cv_bridge.h>
+#include "opencv2/imgproc/imgproc.hpp"
 //#include <image_transport/image_transport.h>
 //End User Code: Includes
 
@@ -35,6 +38,8 @@ bool check_resources(int procid);
 //Start User Code: Function Prototypes
 bool check_tasks();
 bool acquire_image(cv::VideoCapture cap);
+bool Edge_Detection(cv::Mat gray_image,int, void*);
+void Edge_Detect_Threshold_Callback(const std_msgs::UInt8::ConstPtr& msg);
 //End User Code: Function Prototypes
 
 //Start Template Code: Define Global variables
@@ -63,10 +68,15 @@ int pid;
 //End Template Code: Define Global Variables
 
 //Start User Code: Define Global Variables
-//cv::VideoCapture *capture2;
+cv::VideoCapture capture;
 vector<int> compression_params;
-ros::Publisher image_pub;
+ros::Publisher raw_image_pub;
+ros::Publisher proc_image_pub;
+ros::Subscriber edge_threshold_sub;
 int16_t counter;
+int edge_detect_threshold;
+int image_width;
+int image_height;
 //CvCapture *capture;
 //End User Code: Define Global Variables
 

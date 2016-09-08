@@ -1,13 +1,49 @@
 /***************AUTO-GENERATED.  DO NOT EDIT********************/
-/***Created on:2016-08-19 17:30:23.135480***/
+/***Created on:2016-08-25 17:48:39.629230***/
 /***Target: Parallax Propeller ***/
 #include "serialmessage.h"
+int encode_FirmwareVersionSerial(int* outbuffer,int* length,char MajorRelease,char MinorRelease,char BuildNumber)
+{
+	int byte_counter=0;
+	outbuffer[byte_counter++] = 0xAB;
+	outbuffer[byte_counter++] = 0x10;
+	outbuffer[byte_counter++] = 8;
+	outbuffer[byte_counter++] = MajorRelease;
+	outbuffer[byte_counter++] = MinorRelease;
+	outbuffer[byte_counter++] = BuildNumber;
+	outbuffer[byte_counter++] = 0;
+	outbuffer[byte_counter++] = 0;
+	outbuffer[byte_counter++] = 0;
+	outbuffer[byte_counter++] = 0;
+	outbuffer[byte_counter++] = 0;
+	int checksum = 0;
+	for(int i = 3; i < (3+8);i++)
+	{
+		checksum ^= outbuffer[i];
+	}
+	outbuffer[byte_counter] = checksum;
+	length[0] = 3+8+1;
+	return 1;
+}
+int decode_FirmwareVersionSerial(int* inpacket,int length,int checksum,char* MajorRelease,char* MinorRelease,char* BuildNumber)
+{
+	int computed_checksum = 0;
+	for(int i = 0; i < length; i++)
+	{
+		computed_checksum ^= inpacket[i];
+	}
+	if(computed_checksum != checksum) { return -1; }
+	*MajorRelease=inpacket[0];
+	*MinorRelease=inpacket[1];
+	*BuildNumber=inpacket[2];
+	return 1;
+}
 int encode_DiagnosticSerial(int* outbuffer,int* length,char System,char SubSystem,char Component,char Diagnostic_Type,char Level,char Diagnostic_Message)
 {
 	int byte_counter=0;
 	outbuffer[byte_counter++] = 0xAB;
 	outbuffer[byte_counter++] = 0x12;
-	outbuffer[byte_counter++] = 6;
+	outbuffer[byte_counter++] = 8;
 	outbuffer[byte_counter++] = System;
 	outbuffer[byte_counter++] = SubSystem;
 	outbuffer[byte_counter++] = Component;
@@ -17,7 +53,7 @@ int encode_DiagnosticSerial(int* outbuffer,int* length,char System,char SubSyste
 	outbuffer[byte_counter++] = 0;
 	outbuffer[byte_counter++] = 0;
 	int checksum = 0;
-	for(int i = 3; i < (3+6);i++)
+	for(int i = 3; i < (3+8);i++)
 	{
 		checksum ^= outbuffer[i];
 	}

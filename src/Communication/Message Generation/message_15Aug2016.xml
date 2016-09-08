@@ -1,6 +1,25 @@
 <?xml version="1.0" ?>
 <!--Message Definition file-->
 <Messages>
+	<Message name="FirmwareVersion" id="0xAB10">
+        <Description>
+            <![CDATA[
+                This message is used to communicate the F/W version of the software running on a device.
+            ]]>
+        </Description>
+        <Protocols>
+            <Protocol name="Serial">
+                <Retry>true</Retry>
+                <Origin>Master</Origin>
+				<Origin>Slave</Origin>
+                <Fields>
+                    <field type="char" name="MajorRelease"/>
+                    <field type="char" name="MinorRelease"/>
+                    <field type="char" name="BuildNumber"/>
+                </Fields>
+            </Protocol>
+        </Protocols>
+    </Message>
     <Message name="Resource" id="0xAB11">
         <Protocols>
             <Protocol name="UDP">
