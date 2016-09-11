@@ -29,7 +29,8 @@ bool acquire_image(cv::VideoCapture cap)
     logger->log_debug(tempstr);
     cv::Mat src_gray;
     cv::cvtColor(frame,src_gray,cv::COLOR_BGR2GRAY);
-    Edge_Detection(src_gray,0,0);
+    cv::Mat edge_image = visionhelper->Detect_Edges(src_gray,edge_detect_threshold);
+    //Edge_Detection(src_gray,0,0);
     return true;
 }
 bool Edge_Detection(cv::Mat gray_image,int,void*)
@@ -216,6 +217,7 @@ bool initialize(ros::NodeHandle nh)
 	diagnostic_status.Description = "Node Initializing";
 	diagnostic_pub.publish(diagnostic_status);
 
+	visionhelper = new VisionHelper();
 	std::string param_image_width = node_name +"/image_width";
 	if(nh.getParam(param_image_width,image_width) == false)
 	{

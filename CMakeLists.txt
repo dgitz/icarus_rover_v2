@@ -214,6 +214,7 @@ add_library(logger util/logger.cpp)
 add_library(udpmessage util/udpmessage.cpp)
 add_library(serialmessage util/serialmessage.cpp)
 add_library(resourcemonitor util/resourcemonitor.cpp)
+add_library(visionhelper util/visionhelper.cpp)
 
 add_executable(command_node src/Control/command_node.cpp)
 target_link_libraries(command_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor)
@@ -226,3 +227,5 @@ target_link_libraries(network_transceiver_node ${catkin_LIBRARIES} ${Boost_LIBRA
 
 add_executable(gpio_node src/Board/gpio_node.cpp)
 target_link_libraries(gpio_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} logger serialmessage resourcemonitor)
+add_executable(tracking_node src/Vision/tracking_node.cpp)
+target_link_libraries(tracking_node ${OpenCV_LIBRARIES} ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor visionhelper)
