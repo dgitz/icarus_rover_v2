@@ -9,6 +9,7 @@
         <param name="loop_rate"             value="500"/>
         <param name="verbosity_level"       value="DEBUG"/>
         <param name="require_pps_to_start"  value="false"/> 
+        <param name="video_device"          value="1"/>
         <param name="image_width"           value="320"/>
         <param name="image_height"          value="240"/>
     </node>

@@ -72,7 +72,7 @@ void Image_Callback(const sensor_msgs::Image::ConstPtr& msg)
 		std::vector<cv::DMatch> matches;
 		matcher.match(descriptors_target_images.at(i),descriptors_newimage,matches);
 		double max_dist = 0;
-		double min_dist = 100;
+		double min_dist = 10000;
 		for( int j = 0; j < descriptors_target_images.at(i).rows; j++ )
 		{
 			double dist = matches[j].distance;
@@ -91,9 +91,36 @@ void Image_Callback(const sensor_msgs::Image::ConstPtr& msg)
 				good_matches.push_back( matches[j]);
 			}
 		}
+
+		/*
+		std::vector<std::vector<cv::DMatch> > matches;
+		cv::Ptr<cv::DescriptorMatcher> matcher = cv::DescriptorMatcher::create("BruteForce");
+		matcher->knnMatch(descriptors_target_images.at(i),descriptors_newimage,matches,500);
+		double tresholdDist = 0.25 * sqrt(double(target_images.at(i).size().height*target_images.at(i).size().height + target_images.at(i).size().width*target_images.at(i).size().width));
+
+		std::vector<cv::DMatch > good_matches2;
+		good_matches2.reserve(matches.size());
+		for (size_t k = 0; k < matches.size(); ++k)
+		{
+		    for (int j = 0; j < matches[k].size(); j++)
+		    {
+		        cv::Point2f from = keypoints_target_images.at(i)[matches[k][j].queryIdx].pt;
+		        cv::Point2f to = keypoints_newimage[matches[k][j].trainIdx].pt;
+
+		        //calculate local distance for each possible match
+		        double dist = sqrt((from.x - to.x) * (from.x - to.x) + (from.y - to.y) * (from.y - to.y));
+		        //save as best match if local distance is in specified area and on same height
+		        if (dist < tresholdDist && abs(from.y-to.y)<5)
+		        {
+		            good_matches2.push_back(matches[k][j]);
+		            j = matches[k].size();
+		        }
+		    }
+		}
+		*/
 		cv::Mat tracked;
 		cv::drawMatches(target_images.at(i),keypoints_target_images.at(i),newimage_ptr->image,keypoints_newimage,
-				good_matches,tracked,cv::Scalar::all(-1),cv::Scalar::all(-1),
+				good_matches2,tracked,cv::Scalar::all(-1),cv::Scalar::all(-1),
 				vector<char>(),cv::DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS);
 		cv_bridge::CvImage tracked_image;
 		tracked_image.encoding = "bgr8";
@@ -269,16 +296,13 @@ bool initialize(ros::NodeHandle nh)
     visionhelper = new VisionHelper();
 
 
-
-	target_images.push_back(cv::imread("/home/robot/config/targets/outlet/outlet1.jpg"));
-	target_images.push_back(cv::imread("/home/robot/config/targets/outlet/outlet2.jpg"));
-	target_images.push_back(cv::imread("/home/robot/config/targets/outlet/outlet3.jpg"));
-	target_images.push_back(cv::imread("/home/robot/config/targets/outlet/outlet4.jpg"));
-	printf("target image size: %d,%d\n", target_images.size(),target_images.at(0).total() * target_images.at(0).elemSize());
-
+    target_images.push_back(cv::imread("/home/robot/config/targets/outlet/outlet1.jpg"));
+	//target_images.push_back(cv::imread("/home/robot/config/targets/outlet/outlet2.jpg"));
+	//target_images.push_back(cv::imread("/home/robot/config/targets/outlet/outlet3.jpg"));
+	//target_images.push_back(cv::imread("/home/robot/config/targets/outlet/outlet4.jpg"));
 	std::string trackedimage_topic = "/" + node_name + "/tracked_image";
 	tracked_image_pub = nh.advertise<sensor_msgs::Image>(trackedimage_topic,1000);
-	minHessian = 400;
+	minHessian = 100;
 	for(int i = 0; i < target_images.size();i++)
 	{
 		cv::SurfFeatureDetector detector(minHessian);

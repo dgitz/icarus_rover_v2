@@ -7,6 +7,7 @@
 //Start User Code: Functions
 void Edge_Detect_Threshold_Callback(const std_msgs::UInt8::ConstPtr& msg)
 {
+	logger->log_debug("Got edge detect threshold");
 	edge_detect_threshold = msg->data;
 }
 bool acquire_image(cv::VideoCapture cap)
@@ -30,6 +31,13 @@ bool acquire_image(cv::VideoCapture cap)
     cv::Mat src_gray;
     cv::cvtColor(frame,src_gray,cv::COLOR_BGR2GRAY);
     cv::Mat edge_image = visionhelper->Detect_Edges(src_gray,edge_detect_threshold);
+
+    cv_bridge::CvImage proc_image;
+	proc_image.encoding = "mono8";
+	proc_image.header.stamp = ros::Time::now();
+	proc_image.header.frame_id = "/world";
+	proc_image.image = edge_image;
+	proc_image_pub.publish(proc_image.toImageMsg());
     //Edge_Detection(src_gray,0,0);
     return true;
 }
@@ -157,6 +165,7 @@ int main(int argc, char **argv)
 		ros::spinOnce();
 		loop_rate.sleep();
     }
+    capture.release();
     return 0;
 }
 //End Main Loop
@@ -230,15 +239,23 @@ bool initialize(ros::NodeHandle nh)
 		logger->log_fatal("Missing Parameter: image_height. Exiting");
 		return false;
 	}
+	int video_device;
+	std::string param_video_device = node_name +"/video_device";
+	if(nh.getParam(param_video_device,video_device) == false)
+	{
+		logger->log_fatal("Missing Parameter: video_device. Exiting");
+		return false;
+	}
 	std::string rawimage_topic = "/" + node_name + "/raw_image";
     raw_image_pub = nh.advertise<sensor_msgs::Image>(rawimage_topic,1000);
     std::string procimage_topic = "/" + node_name + "/proc_image";
 	proc_image_pub = nh.advertise<sensor_msgs::Image>(procimage_topic,1000);
     counter = 0;
-    edge_detect_threshold = 10;
+    edge_detect_threshold = 100;
     std::string edge_detect_topic = "/" + node_name +"/edge_detect_threshold";
     edge_threshold_sub = nh.subscribe<std_msgs::UInt8>(edge_detect_topic,1000,Edge_Detect_Threshold_Callback);
-    capture.open(0);
+    capture.open(video_device);
+    printf("here\n");
 	capture.set(CV_CAP_PROP_FRAME_WIDTH, image_width);
 	capture.set(CV_CAP_PROP_FRAME_HEIGHT, image_height);
 	compression_params.push_back(CV_IMWRITE_PNG_COMPRESSION); //CV_IMWRITE_PNG_COMPRESSION
