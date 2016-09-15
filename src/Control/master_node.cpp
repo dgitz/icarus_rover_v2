@@ -325,6 +325,9 @@ void parse_devicefile(TiXmlDocument doc)
 	        {
 	        	icarus_rover_v2::device newDevice;
 	        	std::vector<icarus_rover_v2::pin> pins;
+				std::vector<std::string> input_topics;
+				std::vector<std::string> output_topics;
+				std::vector<std::string> topic_modes;
 	        	TiXmlElement *l_pDeviceParent = l_pDevice->FirstChildElement( "ParentDevice" );
 				if ( NULL != l_pDeviceParent )
 				{
@@ -354,7 +357,37 @@ void parse_devicefile(TiXmlDocument doc)
 				{
 					newDevice.BoardCount = atoi(l_pBoardCount->GetText());
 				}
-
+	
+				TiXmlElement *l_pTopicMap = l_pDevice->FirstChildElement("TopicMap");
+				while(l_pTopicMap)
+				{
+					std::string input_topic;
+					std::string output_topic;
+					std::string topic_mode;
+					TiXmlElement *l_pInputTopic = l_pTopicMap->FirstChildElement( "InputTopic" );
+					if ( NULL != l_pInputTopic )
+					{
+						input_topic = l_pInputTopic->GetText();
+					}
+					TiXmlElement *l_pOutputTopic = l_pTopicMap->FirstChildElement( "OutputTopic" );
+					if ( NULL != l_pOutputTopic )
+					{
+						output_topic = l_pOutputTopic->GetText();
+					}
+					TiXmlElement *l_pTopicMode = l_pTopicMap->FirstChildElement( "Mode" );
+					if ( NULL != l_pTopicMode )
+					{
+						topic_mode = l_pTopicMode->GetText();
+					}
+					input_topics.push_back(input_topic);
+					output_topics.push_back(output_topic);
+					topic_modes.push_back(topic_mode);
+					l_pTopicMap = l_pTopicMap->NextSiblingElement("TopicMap");
+				}
+				newDevice.InputTopics = input_topics;
+				newDevice.OutputTopics = output_topics;
+				newDevice.TopicModes = topic_modes;
+				
 				TiXmlElement *l_pPin = l_pDevice->FirstChildElement( "Pin" );
 				while( l_pPin )
 				{
