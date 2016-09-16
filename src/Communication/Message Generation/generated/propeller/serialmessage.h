@@ -1,9 +1,8 @@
 /***************AUTO-GENERATED.  DO NOT EDIT********************/
-/***Created on:2016-08-25 17:48:39.629196***/
+/***Created on:2016-09-14 21:38:15.352310***/
 /***Target: Parallax Propeller ***/
 #ifndef SERIALMESSAGE_H
 #define SERIALMESSAGE_H
-#define SERIAL_FirmwareVersion_ID 0x10
 #define SERIAL_Diagnostic_ID 0x12
 #define SERIAL_TestMessageCounter_ID 0x14
 #define SERIAL_TestMessageCommand_ID 0x15
@@ -16,8 +15,6 @@
 #define SERIAL_Set_DIO_PortB_ID 0x22
 #define SERIAL_Get_DIO_PortA_ID 0x23
 #define SERIAL_Get_DIO_PortB_ID 0x24
-int encode_FirmwareVersionSerial(int* outbuffer,int* length,char MajorRelease,char MinorRelease,char BuildNumber);
-int decode_FirmwareVersionSerial(int* inpacket,int length,int checksum,char* MajorRelease,char* MinorRelease,char* BuildNumber);
 int encode_DiagnosticSerial(int* outbuffer,int* length,char System,char SubSystem,char Component,char Diagnostic_Type,char Level,char Diagnostic_Message);
 int encode_TestMessageCounterSerial(int* outbuffer,int* length,char value1,char value2,char value3,char value4,char value5,char value6,char value7,char value8);
 int decode_TestMessageCounterSerial(int* inpacket,int length,int checksum,char* value1,char* value2,char* value3,char* value4,char* value5,char* value6,char* value7,char* value8);

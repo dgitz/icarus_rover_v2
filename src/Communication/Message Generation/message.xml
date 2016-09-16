@@ -1,6 +1,30 @@
 <?xml version="1.0" ?>
 <!--Message Definition file-->
 <Messages>
+    <Message name="RemoteControl" id="0xAB10">
+        <Protocols>
+            <Protocol name="UDP">
+                <Fields>
+                    <field type="int16_t" name="axis1"/>
+                    <field type="int16_t" name="axis2"/>
+                    <field type="int16_t" name="axis3"/>
+                    <field type="int16_t" name="axis4"/>
+                    <field type="int16_t" name="axis5"/>
+                    <field type="int16_t" name="axis6"/>
+                    <field type="int16_t" name="axis7"/>
+                    <field type="int16_t" name="axis8"/>
+                    <field type="uint8_t" name="button1"/>
+                    <field type="uint8_t" name="button2"/>
+                    <field type="uint8_t" name="button3"/>
+                    <field type="uint8_t" name="button4"/>
+                    <field type="uint8_t" name="button5"/>
+                    <field type="uint8_t" name="button6"/>
+                    <field type="uint8_t" name="button7"/>
+                    <field type="uint8_t" name="button8"/>
+                </Fields>
+            </Protocol>
+        </Protocols>
+    </Message>
     <Message name="Resource" id="0xAB11">
         <Protocols>
             <Protocol name="UDP">

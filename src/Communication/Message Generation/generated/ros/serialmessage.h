@@ -1,9 +1,8 @@
 /***************AUTO-GENERATED.  DO NOT EDIT********************/
-/***Created on:2016-08-25 17:48:39.629128***/
+/***Created on:2016-09-14 21:38:15.352252***/
 /***Target: Raspberry Pi ***/
 #ifndef SERIALMESSAGE_H
 #define SERIALMESSAGE_H
-#define SERIAL_FirmwareVersion_ID 0x10
 #define SERIAL_Diagnostic_ID 0x12
 #define SERIAL_TestMessageCounter_ID 0x14
 #define SERIAL_TestMessageCommand_ID 0x15
@@ -22,8 +21,6 @@ class SerialMessageHandler
 public:
 	SerialMessageHandler();
 	~SerialMessageHandler();
-	int encode_FirmwareVersionSerial(unsigned char* outbuffer,int* length,char MajorRelease,char MinorRelease,char BuildNumber);
-	int decode_FirmwareVersionSerial(unsigned char* inpacket,char* MajorRelease,char* MinorRelease,char* BuildNumber);
 	int decode_DiagnosticSerial(unsigned char* inpacket,char* System,char* SubSystem,char* Component,char* Diagnostic_Type,char* Level,char* Diagnostic_Message);
 	int encode_TestMessageCounterSerial(unsigned char* outbuffer,int* length,char value1,char value2,char value3,char value4,char value5,char value6,char value7,char value8);
 	int decode_TestMessageCounterSerial(unsigned char* inpacket,char* value1,char* value2,char* value3,char* value4,char* value5,char* value6,char* value7,char* value8);

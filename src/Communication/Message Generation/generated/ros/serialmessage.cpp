@@ -1,40 +1,9 @@
 /***************AUTO-GENERATED.  DO NOT EDIT********************/
-/***Created on:2016-08-25 17:48:39.629162***/
+/***Created on:2016-09-14 21:38:15.352281***/
 /***Target: Raspberry Pi ***/
 #include "serialmessage.h"
 SerialMessageHandler::SerialMessageHandler(){}
 SerialMessageHandler::~SerialMessageHandler(){}
-int SerialMessageHandler::encode_FirmwareVersionSerial(unsigned char* outbuffer,int* length,char MajorRelease,char MinorRelease,char BuildNumber)
-{
-	unsigned char *p_outbuffer;
-	p_outbuffer = &outbuffer[0];
-	*p_outbuffer++ = 0xAB;
-	*p_outbuffer++ = 0x10;
-	*p_outbuffer++ = 8;
-	*p_outbuffer++ = MajorRelease;
-	*p_outbuffer++ = MinorRelease;
-	*p_outbuffer++ = BuildNumber;
-	*p_outbuffer++ = 0;
-	*p_outbuffer++ = 0;
-	*p_outbuffer++ = 0;
-	*p_outbuffer++ = 0;
-	*p_outbuffer++ = 0;
-	int checksum = 0;
-	for(int i = 3; i < (3+8);i++)
-	{
-		checksum ^= outbuffer[i];
-	}
-	*p_outbuffer++ = checksum;
-	*length = p_outbuffer-&outbuffer[0];
-	return 1;
-}
-int SerialMessageHandler::decode_FirmwareVersionSerial(unsigned char* inpacket,char* MajorRelease,char* MinorRelease,char* BuildNumber)
-{
-	*MajorRelease=inpacket[0];
-	*MinorRelease=inpacket[1];
-	*BuildNumber=inpacket[2];
-	return 1;
-}
 int SerialMessageHandler::decode_DiagnosticSerial(unsigned char* inpacket,char* System,char* SubSystem,char* Component,char* Diagnostic_Type,char* Level,char* Diagnostic_Message)
 {
 	*System=inpacket[0];

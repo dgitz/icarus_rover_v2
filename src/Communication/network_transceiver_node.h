@@ -26,6 +26,7 @@
 #include <iomanip>
 #include <iostream>
 #include <string>
+#define RECV_BUFFERSIZE 2048
 //End User Code: Includes
 
 
@@ -41,7 +42,9 @@ void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg);
 //Stop Template Code: Function Prototypes
 
 //Start User Code: Function Prototypes
-bool initialize_socket();
+bool initialize_sendsocket();
+bool initialize_recvsocket();
+bool process_udp_receive();
 void diagnostic_Callback(const icarus_rover_v2::diagnostic::ConstPtr& msg);
 void device_Callback(const icarus_rover_v2::device::ConstPtr& msg);
 void resource_Callback(const icarus_rover_v2::resource::ConstPtr& msg);
@@ -76,10 +79,14 @@ bool device_initialized;
 
 //Start User Code: Define Global Variables
 UDPMessageHandler *udpmessagehandler;
-struct sockaddr_in device_addr;
-int device_sock;
-std::string multicast_group;
-int multicast_port;
+struct sockaddr_in senddevice_addr;
+struct sockaddr_in my_addr;
+struct sockaddr_in remote_addr;
+int senddevice_sock;
+int recvdevice_sock;
+std::string send_multicast_group;
+int send_multicast_port;
+int recv_unicast_port;
 std::string Mode;
 //End User Code: Define Global Variables
 #endif

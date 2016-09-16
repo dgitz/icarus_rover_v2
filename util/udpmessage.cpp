@@ -1,8 +1,18 @@
 /***************AUTO-GENERATED.  DO NOT EDIT********************/
-/***Created on:2016-08-19 17:30:23.135347***/
+/***Created on:2016-09-14 21:38:15.352220***/
 #include "udpmessage.h"
 UDPMessageHandler::UDPMessageHandler(){}
 UDPMessageHandler::~UDPMessageHandler(){}
+std::string UDPMessageHandler::encode_RemoteControlUDP(int16_t axis1,int16_t axis2)
+{
+	std::string tempstr = "";
+	tempstr.append(boost::lexical_cast<std::string>(UDP_RemoteControl_ID));
+	tempstr.append(",");
+	tempstr.append(boost::lexical_cast<std::string>((int)axis1));
+	tempstr.append(",");
+	tempstr.append(boost::lexical_cast<std::string>((int)axis2));
+	return tempstr;
+}
 std::string UDPMessageHandler::encode_ResourceUDP(std::string Node_Name,uint16_t RAM_Mb,uint8_t CPU_Used)
 {
 	std::string tempstr = "";
