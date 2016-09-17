@@ -24,9 +24,12 @@ def generate_message(xmlfile):
     tree = ET.parse(xmlfile)
     root = tree.getroot()
 
-    udpmessagefile_header.write('#ifndef UDPMESSAGE_H\r\n#define UDPMESSAGE_H\r\n')
-    udpmessagefile_header.write('#include "ros/ros.h"\r\n#include "Definitions.h"\r\n#include "ros/time.h"\r\n#include <stdio.h>\r\n')
-    udpmessagefile_header.write('#include <iostream>\r\n#include <ctime>\r\n#include <fstream>\r\n#include <iostream>\r\n\r\n')
+    ros_udpmessagefile_header.write('#ifndef UDPMESSAGE_H\r\n#define UDPMESSAGE_H\r\n')
+    ros_udpmessagefile_header.write('#include "ros/ros.h"\r\n#include "Definitions.h"\r\n#include "ros/time.h"\r\n#include <stdio.h>\r\n')
+    ros_udpmessagefile_header.write('#include <iostream>\r\n#include <ctime>\r\n#include <fstream>\r\n#include <iostream>\r\n\r\n')
+    gui_udpmessagefile_header.write('#ifndef UDPMESSAGE_H\r\n#define UDPMESSAGE_H\r\n')
+    gui_udpmessagefile_header.write('#include <QString>\r\n#include <QList>\r\n')
+    
     ros_serialmessagefile_header.write('#ifndef SERIALMESSAGE_H\r\n#define SERIALMESSAGE_H\r\n')
     propeller_serialmessagefile_header.write('#ifndef SERIALMESSAGE_H\r\n#define SERIALMESSAGE_H\r\n')
     for message in root:
@@ -36,12 +39,23 @@ def generate_message(xmlfile):
             #print "Protocol: ", protocol.get('name')
             protocollist.append(protocolobject(protocol.get('name')))
             if(protocol.get('name') == 'UDP'):
-                udpmessagefile_header.write('#define UDP_' + message.get('name') + '_ID ' + message.get('id') +'\r\n')
+                #ros_udpmessagefile_header.write('#define UDP_' + message.get('name') + '_ID ' + message.get('id') +'\r\n')
+                gui_udpmessagefile_header.write('#define UDP_' + message.get('name') + '_ID "' + message.get('id')[2:] +'"\r\n')
             if(protocol.get('name') == 'Serial'):
                 ros_serialmessagefile_header.write('#define SERIAL_' + message.get('name') + '_ID ' + hex(int(message.get('id'),0)-int('0xAB00',0)) + '\r\n')
                 propeller_serialmessagefile_header.write('#define SERIAL_' + message.get('name') + '_ID ' + hex(int(message.get('id'),0)-int('0xAB00',0)) + '\r\n')
-    udpmessagefile_header.write('\r\nclass UDPMessageHandler\r\n{\r\npublic:\r\n\tUDPMessageHandler();\r\n\t~UDPMessageHandler();\r\n')
-    udpmessagefile_cpp.write('#include "udpmessage.h"\r\nUDPMessageHandler::UDPMessageHandler(){}\r\nUDPMessageHandler::~UDPMessageHandler(){}\r\n')
+    ros_udpmessagefile_header.write('\r\nclass UDPMessageHandler\r\n{\r\npublic:\r\n\tenum MessageID\r\n\t{\r\n')
+    for message in root:
+        protocollist = []
+        protocols = message.find('Protocols')
+        for protocol in protocols:
+            if(protocol.get('name') == 'UDP'):
+                ros_udpmessagefile_header.write('\t\tUDP_' + message.get('name') + '_ID = ' + message.get('id') +',\r\n')
+    ros_udpmessagefile_header.write('\t};\r\n\tUDPMessageHandler();\r\n\t~UDPMessageHandler();\r\n')
+    ros_udpmessagefile_cpp.write('#include "udpmessage.h"\r\nUDPMessageHandler::UDPMessageHandler(){}\r\nUDPMessageHandler::~UDPMessageHandler(){}\r\n')
+    gui_udpmessagefile_header.write('\r\nclass UDPMessageHandler\r\n{\r\npublic:\r\n\tUDPMessageHandler();\r\n\t~UDPMessageHandler();\r\n')
+    gui_udpmessagefile_cpp.write('#include "udpmessage.h"\r\nUDPMessageHandler::UDPMessageHandler(){}\r\nUDPMessageHandler::~UDPMessageHandler(){}\r\n')
+
     ros_serialmessagefile_header.write('\r\nclass SerialMessageHandler\r\n{\r\npublic:\r\n\tSerialMessageHandler();\r\n\t~SerialMessageHandler();\r\n')
     ros_serialmessagefile_cpp.write('#include "serialmessage.h"\r\nSerialMessageHandler::SerialMessageHandler(){}\r\nSerialMessageHandler::~SerialMessageHandler(){}\r\n')
     propeller_serialmessagefile_cpp.write('#include "serialmessage.h"\r\n')
@@ -57,34 +71,198 @@ def generate_message(xmlfile):
                 fieldlist.append(fieldobject(field.get('type'),field.get('name')))
            
             if(protocol.get('name') == 'UDP'):
-                udpmessagefile_header.write('\tstd::string encode_' + message.get('name') + 'UDP(')
-                udpmessagefile_cpp.write('std::string UDPMessageHandler::encode_' + message.get('name') + 'UDP(')
+                encode_for_master = 0
+                encode_for_gui = 0
+                decode_for_master = 0
+                decode_for_gui = 0
+                for child in protocol.findall('Origin'):
+                    if(child.text == "Master"):
+                        encode_for_master = 1
+                        decode_for_gui = 1
+                    if(child.text == "GUI"):
+                        decode_for_master = 1
+                        encode_for_gui = 1
+                if(encode_for_master == 1):
+                    ros_udpmessagefile_header.write('\tstd::string encode_' + message.get('name') + 'UDP(')
+                    ros_udpmessagefile_cpp.write('std::string UDPMessageHandler::encode_' + message.get('name') + 'UDP(')
+            
+                if(encode_for_gui == 1):
+                    gui_udpmessagefile_header.write('\tQString encode_' + message.get('name') + 'UDP(')
+                    gui_udpmessagefile_cpp.write('QString UDPMessageHandler::encode_' + message.get('name') + 'UDP(')
                 index = 0
                 for item in fieldlist:
-                    udpmessagefile_header.write(item.datatype + ' ' + item.name)
-                    udpmessagefile_cpp.write(item.datatype + ' ' + item.name)
+                    if(encode_for_master == 1):
+                        ros_udpmessagefile_header.write(item.datatype + ' ' + item.name)
+                        ros_udpmessagefile_cpp.write(item.datatype + ' ' + item.name)
+            
+                    if(encode_for_gui == 1):
+                        if(item.datatype =='std::string'):
+                            gui_udpmessagefile_header.write(item.datatype + ' ' + item.name)
+                            gui_udpmessagefile_cpp.write(item.datatype + ' ' + item.name)
+                        elif(item.datatype == 'int16_t'):
+                            gui_udpmessagefile_header.write('int ' + item.name)
+                            gui_udpmessagefile_cpp.write('int ' + item.name)
+                        elif(item.datatype == 'uint8_t'):
+                            gui_udpmessagefile_header.write('int ' + item.name)
+                            gui_udpmessagefile_cpp.write('int ' + item.name)
+                        else:
+                             print "ERROR: Datatype not supported:",item.datatype
                     index += 1
                     if(index < len(fieldlist)):
-                        udpmessagefile_header.write(',')
-                        udpmessagefile_cpp.write(',')
-                udpmessagefile_header.write(');\r\n')
-                udpmessagefile_cpp.write(')\r\n{\r\n')
-                udpmessagefile_cpp.write('\tstd::string tempstr = "";\r\n')
-                udpmessagefile_cpp.write('\ttempstr.append(boost::lexical_cast<std::string>(UDP_' + message.get('name') + '_ID));\r\n')
-                udpmessagefile_cpp.write('\ttempstr.append(",");\r\n')
+                        if(encode_for_master == 1):
+                            ros_udpmessagefile_header.write(',')
+                            ros_udpmessagefile_cpp.write(',')
+                        
+                        if(encode_for_gui == 1):
+                            gui_udpmessagefile_header.write(',')
+                            gui_udpmessagefile_cpp.write(',')
+
+                if(encode_for_master == 1):    
+                    ros_udpmessagefile_header.write(');\r\n')
+                    ros_udpmessagefile_cpp.write(')\r\n{\r\n')
+                    ros_udpmessagefile_cpp.write('\tstd::string tempstr = "";\r\n')
+                    ros_udpmessagefile_cpp.write('\ttempstr.append(boost::lexical_cast<std::string>(UDP_' + message.get('name') + '_ID));\r\n')
+                    ros_udpmessagefile_cpp.write('\ttempstr.append(",");\r\n')
+
+                if(encode_for_gui == 1):
+                    gui_udpmessagefile_header.write(');\r\n')
+                    gui_udpmessagefile_cpp.write(')\r\n{\r\n')
+                    gui_udpmessagefile_cpp.write('\tQString tempstr = "";\r\n')
+                    gui_udpmessagefile_cpp.write('\ttempstr.append(UDP_' + message.get('name') + '_ID);\r\n')
+                    gui_udpmessagefile_cpp.write('\ttempstr.append(",");\r\n')
                 index = 0
                 for item in fieldlist:
                     if(item.datatype =='std::string'):
-                        udpmessagefile_cpp.write('\ttempstr.append(' + item.name +');\r\n')
+                        if(encode_for_master == 1):
+                            ros_udpmessagefile_cpp.write('\ttempstr.append(' + item.name +');\r\n')
+                        if(encode_for_gui == 1):
+                            gui_udpmessagefile_cpp.write('\ttempstr.append(' + item.name +');\r\n')
+                    elif(item.datatype == 'int16_t'):
+                        if(encode_for_master == 1):
+                            ros_udpmessagefile_cpp.write('\ttempstr.append(boost::lexical_cast<std::string>((int)' + item.name + '));\r\n')
+                        if(encode_for_gui == 1):
+                            gui_udpmessagefile_cpp.write('\ttempstr.append(QString::number(' + item.name + '));\r\n')
+                    elif(item.datatype == 'uint8_t'):
+                        if(encode_for_master == 1):
+                            ros_udpmessagefile_cpp.write('\ttempstr.append(boost::lexical_cast<std::string>((int)' + item.name + '));\r\n')
+                        if(encode_for_gui == 1):
+                            gui_udpmessagefile_cpp.write('\ttempstr.append(QString::number(' + item.name + '));\r\n')
                     else:
-                        udpmessagefile_cpp.write('\ttempstr.append(boost::lexical_cast<std::string>((int)' + item.name + '));\r\n')
+                        if(encode_for_master == 1):
+                            ros_udpmessagefile_cpp.write('\ttempstr.append(boost::lexical_cast<std::string>((int)' + item.name + '));\r\n')
+                        if(encode_for_gui == 1):
+                            gui_udpmessagefile_cpp.write('\ttempstr.append(QString::number(' + item.name + '));\r\n')
 
                     index += 1
 
                     if(index < len(fieldlist)):
-                        udpmessagefile_cpp.write('\ttempstr.append(",");\r\n')
-                udpmessagefile_cpp.write('\treturn tempstr;\r\n')
-                udpmessagefile_cpp.write('}\r\n')
+                        if(encode_for_master == 1):
+                            ros_udpmessagefile_cpp.write('\ttempstr.append(",");\r\n')
+                        if(encode_for_gui == 1):
+                            gui_udpmessagefile_cpp.write('\ttempstr.append(",");\r\n')
+                if(encode_for_master == 1):
+                    ros_udpmessagefile_cpp.write('\treturn tempstr;\r\n')
+                    ros_udpmessagefile_cpp.write('}\r\n')
+                if(encode_for_gui == 1):
+                    gui_udpmessagefile_cpp.write('\treturn tempstr;\r\n')
+                    gui_udpmessagefile_cpp.write('}\r\n')
+
+                if(decode_for_master == 1):
+                    ros_udpmessagefile_header.write('\tint decode_' + message.get('name') + 'UDP(std::vector<std::string> items,')
+                    ros_udpmessagefile_cpp.write('int UDPMessageHandler::decode_' + message.get('name') + 'UDP(std::vector<std::string> items,')
+                if(decode_for_gui == 1):
+                    gui_udpmessagefile_header.write('\tint decode_' + message.get('name') + 'UDP(QList<QByteArray> items,')
+                    gui_udpmessagefile_cpp.write('int UDPMessageHandler::decode_' + message.get('name') + 'UDP(QList<QByteArray> items,')
+                index = 0
+                itemcounter = 1
+                for item in fieldlist:
+                    if(decode_for_master == 1):
+                        if(item.datatype == 'uint8_t'):
+                            ros_udpmessagefile_header.write(item.datatype + '* ' + item.name)
+                            ros_udpmessagefile_cpp.write(item.datatype + '* ' + item.name)
+                            itemcounter = itemcounter + 1
+                        elif(item.datatype == 'int16_t'):
+                            ros_udpmessagefile_header.write('int* ' + item.name)
+                            ros_udpmessagefile_cpp.write('int* ' + item.name)
+                            itemcounter = itemcounter + 1
+                        else:
+                            print "ERROR: Datatype not supported:",item.datatype
+                    if(decode_for_gui == 1):
+                        if(item.datatype == 'uint8_t'):
+                            gui_udpmessagefile_header.write('int* ' + item.name)
+                            gui_udpmessagefile_cpp.write('int* ' + item.name)
+                            itemcounter = itemcounter + 1
+                        elif(item.datatype == 'uint16_t'):
+                            gui_udpmessagefile_header.write('int* ' + item.name)
+                            gui_udpmessagefile_cpp.write('int* ' + item.name)
+                            itemcounter = itemcounter + 1
+                        elif(item.datatype == 'int16_t'):
+                            gui_udpmessagefile_header.write('int* ' + item.name)
+                            gui_udpmessagefile_cpp.write('int* ' + item.name)
+                            itemcounter = itemcounter + 1
+                        elif(item.datatype == 'std::string'):
+                            gui_udpmessagefile_header.write('std::string* ' + item.name)
+                            gui_udpmessagefile_cpp.write('std::string* ' + item.name)
+                            itemcounter = itemcounter + 1
+                        else:
+                            print "ERROR: Datatype not supported:",item.datatype
+                        
+                    index += 1
+                    if(index < len(fieldlist)):
+                        if(decode_for_master == 1):
+                            ros_udpmessagefile_header.write(',')
+                            ros_udpmessagefile_cpp.write(',')
+                        if(decode_for_gui == 1):
+                            gui_udpmessagefile_header.write(',')
+                            gui_udpmessagefile_cpp.write(',')
+                if(decode_for_master == 1):
+                    ros_udpmessagefile_header.write(');\r\n')
+                    ros_udpmessagefile_cpp.write(')\r\n{\r\n')
+                if(decode_for_gui == 1):
+                    gui_udpmessagefile_header.write(');\r\n')
+                    gui_udpmessagefile_cpp.write(')\r\n{\r\n')
+                if(decode_for_master == 1):
+                    ros_udpmessagefile_cpp.write('\tchar tempstr[8];\r\n\tsprintf(tempstr,"0x%s",items.at(0).c_str());\r\n\tint id = (int)strtol(tempstr,NULL,0);\r\n')
+                    ros_udpmessagefile_cpp.write('\tif(id != UDP_' + message.get('name') + '_ID){ return 0; }\r\n')
+                    ros_udpmessagefile_cpp.write('\tif(items.size() != ' + str(itemcounter) + '){ return 0; }\r\n')
+                if(decode_for_gui == 1):
+                    gui_udpmessagefile_cpp.write('\tif(items.size() != ' + str(itemcounter) + '){ return 0; }\r\n')
+                    #ros_udpmessagefile_cpp.write('\tif(std::stoi(items.at(0)) != UDP_' + message.get('name') + '_ID) { return 0; }\r\n')
+                itemcounter = 0
+                for item in fieldlist:
+                    if(item.datatype == 'uint8_t'):
+                        itemcounter = itemcounter + 1
+                        if(decode_for_master == 1):
+                            ros_udpmessagefile_cpp.write('\t*' + str(item.name) + '=(' + item.datatype + ')atoi(items.at(' + str(itemcounter) + ').c_str());\r\n')
+                        if(decode_for_gui == 1):
+                            gui_udpmessagefile_cpp.write('\t*' + str(item.name) + '=(int)items.at(' + str(itemcounter) + ').toInt();\r\n')
+                    elif(item.datatype == 'int16_t'):
+                        itemcounter = itemcounter + 1
+                        if(decode_for_master == 1):
+                            ros_udpmessagefile_cpp.write('\t*' + str(item.name) + '=(' + item.datatype + ')atoi(items.at(' + str(itemcounter) + ').c_str());\r\n')
+                        if(decode_for_gui == 1):
+                            gui_udpmessagefile_cpp.write('\t*' + str(item.name) + '=(int)items.at(' + str(itemcounter) + ').toInt();\r\n')
+                    elif(item.datatype == 'uint16_t'):
+                        itemcounter = itemcounter + 1
+                        if(decode_for_master == 1):
+                            ros_udpmessagefile_cpp.write('\t*' + str(item.name) + '=(' + item.datatype + ')atoi(items.at(' + str(itemcounter) + ').c_str());\r\n')
+                        if(decode_for_gui == 1):
+                            gui_udpmessagefile_cpp.write('\t*' + str(item.name) + '=(int)items.at(' + str(itemcounter) + ').toInt();\r\n')
+                    elif(item.datatype == 'std::string'):
+                        itemcounter = itemcounter + 1
+                        if(decode_for_master == 1):
+                            ros_udpmessagefile_cpp.write('\t*' + str(item.name) + '=items.at(' + str(itemcounter) + '));\r\n')
+                        if(decode_for_gui == 1):
+                            gui_udpmessagefile_cpp.write('\t*' + str(item.name) + '=items.at(' + str(itemcounter) + ').toStdString();\r\n')
+                    else:
+                        print "ERROR: Datatype not supported:",item.datatype
+                    
+                if(decode_for_master == 1):
+                    ros_udpmessagefile_cpp.write('\treturn 1;\r\n')
+                    ros_udpmessagefile_cpp.write('}\r\n')
+                if(decode_for_gui == 1):
+                    gui_udpmessagefile_cpp.write('\treturn 1;\r\n')
+                    gui_udpmessagefile_cpp.write('}\r\n')
             elif(protocol.get('name') == 'Serial'):
                 encode_for_master = 0
                 encode_for_slave = 0
@@ -265,8 +443,10 @@ def generate_message(xmlfile):
                 if(decode_for_slave == 1):
                     propeller_serialmessagefile_cpp.write('\treturn 1;\r\n')
                     propeller_serialmessagefile_cpp.write('}\r\n')
-    udpmessagefile_header.write('private:\r\n')
-    udpmessagefile_header.write('};\r\n#endif')
+    ros_udpmessagefile_header.write('private:\r\n')
+    ros_udpmessagefile_header.write('};\r\n#endif')
+    gui_udpmessagefile_header.write('private:\r\n')
+    gui_udpmessagefile_header.write('};\r\n#endif')
     ros_serialmessagefile_header.write('private:\r\n')
     ros_serialmessagefile_header.write('};\r\n#endif')
     propeller_serialmessagefile_header.write('#endif')
@@ -277,16 +457,27 @@ if len(sys.argv) == 1:
     print_usage()
     sys.exit(0)
 elif (sys.argv[1] == "-g"):
-    udpmessagefile_header = open('generated/ros/udpmessage.h','w')
-    udpmessagefile_header.write('/***************AUTO-GENERATED.  DO NOT EDIT********************/\r\n')
-    udpmessagefile_header.write('/***Created on:')
-    udpmessagefile_header.write( str(datetime.now()))
-    udpmessagefile_header.write('***/\r\n')
-    udpmessagefile_cpp = open('generated/ros/udpmessage.cpp','w')
-    udpmessagefile_cpp.write('/***************AUTO-GENERATED.  DO NOT EDIT********************/\r\n')
-    udpmessagefile_cpp.write('/***Created on:')
-    udpmessagefile_cpp.write( str(datetime.now()))
-    udpmessagefile_cpp.write('***/\r\n')
+    ros_udpmessagefile_header = open('generated/ros/udpmessage.h','w')
+    ros_udpmessagefile_header.write('/***************AUTO-GENERATED.  DO NOT EDIT********************/\r\n')
+    ros_udpmessagefile_header.write('/***Created on:')
+    ros_udpmessagefile_header.write( str(datetime.now()))
+    ros_udpmessagefile_header.write('***/\r\n')
+    ros_udpmessagefile_cpp = open('generated/ros/udpmessage.cpp','w')
+    ros_udpmessagefile_cpp.write('/***************AUTO-GENERATED.  DO NOT EDIT********************/\r\n')
+    ros_udpmessagefile_cpp.write('/***Created on:')
+    ros_udpmessagefile_cpp.write( str(datetime.now()))
+    ros_udpmessagefile_cpp.write('***/\r\n')
+
+    gui_udpmessagefile_header = open('generated/gui/udpmessage.h','w')
+    gui_udpmessagefile_header.write('/***************AUTO-GENERATED.  DO NOT EDIT********************/\r\n')
+    gui_udpmessagefile_header.write('/***Created on:')
+    gui_udpmessagefile_header.write( str(datetime.now()))
+    gui_udpmessagefile_header.write('***/\r\n')
+    gui_udpmessagefile_cpp = open('generated/gui/udpmessage.cpp','w')
+    gui_udpmessagefile_cpp.write('/***************AUTO-GENERATED.  DO NOT EDIT********************/\r\n')
+    gui_udpmessagefile_cpp.write('/***Created on:')
+    gui_udpmessagefile_cpp.write( str(datetime.now()))
+    gui_udpmessagefile_cpp.write('***/\r\n')
 
     ros_serialmessagefile_header = open('generated/ros/serialmessage.h','w')
     ros_serialmessagefile_header.write('/***************AUTO-GENERATED.  DO NOT EDIT********************/\r\n')

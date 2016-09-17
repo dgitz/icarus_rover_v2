@@ -1,5 +1,5 @@
 /***************AUTO-GENERATED.  DO NOT EDIT********************/
-/***Created on:2016-09-14 21:38:15.352339***/
+/***Created on:2016-09-17 09:24:24.465316***/
 /***Target: Parallax Propeller ***/
 #include "serialmessage.h"
 int encode_DiagnosticSerial(int* outbuffer,int* length,char System,char SubSystem,char Component,char Diagnostic_Type,char Level,char Diagnostic_Message)

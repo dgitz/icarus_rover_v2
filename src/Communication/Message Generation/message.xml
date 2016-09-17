@@ -4,6 +4,7 @@
     <Message name="RemoteControl" id="0xAB10">
         <Protocols>
             <Protocol name="UDP">
+                <Origin>GUI</Origin>
                 <Fields>
                     <field type="int16_t" name="axis1"/>
                     <field type="int16_t" name="axis2"/>
@@ -28,6 +29,7 @@
     <Message name="Resource" id="0xAB11">
         <Protocols>
             <Protocol name="UDP">
+                <Origin>Master</Origin>
                 <Fields>
                     <field type="std::string" name="Node_Name"/>
                     <field type="uint16_t" name="RAM_Mb"/>
@@ -39,6 +41,7 @@
     <Message name="Diagnostic" id="0xAB12">
         <Protocols>
             <Protocol name="UDP">
+                <Origin>Master</Origin>
                 <Fields>
                     <field type="std::string" name="Node_Name"/>
                     <field type="uint8_t" name="System"/>
@@ -66,6 +69,7 @@
     <Message name="Device" id="0xAB13">
         <Protocols>
             <Protocol name="UDP">
+                <Origin>Master</Origin>
                 <Fields>
                     <field type="std::string" name="DeviceParent"/>
                     <field type="std::string" name="DeviceName"/>

@@ -26,6 +26,7 @@
 #include <iomanip>
 #include <iostream>
 #include <string>
+#include <boost/thread.hpp>
 #define RECV_BUFFERSIZE 2048
 //End User Code: Includes
 
@@ -44,7 +45,7 @@ void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg);
 //Start User Code: Function Prototypes
 bool initialize_sendsocket();
 bool initialize_recvsocket();
-bool process_udp_receive();
+void process_udp_receive();
 void diagnostic_Callback(const icarus_rover_v2::diagnostic::ConstPtr& msg);
 void device_Callback(const icarus_rover_v2::device::ConstPtr& msg);
 void resource_Callback(const icarus_rover_v2::resource::ConstPtr& msg);

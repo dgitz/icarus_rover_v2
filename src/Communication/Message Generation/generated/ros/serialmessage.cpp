@@ -1,5 +1,5 @@
 /***************AUTO-GENERATED.  DO NOT EDIT********************/
-/***Created on:2016-09-14 21:38:15.352281***/
+/***Created on:2016-09-17 09:24:24.465156***/
 /***Target: Raspberry Pi ***/
 #include "serialmessage.h"
 SerialMessageHandler::SerialMessageHandler(){}

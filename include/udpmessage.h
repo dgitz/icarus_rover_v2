@@ -1,5 +1,5 @@
 /***************AUTO-GENERATED.  DO NOT EDIT********************/
-/***Created on:2016-09-14 21:38:15.352146***/
+/***Created on:2016-09-17 08:56:59.520763***/
 #ifndef UDPMESSAGE_H
 #define UDPMESSAGE_H
 #include "ros/ros.h"
@@ -11,17 +11,20 @@
 #include <fstream>
 #include <iostream>
 
-#define UDP_RemoteControl_ID 0xAB10
-#define UDP_Resource_ID 0xAB11
-#define UDP_Diagnostic_ID 0xAB12
-#define UDP_Device_ID 0xAB13
 
 class UDPMessageHandler
 {
 public:
+	enum MessageID
+	{
+		UDP_RemoteControl_ID = 0xAB10,
+		UDP_Resource_ID = 0xAB11,
+		UDP_Diagnostic_ID = 0xAB12,
+		UDP_Device_ID = 0xAB13,
+	};
 	UDPMessageHandler();
 	~UDPMessageHandler();
-	std::string encode_RemoteControlUDP(int16_t axis1,int16_t axis2);
+	int decode_RemoteControlUDP(std::vector<std::string> items,int* axis1,int* axis2,int* axis3,int* axis4,int* axis5,int* axis6,int* axis7,int* axis8,uint8_t* button1,uint8_t* button2,uint8_t* button3,uint8_t* button4,uint8_t* button5,uint8_t* button6,uint8_t* button7,uint8_t* button8);
 	std::string encode_ResourceUDP(std::string Node_Name,uint16_t RAM_Mb,uint8_t CPU_Used);
 	std::string encode_DiagnosticUDP(std::string Node_Name,uint8_t System,uint8_t SubSystem,uint8_t Component,uint8_t Diagnostic_Type,uint8_t Level,uint8_t Diagnostic_Message,std::string Description);
 	std::string encode_DeviceUDP(std::string DeviceParent,std::string DeviceName,std::string DeviceType,std::string Architecture);

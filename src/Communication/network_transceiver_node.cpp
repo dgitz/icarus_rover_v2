@@ -1,7 +1,7 @@
 #include "network_transceiver_node.h"
 //Start Template Code: Firmware Definition
 #define NETWORKTRANSCEIVERNODE_MAJOR_RELEASE 1
-#define NETWORKTRANSCEIVERNODE_MINOR_RELEASE 1
+#define NETWORKTRANSCEIVERNODE_MINOR_RELEASE 2
 #define NETWORKTRANSCEIVERNODE_BUILD_NUMBER 1
 //End Template Code: Firmware Definition
 //Start User Code: Functions
@@ -51,16 +51,49 @@ void device_Callback(const icarus_rover_v2::device::ConstPtr& msg)
 	{
 		  logger->log_warn("Mismatch in number of bytes sent");
 
+
 	}
 }
-bool process_udp_receive()
+void process_udp_receive()
 {
-	unsigned char buf[RECV_BUFFERSIZE];
-	socklen_t addrlen = sizeof(remote_addr);
-	int recvlen = recvfrom(recvdevice_sock,buf,RECV_BUFFERSIZE,0,(struct sockaddr *)&remote_addr,&addrlen);
-	char tempstr[128];
-	sprintf(tempstr,"Received bytes: %d",recvlen);
-	logger->log_debug(tempstr);
+	while(1)
+	{
+		char buf[RECV_BUFFERSIZE] = {0};
+		socklen_t addrlen = sizeof(remote_addr);
+		int recvlen = recvfrom(recvdevice_sock,buf,RECV_BUFFERSIZE,0,(struct sockaddr *)&remote_addr,&addrlen);
+		buf[recvlen] = '\0';
+		std::string buffer(buf);
+		std::vector<std::string> items;
+		boost::split(items,buffer,boost::is_any_of(","));
+		int success;
+		//std::string id = items.at(0);
+		char tempstr[8];
+		sprintf(tempstr,"0x%s",items.at(0).c_str());
+		int id = (int)strtol(tempstr,NULL,0);
+		cout << id << endl;
+		switch (id)
+		{
+			case UDPMessageHandler::UDP_RemoteControl_ID:
+				int axis1,axis2,axis3,axis4,axis5,axis6,axis7,axis8;
+				uint8_t button1,button2,button3,button4,button5,button6,button7,button8;
+				success = udpmessagehandler->decode_RemoteControlUDP(items,&axis1,&axis2,&axis3,&axis4,&axis5,&axis6,&axis7,&axis8,
+																	&button1,&button2,&button3,&button4,&button5,&button6,&button7,&button8);
+				if(success == 1)
+				{
+					printf("a1: %d a2: %d a3: %d a4: %d a5: %d a6: %d a7: %d a8: %d\n",axis1,axis2,axis3,axis4,axis5,axis6,axis7,axis8);
+					printf("b1: %d b2: %d b3: %d b4: %d b5: %d b6: %d b7: %d b8: %d\n",button1,button2,button3,button4,button5,button6,button7,button8);
+				}
+				else
+				{
+					printf("Couldn't decode message.\n");
+				}
+				break;
+			default:
+				printf("Message: %d Not Supported.\n",id);
+				break;
+		}
+
+	}
 
 }
 bool initialize_recvsocket()
@@ -79,7 +112,6 @@ bool initialize_recvsocket()
 		logger->log_error("Failed to bind recv socket. Exiting.");
 		return false;
 	}
-	fcntl(recvdevice_sock,F_SETFL,O_NONBLOCK);
 
 	return true;
 }
@@ -105,10 +137,6 @@ bool initialize_sendsocket()
 }
 bool run_fastrate_code()
 {
-	if(process_udp_receive() == false)
-	{
-		logger->log_warn("Unable to process UDP Receive message.");
-	}
 	//logger->log_debug("Running fast rate code.");
 	return true;
 }
@@ -188,6 +216,7 @@ int main(int argc, char **argv)
 
 
 	int counter = 0;
+	boost::thread process_udpreceive_thread(&process_udp_receive);
     while (ros::ok())
     {
     	bool ok_to_start = false;
@@ -199,6 +228,7 @@ int main(int argc, char **argv)
     		mtime = measure_time_diff(now,fast_timer);
 			if(mtime > .02)
 			{
+				//process_udp_receive();
 				run_fastrate_code();
 				fast_timer = ros::Time::now();
 			}
@@ -228,6 +258,9 @@ int main(int argc, char **argv)
 		ros::spinOnce();
 		loop_rate.sleep();
     }
+    process_udpreceive_thread.join();
+    close(recvdevice_sock);
+    close(senddevice_sock);
     return 0;
 }
 
@@ -324,7 +357,6 @@ bool initialize(ros::NodeHandle nh)
 		logger->log_warn("Missing Parameter: Mode.");
 		return false;
 	}
-	sleep(5);
 	if(Mode=="Diagnostics_GUI")
 	{
 		ros::master::V_TopicInfo master_topics;
@@ -391,6 +423,8 @@ bool initialize(ros::NodeHandle nh)
 		}
 	}
 	udpmessagehandler = new UDPMessageHandler();
+
+
     //Finish User Code: Initialization and Parameters
 
     //Start Template Code: Final Initialization.
