@@ -31,7 +31,6 @@ bool run_mediumrate_code();
 bool run_slowrate_code();
 bool run_veryslowrate_code();
 double measure_time_diff(ros::Time timer_a, ros::Time tiber_b);
-void parse_devicefile(TiXmlDocument doc);
 void PPS_Callback(const std_msgs::Bool::ConstPtr& msg);
 void Command_Callback(const icarus_rover_v2::command& msg);
 void print_myDevice();
@@ -42,6 +41,7 @@ std::vector<icarus_rover_v2::diagnostic> check_program_variables();
 
 //Start User Code: Function Prototypes
 double read_device_temperature();
+void parse_devicefile(TiXmlDocument doc);
 //End User Code: Function Prototypes
 
 //Start Template Code: Global Variables

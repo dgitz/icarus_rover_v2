@@ -80,8 +80,26 @@ void process_udp_receive()
 																	&button1,&button2,&button3,&button4,&button5,&button6,&button7,&button8);
 				if(success == 1)
 				{
-					printf("a1: %d a2: %d a3: %d a4: %d a5: %d a6: %d a7: %d a8: %d\n",axis1,axis2,axis3,axis4,axis5,axis6,axis7,axis8);
-					printf("b1: %d b2: %d b3: %d b4: %d b5: %d b6: %d b7: %d b8: %d\n",button1,button2,button3,button4,button5,button6,button7,button8);
+					sensor_msgs::Joy newjoy;
+					newjoy.header.stamp = ros::Time::now();
+					newjoy.header.frame_id = "/world";
+					newjoy.axes.push_back((float)(axis1/32768.0));
+					newjoy.axes.push_back((float)(axis2/32768.0));
+					newjoy.axes.push_back((float)(axis3/32768.0));
+					newjoy.axes.push_back((float)(axis4/32768.0));
+					newjoy.axes.push_back((float)(axis5/32768.0));
+					newjoy.axes.push_back((float)(axis6/32768.0));
+					newjoy.axes.push_back((float)(axis7/32768.0));
+					newjoy.axes.push_back((float)(axis8/32768.0));
+					newjoy.buttons.push_back(button1);
+					newjoy.buttons.push_back(button2);
+					newjoy.buttons.push_back(button3);
+					newjoy.buttons.push_back(button4);
+					newjoy.buttons.push_back(button5);
+					newjoy.buttons.push_back(button6);
+					newjoy.buttons.push_back(button7);
+					newjoy.buttons.push_back(button8);
+					joy_pub.publish(newjoy);
 				}
 				else
 				{
@@ -359,6 +377,8 @@ bool initialize(ros::NodeHandle nh)
 	}
 	if(Mode=="Diagnostics_GUI")
 	{
+		std::string joystick_topic = "/" + Mode + "/joystick";
+		joy_pub =  nh.advertise<sensor_msgs::Joy>(joystick_topic,1000);
 		ros::master::V_TopicInfo master_topics;
 		ros::master::getTopics(master_topics);
 

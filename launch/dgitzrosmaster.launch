@@ -27,10 +27,9 @@
         <param name="Recv_Unicast_Port"          value="5678"/>
         <param name="Mode"                  value="Diagnostics_GUI"/> <!--Diagnostics_GUI-->
     </node>
-	<node name="$(env ROS_HOSTNAME)_joystickmapper_node" pkg="icarus_rover_v2" type="joystickmapper_node"  output="screen">
+	<node name="$(env ROS_HOSTNAME)_topicmapper_node" pkg="icarus_rover_v2" type="topicmapper_node"  output="screen">
         <param name="loop_rate"             value="500"/>
         <param name="verbosity_level"       value="DEBUG"/>
         <param name="require_pps_to_start"  value="false"/> 
-		<param name="joystick_name"			value="Joystick1"/>
     </node>
 </launch>

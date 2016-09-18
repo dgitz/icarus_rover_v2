@@ -5,6 +5,3 @@ string DeviceType
 string Architecture
 int8 BoardCount
 pin[] pins 
-string[] InputTopics
-string[] OutputTopics
-string[] TopicModes

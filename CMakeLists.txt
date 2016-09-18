@@ -226,5 +226,3 @@ target_link_libraries(network_transceiver_node ${catkin_LIBRARIES} ${Boost_LIBRA
 
 add_executable(gpio_node src/Board/gpio_node.cpp)
 target_link_libraries(gpio_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} logger serialmessage resourcemonitor)
-add_executable(joystickmapper_node src/Control/joystickmapper_node.cpp)
-target_link_libraries(joystickmapper_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor)
