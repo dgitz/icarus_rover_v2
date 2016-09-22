@@ -499,6 +499,7 @@ bool run_mediumrate_code()
 		diagnostic_status.Level = INFO;
 		diagnostic_status.Diagnostic_Message = NOERROR;
 		diagnostic_status.Description = "Node Executing.";
+		logger->log_info("Node Executing.");
 	}
 	else if((dropped_ratio >= 3.0) && (dropped_ratio < 6.0)) 
 	{

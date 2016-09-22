@@ -223,6 +223,8 @@ add_executable(diagnostic_node src/Diagnostics/diagnostic_node.cpp)
 target_link_libraries(diagnostic_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} logger resourcemonitor)
 add_executable(network_transceiver_node src/Communication/network_transceiver_node.cpp)
 target_link_libraries(network_transceiver_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} logger udpmessage resourcemonitor)
+add_executable(topicremapper_node src/Communication/topicremapper_node.cpp)
+target_link_libraries(topicremapper_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} logger resourcemonitor)
 
 add_executable(gpio_node src/Board/gpio_node.cpp)
 target_link_libraries(gpio_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} logger serialmessage resourcemonitor)

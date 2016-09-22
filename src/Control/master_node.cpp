@@ -280,14 +280,44 @@ bool initialize(ros::NodeHandle nh)
     bool devicefile_loaded = device_doc.LoadFile();
     if(devicefile_loaded == true)
     {
-    	parse_devicefile(device_doc);
-    	resourcemonitor = new ResourceMonitor(myDevice.Architecture,hostname,node_name);
+    	if(parse_devicefile(device_doc) == true)
+    	{
+    		resourcemonitor = new ResourceMonitor(myDevice.Architecture,hostname,node_name);
+    	}
+    	else { return false; }
     }
     else
     {
     	logger->log_fatal("Could not load or parse /home/robot/config/DeviceFile.xml. Exiting.");
     	return false;
     }
+
+    std::string launch_file = "/home/robot/catkin_ws/src/icarus_rover_v2/launch/" + std::string(hostname) + ".launch";
+    TiXmlDocument launch_doc(launch_file);
+    bool launchfile_loaded = launch_doc.LoadFile();
+	if(launchfile_loaded == true)
+	{
+		if(parse_launchfile(launch_doc) == true)
+		{
+			char tempstr[256];
+			sprintf(tempstr,"Loaded Launch File: %s.",launch_file.c_str());
+			logger->log_info(tempstr);
+		}
+		else
+		{
+			char tempstr[256];
+			sprintf(tempstr,"Could not parse %s. Exiting.",launch_file.c_str());
+			logger->log_fatal(tempstr);
+			return false;
+		}
+	}
+	else
+	{
+		char tempstr[256];
+		sprintf(tempstr,"Could not load or parse %s. Exiting.",launch_file.c_str());
+		logger->log_fatal(tempstr);
+		return false;
+	}
     device_temperature = -100.0;
     //Finish User Code: Initialization and Parameters
 
@@ -308,7 +338,40 @@ double measure_time_diff(ros::Time timer_a, ros::Time timer_b)
 	ros::Duration etime = timer_a - timer_b;
 	return etime.toSec();
 }
-void parse_devicefile(TiXmlDocument doc)
+bool parse_launchfile(TiXmlDocument doc)
+{
+	ofstream process_file;
+	process_file.open("/home/robot/config/ActiveTasks");
+	if(process_file.is_open() == false)
+	{
+		return false;
+	}
+	TiXmlElement *l_pRootElement = doc.RootElement();
+	if( NULL != l_pRootElement )
+	{
+		TiXmlElement *l_pnode = l_pRootElement->FirstChildElement( "node" );
+		while( l_pnode )
+		{
+			time_t rawtime;
+			struct tm * timeinfo;
+			char datebuffer[80];
+
+			time (&rawtime);
+			timeinfo = localtime(&rawtime);
+
+			strftime(datebuffer,80,"%d/%m/%Y %I:%M:%S",timeinfo);
+			std::string type;
+
+			l_pnode->QueryStringAttribute("type",&type);
+			process_file << "Task:\t" << type << "\tLaunched:\t" << datebuffer <<  endl;
+			l_pnode = l_pnode->NextSiblingElement( "node" );
+		}
+	}
+	else { return false; }
+	process_file.close();
+	return true;
+}
+bool parse_devicefile(TiXmlDocument doc)
 {
 	TiXmlElement *l_pRootElement = doc.RootElement();
 
@@ -397,6 +460,7 @@ void parse_devicefile(TiXmlDocument doc)
 	        }
 	    }
 	}
+	return true;
 }
 void print_myDevice()
 {

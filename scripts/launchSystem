@@ -2,12 +2,12 @@
 #Author: David Gitz
 #Purpose: Launches Software on all Devices
 
-declare -a Devices=("ControlModule1" "dgitzrosmaster")
+declare -a Devices=("ControlModule1" "ControlModule2" "dgitzrosmaster")
 
 function launch_device_remote ()
 {
     #Remote in to device
-    #echo "Going to Remote Launch: roslaunch icarus_rover_v2 "$1".launch"
+    echo "Going to Remote Launch: roslaunch icarus_rover_v2 "$1".launch"
     launch_command="cd ~ && screen -dmS robot ./scripts/launchDevice -d $1"
     #echo $launch_command
     ssh robot@$1 $launch_command
