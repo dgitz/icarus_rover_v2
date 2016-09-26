@@ -1,40 +1,9 @@
 /***************AUTO-GENERATED.  DO NOT EDIT********************/
-/***Created on:2016-08-25 17:19:30.450544***/
+/***Created on:2016-09-25 14:25:34.200397***/
 /***Target: Raspberry Pi ***/
 #include "serialmessage.h"
 SerialMessageHandler::SerialMessageHandler(){}
 SerialMessageHandler::~SerialMessageHandler(){}
-int SerialMessageHandler::encode_FirmwareVersionSerial(unsigned char* outbuffer,int* length,char MajorRelease,char MinorRelease,char BuildNumber)
-{
-	unsigned char *p_outbuffer;
-	p_outbuffer = &outbuffer[0];
-	*p_outbuffer++ = 0xAB;
-	*p_outbuffer++ = 0x10;
-	*p_outbuffer++ = 8;
-	*p_outbuffer++ = MajorRelease;
-	*p_outbuffer++ = MinorRelease;
-	*p_outbuffer++ = BuildNumber;
-	*p_outbuffer++ = 0;
-	*p_outbuffer++ = 0;
-	*p_outbuffer++ = 0;
-	*p_outbuffer++ = 0;
-	*p_outbuffer++ = 0;
-	int checksum = 0;
-	for(int i = 3; i < (3+8);i++)
-	{
-		checksum ^= outbuffer[i];
-	}
-	*p_outbuffer++ = checksum;
-	*length = p_outbuffer-&outbuffer[0];
-	return 1;
-}
-int SerialMessageHandler::decode_FirmwareVersionSerial(unsigned char* inpacket,char* MajorRelease,char* MinorRelease,char* BuildNumber)
-{
-	*MajorRelease=inpacket[0];
-	*MinorRelease=inpacket[1];
-	*BuildNumber=inpacket[2];
-	return 1;
-}
 int SerialMessageHandler::decode_DiagnosticSerial(unsigned char* inpacket,char* System,char* SubSystem,char* Component,char* Diagnostic_Type,char* Level,char* Diagnostic_Message)
 {
 	*System=inpacket[0];
@@ -45,9 +14,9 @@ int SerialMessageHandler::decode_DiagnosticSerial(unsigned char* inpacket,char* 
 	*Diagnostic_Message=inpacket[5];
 	return 1;
 }
-int SerialMessageHandler::encode_TestMessageCounterSerial(unsigned char* outbuffer,int* length,char value1,char value2,char value3,char value4,char value5,char value6,char value7,char value8)
+int SerialMessageHandler::encode_TestMessageCounterSerial(char* outbuffer,int* length,char value1,char value2,char value3,char value4,char value5,char value6,char value7,char value8)
 {
-	unsigned char *p_outbuffer;
+	char *p_outbuffer;
 	p_outbuffer = &outbuffer[0];
 	*p_outbuffer++ = 0xAB;
 	*p_outbuffer++ = 0x14;
@@ -81,9 +50,9 @@ int SerialMessageHandler::decode_TestMessageCounterSerial(unsigned char* inpacke
 	*value8=inpacket[7];
 	return 1;
 }
-int SerialMessageHandler::encode_TestMessageCommandSerial(unsigned char* outbuffer,int* length,char value1,char value2,char value3,char value4,char value5,char value6,char value7,char value8)
+int SerialMessageHandler::encode_TestMessageCommandSerial(char* outbuffer,int* length,char value1,char value2,char value3,char value4,char value5,char value6,char value7,char value8)
 {
-	unsigned char *p_outbuffer;
+	char *p_outbuffer;
 	p_outbuffer = &outbuffer[0];
 	*p_outbuffer++ = 0xAB;
 	*p_outbuffer++ = 0x15;
@@ -105,9 +74,9 @@ int SerialMessageHandler::encode_TestMessageCommandSerial(unsigned char* outbuff
 	*length = p_outbuffer-&outbuffer[0];
 	return 1;
 }
-int SerialMessageHandler::encode_Configure_DIO_PortASerial(unsigned char* outbuffer,int* length,char Pin1_Mode,char Pin2_Mode,char Pin3_Mode,char Pin4_Mode,char Pin5_Mode,char Pin6_Mode,char Pin7_Mode,char Pin8_Mode)
+int SerialMessageHandler::encode_Configure_DIO_PortASerial(char* outbuffer,int* length,char Pin1_Mode,char Pin2_Mode,char Pin3_Mode,char Pin4_Mode,char Pin5_Mode,char Pin6_Mode,char Pin7_Mode,char Pin8_Mode)
 {
-	unsigned char *p_outbuffer;
+	char *p_outbuffer;
 	p_outbuffer = &outbuffer[0];
 	*p_outbuffer++ = 0xAB;
 	*p_outbuffer++ = 0x16;
@@ -129,9 +98,9 @@ int SerialMessageHandler::encode_Configure_DIO_PortASerial(unsigned char* outbuf
 	*length = p_outbuffer-&outbuffer[0];
 	return 1;
 }
-int SerialMessageHandler::encode_GPIO_Board_ModeSerial(unsigned char* outbuffer,int* length,char Mode)
+int SerialMessageHandler::encode_ModeSerial(char* outbuffer,int* length,char Mode)
 {
-	unsigned char *p_outbuffer;
+	char *p_outbuffer;
 	p_outbuffer = &outbuffer[0];
 	*p_outbuffer++ = 0xAB;
 	*p_outbuffer++ = 0x17;
@@ -153,9 +122,14 @@ int SerialMessageHandler::encode_GPIO_Board_ModeSerial(unsigned char* outbuffer,
 	*length = p_outbuffer-&outbuffer[0];
 	return 1;
 }
-int SerialMessageHandler::encode_Set_DIO_PortASerial(unsigned char* outbuffer,int* length,char Pin1_Value,char Pin2_Value,char Pin3_Value,char Pin4_Value,char Pin5_Value,char Pin6_Value,char Pin7_Value,char Pin8_Value)
+int SerialMessageHandler::decode_ModeSerial(unsigned char* inpacket,char* Mode)
 {
-	unsigned char *p_outbuffer;
+	*Mode=inpacket[0];
+	return 1;
+}
+int SerialMessageHandler::encode_Set_DIO_PortASerial(char* outbuffer,int* length,char Pin1_Value,char Pin2_Value,char Pin3_Value,char Pin4_Value,char Pin5_Value,char Pin6_Value,char Pin7_Value,char Pin8_Value)
+{
+	char *p_outbuffer;
 	p_outbuffer = &outbuffer[0];
 	*p_outbuffer++ = 0xAB;
 	*p_outbuffer++ = 0x18;
@@ -201,9 +175,9 @@ int SerialMessageHandler::decode_Get_ANA_PortBSerial(unsigned char* inpacket,int
 	*Pin4_Value=inpacket[7] + v_Pin4_Value1;
 	return 1;
 }
-int SerialMessageHandler::encode_Configure_DIO_PortBSerial(unsigned char* outbuffer,int* length,char Pin1_Mode,char Pin2_Mode,char Pin3_Mode,char Pin4_Mode,char Pin5_Mode,char Pin6_Mode,char Pin7_Mode,char Pin8_Mode)
+int SerialMessageHandler::encode_Configure_DIO_PortBSerial(char* outbuffer,int* length,char Pin1_Mode,char Pin2_Mode,char Pin3_Mode,char Pin4_Mode,char Pin5_Mode,char Pin6_Mode,char Pin7_Mode,char Pin8_Mode)
 {
-	unsigned char *p_outbuffer;
+	char *p_outbuffer;
 	p_outbuffer = &outbuffer[0];
 	*p_outbuffer++ = 0xAB;
 	*p_outbuffer++ = 0x21;
@@ -225,9 +199,9 @@ int SerialMessageHandler::encode_Configure_DIO_PortBSerial(unsigned char* outbuf
 	*length = p_outbuffer-&outbuffer[0];
 	return 1;
 }
-int SerialMessageHandler::encode_Set_DIO_PortBSerial(unsigned char* outbuffer,int* length,char Pin1_Value,char Pin2_Value,char Pin3_Value,char Pin4_Value,char Pin5_Value,char Pin6_Value,char Pin7_Value,char Pin8_Value)
+int SerialMessageHandler::encode_Set_DIO_PortBSerial(char* outbuffer,int* length,char Pin1_Value,char Pin2_Value,char Pin3_Value,char Pin4_Value,char Pin5_Value,char Pin6_Value,char Pin7_Value,char Pin8_Value)
 {
-	unsigned char *p_outbuffer;
+	char *p_outbuffer;
 	p_outbuffer = &outbuffer[0];
 	*p_outbuffer++ = 0xAB;
 	*p_outbuffer++ = 0x22;

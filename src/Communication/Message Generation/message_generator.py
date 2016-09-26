@@ -277,8 +277,8 @@ def generate_message(xmlfile):
                         encode_for_slave = 1
                 #print message.get('name'), " Encoding/Decoding for Master: ", encode_for_master, ",", decode_for_master, " Encoding/Decoding for Slave: ", encode_for_slave, ",", decode_for_slave 
                 if(encode_for_master == 1):                
-                    ros_serialmessagefile_header.write('\tint encode_' + message.get('name') + 'Serial(unsigned char* outbuffer,int* length,')
-                    ros_serialmessagefile_cpp.write('int SerialMessageHandler::encode_' + message.get('name') + 'Serial(unsigned char* outbuffer,int* length,')
+                    ros_serialmessagefile_header.write('\tint encode_' + message.get('name') + 'Serial(char* outbuffer,int* length,')
+                    ros_serialmessagefile_cpp.write('int SerialMessageHandler::encode_' + message.get('name') + 'Serial(char* outbuffer,int* length,')
                 if(encode_for_slave == 1):
                     propeller_serialmessagefile_header.write('int encode_' + message.get('name') + 'Serial(int* outbuffer,int* length,')
                     propeller_serialmessagefile_cpp.write('int encode_' + message.get('name') + 'Serial(int* outbuffer,int* length,')
@@ -327,7 +327,7 @@ def generate_message(xmlfile):
                         print "ERROR: Datatype not supported:",item.datatype
                 if(bytelength > 8): print "ERROR ERROR ERROR: Currently Serial Messages longer than 8 bytes are not supported."
                 if(encode_for_master == 1):
-                    ros_serialmessagefile_cpp.write('\tunsigned char *p_outbuffer;\r\n\tp_outbuffer = &outbuffer[0];\r\n')
+                    ros_serialmessagefile_cpp.write('\tchar *p_outbuffer;\r\n\tp_outbuffer = &outbuffer[0];\r\n')
                     ros_serialmessagefile_cpp.write('\t*p_outbuffer++ = 0xAB;\r\n')
                     ros_serialmessagefile_cpp.write('\t*p_outbuffer++ = ' + message_id +';\r\n')
                     ros_serialmessagefile_cpp.write('\t*p_outbuffer++ = 8;\r\n')

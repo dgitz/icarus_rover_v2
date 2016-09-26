@@ -1,5 +1,5 @@
 /***************AUTO-GENERATED.  DO NOT EDIT********************/
-/***Created on:2016-09-17 09:24:24.465316***/
+/***Created on:2016-09-25 14:25:34.200479***/
 /***Target: Parallax Propeller ***/
 #include "serialmessage.h"
 int encode_DiagnosticSerial(int* outbuffer,int* length,char System,char SubSystem,char Component,char Diagnostic_Type,char Level,char Diagnostic_Message)
@@ -102,7 +102,30 @@ int decode_Configure_DIO_PortASerial(int* inpacket,int length,int checksum,char*
 	*Pin8_Mode=inpacket[7];
 	return 1;
 }
-int decode_GPIO_Board_ModeSerial(int* inpacket,int length,int checksum,char* Mode)
+int encode_ModeSerial(int* outbuffer,int* length,char Mode)
+{
+	int byte_counter=0;
+	outbuffer[byte_counter++] = 0xAB;
+	outbuffer[byte_counter++] = 0x17;
+	outbuffer[byte_counter++] = 8;
+	outbuffer[byte_counter++] = Mode;
+	outbuffer[byte_counter++] = 0;
+	outbuffer[byte_counter++] = 0;
+	outbuffer[byte_counter++] = 0;
+	outbuffer[byte_counter++] = 0;
+	outbuffer[byte_counter++] = 0;
+	outbuffer[byte_counter++] = 0;
+	outbuffer[byte_counter++] = 0;
+	int checksum = 0;
+	for(int i = 3; i < (3+8);i++)
+	{
+		checksum ^= outbuffer[i];
+	}
+	outbuffer[byte_counter] = checksum;
+	length[0] = 3+8+1;
+	return 1;
+}
+int decode_ModeSerial(int* inpacket,int length,int checksum,char* Mode)
 {
 	int computed_checksum = 0;
 	for(int i = 0; i < length; i++)

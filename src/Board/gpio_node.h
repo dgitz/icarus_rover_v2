@@ -18,6 +18,7 @@
 //End Template Code: Includes
 
 //Start User Code: Includes
+#include "gpio_node_process.h"
 #include <stdio.h>
 #include <string.h>
 #include <serialmessage.h>
@@ -25,12 +26,7 @@
 #include <fcntl.h>			//Used for UART
 #include <termios.h>		//Used for UART
 #include <boost/thread.hpp>
-struct Port_Info{
-	std::string PortName;
-	bool Available[8];
-	int Value[8];
-	int Mode[8];
-};
+
 //End User Code: Includes
 
 
@@ -47,14 +43,6 @@ std::vector<icarus_rover_v2::diagnostic> check_program_variables();
 //Stop Template Code: Function Prototypes
 
 //Start User Code: Function Prototypes
-bool initialize_gpioboard_ports();
-bool configure_pin(std::string BoardName,std::string Port, uint8_t Number, std::string Function);
-void DigitalOutput_Callback(const icarus_rover_v2::pin::ConstPtr& msg);
-void PwmOutput_Callback(const icarus_rover_v2::pin::ConstPtr& msg);
-bool publish_port_info(Port_Info pi);
-std::string map_PinFunction_ToString(int function);
-int map_PinFunction_ToInt(std::string Function);
-void process_message_thread();
 //End User Code: Function Prototypes
 
 
@@ -87,6 +75,8 @@ bool device_initialized;
 //End Template Code: Define Global Variables
 
 //Start User Code: Define Global Variables
+bool resource_monitor_running;
+GPIONodeProcess *process;
 ros::Publisher digitalinput_pub;
 ros::Subscriber pwmoutput_sub;
 ros::Subscriber digitaloutput_sub;
@@ -96,9 +86,8 @@ int gpio_board_mode;
 ros::Time gpio_comm_test_start;
 bool checking_gpio_comm;
 int message_receive_counter;
-SerialMessageHandler *serialmessagehandler;
 int device_fid;
-std::vector<icarus_rover_v2::device> boards;
+
 int current_num;
 int last_num;
 int missed_counter;
@@ -113,9 +102,6 @@ int message_buffer_index;
 unsigned char message_buffer[64];
 int packet_length;
 
-Port_Info DIO_PortA;
-Port_Info DIO_PortB;
-Port_Info ANA_PortA;
-Port_Info ANA_PortB;
+
 //End User Code: Define Global Variables
 #endif

@@ -149,16 +149,17 @@
             </Protocol>
         </Protocols>
     </Message>
-    <Message name="GPIO_Board_Mode" id="0xAB17">
+    <Message name="Mode" id="0xAB17">
         <Description>
             <![CDATA[
-                After configuring the GPIO Board, this message is used to commence operation.  
+                Sends the Mode to the other device.
             ]]>
         </Description>
         <Protocols>
             <Protocol name="Serial">
                 <Retry>true</Retry>
                 <Origin>Master</Origin>
+                <Origin>Slave</Origin>
                 <Fields>
                     <field type="char" name="Mode"/>
                 </Fields>

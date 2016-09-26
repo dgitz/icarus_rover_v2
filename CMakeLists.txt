@@ -202,10 +202,10 @@ include_directories(
 #############
 #roslaunch_add_file_check(/home/dgitz/catkin_ws/src/icarus_rover_v2/launch)
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_icarus_rover_v2.cpp)
-# if(TARGET ${PROJECT_NAME}-test)
-#   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
-# endif()
+#catkin_add_gtest(${PROJECT_NAME}-test test/test_icarus_rover_v2.cpp)
+if(TARGET ${PROJECT_NAME}-test)
+   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
+ endif()
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
@@ -214,6 +214,7 @@ add_library(logger util/logger.cpp)
 add_library(udpmessage util/udpmessage.cpp)
 add_library(serialmessage util/serialmessage.cpp)
 add_library(resourcemonitor util/resourcemonitor.cpp)
+add_library(gpio_node_process src/Board/gpio_node_process.cpp)
 
 add_executable(command_node src/Control/command_node.cpp)
 target_link_libraries(command_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor)
@@ -226,5 +227,8 @@ target_link_libraries(network_transceiver_node ${catkin_LIBRARIES} ${Boost_LIBRA
 add_executable(topicremapper_node src/Communication/topicremapper_node.cpp)
 target_link_libraries(topicremapper_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} logger resourcemonitor)
 
+catkin_add_gtest(test_gpio_node test/test_gpio_node.cpp)
+target_link_libraries(test_gpio_node gpio_node_process logger serialmessage ${TinyXML_LIBRARIES} ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${roscpp_LIBRARIES})
 add_executable(gpio_node src/Board/gpio_node.cpp)
-target_link_libraries(gpio_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} logger serialmessage resourcemonitor)
+target_link_libraries(gpio_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} gpio_node_process logger serialmessage resourcemonitor)
+
