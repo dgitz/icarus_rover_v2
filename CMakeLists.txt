@@ -229,6 +229,4 @@ target_link_libraries(topicremapper_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} 
 
 catkin_add_gtest(test_gpio_node test/test_gpio_node.cpp)
 target_link_libraries(test_gpio_node gpio_node_process logger serialmessage ${TinyXML_LIBRARIES} ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${roscpp_LIBRARIES})
-add_executable(gpio_node src/Board/gpio_node.cpp)
-target_link_libraries(gpio_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} gpio_node_process logger serialmessage resourcemonitor)
 

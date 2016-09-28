@@ -76,10 +76,12 @@ protected:
 	state_ack send_configure_DIO_PortA;
 	state_ack send_configure_DIO_PortB;
 	state_ack send_testmessage_command;
+	state_ack send_nodemode;
 private:
 
 	int board_state;
 	int node_state;
+	int prev_node_state;
 	SerialMessageHandler *serialmessagehandler;
 	bool configure_pin(std::string BoardName,std::string Port, uint8_t Number, std::string Function);
 	void initialize_stateack_messages();

@@ -1,5 +1,5 @@
 /***************AUTO-GENERATED.  DO NOT EDIT********************/
-/***Created on:2016-09-25 14:25:34.200479***/
+/***Created on:2016-09-26 18:15:26.802366***/
 /***Target: Parallax Propeller ***/
 #include "serialmessage.h"
 int encode_DiagnosticSerial(int* outbuffer,int* length,char System,char SubSystem,char Component,char Diagnostic_Type,char Level,char Diagnostic_Message)
@@ -289,6 +289,29 @@ int encode_Get_DIO_PortBSerial(int* outbuffer,int* length,char Pin1_Value,char P
 	outbuffer[byte_counter++] = Pin6_Value;
 	outbuffer[byte_counter++] = Pin7_Value;
 	outbuffer[byte_counter++] = Pin8_Value;
+	int checksum = 0;
+	for(int i = 3; i < (3+8);i++)
+	{
+		checksum ^= outbuffer[i];
+	}
+	outbuffer[byte_counter] = checksum;
+	length[0] = 3+8+1;
+	return 1;
+}
+int encode_FirmwareVersionSerial(int* outbuffer,int* length,char majorVersion,char minorVersion,char buildNumber)
+{
+	int byte_counter=0;
+	outbuffer[byte_counter++] = 0xAB;
+	outbuffer[byte_counter++] = 0x25;
+	outbuffer[byte_counter++] = 8;
+	outbuffer[byte_counter++] = majorVersion;
+	outbuffer[byte_counter++] = minorVersion;
+	outbuffer[byte_counter++] = buildNumber;
+	outbuffer[byte_counter++] = 0;
+	outbuffer[byte_counter++] = 0;
+	outbuffer[byte_counter++] = 0;
+	outbuffer[byte_counter++] = 0;
+	outbuffer[byte_counter++] = 0;
 	int checksum = 0;
 	for(int i = 3; i < (3+8);i++)
 	{

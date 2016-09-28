@@ -1,5 +1,5 @@
 /***************AUTO-GENERATED.  DO NOT EDIT********************/
-/***Created on:2016-09-25 14:25:34.200397***/
+/***Created on:2016-09-26 18:15:26.802292***/
 /***Target: Raspberry Pi ***/
 #include "serialmessage.h"
 SerialMessageHandler::SerialMessageHandler(){}
@@ -245,5 +245,12 @@ int SerialMessageHandler::decode_Get_DIO_PortBSerial(unsigned char* inpacket,cha
 	*Pin6_Value=inpacket[5];
 	*Pin7_Value=inpacket[6];
 	*Pin8_Value=inpacket[7];
+	return 1;
+}
+int SerialMessageHandler::decode_FirmwareVersionSerial(unsigned char* inpacket,char* majorVersion,char* minorVersion,char* buildNumber)
+{
+	*majorVersion=inpacket[0];
+	*minorVersion=inpacket[1];
+	*buildNumber=inpacket[2];
 	return 1;
 }

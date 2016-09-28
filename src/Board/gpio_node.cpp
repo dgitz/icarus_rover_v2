@@ -63,14 +63,72 @@ void process_message_thread()
 }
 bool run_fastrate_code()
 {
-
+	if(new_message == true)
+	{
+		new_message = false;
+		if(packet_type == SERIAL_TestMessageCounter_ID)
+		{
+			diagnostic_status = process->new_serialmessage_TestMessageCounter(packet_type,packet);
+		}
+		else if(packet_type == SERIAL_FirmwareVersion_ID)
+		{
+			diagnostic_status = process->new_serialmessage_FirmwareVersion(packet_type,packet);
+		}
+		else if(packet_type == SERIAL_Diagnostic_ID)
+		{
+			diagnostic_status = process->new_serialmessage_Diagnostic(packet_type,packet);
+		}
+		else if(packet_type == SERIAL_Get_ANA_PortA_ID)
+		{
+			diagnostic_status = process->new_serialmessage_Get_ANA_PortA(packet_type,packet);
+		}
+		else if(packet_type == SERIAL_Get_ANA_PortB_ID)
+		{
+			diagnostic_status = process->new_serialmessage_Get_ANA_PortB(packet_type,packet);
+		}
+		else if(packet_type == SERIAL_Get_DIO_PortA_ID)
+		{
+			diagnostic_status = process->new_serialmessage_Get_DIO_PortA(packet_type,packet);
+		}
+		else if(packet_type == SERIAL_Get_DIO_PortB_ID)
+		{
+			diagnostic_status = process->new_serialmessage_Get_DIO_PortB(packet_type,packet);
+		}
+		else if(packet_type == SERIAL_Mode_ID)
+		{
+			diagnostic_status = process->new_serialmessage_Get_Mode(packet_type,packet);
+		}
+	}
 	diagnostic_status = process->update(20);  //Need to change 20 to the actual dt!!!
-	
+	std::vector<std::string> tx_buffers;
+	bool send = process->checkTriggers(tx_buffers);
+	if(send == true)
+	{
+		for(int i = 0; i < tx_buffers.size();i++)
+		{
+			unsigned char tx_buffer[12];
+			strcpy((char *)tx_buffer,tx_buffers.at(i).c_str());
+			int count = write(device_fid, &tx_buffer[0], 12);
+			if (count < 0)
+			{
+				logger->log_error("UART TX error\n");
+				icarus_rover_v2::diagnostic diag=diagnostic_status;
+				diag.Diagnostic_Type = COMMUNICATIONS;
+				diag.Level = ERROR;
+				diag.Diagnostic_Message = DROPPING_PACKETS;
+				diag.Description = "Cannot write to UART.";
+				diagnostic_pub.publish(diag);
+			}
+		}
+	}
+	diagnostic_pub.publish(diagnostic_status);
 	return true;
 }
 bool run_mediumrate_code()
 {
-	
+	char tempstr[128];
+	sprintf(tempstr,"Board Mode: %d Node Mode: %d",process->get_boardstate(),process->get_nodestate());
+	logger->log_debug(tempstr);
 	return true;
 }
 bool run_slowrate_code()

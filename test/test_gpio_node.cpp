@@ -21,6 +21,13 @@ bool parse_devicefile(TiXmlDocument doc);
 bool setup();
 void print_mydevice();
 void print_otherdevices();
+int mode_states[] = {	GPIO_MODE_UNDEFINED,
+						GPIO_MODE_BOOT,
+						GPIO_MODE_INITIALIZING,
+						GPIO_MODE_INITIALIZED,
+						GPIO_MODE_RUNNING,
+						GPIO_MODE_STOPPED};
+int mode_state_count = 6;
 
 TEST(TestSuite,FSM_Boot)
 {
@@ -50,7 +57,78 @@ TEST(TestSuite,FSM_Boot)
 	diagnostic_status = process->update(50);
 	EXPECT_TRUE((diagnostic_status.Level == NOERROR) || (diagnostic_status.Level == INFO));
 	myBoards = process->get_myboards();
-	print_mydevice();
+	//print_mydevice();
+}
+TEST(TestSuite,FSM_Board_Reset)
+{
+	EXPECT_TRUE(setup()==true);
+	EXPECT_TRUE(process->get_boardstate() == GPIO_MODE_UNDEFINED);
+	EXPECT_TRUE(process->get_nodestate() == GPIO_MODE_BOOT);
+	process->new_devicemsg(myDevice);
+	EXPECT_TRUE(myDevice.DeviceName == process->get_mydevice().DeviceName);
+	EXPECT_TRUE(process->is_finished_initializing() == false);
+	for(int i = 0; i < otherDevices.size();i++)
+	{
+		//cout << "i: " << i << " Device: " << otherDevices.at(i).DeviceName << endl;
+		process->new_devicemsg(otherDevices.at(i));
+	}
+	EXPECT_TRUE(process->is_finished_initializing() == true);
+	EXPECT_TRUE(process->get_boardstate() == GPIO_MODE_UNDEFINED);
+	EXPECT_TRUE(process->get_nodestate() == GPIO_MODE_INITIALIZED);
+	EXPECT_TRUE(process->get_timeout_ms() == 1000);
+	std::vector<std::string> tx_buffers;
+	process->checkTriggers(tx_buffers);
+	EXPECT_TRUE(tx_buffers.empty() == true); //Should not be sending anything yet
+	for(int i = 0; i < 19; i++)
+	{
+		diagnostic_status = process->update(50);
+		EXPECT_TRUE((diagnostic_status.Level == NOERROR) || (diagnostic_status.Level == INFO));
+	}
+	diagnostic_status = process->update(50);
+	EXPECT_TRUE((diagnostic_status.Level == NOERROR) || (diagnostic_status.Level == INFO));
+	myBoards = process->get_myboards();
+	//print_mydevice();
+	{//Test Recv GPIO Board Mode: BOOT
+		unsigned char rx_packet[8];
+		rx_packet[0] = GPIO_MODE_BOOT;
+		process->new_serialmessage_Get_Mode(SERIAL_Mode_ID,rx_packet);
+		EXPECT_TRUE(process->get_nodestate() == GPIO_MODE_INITIALIZED);
+		diagnostic_status = process->update(50);
+		EXPECT_TRUE((diagnostic_status.Level == NOERROR) || (diagnostic_status.Level == INFO));
+		tx_buffers.clear();
+		process->checkTriggers(tx_buffers);
+		bool is_sending_node_mode = false;
+		for(int i = 0; i < tx_buffers.size();i++)
+		{
+			std::string buffer = tx_buffers.at(i);
+			if(buffer.at(1) == SERIAL_Mode_ID){ is_sending_node_mode = true; }
+		}
+		EXPECT_TRUE(is_sending_node_mode == true);
+	}
+	{//Test Recv GPIO Board Mode: INITIALIZING
+		unsigned char rx_packet[8];
+		rx_packet[0] = GPIO_MODE_INITIALIZING;
+		process->new_serialmessage_Get_Mode(SERIAL_Mode_ID,rx_packet);
+		EXPECT_TRUE(process->get_boardstate() == GPIO_MODE_INITIALIZING);
+
+
+		EXPECT_TRUE(process->get_nodestate() == GPIO_MODE_INITIALIZED);
+		EXPECT_TRUE(process->get_boardstate() == GPIO_MODE_INITIALIZING);
+		diagnostic_status = process->update(50);
+		EXPECT_TRUE((diagnostic_status.Level == NOERROR) || (diagnostic_status.Level == INFO));
+		process->checkTriggers(tx_buffers);
+		EXPECT_TRUE(tx_buffers.empty() == false); //Should be sending configure Port info
+		bool is_sending_Config_DIO_PortA = false;
+		bool is_sending_Config_DIO_PortB = false;
+		for(int i = 0; i < tx_buffers.size();i++)
+		{
+			std::string buffer = tx_buffers.at(i);
+			if(buffer.at(1) == SERIAL_Configure_DIO_PortA_ID){ is_sending_Config_DIO_PortA = true; }
+			if(buffer.at(1) == SERIAL_Configure_DIO_PortB_ID){ is_sending_Config_DIO_PortB = true; }
+		}
+		EXPECT_TRUE(is_sending_Config_DIO_PortA == true);
+		EXPECT_TRUE(is_sending_Config_DIO_PortB == true);
+	}
 }
 TEST(TestSuite,FSM_Configure)
 {
@@ -77,8 +155,6 @@ TEST(TestSuite,FSM_Configure)
 	{
 		diagnostic_status = process->update(50);
 		EXPECT_TRUE((diagnostic_status.Level == NOERROR) || (diagnostic_status.Level == INFO));
-		process->checkTriggers(tx_buffers);
-		EXPECT_TRUE(tx_buffers.empty() == true); //Should still not be sending anything yet
 		if(i == 10)
 		{
 			unsigned char rx_packet[8];
@@ -138,8 +214,6 @@ TEST(TestSuite,FSM_Running)
 	{
 		diagnostic_status = process->update(50);
 		EXPECT_TRUE((diagnostic_status.Level == NOERROR) || (diagnostic_status.Level == INFO));
-		process->checkTriggers(tx_buffers);
-		EXPECT_TRUE(tx_buffers.empty() == true); //Should still not be sending anything yet
 		if(i == 10)
 		{
 			unsigned char rx_packet[8];
@@ -206,8 +280,6 @@ TEST(TestSuite,TestMessage)
 	{
 		diagnostic_status = process->update(50);
 		EXPECT_TRUE((diagnostic_status.Level == NOERROR) || (diagnostic_status.Level == INFO));
-		process->checkTriggers(tx_buffers);
-		EXPECT_TRUE(tx_buffers.empty() == true); //Should still not be sending anything yet
 		if(i == 10)
 		{
 			unsigned char rx_packet[8];
@@ -297,8 +369,6 @@ TEST(TestSuite,FSM_ReadSerial)
 	{
 		diagnostic_status = process->update(50);
 		EXPECT_TRUE((diagnostic_status.Level == NOERROR) || (diagnostic_status.Level == INFO));
-		process->checkTriggers(tx_buffers);
-		EXPECT_TRUE(tx_buffers.empty() == true); //Should still not be sending anything yet
 		if(i == 10)
 		{
 			unsigned char rx_packet[8];

@@ -21,7 +21,9 @@ icarus_rover_v2::diagnostic GPIONodeProcess::init(icarus_rover_v2::diagnostic in
 	initialize_stateack_messages();
 	serialmessagehandler = new SerialMessageHandler();
 	board_state = GPIO_MODE_UNDEFINED;
+	
 	node_state = GPIO_MODE_BOOT;
+	prev_node_state = GPIO_MODE_BOOT;
 	myhostname = hostname;
 	diagnostic = indiag;
 	mylogger = log;
@@ -36,12 +38,21 @@ icarus_rover_v2::diagnostic GPIONodeProcess::update(long dt)
 	if(timer_timeout == true)
 	{
 		timer_timeout = false;
+		printf("Mode: %d,%d\n",node_state,board_state);
 		if((node_state == GPIO_MODE_INITIALIZED) && (board_state == GPIO_MODE_INITIALIZING))
 		{
+			printf("Setting to true.\n");
 			send_configure_DIO_PortA.trigger = true;
 			send_configure_DIO_PortB.trigger = true;
 		}
+		
 	}
+	if(prev_node_state != node_state)
+	{
+		send_nodemode.trigger = true;
+		prev_node_state = node_state;
+	}
+	send_nodemode.trigger = true;
 	return diagnostic;
 }
 state_ack GPIONodeProcess::get_stateack(std::string name)
@@ -67,6 +78,7 @@ bool GPIONodeProcess::checkTriggers(std::vector<std::string> &tx_buffers)
 	bool nothing_triggered = true;
 	if(send_configure_DIO_PortA.trigger == true)
 	{
+		printf("A Triggered.\n");
 		nothing_triggered = false;
 		std::string BoardName = myboards.at(send_configure_DIO_PortA.flag1).DeviceName;
 		Port_Info Port = get_PortInfo(BoardName,"DIO_PortA");
@@ -107,7 +119,7 @@ bool GPIONodeProcess::checkTriggers(std::vector<std::string> &tx_buffers)
 	if(send_testmessage_command.trigger == true)
 	{
 		nothing_triggered = false;
-		printf("Test Message Command Triggered.\n");
+		//printf("Test Message Command Triggered.\n");
 		char buffer[12];
 		int length;
 		int tx_status = serialmessagehandler->encode_TestMessageCommandSerial(buffer,&length,
@@ -122,11 +134,32 @@ bool GPIONodeProcess::checkTriggers(std::vector<std::string> &tx_buffers)
 		}
 		send_testmessage_command.trigger = false;
 	}
+	if(send_nodemode.trigger == true)
+	{
+		nothing_triggered = false;
+		//printf("Test Message Command Triggered.\n");
+		char buffer[12];
+		int length;
+		int tx_status = serialmessagehandler->encode_ModeSerial(buffer,&length,node_state);
+		tx_buffers.push_back(std::string(buffer));
+
+		send_nodemode.state = true;
+		if (send_nodemode.retrying == false)
+		{
+			gettimeofday(&send_nodemode.orig_send_time,NULL);
+			send_nodemode.retries = 0;
+		}
+		send_nodemode.trigger = false;
+	}
 	if(nothing_triggered == true)
 	{
 		tx_buffers.clear();
+		return false;
 	}
-	return true;
+	else
+	{
+		return true;
+	}
 }
 icarus_rover_v2::diagnostic GPIONodeProcess::new_commandmsg(icarus_rover_v2::command msg)
 {
@@ -165,13 +198,13 @@ icarus_rover_v2::diagnostic GPIONodeProcess::new_commandmsg(icarus_rover_v2::com
 }
 icarus_rover_v2::diagnostic GPIONodeProcess::new_serialmessage_TestMessageCounter(int packet_type,unsigned char* inpacket)
 {
-	diagnostic.Level = ERROR;
+	diagnostic.Level = WARN;
 	diagnostic.Description = "Not implemented yet.";
 	return diagnostic;
 }
 icarus_rover_v2::diagnostic GPIONodeProcess::new_serialmessage_FirmwareVersion(int packet_type,unsigned char* inpacket)
 {
-	diagnostic.Level = ERROR;
+	diagnostic.Level = WARN;
 	diagnostic.Description = "Not implemented yet.";
 	return diagnostic;
 }
@@ -196,25 +229,25 @@ icarus_rover_v2::diagnostic GPIONodeProcess::new_serialmessage_Diagnostic(int pa
 }
 icarus_rover_v2::diagnostic GPIONodeProcess::new_serialmessage_Get_ANA_PortA(int packet_type,unsigned char* inpacket)
 {
-	diagnostic.Level = ERROR;
+	diagnostic.Level = WARN;
 	diagnostic.Description = "Not implemented yet.";
 	return diagnostic;
 }
 icarus_rover_v2::diagnostic GPIONodeProcess::new_serialmessage_Get_ANA_PortB(int packet_type,unsigned char* inpacket)
 {
-	diagnostic.Level = ERROR;
+	diagnostic.Level = WARN;
 	diagnostic.Description = "Not implemented yet.";
 	return diagnostic;
 }
 icarus_rover_v2::diagnostic GPIONodeProcess::new_serialmessage_Get_DIO_PortA(int packet_type,unsigned char* inpacket)
 {
-	diagnostic.Level = ERROR;
+	diagnostic.Level = WARN;
 	diagnostic.Description = "Not implemented yet.";
 	return diagnostic;
 }
 icarus_rover_v2::diagnostic GPIONodeProcess::new_serialmessage_Get_DIO_PortB(int packet_type,unsigned char* inpacket)
 {
-	diagnostic.Level = ERROR;
+	diagnostic.Level = WARN;
 	diagnostic.Description = "Not implemented yet.";
 	return diagnostic;
 }
@@ -222,21 +255,37 @@ icarus_rover_v2::diagnostic GPIONodeProcess::new_serialmessage_Get_Mode(int pack
 {
 	if(packet_type ==SERIAL_Mode_ID)
 	{
-		mylogger->log_debug("Got GPIO Board Mode from GPIO Board.");
-		printf("here.");
+		char tempstr[128];
 		char value1;
 		serialmessagehandler->decode_ModeSerial(inpacket,&value1);
 		board_state = value1;
+		sprintf(tempstr,"Got GPIO Board Mode: %d from GPIO Board.",board_state);
+		mylogger->log_debug(tempstr);
 		diagnostic.Level = NOERROR;
 		diagnostic.Description = "GPIO Board Mode Decoded successfully.";
 		diagnostic.Diagnostic_Message = NOERROR;
-		if(board_state == GPIO_MODE_RUNNING)
+		if(board_state == GPIO_MODE_BOOT)
+		{
+			send_configure_DIO_PortA.trigger = false;
+			send_configure_DIO_PortB.trigger = false;
+			printf("Setting triggers to false.\n");
+		}
+		else if(board_state == GPIO_MODE_INITIALIZING)
+		{
+			send_configure_DIO_PortA.trigger = true;
+			send_configure_DIO_PortB.trigger = true;
+			prev_node_state = node_state;
+			node_state = GPIO_MODE_INITIALIZED;
+		}
+		else if(board_state == GPIO_MODE_RUNNING)
 		{
 			if(node_state == GPIO_MODE_INITIALIZED)
 			{
+				node_state = prev_node_state;
 				node_state = GPIO_MODE_RUNNING;
 			}
 		}
+		
 	}
 	else
 	{
@@ -248,7 +297,7 @@ icarus_rover_v2::diagnostic GPIONodeProcess::new_serialmessage_Get_Mode(int pack
 }
 icarus_rover_v2::diagnostic GPIONodeProcess::new_devicemsg(icarus_rover_v2::device newdevice)
 {
-	cout << "Got Device: " << newdevice.DeviceName << " Parent: " << newdevice.DeviceParent << endl;
+	//cout << "Got Device: " << newdevice.DeviceName << " Parent: " << newdevice.DeviceParent << endl;
 	if((newdevice.DeviceParent == "None") && (newdevice.DeviceName == myhostname) && (all_device_info_received == false))
 	{
 		mydevice = newdevice;
@@ -270,7 +319,7 @@ icarus_rover_v2::diagnostic GPIONodeProcess::new_devicemsg(icarus_rover_v2::devi
 					board.pins.at(i).Port.c_str(),
 					board.pins.at(i).Number,
 					board.pins.at(i).Function.c_str());
-				printf("%s\n",tempstr);
+				//printf("%s\n",tempstr);
 				mylogger->log_error(tempstr);
 				diagnostic.Diagnostic_Type = SOFTWARE;
 				diagnostic.Level = ERROR;
@@ -285,7 +334,7 @@ icarus_rover_v2::diagnostic GPIONodeProcess::new_devicemsg(icarus_rover_v2::devi
 					board.pins.at(i).Port.c_str(),
 					board.pins.at(i).Number,
 					board.pins.at(i).Function.c_str());
-				printf("%s\n",tempstr);
+				//printf("%s\n",tempstr);
 				mylogger->log_debug(tempstr);
 			}
 		}
@@ -308,6 +357,8 @@ icarus_rover_v2::diagnostic GPIONodeProcess::new_devicemsg(icarus_rover_v2::devi
 			}
 			all_device_info_received = true;
 			ms_timer = 0;
+			//printf("Received all device info.\n");
+			prev_node_state = node_state;
 			node_state = GPIO_MODE_INITIALIZED;
 		}
 	}
@@ -422,4 +473,13 @@ void GPIONodeProcess::initialize_stateack_messages()
 	send_testmessage_command.timeout_counter = 0;
 	send_testmessage_command.retry_mode = false;
 	send_testmessage_command.failed = false;
+	
+	send_nodemode.name = "Send Node Mode";
+	send_nodemode.trigger = false;
+	send_nodemode.state = false;
+	gettimeofday(&send_nodemode.orig_send_time,NULL);
+	send_nodemode.retries = 0;
+	send_nodemode.timeout_counter = 0;
+	send_nodemode.retry_mode = false;
+	send_nodemode.failed = false;
 }

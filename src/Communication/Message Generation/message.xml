@@ -317,4 +317,22 @@
             </Protocol>
         </Protocols>
     </Message>
+    <Message name="FirmwareVersion" id="0xAB25">
+        <Description>
+            <![CDATA[
+                This message is used to get the inputs on PortB. If a pin is not configured as an input this value is discarded.
+            ]]>
+        </Description>
+        <Protocols>
+            <Protocol name="Serial">
+                <Retry>false</Retry>
+                <Origin>Slave</Origin>
+                <Fields>
+                    <field type="char" name="majorVersion"/>
+                    <field type="char" name="minorVersion"/>
+                    <field type="char" name="buildNumber"/>
+                </Fields>
+            </Protocol>
+        </Protocols>
+    </Message>
 </Messages>

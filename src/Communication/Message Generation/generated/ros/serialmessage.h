@@ -1,5 +1,5 @@
 /***************AUTO-GENERATED.  DO NOT EDIT********************/
-/***Created on:2016-09-25 14:25:34.200366***/
+/***Created on:2016-09-26 18:15:26.802258***/
 /***Target: Raspberry Pi ***/
 #ifndef SERIALMESSAGE_H
 #define SERIALMESSAGE_H
@@ -15,6 +15,7 @@
 #define SERIAL_Set_DIO_PortB_ID 0x22
 #define SERIAL_Get_DIO_PortA_ID 0x23
 #define SERIAL_Get_DIO_PortB_ID 0x24
+#define SERIAL_FirmwareVersion_ID 0x25
 
 class SerialMessageHandler
 {
@@ -35,6 +36,7 @@ public:
 	int encode_Set_DIO_PortBSerial(char* outbuffer,int* length,char Pin1_Value,char Pin2_Value,char Pin3_Value,char Pin4_Value,char Pin5_Value,char Pin6_Value,char Pin7_Value,char Pin8_Value);
 	int decode_Get_DIO_PortASerial(unsigned char* inpacket,char* Pin1_Value,char* Pin2_Value,char* Pin3_Value,char* Pin4_Value,char* Pin5_Value,char* Pin6_Value,char* Pin7_Value,char* Pin8_Value);
 	int decode_Get_DIO_PortBSerial(unsigned char* inpacket,char* Pin1_Value,char* Pin2_Value,char* Pin3_Value,char* Pin4_Value,char* Pin5_Value,char* Pin6_Value,char* Pin7_Value,char* Pin8_Value);
+	int decode_FirmwareVersionSerial(unsigned char* inpacket,char* majorVersion,char* minorVersion,char* buildNumber);
 private:
 };
 #endif
