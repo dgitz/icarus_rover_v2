@@ -100,15 +100,19 @@ bool run_fastrate_code()
 		}
 	}
 	diagnostic_status = process->update(20);  //Need to change 20 to the actual dt!!!
-	std::vector<std::string> tx_buffers;
+	std::vector<std::vector<unsigned char> > tx_buffers;
 	bool send = process->checkTriggers(tx_buffers);
 	if(send == true)
 	{
 		for(int i = 0; i < tx_buffers.size();i++)
 		{
 			unsigned char tx_buffer[12];
-			strcpy((char *)tx_buffer,tx_buffers.at(i).c_str());
-			int count = write(device_fid, &tx_buffer[0], 12);
+			std::vector<unsigned char> tempstr = tx_buffers.at(i);
+			//tx_buffer = &tempstr.front();
+			//std::copy(std::begin(tempstr),std::end(tempstr),std::begin(tx_buffer));
+			//int count = write(device_fid, &tx_buffer[0], 12);
+			int count = write(device_fid,reinterpret_cast<char*> (&tempstr[0]),12);
+			//int count = write(device_fid,tempstr,12);
 			if (count < 0)
 			{
 				logger->log_error("UART TX error\n");

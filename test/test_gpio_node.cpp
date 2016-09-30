@@ -20,6 +20,7 @@ char hostname[1024];
 bool parse_devicefile(TiXmlDocument doc);
 bool setup();
 void print_mydevice();
+int compute_checksum(std::vector<unsigned char>,int startbyte,int length);
 void print_otherdevices();
 int mode_states[] = {	GPIO_MODE_UNDEFINED,
 						GPIO_MODE_BOOT,
@@ -29,7 +30,7 @@ int mode_states[] = {	GPIO_MODE_UNDEFINED,
 						GPIO_MODE_STOPPED};
 int mode_state_count = 6;
 
-TEST(TestSuite,FSM_Boot)
+TEST(FSM_Tests,FSM_Boot)
 {
 	EXPECT_TRUE(setup()==true);
 	EXPECT_TRUE(process->get_boardstate() == GPIO_MODE_UNDEFINED);
@@ -46,7 +47,7 @@ TEST(TestSuite,FSM_Boot)
 	EXPECT_TRUE(process->get_boardstate() == GPIO_MODE_UNDEFINED);
 	EXPECT_TRUE(process->get_nodestate() == GPIO_MODE_INITIALIZED);
 	EXPECT_TRUE(process->get_timeout_ms() == 1000);
-	std::vector<std::string> tx_buffers;
+	std::vector<std::vector<unsigned char > > tx_buffers;
 	process->checkTriggers(tx_buffers);
 	EXPECT_TRUE(tx_buffers.empty() == true); //Should not be sending anything yet
 	for(int i = 0; i < 19; i++)
@@ -59,7 +60,7 @@ TEST(TestSuite,FSM_Boot)
 	myBoards = process->get_myboards();
 	//print_mydevice();
 }
-TEST(TestSuite,FSM_Board_Reset)
+TEST(FSM_Tests,FSM_Board_Reset)
 {
 	EXPECT_TRUE(setup()==true);
 	EXPECT_TRUE(process->get_boardstate() == GPIO_MODE_UNDEFINED);
@@ -76,7 +77,7 @@ TEST(TestSuite,FSM_Board_Reset)
 	EXPECT_TRUE(process->get_boardstate() == GPIO_MODE_UNDEFINED);
 	EXPECT_TRUE(process->get_nodestate() == GPIO_MODE_INITIALIZED);
 	EXPECT_TRUE(process->get_timeout_ms() == 1000);
-	std::vector<std::string> tx_buffers;
+	std::vector<std::vector<unsigned char > > tx_buffers;
 	process->checkTriggers(tx_buffers);
 	EXPECT_TRUE(tx_buffers.empty() == true); //Should not be sending anything yet
 	for(int i = 0; i < 19; i++)
@@ -100,7 +101,7 @@ TEST(TestSuite,FSM_Board_Reset)
 		bool is_sending_node_mode = false;
 		for(int i = 0; i < tx_buffers.size();i++)
 		{
-			std::string buffer = tx_buffers.at(i);
+			std::vector<unsigned char> buffer = tx_buffers.at(i);
 			if(buffer.at(1) == SERIAL_Mode_ID){ is_sending_node_mode = true; }
 		}
 		EXPECT_TRUE(is_sending_node_mode == true);
@@ -122,7 +123,7 @@ TEST(TestSuite,FSM_Board_Reset)
 		bool is_sending_Config_DIO_PortB = false;
 		for(int i = 0; i < tx_buffers.size();i++)
 		{
-			std::string buffer = tx_buffers.at(i);
+			std::vector<unsigned char> buffer = tx_buffers.at(i);
 			if(buffer.at(1) == SERIAL_Configure_DIO_PortA_ID){ is_sending_Config_DIO_PortA = true; }
 			if(buffer.at(1) == SERIAL_Configure_DIO_PortB_ID){ is_sending_Config_DIO_PortB = true; }
 		}
@@ -130,7 +131,7 @@ TEST(TestSuite,FSM_Board_Reset)
 		EXPECT_TRUE(is_sending_Config_DIO_PortB == true);
 	}
 }
-TEST(TestSuite,FSM_Configure)
+TEST(FSM_Tests,FSM_Configure)
 {
 	EXPECT_TRUE(setup()==true);
 	EXPECT_TRUE(process->get_boardstate() == GPIO_MODE_UNDEFINED);
@@ -146,7 +147,7 @@ TEST(TestSuite,FSM_Configure)
 	EXPECT_TRUE(process->get_boardstate() == GPIO_MODE_UNDEFINED);
 	EXPECT_TRUE(process->get_nodestate() == GPIO_MODE_INITIALIZED);
 	EXPECT_TRUE(process->get_timeout_ms() == 1000);
-	std::vector<std::string> tx_buffers;
+	std::vector<std::vector<unsigned char > > tx_buffers;
 
 	process->checkTriggers(tx_buffers);
 
@@ -181,7 +182,7 @@ TEST(TestSuite,FSM_Configure)
 	bool is_sending_Config_DIO_PortB = false;
 	for(int i = 0; i < tx_buffers.size();i++)
 	{
-		std::string buffer = tx_buffers.at(i);
+		std::vector<unsigned char> buffer = tx_buffers.at(i);
 		if(buffer.at(1) == SERIAL_Configure_DIO_PortA_ID){ is_sending_Config_DIO_PortA = true; }
 		if(buffer.at(1) == SERIAL_Configure_DIO_PortB_ID){ is_sending_Config_DIO_PortB = true; }
 	}
@@ -189,7 +190,7 @@ TEST(TestSuite,FSM_Configure)
 	EXPECT_TRUE(is_sending_Config_DIO_PortB == true);
 }
 
-TEST(TestSuite,FSM_Running)
+TEST(FSM_Tests,FSM_Running)
 {
 	EXPECT_TRUE(setup()==true);
 	EXPECT_TRUE(process->get_boardstate() == GPIO_MODE_UNDEFINED);
@@ -205,7 +206,7 @@ TEST(TestSuite,FSM_Running)
 	EXPECT_TRUE(process->get_boardstate() == GPIO_MODE_UNDEFINED);
 	EXPECT_TRUE(process->get_nodestate() == GPIO_MODE_INITIALIZED);
 	EXPECT_TRUE(process->get_timeout_ms() == 1000);
-	std::vector<std::string> tx_buffers;
+	std::vector<std::vector<unsigned char > > tx_buffers;
 
 	process->checkTriggers(tx_buffers);
 
@@ -240,7 +241,7 @@ TEST(TestSuite,FSM_Running)
 	bool is_sending_Config_DIO_PortB = false;
 	for(int i = 0; i < tx_buffers.size();i++)
 	{
-		std::string buffer = tx_buffers.at(i);
+		std::vector<unsigned char> buffer = tx_buffers.at(i);
 		if(buffer.at(1) == SERIAL_Configure_DIO_PortA_ID){ is_sending_Config_DIO_PortA = true; }
 		if(buffer.at(1) == SERIAL_Configure_DIO_PortB_ID){ is_sending_Config_DIO_PortB = true; }
 	}
@@ -255,7 +256,7 @@ TEST(TestSuite,FSM_Running)
 	EXPECT_TRUE(process->get_nodestate() == GPIO_MODE_RUNNING);
 
 }
-TEST(TestSuite,TestMessage)
+TEST(FSM_Tests,TestMessage)
 {
 	EXPECT_TRUE(setup()==true);
 	EXPECT_TRUE(process->get_boardstate() == GPIO_MODE_UNDEFINED);
@@ -271,7 +272,7 @@ TEST(TestSuite,TestMessage)
 	EXPECT_TRUE(process->get_boardstate() == GPIO_MODE_UNDEFINED);
 	EXPECT_TRUE(process->get_nodestate() == GPIO_MODE_INITIALIZED);
 	EXPECT_TRUE(process->get_timeout_ms() == 1000);
-	std::vector<std::string> tx_buffers;
+	std::vector<std::vector<unsigned char > >tx_buffers;
 
 	process->checkTriggers(tx_buffers);
 
@@ -303,7 +304,7 @@ TEST(TestSuite,TestMessage)
 		process->checkTriggers(tx_buffers);
 		for(int i = 0; i < tx_buffers.size();i++)
 		{
-			std::string buffer = tx_buffers.at(i);
+			std::vector<unsigned char> buffer = tx_buffers.at(i);
 			if(buffer.at(1) == SERIAL_TestMessageCommand_ID){ is_sending_testmessage_command = true; }
 		}
 		EXPECT_TRUE(is_sending_testmessage_command == false);
@@ -316,7 +317,7 @@ TEST(TestSuite,TestMessage)
 	bool is_sending_Config_DIO_PortB = false;
 	for(int i = 0; i < tx_buffers.size();i++)
 	{
-		std::string buffer = tx_buffers.at(i);
+		std::vector<unsigned char> buffer = tx_buffers.at(i);
 		if(buffer.at(1) == SERIAL_Configure_DIO_PortA_ID){ is_sending_Config_DIO_PortA = true; }
 		if(buffer.at(1) == SERIAL_Configure_DIO_PortB_ID){ is_sending_Config_DIO_PortB = true; }
 	}
@@ -338,13 +339,13 @@ TEST(TestSuite,TestMessage)
 	process->checkTriggers(tx_buffers);
 	for(int i = 0; i < tx_buffers.size();i++)
 	{
-		std::string buffer = tx_buffers.at(i);
+		std::vector<unsigned char> buffer = tx_buffers.at(i);
 		if(buffer.at(1) == SERIAL_TestMessageCommand_ID){ is_sending_testmessage_command = true; }
 	}
 	EXPECT_TRUE(is_sending_testmessage_command == true);
 
 }
-TEST(TestSuite,FSM_ReadSerial)
+TEST(FSM_Tests,FSM_ReadSerial)
 {
 	EXPECT_TRUE(setup()==true);
 	EXPECT_TRUE(process->get_boardstate() == GPIO_MODE_UNDEFINED);
@@ -360,7 +361,7 @@ TEST(TestSuite,FSM_ReadSerial)
 	EXPECT_TRUE(process->get_boardstate() == GPIO_MODE_UNDEFINED);
 	EXPECT_TRUE(process->get_nodestate() == GPIO_MODE_INITIALIZED);
 	EXPECT_TRUE(process->get_timeout_ms() == 1000);
-	std::vector<std::string> tx_buffers;
+	std::vector<std::vector<unsigned char > > tx_buffers;
 
 	process->checkTriggers(tx_buffers);
 
@@ -395,7 +396,7 @@ TEST(TestSuite,FSM_ReadSerial)
 	bool is_sending_Config_DIO_PortB = false;
 	for(int i = 0; i < tx_buffers.size();i++)
 	{
-		std::string buffer = tx_buffers.at(i);
+		std::vector<unsigned char> buffer = tx_buffers.at(i);
 		if(buffer.at(1) == SERIAL_Configure_DIO_PortA_ID){ is_sending_Config_DIO_PortA = true; }
 		if(buffer.at(1) == SERIAL_Configure_DIO_PortB_ID){ is_sending_Config_DIO_PortB = true; }
 	}
@@ -409,54 +410,129 @@ TEST(TestSuite,FSM_ReadSerial)
 	EXPECT_TRUE((diagnostic_status.Level == NOERROR) || (diagnostic_status.Level == INFO));
 	EXPECT_TRUE(process->get_nodestate() == GPIO_MODE_RUNNING);
 
-	//Check the following:
-	/*
-	int decode_DiagnosticSerial
-	int decode_ModeSerial
-	int decode_Get_ANA_PortASerial
-	int decode_Get_ANA_PortBSerial
-	int decode_Get_DIO_PortASerial
-	int decode_Get_DIO_PortBSerial
-	 */
-	/*
-	{//DiagnosticSerial
-		unsigned char rx_packet[8];
-		diagnostic_status = process->new_serialmessage_Diagnostic(SERIAL_Diagnostic_ID,rx_packet);
-		EXPECT_TRUE((diagnostic_status.Level == NOERROR) || (diagnostic_status.Level == INFO));
+
+}
+TEST(Bugs,checksum_test_issue1)
+{
+	EXPECT_TRUE(setup()==true);
+	EXPECT_TRUE(process->get_boardstate() == GPIO_MODE_UNDEFINED);
+	EXPECT_TRUE(process->get_nodestate() == GPIO_MODE_BOOT);
+	process->new_devicemsg(myDevice);
+	EXPECT_TRUE(myDevice.DeviceName == process->get_mydevice().DeviceName);
+	EXPECT_TRUE(process->is_finished_initializing() == false);
+	for(int i = 0; i < otherDevices.size();i++)
+	{
+		process->new_devicemsg(otherDevices.at(i));
+	}
+	EXPECT_TRUE(process->is_finished_initializing() == true);
+	EXPECT_TRUE(process->get_boardstate() == GPIO_MODE_UNDEFINED);
+	EXPECT_TRUE(process->get_nodestate() == GPIO_MODE_INITIALIZED);
+
+	{//Test send_nodemode
+		std::vector<std::vector<unsigned char > > tx_buffers;
+		process->set_nodestate(GPIO_MODE_RUNNING);
+		EXPECT_TRUE(process->get_nodestate() == GPIO_MODE_RUNNING);
+		state_ack send_nodemode;
+		send_nodemode = process->get_stateack("Send Node Mode");
+		send_nodemode.trigger = true;
+		EXPECT_TRUE(process->set_stateack(send_nodemode) == true);
+		process->checkTriggers(tx_buffers);
+		EXPECT_TRUE(process->get_nodestate() == GPIO_MODE_RUNNING);
+		EXPECT_TRUE(tx_buffers.empty() == false); //Should be sending Node Mode.
+		bool is_sending_NodeMode = false;
+		std::vector<unsigned char> outbuffer;
+
+		for(int i = 0; i < tx_buffers.size();i++)
+		{
+			std::vector<unsigned char> buffer = tx_buffers.at(i);
+			if(buffer.at(1) == SERIAL_Mode_ID)
+			{
+				is_sending_NodeMode = true;
+				outbuffer = tx_buffers.at(i);
+			}
+		}
+		EXPECT_TRUE(is_sending_NodeMode == true);
+		EXPECT_TRUE(compute_checksum(outbuffer,3,8) == outbuffer.at(11));
 	}
 
-	{//decode_ModeSerial
-		unsigned char rx_packet[8];
-		diagnostic_status = process->new_serialmessage_Get_Mode(SERIAL_Mode_ID,rx_packet);
-		EXPECT_TRUE((diagnostic_status.Level == NOERROR) || (diagnostic_status.Level == INFO));
+	{//Test send_configure_DIO_PortA
+		std::vector<std::vector<unsigned char > > tx_buffers;
+		process->set_nodestate(GPIO_MODE_RUNNING);
+		EXPECT_TRUE(process->get_nodestate() == GPIO_MODE_RUNNING);
+		state_ack send_conf_DIO_PortA;
+		send_conf_DIO_PortA = process->get_stateack("Send Configure DIO PortA");
+		send_conf_DIO_PortA.trigger = true;
+		EXPECT_TRUE(process->set_stateack(send_conf_DIO_PortA) == true);
+		EXPECT_TRUE(process->checkTriggers(tx_buffers));
+		EXPECT_TRUE(process->get_nodestate() == GPIO_MODE_RUNNING);
+		EXPECT_TRUE(tx_buffers.empty() == false); //Should be Configure DIO PortA
+		bool is_sending_Config_DIO_PortA = false;
+		std::vector<unsigned char> outbuffer;
+		for(int i = 0; i < tx_buffers.size();i++)
+		{
+			std::vector<unsigned char> buffer = tx_buffers.at(i);
+			if(buffer.at(1) == SERIAL_Configure_DIO_PortA_ID)
+			{
+				is_sending_Config_DIO_PortA = true;
+				outbuffer = tx_buffers.at(i);
+			}
+		}
+		EXPECT_TRUE(is_sending_Config_DIO_PortA == true);
+		EXPECT_TRUE(compute_checksum(outbuffer,3,8) == outbuffer.at(11));
+	}
+	{//Test Send Configure DIO PortB
+		std::vector<std::vector<unsigned char > > tx_buffers;
+		process->set_nodestate(GPIO_MODE_RUNNING);
+		EXPECT_TRUE(process->get_nodestate() == GPIO_MODE_RUNNING);
+		state_ack send_Config_DIO_portB;
+		send_Config_DIO_portB = process->get_stateack("Send Configure DIO PortB");
+		send_Config_DIO_portB.trigger = true;
+		EXPECT_TRUE(process->set_stateack(send_Config_DIO_portB) == true);
+		process->checkTriggers(tx_buffers);
+		EXPECT_TRUE(process->get_nodestate() == GPIO_MODE_RUNNING);
+		EXPECT_TRUE(tx_buffers.empty() == false); //Should be sending Node Mode.
+		bool is_sending_Config_DIO_PortB = false;
+		std::vector<unsigned char> outbuffer;
+
+		for(int i = 0; i < tx_buffers.size();i++)
+		{
+			std::vector<unsigned char> buffer = tx_buffers.at(i);
+			if(buffer.at(1) == SERIAL_Configure_DIO_PortB_ID)
+			{
+				is_sending_Config_DIO_PortB = true;
+				outbuffer = tx_buffers.at(i);
+			}
+		}
+		EXPECT_TRUE(is_sending_Config_DIO_PortB == true);
+		EXPECT_TRUE(compute_checksum(outbuffer,3,8) == outbuffer.at(11));
 	}
 
-	{//decode_Get_ANA_PortASerial
-		unsigned char rx_packet[8];
-		diagnostic_status = process->new_serialmessage_Get_ANA_PortA(SERIAL_Get_ANA_PortA_ID,rx_packet);
-		EXPECT_TRUE((diagnostic_status.Level == NOERROR) || (diagnostic_status.Level == INFO));
+	{//Test Send Node Node
+		std::vector<std::vector<unsigned char > > tx_buffers;
+		process->set_nodestate(GPIO_MODE_RUNNING);
+		EXPECT_TRUE(process->get_nodestate() == GPIO_MODE_RUNNING);
+		state_ack send_testmessage_command;
+		send_testmessage_command = process->get_stateack("Send Test Message Command");
+		send_testmessage_command.trigger = true;
+		EXPECT_TRUE(process->set_stateack(send_testmessage_command) == true);
+		process->checkTriggers(tx_buffers);
+		EXPECT_TRUE(process->get_nodestate() == GPIO_MODE_RUNNING);
+		EXPECT_TRUE(tx_buffers.empty() == false); //Should be sending Node Mode.
+		bool is_sending_testmessage_command = false;
+		std::vector<unsigned char> outbuffer;
+
+		for(int i = 0; i < tx_buffers.size();i++)
+		{
+			std::vector<unsigned char> buffer = tx_buffers.at(i);
+			if(buffer.at(1) == SERIAL_TestMessageCommand_ID)
+			{
+				is_sending_testmessage_command = true;
+				outbuffer = tx_buffers.at(i);
+			}
+		}
+		EXPECT_TRUE(is_sending_testmessage_command == true);
+		EXPECT_TRUE(compute_checksum(outbuffer,3,8) == outbuffer.at(11));
 	}
-	{//decode_Get_ANA_PortBSerial
-		unsigned char rx_packet[8];
-		diagnostic_status = process->new_serialmessage_Get_ANA_PortB(SERIAL_Get_ANA_PortB_ID,rx_packet);
-		EXPECT_TRUE((diagnostic_status.Level == NOERROR) || (diagnostic_status.Level == INFO));
-	}
-	{//decode_Get_DIO_PortASerial
-		unsigned char rx_packet[8];
-		diagnostic_status = process->new_serialmessage_Get_DIO_PortA(SERIAL_Get_DIO_PortA_ID,rx_packet);
-		EXPECT_TRUE((diagnostic_status.Level == NOERROR) || (diagnostic_status.Level == INFO));
-	}
-	{//decode_Get_DIO_PortBSerial
-		unsigned char rx_packet[8];
-		diagnostic_status = process->new_serialmessage_Get_DIO_PortB(SERIAL_Get_DIO_PortB_ID,rx_packet);
-		EXPECT_TRUE((diagnostic_status.Level == NOERROR) || (diagnostic_status.Level == INFO));
-	}
-	{//decode_TestMessageCounterSerial
-		unsigned char rx_packet[8];
-		diagnostic_status = process->new_serialmessage_TestMessageCounter(SERIAL_TestMessageCounter_ID,rx_packet);
-		EXPECT_TRUE((diagnostic_status.Level == NOERROR) || (diagnostic_status.Level == INFO));
-	}
-	*/
 }
 int main(int argc, char **argv){
   testing::InitGoogleTest(&argc, argv);
@@ -615,4 +691,13 @@ bool parse_devicefile(TiXmlDocument doc)
 	    }
 	}
 	return true;
+}
+int compute_checksum(std::vector<unsigned char> inpacket,int startbyte,int length)
+{
+	int checksum = 0;
+	for(int i = startbyte; i < (startbyte+length);i++)
+	{
+		checksum ^= inpacket.at(i);
+	}
+	return checksum;
 }

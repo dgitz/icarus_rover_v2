@@ -59,6 +59,9 @@ def generate_message(xmlfile):
     ros_serialmessagefile_header.write('\r\nclass SerialMessageHandler\r\n{\r\npublic:\r\n\tSerialMessageHandler();\r\n\t~SerialMessageHandler();\r\n')
     ros_serialmessagefile_cpp.write('#include "serialmessage.h"\r\nSerialMessageHandler::SerialMessageHandler(){}\r\nSerialMessageHandler::~SerialMessageHandler(){}\r\n')
     propeller_serialmessagefile_cpp.write('#include "serialmessage.h"\r\n')
+    ros_serialmessagefile_header.write('\tint compute_checksum(char* packet,int startbyte,int length);\r\n')
+    ros_serialmessagefile_cpp.write('int SerialMessageHandler::compute_checksum(char* packet,int startbyte,int length)\r\n')
+    ros_serialmessagefile_cpp.write('{\r\n\tint checksum = 0;\r\n\tfor(int i = startbyte; i < (startbyte+length);i++)\r\n\t{\r\n\t\tchecksum ^= packet[i];\r\n\t}\r\n\treturn checksum;\r\n}\r\n')
     for message in root:
         protocollist = []
         protocols = message.find('Protocols')
@@ -359,9 +362,9 @@ def generate_message(xmlfile):
                         propeller_serialmessagefile_cpp.write('\toutbuffer[byte_counter++] = 0;\r\n') 
                 if(encode_for_master == 1):
                     ros_serialmessagefile_cpp.write('\tint checksum = 0;\r\n')
-                    ros_serialmessagefile_cpp.write('\tfor(int i = 3; i < (3+8);i++)\r\n\t{\r\n')
-                    ros_serialmessagefile_cpp.write('\t\tchecksum ^= outbuffer[i];\r\n')
-                    ros_serialmessagefile_cpp.write('\t}\r\n\t*p_outbuffer++ = checksum;\r\n\t*length = p_outbuffer-&outbuffer[0];\r\n')
+                    ros_serialmessagefile_cpp.write('\tchecksum = compute_checksum(p_outbuffer,3,8);\r\n')
+                    ros_serialmessagefile_cpp.write('\t*p_outbuffer++ = checksum;\r\n')
+                    ros_serialmessagefile_cpp.write('\t*length = p_outbuffer-&outbuffer[0];\r\n')
                     ros_serialmessagefile_cpp.write('\treturn 1;\r\n')
                     ros_serialmessagefile_cpp.write('}\r\n')
                 if(encode_for_slave == 1):
@@ -505,7 +508,6 @@ elif (sys.argv[1] == "-g"):
     propeller_serialmessagefile_cpp.write('***/\r\n')
     propeller_serialmessagefile_cpp.write("/***Target: Parallax Propeller ***/\r\n")
     generate_message(sys.argv[2])
-
 
 
 

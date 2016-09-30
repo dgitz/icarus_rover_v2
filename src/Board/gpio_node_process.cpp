@@ -38,10 +38,10 @@ icarus_rover_v2::diagnostic GPIONodeProcess::update(long dt)
 	if(timer_timeout == true)
 	{
 		timer_timeout = false;
-		printf("Mode: %d,%d\n",node_state,board_state);
+		//printf("Mode: %d,%d\n",node_state,board_state);
 		if((node_state == GPIO_MODE_INITIALIZED) && (board_state == GPIO_MODE_INITIALIZING))
 		{
-			printf("Setting to true.\n");
+			//printf("Setting to true.\n");
 			send_configure_DIO_PortA.trigger = true;
 			send_configure_DIO_PortB.trigger = true;
 		}
@@ -66,6 +66,14 @@ state_ack GPIONodeProcess::get_stateack(std::string name)
 	{
 		return send_configure_DIO_PortB;
 	}
+	else if(name == send_testmessage_command.name)
+	{
+		return send_testmessage_command;
+	}
+	else if(name == send_nodemode.name)
+	{
+		return send_nodemode;
+	}
 	else
 	{
 		state_ack emptystateack;
@@ -73,20 +81,47 @@ state_ack GPIONodeProcess::get_stateack(std::string name)
 		return emptystateack;
 	}
 }
-bool GPIONodeProcess::checkTriggers(std::vector<std::string> &tx_buffers)
+bool GPIONodeProcess::set_stateack(state_ack stateack)
+{
+	printf("name: %s\n",stateack.name.c_str());
+	if(stateack.name == "Send Configure DIO PortA")
+	{
+		send_configure_DIO_PortA = stateack;
+	}
+	else if(stateack.name == "Send Configure DIO PortB")
+	{
+		send_configure_DIO_PortB = stateack;
+	}
+	else if(stateack.name == "Send Test Message Command")
+	{
+		send_testmessage_command = stateack;
+	}
+	else if(stateack.name == "Send Node Mode")
+	{
+		send_nodemode = stateack;
+		printf("matched.\n");
+	}
+	else
+	{
+		return false;
+	}
+	return true;
+}
+bool GPIONodeProcess::checkTriggers(std::vector<std::vector<unsigned char > > &tx_buffers)
 {
 	bool nothing_triggered = true;
 	if(send_configure_DIO_PortA.trigger == true)
 	{
-		printf("A Triggered.\n");
+		printf("DIO_Port A Triggered.\n");
 		nothing_triggered = false;
+		printf("size: %d\n",myboards.size());
 		std::string BoardName = myboards.at(send_configure_DIO_PortA.flag1).DeviceName;
 		Port_Info Port = get_PortInfo(BoardName,"DIO_PortA");
 		char buffer[12];
 		int length;
 		int tx_status = serialmessagehandler->encode_Configure_DIO_PortASerial(buffer,&length,
 				Port.Mode[0],Port.Mode[1],Port.Mode[2],Port.Mode[3],Port.Mode[4],Port.Mode[5],Port.Mode[6],Port.Mode[7]);
-		tx_buffers.push_back(std::string(buffer));
+		tx_buffers.push_back(std::vector<unsigned char>(buffer,buffer+sizeof(buffer)/sizeof(buffer[0])));
 
 		send_configure_DIO_PortA.state = true;
 		if (send_configure_DIO_PortA.retrying == false)
@@ -106,7 +141,7 @@ bool GPIONodeProcess::checkTriggers(std::vector<std::string> &tx_buffers)
 		int length;
 		int tx_status = serialmessagehandler->encode_Configure_DIO_PortBSerial(buffer,&length,
 				Port.Mode[0],Port.Mode[1],Port.Mode[2],Port.Mode[3],Port.Mode[4],Port.Mode[5],Port.Mode[6],Port.Mode[7]);
-		tx_buffers.push_back(std::string(buffer));
+		tx_buffers.push_back(std::vector<unsigned char>(buffer,buffer+sizeof(buffer)/sizeof(buffer[0])));
 
 		send_configure_DIO_PortB.state = true;
 		if (send_configure_DIO_PortB.retrying == false)
@@ -124,7 +159,7 @@ bool GPIONodeProcess::checkTriggers(std::vector<std::string> &tx_buffers)
 		int length;
 		int tx_status = serialmessagehandler->encode_TestMessageCommandSerial(buffer,&length,
 				0,0,0,0,0,0,0,0);
-		tx_buffers.push_back(std::string(buffer));
+		tx_buffers.push_back(std::vector<unsigned char>(buffer,buffer+sizeof(buffer)/sizeof(buffer[0])));
 
 		send_testmessage_command.state = true;
 		if (send_testmessage_command.retrying == false)
@@ -140,9 +175,9 @@ bool GPIONodeProcess::checkTriggers(std::vector<std::string> &tx_buffers)
 		//printf("Test Message Command Triggered.\n");
 		char buffer[12];
 		int length;
+		int computed_checksum;
 		int tx_status = serialmessagehandler->encode_ModeSerial(buffer,&length,node_state);
-		tx_buffers.push_back(std::string(buffer));
-
+		tx_buffers.push_back(std::vector<unsigned char>(buffer,buffer+sizeof(buffer)/sizeof(buffer[0])));
 		send_nodemode.state = true;
 		if (send_nodemode.retrying == false)
 		{
@@ -309,6 +344,7 @@ icarus_rover_v2::diagnostic GPIONodeProcess::new_devicemsg(icarus_rover_v2::devi
 		board.DeviceName = newdevice.DeviceName;
 		board.pins = newdevice.pins;
 		myboards.push_back(board);
+		//printf("Board Count so far: %d\n",myboards.size());
 		for(int i = 0; i < board.pins.size();i++)
 		{
 			if(configure_pin(board.DeviceName,board.pins.at(i).Port,board.pins.at(i).Number,board.pins.at(i).Function)==false)
@@ -435,11 +471,13 @@ Port_Info GPIONodeProcess::get_PortInfo(std::string BoardName,std::string PortNa
 			else
 			{
 				Port_Info blank;
+				blank.PortName == "";
 				return blank;
 			}
 		}
 	}
 	Port_Info blank;
+	blank.PortName == "";
 	return blank;
 }
 void GPIONodeProcess::initialize_stateack_messages()

@@ -57,12 +57,13 @@ public:
 	std::string map_PinFunction_ToString(int function);
 	int map_PinFunction_ToInt(std::string Function);
 	int get_nodestate() { return node_state; }
+	void set_nodestate(int mode) { node_state = mode; }
 	int get_boardstate() { return board_state; }
 	bool set_timeout_ms(long timeout){ timeout_value_ms = timeout; return true; }
 	int get_timeout_ms() { return timeout_value_ms; }
 	long get_timer_ms() { return ms_timer; }
 	bool reset_timer() { ms_timer = 0; timer_timeout = false; return true;}
-	bool checkTriggers(std::vector<std::string> &tx_buffers);
+	bool checkTriggers(std::vector<std::vector<unsigned char > > &tx_buffers);
 	icarus_rover_v2::diagnostic new_serialmessage_TestMessageCounter(int packet_type,unsigned char* inpacket);
 	icarus_rover_v2::diagnostic new_serialmessage_FirmwareVersion(int packet_type,unsigned char* inpacket);
 	icarus_rover_v2::diagnostic new_serialmessage_Diagnostic(int packet_type,unsigned char* inpacket);
@@ -72,6 +73,7 @@ public:
 	icarus_rover_v2::diagnostic new_serialmessage_Get_DIO_PortB(int packet_type,unsigned char* inpacket);
 	icarus_rover_v2::diagnostic new_serialmessage_Get_Mode(int packet_type,unsigned char* inpacket);
 	state_ack get_stateack(std::string name);
+	bool set_stateack(state_ack stateack);
 protected:
 	state_ack send_configure_DIO_PortA;
 	state_ack send_configure_DIO_PortB;
