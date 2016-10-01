@@ -165,6 +165,18 @@ bool run_veryslowrate_code()
 }
 void DigitalOutput_Callback(const icarus_rover_v2::pin::ConstPtr& msg)
 {
+	icarus_rover_v2::pin pinmsg;
+	pinmsg.Port = msg->Port;
+	pinmsg.Function = msg->Function;
+	pinmsg.Number = msg->Number;
+	pinmsg.Value = msg->Value;
+	if(pinmsg.Function == "DigitalOutput")
+	{
+		char tempstr[128];
+		sprintf(tempstr,"Pin: %d Mode: %s Value: %d",pinmsg.Number,pinmsg.Function.c_str(),pinmsg.Value);
+		logger->log_debug(tempstr);
+		process->new_pinmsg(pinmsg);
+	}
 }
 void PwmOutput_Callback(const icarus_rover_v2::pin::ConstPtr& msg)
 {

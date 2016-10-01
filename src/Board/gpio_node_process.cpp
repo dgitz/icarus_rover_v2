@@ -160,12 +160,10 @@ bool GPIONodeProcess::set_stateack(state_ack stateack)
 }
 icarus_rover_v2::diagnostic GPIONodeProcess::new_pinmsg(icarus_rover_v2::pin pinmsg)
 {
-	mylogger->log_debug("Got pin msg.");
 	if((board_state == GPIO_MODE_RUNNING) && (node_state == GPIO_MODE_RUNNING))
 	{
 		if(pinmsg.Port == DIO_PortA.PortName)
 		{
-			mylogger->log_debug("Setting PortA");
 			DIO_PortA.Value[pinmsg.Number-1] = pinmsg.Value;
 			diagnostic.Level = NOERROR;
 			send_set_DIO_PortA.trigger = true;
@@ -188,15 +186,9 @@ bool GPIONodeProcess::checkTriggers(std::vector<std::vector<unsigned char > > &t
 	bool nothing_triggered = true;
 	if(send_configure_DIO_PortA.trigger == true)
 	{
-		printf("send_configure_DIO_PortA Triggered.\n");
 		nothing_triggered = false;
-		printf("size: %d\n",myboards.size());
 		std::string BoardName = myboards.at(send_configure_DIO_PortA.flag1).DeviceName;
 		Port_Info Port = get_PortInfo(BoardName,"DIO_PortA");
-		for(int i = 0; i < 8; i++)
-		{
-			printf("pin: %d mode: %d\n",i,Port.Mode[i]);
-		}
 		if(Port.PortName == "")
 		{
 			nothing_triggered = false;
@@ -209,11 +201,6 @@ bool GPIONodeProcess::checkTriggers(std::vector<std::vector<unsigned char > > &t
 		int tx_status = serialmessagehandler->encode_Configure_DIO_PortASerial(buffer,&length,
 				Port.Mode[0],Port.Mode[1],Port.Mode[2],Port.Mode[3],Port.Mode[4],Port.Mode[5],Port.Mode[6],Port.Mode[7]);
 		tx_buffers.push_back(std::vector<unsigned char>(buffer,buffer+sizeof(buffer)/sizeof(buffer[0])));
-		for(int i = 0; i < 12; i++)
-		{
-			printf("i: %d b: %d\n",buffer[i]);
-		}
-
 		send_configure_DIO_PortA.state = true;
 		if (send_configure_DIO_PortA.retrying == false)
 		{
@@ -225,7 +212,7 @@ bool GPIONodeProcess::checkTriggers(std::vector<std::vector<unsigned char > > &t
 	if(send_configure_DIO_PortB.trigger == true)
 	{
 		nothing_triggered = false;
-		printf("send_configure_DIO_PortB Triggered.\n");
+		//printf("send_configure_DIO_PortB Triggered.\n");
 		std::string BoardName = myboards.at(send_configure_DIO_PortB.flag1).DeviceName;
 		Port_Info Port = get_PortInfo(BoardName,"DIO_PortB");
 		char buffer[12];
@@ -263,7 +250,7 @@ bool GPIONodeProcess::checkTriggers(std::vector<std::vector<unsigned char > > &t
 	if(send_nodemode.trigger == true)
 	{
 		nothing_triggered = false;
-		printf("send_nodemode Triggered.\n");
+		//printf("send_nodemode Triggered.\n");
 		char buffer[12];
 		int length;
 		int computed_checksum;

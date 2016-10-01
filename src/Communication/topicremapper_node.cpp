@@ -84,6 +84,43 @@ void Joystick_Callback(const sensor_msgs::Joy::ConstPtr& msg,const std::string &
 						output.Value = ((255/2.0)*value+127.5);
 						TopicMaps.at(i).pub.publish(output);
 					}
+					else
+					{
+						char tempstr[128];
+						sprintf("Input: %s and Pinmode: %s not currently supported.",input_strs.at(0).c_str(),pinmode.c_str());
+						logger->log_warn(tempstr);
+					}
+				}
+			}
+			else if(input_strs.at(0) == "button")
+			{
+
+				int index = std::atoi(input_strs.at(1).c_str());
+				int value = msg->buttons[index];
+				if(TopicMaps.at(i).output_topic_type == "icarus_rover_v2/pin")
+				{
+					icarus_rover_v2::pin output;
+					std::vector<std::string> output_strs;
+					boost::split(output_strs,TopicMaps.at(i).output_topic_channel,boost::is_any_of(","));
+					std::string port = output_strs.at(0);
+					int pinnumber = std::atoi(output_strs.at(1).c_str());
+					std::string pinmode = output_strs.at(2);
+					logger->log_debug("here2");
+					if(pinmode == "DigitalOutput")
+					{
+						logger->log_debug("here3");
+						output.Function = pinmode;
+						output.Number = pinnumber;
+						output.Port = port;
+						output.Value = value;
+						TopicMaps.at(i).pub.publish(output);
+					}
+					else
+					{
+						char tempstr[128];
+						sprintf("Input: %s and Pinmode: %s not currently supported.",input_strs.at(0).c_str(),pinmode.c_str());
+						logger->log_warn(tempstr);
+					}
 				}
 			}
 		}
