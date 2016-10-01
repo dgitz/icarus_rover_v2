@@ -12,6 +12,7 @@
 #include "icarus_rover_v2/diagnostic.h"
 #include "icarus_rover_v2/device.h"
 #include "icarus_rover_v2/command.h"
+#include "icarus_rover_v2/pin.h"
 #include "logger.h"
 #include <serialmessage.h>
 #define INITIAL_TIMEOUT_VALUE_MS 1000
@@ -50,9 +51,11 @@ public:
 	icarus_rover_v2::diagnostic update(long dt);
 	icarus_rover_v2::diagnostic new_devicemsg(icarus_rover_v2::device devicemsg);
 	icarus_rover_v2::diagnostic new_commandmsg(icarus_rover_v2::command commandmsg);
+	icarus_rover_v2::diagnostic new_pinmsg(icarus_rover_v2::pin pinmsg);
 	icarus_rover_v2::device get_mydevice() { return mydevice; }
 	std::vector<icarus_rover_v2::device> get_myboards() { return myboards; }
 	bool is_finished_initializing(){ return all_device_info_received; }
+	bool initialize_Ports();
 	Port_Info get_PortInfo(std::string BoardName,std::string PortName);
 	std::string map_PinFunction_ToString(int function);
 	int map_PinFunction_ToInt(std::string Function);
@@ -79,6 +82,8 @@ protected:
 	state_ack send_configure_DIO_PortB;
 	state_ack send_testmessage_command;
 	state_ack send_nodemode;
+	state_ack send_set_DIO_PortA;
+	state_ack send_set_DIO_PortB;
 private:
 
 	int board_state;

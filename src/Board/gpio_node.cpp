@@ -108,11 +108,7 @@ bool run_fastrate_code()
 		{
 			unsigned char tx_buffer[12];
 			std::vector<unsigned char> tempstr = tx_buffers.at(i);
-			//tx_buffer = &tempstr.front();
-			//std::copy(std::begin(tempstr),std::end(tempstr),std::begin(tx_buffer));
-			//int count = write(device_fid, &tx_buffer[0], 12);
 			int count = write(device_fid,reinterpret_cast<char*> (&tempstr[0]),12);
-			//int count = write(device_fid,tempstr,12);
 			if (count < 0)
 			{
 				logger->log_error("UART TX error\n");
@@ -125,14 +121,14 @@ bool run_fastrate_code()
 			}
 		}
 	}
-	diagnostic_pub.publish(diagnostic_status);
+	//diagnostic_pub.publish(diagnostic_status);
 	return true;
 }
 bool run_mediumrate_code()
 {
 	char tempstr[128];
 	sprintf(tempstr,"Board Mode: %d Node Mode: %d",process->get_boardstate(),process->get_nodestate());
-	logger->log_debug(tempstr);
+    logger->log_debug(tempstr);
 	return true;
 }
 bool run_slowrate_code()
@@ -172,6 +168,16 @@ void DigitalOutput_Callback(const icarus_rover_v2::pin::ConstPtr& msg)
 }
 void PwmOutput_Callback(const icarus_rover_v2::pin::ConstPtr& msg)
 {
+	icarus_rover_v2::pin pinmsg;
+	pinmsg.Port = msg->Port;
+	pinmsg.Function = msg->Function;
+	pinmsg.Number = msg->Number;
+	pinmsg.Value = msg->Value;
+	if(pinmsg.Function == "PWMOutput")
+	{
+
+		process->new_pinmsg(pinmsg);
+	}
 }
 //End User Code: Functions
 
@@ -454,6 +460,7 @@ void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg)
 	newdevice.DeviceType = msg->DeviceType;
 	newdevice.DeviceParent = msg->DeviceParent;
 	newdevice.BoardCount = msg->BoardCount;
+	newdevice.pins = msg->pins;
 	diagnostic_status = process->new_devicemsg(newdevice);
 	if((resource_monitor_running == false) and (process->is_finished_initializing() == true))
 	{
