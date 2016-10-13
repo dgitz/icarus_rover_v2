@@ -1,28 +1,33 @@
+#ifndef TRACKING_H
+#define TRACKING_H
+//Start Template Code: Includes
 #include "ros/ros.h"
 #include "std_msgs/String.h"
 #include "logger.h"
 #include "resourcemonitor.h"
 #include <boost/algorithm/string.hpp>
 #include <std_msgs/Bool.h>
-#include <std_msgs/UInt8.h>
 #include <sstream>
 #include <stdlib.h>
-#include <icarus_rover_v2/Definitions.h>
+#include "Definitions.h"
 #include <icarus_rover_v2/diagnostic.h>
 #include <icarus_rover_v2/device.h>
 #include <icarus_rover_v2/resource.h>
+#include <icarus_rover_v2/pin.h>
+#include <icarus_rover_v2/command.h>
 #include <icarus_rover_v2/firmware.h>
+//End Template Code: Includes
 
 //Start User Code: Includes
 #include "visionhelper.h"
 #include "opencv2/opencv.hpp"
+#include "opencv2/features2d/features2d.hpp"
 #include "sensor_msgs/Image.h"
 #include <cv_bridge/cv_bridge.h>
 #include "opencv2/imgproc/imgproc.hpp"
+#include "opencv2/nonfree/features2d.hpp"
 //End User Code: Includes
 
-//Start User Code: Data Structures
-//End User Code: Data Structures
 
 //Start Template Code: Function Prototypes
 bool initialize(ros::NodeHandle nh);
@@ -33,14 +38,14 @@ bool run_veryslowrate_code();
 double measure_time_diff(ros::Time timer_a, ros::Time tiber_b);
 void PPS_Callback(const std_msgs::Bool::ConstPtr& msg);
 void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg);
-//Stop Template Code: Function Prototypes
+void Command_Callback(const icarus_rover_v2::command& msg);
+std::vector<icarus_rover_v2::diagnostic> check_program_variables();
+//End Template Code: Function Prototypes
 
 //Start User Code: Function Prototypes
-bool check_tasks();
-bool acquire_image(cv::VideoCapture cap);
-bool Edge_Detection(cv::Mat gray_image,int, void*);
-void Edge_Detect_Threshold_Callback(const std_msgs::UInt8::ConstPtr& msg);
+void Image_Callback(const sensor_msgs::Image::ConstPtr& msg);
 //End User Code: Function Prototypes
+
 
 //Start Template Code: Define Global variables
 std::string node_name;
@@ -51,6 +56,7 @@ ros::Subscriber pps_sub;
 ros::Subscriber device_sub;
 ros::Publisher diagnostic_pub;
 ros::Publisher resource_pub;
+ros::Subscriber command_sub;
 ros::Publisher firmware_pub;
 icarus_rover_v2::diagnostic diagnostic_status;
 icarus_rover_v2::device myDevice;
@@ -70,17 +76,14 @@ bool device_initialized;
 
 //Start User Code: Define Global Variables
 VisionHelper *visionhelper;
-cv::VideoCapture capture;
-vector<int> compression_params;
-ros::Publisher raw_image_pub;
-ros::Publisher proc_image_pub;
-ros::Subscriber edge_threshold_sub;
-int16_t counter;
-int edge_detect_threshold;
-int image_width;
-int image_height;
-//CvCapture *capture;
+ros::Subscriber image_sub;
+std::string image_to_track_topic;
+std::vector<cv::Mat> target_images;
+ros::Publisher tracked_image_pub;
+std::vector<std::vector<cv::KeyPoint> > keypoints_target_images;
+std::vector<cv::Mat> descriptors_target_images;
+int minHessian;
+std::vector<cv::SurfFeatureDetector> target_feature_detectors;
+std::vector<cv::SurfDescriptorExtractor> target_descriptor_extractors;
 //End User Code: Define Global Variables
-
-
-
+#endif

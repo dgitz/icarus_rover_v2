@@ -460,6 +460,15 @@ icarus_rover_v2::diagnostic GPIONodeProcess::new_serialmessage_Get_Mode(int pack
 				node_state = GPIO_MODE_RUNNING;
 			}
 		}
+		else if((board_state == GPIO_MODE_INITIALIZING) && (node_state == GPIO_MODE_RUNNING))
+		{
+			node_state = GPIO_MODE_INITIALIZING;
+		}
+	/*	else if((board_state == GPIO_MODE_INITIALIZING) && (node_state == GPIO_MODE_INITIALIZED))
+		{
+			node_state = GPIO_MODE_INITIALIZING;
+		}
+		*/
 		else
 		{
 		}

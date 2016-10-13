@@ -126,13 +126,16 @@ bool run_fastrate_code()
 }
 bool run_mediumrate_code()
 {
-	char tempstr[128];
-	sprintf(tempstr,"Board Mode: %d Node Mode: %d",process->get_boardstate(),process->get_nodestate());
-    logger->log_debug(tempstr);
+	
+	
+	diagnostic_pub.publish(diagnostic_status);
 	return true;
 }
 bool run_slowrate_code()
 {
+	char tempstr[128];
+	sprintf(tempstr,"Board Mode: %d Node Mode: %d",process->get_boardstate(),process->get_nodestate());
+    logger->log_debug(tempstr);
 	if(device_initialized == true)
 	{
 		bool status = resourcemonitor->update();
@@ -172,9 +175,9 @@ void DigitalOutput_Callback(const icarus_rover_v2::pin::ConstPtr& msg)
 	pinmsg.Value = msg->Value;
 	if(pinmsg.Function == "DigitalOutput")
 	{
-		char tempstr[128];
-		sprintf(tempstr,"Pin: %d Mode: %s Value: %d",pinmsg.Number,pinmsg.Function.c_str(),pinmsg.Value);
-		logger->log_debug(tempstr);
+		//char tempstr[128];
+		//sprintf(tempstr,"Pin: %d Mode: %s Value: %d",pinmsg.Number,pinmsg.Function.c_str(),pinmsg.Value);
+		//logger->log_debug(tempstr);
 		process->new_pinmsg(pinmsg);
 	}
 }
