@@ -52,7 +52,7 @@ planner_configs:
     max_nearest_neighbors: 10  # use k nearest neighbors. default: 10
   PRMstarkConfigDefault:
     type: geometric::PRMstar
-gripper_group:
+leftgripper_group:
   planner_configs:
     - SBLkConfigDefault
     - ESTkConfigDefault
@@ -65,5 +65,5 @@ gripper_group:
     - TRRTkConfigDefault
     - PRMkConfigDefault
     - PRMstarkConfigDefault
-  projection_evaluator: joints(baserotate,armrotate)
+  projection_evaluator: joints(leftarm_baserotate,leftarm_armrotate)
   longest_valid_segment_fraction: 0.05

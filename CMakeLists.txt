@@ -16,15 +16,16 @@ find_package(catkin REQUIRED COMPONENTS
   cv_bridge
   #urdf
   tf
-  #moveit_ros_planning_interface
- # moveit_ros_planning
- # moveit_core
+ moveit_core
+    moveit_ros_planning_interface
+    interactive_markers
 )
 
 ## System dependencies are found with CMake's conventions
 find_package(Boost REQUIRED COMPONENTS system thread)
 find_package(TinyXML REQUIRED)
 find_package(OpenCV)
+find_package(Eigen REQUIRED)
  
 #rosbuild_add_boost_directories()
 #rosbuild_link_boost(icarus_rover_v2 thread signals system)
@@ -138,6 +139,7 @@ include_directories(
   ${TinyXML_INCLUDE_DIRS}
   ${OpenCV_INCLUDE_DIRS}
 )
+include_directories(SYSTEM ${Boost_INCLUDE_DIR} ${EIGEN_INCLUDE_DIRS})
 
 
 ## Declare a C++ library
@@ -227,4 +229,6 @@ add_executable(speaker_node src/Communication/speaker_node.cpp)
 target_link_libraries(speaker_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} logger resourcemonitor)
 add_executable(tfhelper_node src/Dynamics/tfhelper_node.cpp)
 target_link_libraries(tfhelper_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} logger resourcemonitor)
+add_executable(armcontroller_node src/Control/armcontroller_node.cpp)
+target_link_libraries(armcontroller_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} logger resourcemonitor)
 
