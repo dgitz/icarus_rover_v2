@@ -15,7 +15,7 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   cv_bridge
   #urdf
-  #tf
+  tf
   #moveit_ros_planning_interface
  # moveit_ros_planning
  # moveit_core
@@ -64,6 +64,9 @@ add_message_files(
   resource.msg
   diagnostic.msg
   device.msg
+  pin.msg
+  command.msg
+  firmware.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -220,3 +223,8 @@ add_executable(diagnostic_node src/Diagnostics/diagnostic_node.cpp)
 target_link_libraries(diagnostic_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} logger resourcemonitor)
 add_executable(network_transceiver_node src/Communication/network_transceiver_node.cpp)
 target_link_libraries(network_transceiver_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} logger udpmessage resourcemonitor)
+add_executable(speaker_node src/Communication/speaker_node.cpp)
+target_link_libraries(speaker_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} logger resourcemonitor)
+add_executable(tfhelper_node src/Dynamics/tfhelper_node.cpp)
+target_link_libraries(tfhelper_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} logger resourcemonitor)
+

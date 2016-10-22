@@ -1,5 +1,5 @@
 /***************AUTO-GENERATED.  DO NOT EDIT********************/
-/***Created on:2016-09-29 19:05:39.172531***/
+/***Created on:2016-10-18 08:21:33.667803***/
 #include "udpmessage.h"
 UDPMessageHandler::UDPMessageHandler(){}
 UDPMessageHandler::~UDPMessageHandler(){}
@@ -70,4 +70,36 @@ int UDPMessageHandler::decode_DeviceUDP(QList<QByteArray> items,std::string* Dev
 	*DeviceType=items.at(3).toStdString();
 	*Architecture=items.at(4).toStdString();
 	return 1;
+}
+QString UDPMessageHandler::encode_ArmControlUDP(int device,int axis1,int axis2,int axis3,int axis4,int axis5,int axis6,int button1,int button2,int button3,int button4,int button5,int button6)
+{
+	QString tempstr = "";
+	tempstr.append(UDP_ArmControl_ID);
+	tempstr.append(",");
+	tempstr.append(QString::number(device));
+	tempstr.append(",");
+	tempstr.append(QString::number(axis1));
+	tempstr.append(",");
+	tempstr.append(QString::number(axis2));
+	tempstr.append(",");
+	tempstr.append(QString::number(axis3));
+	tempstr.append(",");
+	tempstr.append(QString::number(axis4));
+	tempstr.append(",");
+	tempstr.append(QString::number(axis5));
+	tempstr.append(",");
+	tempstr.append(QString::number(axis6));
+	tempstr.append(",");
+	tempstr.append(QString::number(button1));
+	tempstr.append(",");
+	tempstr.append(QString::number(button2));
+	tempstr.append(",");
+	tempstr.append(QString::number(button3));
+	tempstr.append(",");
+	tempstr.append(QString::number(button4));
+	tempstr.append(",");
+	tempstr.append(QString::number(button5));
+	tempstr.append(",");
+	tempstr.append(QString::number(button6));
+	return tempstr;
 }

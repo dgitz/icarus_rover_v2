@@ -335,4 +335,26 @@
             </Protocol>
         </Protocols>
     </Message>
+    <Message name="ArmControl" id="0xAB26">
+        <Protocols>
+            <Protocol name="UDP">
+                <Origin>GUI</Origin>
+                <Fields>
+                    <field type="uint8_t" name="device"/>
+                    <field type="int16_t" name="axis1"/>
+                    <field type="int16_t" name="axis2"/>
+                    <field type="int16_t" name="axis3"/>
+                    <field type="int16_t" name="axis4"/>
+                    <field type="int16_t" name="axis5"/>
+                    <field type="int16_t" name="axis6"/>
+                    <field type="uint8_t" name="button1"/>
+                    <field type="uint8_t" name="button2"/>
+                    <field type="uint8_t" name="button3"/>
+                    <field type="uint8_t" name="button4"/>
+                    <field type="uint8_t" name="button5"/>
+                    <field type="uint8_t" name="button6"/>
+                </Fields>
+            </Protocol>
+        </Protocols>
+    </Message>
 </Messages>

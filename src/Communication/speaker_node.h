@@ -1,5 +1,5 @@
-#ifndef NETWORK_TRANSCEIVER_NODE_H
-#define NETWORK_TRANSCEIVER_NODE_H
+#ifndef SPEAKER_NODE_H
+#define SPEAKER_NODE_H
 //Start Template Code: Includes
 #include "ros/ros.h"
 #include "std_msgs/String.h"
@@ -16,19 +16,15 @@
 #include <icarus_rover_v2/firmware.h>
 //End Template Code: Includes
 
+//Start User Code: Defines
+#define SPEECH_RATE 18 //Characters per Second
+#define MIN_TIME_BEFORE_SPEAK_AGAIN 2.5 //Seconds
+#define MAX_SPEECHBUFFER_SIZE 10
+//End User Code: Defines
+
 //Start User Code: Includes
-#include "sensor_msgs/Joy.h"
-#include "udpmessage.h"
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <iomanip>
-#include <iostream>
-#include <string>
-#include <boost/thread.hpp>
-#define RECV_BUFFERSIZE 2048
+#include <boost/algorithm/string/replace.hpp>
+#include <sound_play/sound_play.h>
 //End User Code: Includes
 
 
@@ -44,12 +40,8 @@ void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg);
 //Stop Template Code: Function Prototypes
 
 //Start User Code: Function Prototypes
-bool initialize_sendsocket();
-bool initialize_recvsocket();
-void process_udp_receive();
 void diagnostic_Callback(const icarus_rover_v2::diagnostic::ConstPtr& msg);
-void device_Callback(const icarus_rover_v2::device::ConstPtr& msg);
-void resource_Callback(const icarus_rover_v2::resource::ConstPtr& msg);
+bool speak(std::string s,bool mode);
 //End User Code: Function Prototypes
 
 
@@ -80,18 +72,8 @@ bool device_initialized;
 //End Template Code: Define Global Variables
 
 //Start User Code: Define Global Variables
-UDPMessageHandler *udpmessagehandler;
-struct sockaddr_in senddevice_addr;
-struct sockaddr_in my_addr;
-struct sockaddr_in remote_addr;
-int senddevice_sock;
-int recvdevice_sock;
-std::string send_multicast_group;
-int send_multicast_port;
-int recv_unicast_port;
-std::string Mode;
-ros::Publisher joy_pub;
-ros::Publisher arm1_joy_pub;
-ros::Publisher arm2_joy_pub;
+boost::shared_ptr<sound_play::SoundClient> sc;
+ros::Time last_time_speech_ended;
+std::vector<std::string> speechbuffer;
 //End User Code: Define Global Variables
 #endif

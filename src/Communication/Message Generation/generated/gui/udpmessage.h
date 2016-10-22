@@ -1,5 +1,5 @@
 /***************AUTO-GENERATED.  DO NOT EDIT********************/
-/***Created on:2016-09-29 19:05:39.172499***/
+/***Created on:2016-10-18 08:21:33.667776***/
 #ifndef UDPMESSAGE_H
 #define UDPMESSAGE_H
 #include <QString>
@@ -8,6 +8,7 @@
 #define UDP_Resource_ID "AB11"
 #define UDP_Diagnostic_ID "AB12"
 #define UDP_Device_ID "AB13"
+#define UDP_ArmControl_ID "AB26"
 
 class UDPMessageHandler
 {
@@ -18,6 +19,7 @@ public:
 	int decode_ResourceUDP(QList<QByteArray> items,std::string* Node_Name,int* RAM_Mb,int* CPU_Used);
 	int decode_DiagnosticUDP(QList<QByteArray> items,std::string* Node_Name,int* System,int* SubSystem,int* Component,int* Diagnostic_Type,int* Level,int* Diagnostic_Message,std::string* Description);
 	int decode_DeviceUDP(QList<QByteArray> items,std::string* DeviceParent,std::string* DeviceName,std::string* DeviceType,std::string* Architecture);
+	QString encode_ArmControlUDP(int device,int axis1,int axis2,int axis3,int axis4,int axis5,int axis6,int button1,int button2,int button3,int button4,int button5,int button6);
 private:
 };
 #endif

@@ -1,8 +1,8 @@
 #include "network_transceiver_node.h"
 //Start Template Code: Firmware Definition
 #define NETWORKTRANSCEIVERNODE_MAJOR_RELEASE 1
-#define NETWORKTRANSCEIVERNODE_MINOR_RELEASE 2
-#define NETWORKTRANSCEIVERNODE_BUILD_NUMBER 1
+#define NETWORKTRANSCEIVERNODE_MINOR_RELEASE 3
+#define NETWORKTRANSCEIVERNODE_BUILD_NUMBER 0
 //End Template Code: Firmware Definition
 //Start User Code: Functions
 void diagnostic_Callback(const icarus_rover_v2::diagnostic::ConstPtr& msg)
@@ -71,11 +71,14 @@ void process_udp_receive()
 		sprintf(tempstr,"0x%s",items.at(0).c_str());
 		int id = (int)strtol(tempstr,NULL,0);
 		cout << id << endl;
+
+		uint8_t device;
+		int axis1,axis2,axis3,axis4,axis5,axis6,axis7,axis8;
+		uint8_t button1,button2,button3,button4,button5,button6,button7,button8;
 		switch (id)
 		{
 			case UDPMessageHandler::UDP_RemoteControl_ID:
-				int axis1,axis2,axis3,axis4,axis5,axis6,axis7,axis8;
-				uint8_t button1,button2,button3,button4,button5,button6,button7,button8;
+
 				success = udpmessagehandler->decode_RemoteControlUDP(items,&axis1,&axis2,&axis3,&axis4,&axis5,&axis6,&axis7,&axis8,
 																	&button1,&button2,&button3,&button4,&button5,&button6,&button7,&button8);
 				if(success == 1)
@@ -100,6 +103,33 @@ void process_udp_receive()
 					newjoy.buttons.push_back(button7);
 					newjoy.buttons.push_back(button8);
 					joy_pub.publish(newjoy);
+				}
+				else
+				{
+					printf("Couldn't decode message.\n");
+				}
+				break;
+			case UDPMessageHandler::UDP_ArmControl_ID:
+				success = udpmessagehandler->decode_ArmControlUDP(items,&device,&axis1,&axis2,&axis3,&axis4,&axis5,&axis6,
+						&button1,&button2,&button3,&button4,&button5,&button6);
+				if(success == 1)
+				{
+					sensor_msgs::Joy newjoy;
+					newjoy.header.stamp = ros::Time::now();
+					newjoy.header.frame_id = "/world";
+					newjoy.axes.push_back((float)(axis1/-32768.0));
+					newjoy.axes.push_back((float)(axis2/-32768.0));
+					newjoy.axes.push_back((float)(axis3/-32768.0));
+					newjoy.axes.push_back((float)(axis4/-32768.0));
+					newjoy.axes.push_back((float)(axis5/-32768.0));
+					newjoy.axes.push_back((float)(axis6/-32768.0));
+					newjoy.buttons.push_back(button1);
+					newjoy.buttons.push_back(button2);
+					newjoy.buttons.push_back(button3);
+					newjoy.buttons.push_back(button4);
+					newjoy.buttons.push_back(button5);
+					newjoy.buttons.push_back(button6);
+					arm1_joy_pub.publish(newjoy);
 				}
 				else
 				{
@@ -194,7 +224,7 @@ bool run_veryslowrate_code()
 	icarus_rover_v2::firmware fw;
 	fw.Generic_Node_Name = "network_transceiver_Node";
 	fw.Node_Name = node_name;
-	fw.Description = "Latest Rev: 8-Sep-2016";
+	fw.Description = "Latest Rev: 18-Oct-2016";
 	fw.Major_Release = NETWORKTRANSCEIVERNODE_MAJOR_RELEASE;
 	fw.Minor_Release = NETWORKTRANSCEIVERNODE_MINOR_RELEASE;
 	fw.Build_Number = NETWORKTRANSCEIVERNODE_BUILD_NUMBER;
@@ -284,7 +314,7 @@ int main(int argc, char **argv)
 
 bool initialize(ros::NodeHandle nh)
 {
-	sleep(5);
+	sleep(15);
     //Start Template Code: Initialization and Parameters
     myDevice.DeviceName = "";
     myDevice.Architecture = "";
@@ -379,6 +409,12 @@ bool initialize(ros::NodeHandle nh)
 	{
 		std::string joystick_topic = "/" + Mode + "/joystick";
 		joy_pub =  nh.advertise<sensor_msgs::Joy>(joystick_topic,1000);
+
+		std::string arm1_joystick_topic = "/" + Mode + "/arm1_joystick";
+		arm1_joy_pub =  nh.advertise<sensor_msgs::Joy>(arm1_joystick_topic,1000);
+
+		std::string arm2_joystick_topic = "/" + Mode + "/arm2_joystick";
+		arm2_joy_pub =  nh.advertise<sensor_msgs::Joy>(arm2_joystick_topic,1000);
 		ros::master::V_TopicInfo master_topics;
 		ros::master::getTopics(master_topics);
 

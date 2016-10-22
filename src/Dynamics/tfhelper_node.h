@@ -1,5 +1,5 @@
-#ifndef NETWORK_TRANSCEIVER_NODE_H
-#define NETWORK_TRANSCEIVER_NODE_H
+#ifndef TFHELPER_NODE_H
+#define TFHELPER_NODE_H
 //Start Template Code: Includes
 #include "ros/ros.h"
 #include "std_msgs/String.h"
@@ -16,19 +16,13 @@
 #include <icarus_rover_v2/firmware.h>
 //End Template Code: Includes
 
+//Start User Code: Defines
+//End User Code: Defines
+
 //Start User Code: Includes
-#include "sensor_msgs/Joy.h"
-#include "udpmessage.h"
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <iomanip>
-#include <iostream>
-#include <string>
-#include <boost/thread.hpp>
-#define RECV_BUFFERSIZE 2048
+#include "std_msgs/Float32.h"
+#include <tf/transform_broadcaster.h>
+#include <sensor_msgs/JointState.h>
 //End User Code: Includes
 
 
@@ -44,12 +38,8 @@ void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg);
 //Stop Template Code: Function Prototypes
 
 //Start User Code: Function Prototypes
-bool initialize_sendsocket();
-bool initialize_recvsocket();
-void process_udp_receive();
-void diagnostic_Callback(const icarus_rover_v2::diagnostic::ConstPtr& msg);
-void device_Callback(const icarus_rover_v2::device::ConstPtr& msg);
-void resource_Callback(const icarus_rover_v2::resource::ConstPtr& msg);
+bool publish_transforms();
+void joint_callback(const std_msgs::Float32::ConstPtr& msg,const std::string &topic);
 //End User Code: Function Prototypes
 
 
@@ -80,18 +70,7 @@ bool device_initialized;
 //End Template Code: Define Global Variables
 
 //Start User Code: Define Global Variables
-UDPMessageHandler *udpmessagehandler;
-struct sockaddr_in senddevice_addr;
-struct sockaddr_in my_addr;
-struct sockaddr_in remote_addr;
-int senddevice_sock;
-int recvdevice_sock;
-std::string send_multicast_group;
-int send_multicast_port;
-int recv_unicast_port;
-std::string Mode;
-ros::Publisher joy_pub;
-ros::Publisher arm1_joy_pub;
-ros::Publisher arm2_joy_pub;
+ros::Publisher joint_pub;
+sensor_msgs::JointState joint_state;
 //End User Code: Define Global Variables
 #endif
