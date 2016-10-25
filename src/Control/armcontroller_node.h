@@ -21,6 +21,14 @@
 //End User Code: Defines
 
 //Start User Code: Includes
+#include <moveit/robot_model_loader/robot_model_loader.h>
+#include <moveit/planning_interface/planning_interface.h>
+#include <moveit/planning_scene/planning_scene.h>
+#include <moveit/kinematic_constraints/utils.h>
+#include <moveit_msgs/DisplayTrajectory.h>
+#include <moveit_msgs/PlanningScene.h>
+#include <pluginlib/class_loader.h>
+#include <moveit/planning_interface/planning_request.h>
 //End User Code: Includes
 
 
@@ -66,5 +74,6 @@ bool device_initialized;
 //End Template Code: Define Global Variables
 
 //Start User Code: Define Global Variables
+
 //End User Code: Define Global Variables
 #endif

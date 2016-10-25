@@ -1,5 +1,26 @@
 <?xml version="1.0" ?>
 <launch>
+    <!-- By default we do not overwrite the URDF. Change the following to true to change the default behavior -->
+    <arg name="load_robot_description" default="false"/>
+
+    <!-- The name of the parameter under which the URDF is loaded -->
+    <arg name="robot_description" default="robot_description"/>
+
+    <!-- Load universal robot description format (URDF) -->
+    <param if="$(arg load_robot_description)" name="$(arg robot_description)" textfile="/home/robot/config/urdf/robotmodel.xml"/>
+
+    <!-- The semantic description that corresponds to the URDF -->
+    <param name="$(arg robot_description)_semantic" textfile="$(find icarus_rover_v2)/config/robotarm.srdf" />
+  
+    <!-- Load updated joint limits (override information from URDF) -->
+    <group ns="$(arg robot_description)_planning">
+        <rosparam command="load" file="$(find icarus_rover_v2)/config/joint_limits.yaml"/>
+    </group>
+
+    <!-- Load default settings for kinematics; these settings are overridden by settings in a node's namespace -->
+    <group ns="$(arg robot_description)_kinematics">
+        <rosparam command="load" file="$(find icarus_rover_v2)/config/kinematics.yaml"/>
+    </group>
     <param name="robot_description" command="cat $(find icarus_rover_v2)/urdf/robotmodel.xml" />
     <node name="robot_state_publisher" pkg="robot_state_publisher" type="state_publisher" />
     <node name="$(env ROS_HOSTNAME)_tfhelper_node" pkg="icarus_rover_v2" type="tfhelper_node"  output="screen">
@@ -44,7 +65,8 @@
     <node name="$(env ROS_HOSTNAME)_armcontroller_node" pkg="icarus_rover_v2" type="armcontroller_node"  output="screen">
         <param name="loop_rate"             value="500"/>
 	    <param name="verbosity_level"       value="DEBUG"/>
-        <param name="require_pps_to_start"  value="false"/>    
+        <param name="require_pps_to_start"  value="false"/>   
+        <param name="planning_plugin"       value="ompl_interface/OMPLPlanner"/> 
     </node>
 </launch>
 

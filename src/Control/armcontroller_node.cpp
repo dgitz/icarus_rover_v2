@@ -186,6 +186,28 @@ bool initialize(ros::NodeHandle nh)
     //End Template Code: Initialization and Parameters
 
     //Start User Code: Initialization and Parameters
+    //Arm command topic: joint_sub=simExtRosInterface_subscribe('/dgitsrosmaster_armcontroller_node/leftarm_command','sensor_msgs/Joy','setArmJointMotor_cb')
+    ROS_INFO("0");
+    move_group_interface::MoveGroup group("leftgripper_group");
+    ROS_INFO("A");
+    group.setPlannerId("RRTConnectkConfigDefault");
+    ROS_INFO("B");
+    geometry_msgs::PoseStamped pose = group.getRandomPose();
+    ROS_INFO("C");
+    pose.header.stamp = ros::Time::now();
+    double x = pose.pose.position.x;
+    double y = pose.pose.position.y;
+    double z = pose.pose.position.z;
+    ROS_INFO("Move to : x=%f, y=%f, z=%f",x,y,z);
+    group.setPositionTarget(x,y,z);
+    group.move();
+
+
+    /*while(1)
+    {
+    	display_publisher.publish(display_trajectory);
+    	smallwait.sleep();
+    }*/
     //Finish User Code: Initialization and Parameters
 
     //Start Template Code: Final Initialization.

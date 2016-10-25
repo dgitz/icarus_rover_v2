@@ -50,12 +50,12 @@
 #define GENERAL_ERROR 9
 
 //Field 5: Level
-#define DEBUG 0
-#define INFO 1
-#define NOTICE 2
-#define WARN 3
-#define ERROR 4
-#define FATAL 5
+#define DEBUG 0  //This Level is solely for development/debugging only.
+#define INFO 1 //This Level is purely for informational use only.
+#define NOTICE 2  //This Level is a higher form of information and does not imply that anything is wrong.
+#define WARN 3  //This Level implies that a program is not running as expected, but may continue to operate in a diminished capacity.
+#define ERROR 4 //This Level implies that a program will not initialize or some other kind of crash.
+#define FATAL 5  //This Level implies that a program has failed so bad it can cause injury to itself or others.
 
 //Field 6: Diagnostic_Message
 //#define NOERROR 0  Already defined above, just leaving here for completeness.
