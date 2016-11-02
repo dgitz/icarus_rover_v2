@@ -17,6 +17,7 @@
 //End Template Code: Includes
 
 //Start User Code: Defines
+#include "geometry_msgs/PoseStamped.h"
 #include <moveit/move_group_interface/move_group.h>
 //End User Code: Defines
 
@@ -29,6 +30,7 @@
 #include <moveit_msgs/PlanningScene.h>
 #include <pluginlib/class_loader.h>
 #include <moveit/planning_interface/planning_request.h>
+#include <moveit/planning_scene_interface/planning_scene_interface.h>
 //End User Code: Includes
 
 
@@ -74,6 +76,7 @@ bool device_initialized;
 //End Template Code: Define Global Variables
 
 //Start User Code: Define Global Variables
-
+ros::Publisher display_publisher;
+moveit_msgs::DisplayTrajectory display_trajectory;
 //End User Code: Define Global Variables
 #endif

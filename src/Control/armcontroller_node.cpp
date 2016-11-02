@@ -12,6 +12,7 @@ bool run_fastrate_code()
 }
 bool run_mediumrate_code()
 {
+
 	//logger->log_debug("Running medium rate code.");
 	diagnostic_status.Diagnostic_Type = SOFTWARE;
 	diagnostic_status.Level = INFO;
@@ -22,7 +23,35 @@ bool run_mediumrate_code()
 }
 bool run_slowrate_code()
 {
+	sleep(5);
+	ROS_INFO("Starting");
+	move_group_interface::MoveGroup group("robot_arm");
+	ROS_INFO("Group Instantiated");
+	moveit::planning_interface::PlanningSceneInterface planning_scene_interface;
+	ROS_INFO("Planning Scene INterface created");
+	group.setEndEffectorLink("leftarm_gripper");
+	ROS_INFO("Reference frame: %s", group.getPlanningFrame().c_str());
+	ROS_INFO("Reference frame: %s", group.getEndEffectorLink().c_str());
+	geometry_msgs::Pose target_pose1;
+	target_pose1.orientation.w = 1.0;
+	target_pose1.position.x = 0;
+	target_pose1.position.y = 0;
+	target_pose1.position.z = 0;
+	group.setRandomTarget();
+	geometry_msgs::PoseStamped targetpose = group.getPoseTarget();
+	ROS_INFO("Target Pose x: %f y: %f z: %f",targetpose.pose.position.x,targetpose.pose.position.y,targetpose.pose.position.z);
 
+	//group.setPoseTarget(target_pose1);
+	moveit::planning_interface::MoveGroup::Plan my_plan;
+	ROS_INFO("Starting Path Plan.");
+
+	group.setPlanningTime(2.0);
+	bool success = group.plan(my_plan);
+
+	ROS_INFO("Visualizing plan 1 (pose goal) %s",success?"":"FAILED");
+	display_trajectory.trajectory_start = my_plan.start_state_;
+	display_trajectory.trajectory.push_back(my_plan.trajectory_);
+	display_publisher.publish(display_trajectory);
 	if(device_initialized == true)
 	{
 		bool status = resourcemonitor->update();
@@ -186,28 +215,10 @@ bool initialize(ros::NodeHandle nh)
     //End Template Code: Initialization and Parameters
 
     //Start User Code: Initialization and Parameters
+    display_publisher = nh.advertise<moveit_msgs::DisplayTrajectory>("/move_group/display_planned_path", 1, true);
+	ROS_INFO("Publisher Created");
     //Arm command topic: joint_sub=simExtRosInterface_subscribe('/dgitsrosmaster_armcontroller_node/leftarm_command','sensor_msgs/Joy','setArmJointMotor_cb')
-    ROS_INFO("0");
-    move_group_interface::MoveGroup group("leftgripper_group");
-    ROS_INFO("A");
-    group.setPlannerId("RRTConnectkConfigDefault");
-    ROS_INFO("B");
-    geometry_msgs::PoseStamped pose = group.getRandomPose();
-    ROS_INFO("C");
-    pose.header.stamp = ros::Time::now();
-    double x = pose.pose.position.x;
-    double y = pose.pose.position.y;
-    double z = pose.pose.position.z;
-    ROS_INFO("Move to : x=%f, y=%f, z=%f",x,y,z);
-    group.setPositionTarget(x,y,z);
-    group.move();
 
-
-    /*while(1)
-    {
-    	display_publisher.publish(display_trajectory);
-    	smallwait.sleep();
-    }*/
     //Finish User Code: Initialization and Parameters
 
     //Start Template Code: Final Initialization.

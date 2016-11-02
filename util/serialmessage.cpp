@@ -1,5 +1,5 @@
 /***************AUTO-GENERATED.  DO NOT EDIT********************/
-/***Created on:2016-09-29 19:05:39.172596***/
+/***Created on:2016-10-25 18:38:34.159235***/
 /***Target: Raspberry Pi ***/
 #include "serialmessage.h"
 SerialMessageHandler::SerialMessageHandler(){}
@@ -252,5 +252,29 @@ int SerialMessageHandler::decode_FirmwareVersionSerial(unsigned char* inpacket,c
 	*majorVersion=inpacket[0];
 	*minorVersion=inpacket[1];
 	*buildNumber=inpacket[2];
+	return 1;
+}
+int SerialMessageHandler::encode_StopMovementSerial(char* outbuffer,int* length,char Level)
+{
+	char *p_outbuffer;
+	p_outbuffer = &outbuffer[0];
+	*p_outbuffer++ = 0xAB;
+	*p_outbuffer++ = 0x27;
+	*p_outbuffer++ = 8;
+	*p_outbuffer++ = Level;
+	*p_outbuffer++ = 0;
+	*p_outbuffer++ = 0;
+	*p_outbuffer++ = 0;
+	*p_outbuffer++ = 0;
+	*p_outbuffer++ = 0;
+	*p_outbuffer++ = 0;
+	*p_outbuffer++ = 0;
+	int checksum = 0;
+	for(int i = 3; i < (3+8);i++)
+	{
+		checksum ^= outbuffer[i];
+	}
+	*p_outbuffer++ = checksum;
+	*length = p_outbuffer-&outbuffer[0];
 	return 1;
 }

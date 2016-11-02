@@ -1,5 +1,5 @@
 /***************AUTO-GENERATED.  DO NOT EDIT********************/
-/***Created on:2016-10-18 08:21:33.667742***/
+/***Created on:2016-10-25 18:38:34.159049***/
 #include "udpmessage.h"
 UDPMessageHandler::UDPMessageHandler(){}
 UDPMessageHandler::~UDPMessageHandler(){}
@@ -97,4 +97,12 @@ int UDPMessageHandler::decode_ArmControlUDP(std::vector<std::string> items,uint8
 	*button5=(uint8_t)atoi(items.at(12).c_str());
 	*button6=(uint8_t)atoi(items.at(13).c_str());
 	return 1;
+}
+std::string UDPMessageHandler::encode_StopMovementUDP(uint8_t Level)
+{
+	std::string tempstr = "";
+	tempstr.append(boost::lexical_cast<std::string>(UDP_StopMovement_ID));
+	tempstr.append(",");
+	tempstr.append(boost::lexical_cast<std::string>((int)Level));
+	return tempstr;
 }

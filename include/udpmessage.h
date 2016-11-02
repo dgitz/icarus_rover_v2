@@ -1,5 +1,5 @@
 /***************AUTO-GENERATED.  DO NOT EDIT********************/
-/***Created on:2016-10-18 08:21:33.667670***/
+/***Created on:2016-10-25 18:38:34.158966***/
 #ifndef UDPMESSAGE_H
 #define UDPMESSAGE_H
 #include "ros/ros.h"
@@ -22,6 +22,7 @@ public:
 		UDP_Diagnostic_ID = 0xAB12,
 		UDP_Device_ID = 0xAB13,
 		UDP_ArmControl_ID = 0xAB26,
+		UDP_StopMovement_ID = 0xAB27,
 	};
 	UDPMessageHandler();
 	~UDPMessageHandler();
@@ -30,6 +31,7 @@ public:
 	std::string encode_DiagnosticUDP(std::string Node_Name,uint8_t System,uint8_t SubSystem,uint8_t Component,uint8_t Diagnostic_Type,uint8_t Level,uint8_t Diagnostic_Message,std::string Description);
 	std::string encode_DeviceUDP(std::string DeviceParent,std::string DeviceName,std::string DeviceType,std::string Architecture);
 	int decode_ArmControlUDP(std::vector<std::string> items,uint8_t* device,int* axis1,int* axis2,int* axis3,int* axis4,int* axis5,int* axis6,uint8_t* button1,uint8_t* button2,uint8_t* button3,uint8_t* button4,uint8_t* button5,uint8_t* button6);
+	std::string encode_StopMovementUDP(uint8_t Level);
 private:
 };
 #endif
