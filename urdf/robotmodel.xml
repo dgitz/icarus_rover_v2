@@ -38,7 +38,7 @@
     <parent link="leftarm_armbase"/>
     <child link="leftarm_arm"/>
     <axis xyz="0 1 0"/>
-    <origin rpy="0 0 0" xyz="0 0 .05"/>
+    <origin rpy="0 -.69813 0" xyz="0 0 .05"/>
   </joint>
 
   <link name="leftarm_arm">
@@ -55,7 +55,7 @@
     <limit effort="1000.0" lower="-3.14159" upper="3.14159" velocity="0.5"/>
     <parent link="leftarm_arm"/>
     <child link="leftarm_forearm"/>
-    <axis xyz="0 -1 0"/>
+    <axis xyz="0 1 0"/>
     <origin rpy="0 0 0" xyz="0 0 .4"/>
   </joint>
   
@@ -69,12 +69,12 @@
     </visual>
   </link>
 
-    <joint name="leftarm_gripperpivot" type="revolute">
-    <limit effort="1000.0" lower="-2.3561" upper=".7853" velocity="0.5"/>
+    <joint name="leftarm_gripperrotate" type="revolute">
+    <limit effort="1000.0" lower="-1.5708" upper="1.5708" velocity="0.5"/>
     <parent link="leftarm_forearm"/>
     <child link="leftarm_gripper_emptylink"/>
-    <axis xyz="0 -1 0"/>
-    <origin rpy="0 0 0" xyz="-.365 0 0"/>
+    <axis xyz="0 1 0"/>
+    <origin rpy="0 .7853 0" xyz="-.365 0 0"/>
   </joint>
 
     <link name="leftarm_gripper_emptylink">
@@ -87,7 +87,7 @@
     </visual>
   </link>
 
-     <joint name="leftarm_gripperrotate" type="revolute">
+     <joint name="leftarm_gripperpivot" type="revolute">
     <limit effort="1000.0" lower="-3.14159" upper="3.14159" velocity="0.5"/>
     <parent link="leftarm_gripper_emptylink"/>
     <child link="leftarm_gripper"/>

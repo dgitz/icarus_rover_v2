@@ -1,11 +1,5 @@
-<?xml version="1.0" ?>
+<!--xml-->
 <launch>
-    <include file="$(find icarus_rover_v2)/launch/move_group.launch" />
-    <node name="$(env ROS_HOSTNAME)_tfhelper_node" pkg="icarus_rover_v2" type="tfhelper_node"  output="screen">
-        <param name="loop_rate"             value="500"/>
-	    <param name="verbosity_level"       value="DEBUG"/>
-        <param name="require_pps_to_start"  value="false"/>    
-    </node>
     <node name="$(env ROS_HOSTNAME)_master_node" pkg="icarus_rover_v2" type="master_node"  output="screen">
         <param name="loop_rate"             value="500"/>
 	    <param name="verbosity_level"       value="DEBUG"/>
@@ -40,11 +34,6 @@
 	    <param name="verbosity_level"       value="DEBUG"/>
         <param name="require_pps_to_start"  value="false"/>    
     </node>
-    <node name="$(env ROS_HOSTNAME)_armcontroller_node" pkg="icarus_rover_v2" type="armcontroller_node"  output="screen">
-        <param name="loop_rate"             value="500"/>
-	    <param name="verbosity_level"       value="DEBUG"/>
-        <param name="require_pps_to_start"  value="false"/>   
-        <param name="planning_plugin"       value="ompl_interface/OMPLPlanner"/> 
-    </node>
 </launch>
 
+</launch>
