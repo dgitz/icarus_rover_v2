@@ -18,9 +18,12 @@
 #include <icarus_rover_v2/firmware.h>
 //End Template Code: Includes
 //Start User Code: Includes
+#include <boost/algorithm/string.hpp>
 #include <tinyxml.h>
 #include <iostream>
 #include <string>
+#include <ros/package.h>
+#include <stdlib.h>
 //End User Code: Includes
 
 
@@ -42,7 +45,6 @@ std::vector<icarus_rover_v2::diagnostic> check_program_variables();
 //Start User Code: Function Prototypes
 double read_device_temperature();
 bool parse_devicefile(TiXmlDocument doc);
-bool parse_launchfile(TiXmlDocument dox);
 //End User Code: Function Prototypes
 
 //Start Template Code: Global Variables
@@ -75,6 +77,7 @@ std::vector<icarus_rover_v2::device> otherDevices;
 std::vector<std::string> NodeList;
 double device_temperature;
 ros::Publisher device_resourceavail_pub;
+ofstream process_file;
 //End User Code: Global Variables
 
 #endif

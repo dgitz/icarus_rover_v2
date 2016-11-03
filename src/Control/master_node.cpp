@@ -1,7 +1,7 @@
 #include "master_node.h"
 //Start Template Code: Firmware Definition
 #define MASTERNODE_MAJOR_RELEASE 1
-#define MASTERNODE_MINOR_RELEASE 1
+#define MASTERNODE_MINOR_RELEASE 2
 #define MASTERNODE_BUILD_NUMBER 1
 //End Template Code: Firmware Definition
 //Start User Code: Functions
@@ -93,7 +93,7 @@ bool run_veryslowrate_code()
 	icarus_rover_v2::firmware fw;
 	fw.Generic_Node_Name = "master_node";
 	fw.Node_Name = node_name;
-	fw.Description = "Latest Rev: 8-Sep-2016";
+	fw.Description = "Latest Rev: 2-Nov-2016";
 	fw.Major_Release = MASTERNODE_MAJOR_RELEASE;
 	fw.Minor_Release = MASTERNODE_MINOR_RELEASE;
 	fw.Build_Number = MASTERNODE_BUILD_NUMBER;
@@ -276,6 +276,7 @@ bool initialize(ros::NodeHandle nh)
     //End Template Code: Initialization and Parameters
 
     //Start User Code: Initialization and Parameters
+    sleep(3.0);  //Wait for all nodes ot start
     TiXmlDocument device_doc("/home/robot/config/DeviceFile.xml");
     bool devicefile_loaded = device_doc.LoadFile();
     if(devicefile_loaded == true)
@@ -291,33 +292,46 @@ bool initialize(ros::NodeHandle nh)
     	logger->log_fatal("Could not load or parse /home/robot/config/DeviceFile.xml. Exiting.");
     	return false;
     }
+    system("rosnode list -ua > /home/robot/config/AllNodeList");
+    string line;
+    ifstream allnodelist_file("/home/robot/config/AllNodeList");
+    process_file.open("/home/robot/config/ActiveNodes");
+   	if(process_file.is_open() == false)
+   	{
+   		return false;
 
-    std::string launch_file = "/home/robot/catkin_ws/src/icarus_rover_v2/launch/" + std::string(hostname) + ".launch";
-    TiXmlDocument launch_doc(launch_file);
-    bool launchfile_loaded = launch_doc.LoadFile();
-	if(launchfile_loaded == true)
-	{
-		if(parse_launchfile(launch_doc) == true)
-		{
-			char tempstr[256];
-			sprintf(tempstr,"Loaded Launch File: %s.",launch_file.c_str());
-			logger->log_info(tempstr);
-		}
-		else
-		{
-			char tempstr[256];
-			sprintf(tempstr,"Could not parse %s. Exiting.",launch_file.c_str());
-			logger->log_fatal(tempstr);
-			return false;
-		}
-	}
-	else
-	{
-		char tempstr[256];
-		sprintf(tempstr,"Could not load or parse %s. Exiting.",launch_file.c_str());
-		logger->log_fatal(tempstr);
-		return false;
-	}
+   	}
+    if(allnodelist_file.is_open())
+    {
+    	while(getline(allnodelist_file,line))
+    	{
+    		std::vector<std::string> items;
+    		boost::split(items,line,boost::is_any_of(":\t"));
+    		std::string host = items.at(1).substr(2,items.at(1).size());
+    		if(hostname == host)
+    		{
+    			std::vector<std::string> items2;
+    			boost::split(items2,items.at(3),boost::is_any_of("/"));
+    			for(int i = 0; i < items2.size();i++)
+    			{
+    			}
+    			std::string node = items2.at(items2.size()-1);
+    			if(node != "rosout")
+    			{
+    				time_t rawtime;
+    				struct tm * timeinfo;
+    				char datebuffer[80];
+    				time (&rawtime);
+    				timeinfo = localtime(&rawtime);
+    				strftime(datebuffer,80,"%d/%m/%Y %I:%M:%S",timeinfo);
+    				process_file << "Node:\t" << node << "\tLaunched:\t" << datebuffer <<  endl;
+    			}
+    		}
+    	}
+    	allnodelist_file.close();
+    }
+    process_file.close();
+
     device_temperature = -100.0;
     //Finish User Code: Initialization and Parameters
 
@@ -337,39 +351,6 @@ double measure_time_diff(ros::Time timer_a, ros::Time timer_b)
 {
 	ros::Duration etime = timer_a - timer_b;
 	return etime.toSec();
-}
-bool parse_launchfile(TiXmlDocument doc)
-{
-	ofstream process_file;
-	process_file.open("/home/robot/config/ActiveTasks");
-	if(process_file.is_open() == false)
-	{
-		return false;
-	}
-	TiXmlElement *l_pRootElement = doc.RootElement();
-	if( NULL != l_pRootElement )
-	{
-		TiXmlElement *l_pnode = l_pRootElement->FirstChildElement( "node" );
-		while( l_pnode )
-		{
-			time_t rawtime;
-			struct tm * timeinfo;
-			char datebuffer[80];
-
-			time (&rawtime);
-			timeinfo = localtime(&rawtime);
-
-			strftime(datebuffer,80,"%d/%m/%Y %I:%M:%S",timeinfo);
-			std::string type;
-
-			l_pnode->QueryStringAttribute("type",&type);
-			process_file << "Task:\t" << type << "\tLaunched:\t" << datebuffer <<  endl;
-			l_pnode = l_pnode->NextSiblingElement( "node" );
-		}
-	}
-	else { return false; }
-	process_file.close();
-	return true;
 }
 bool parse_devicefile(TiXmlDocument doc)
 {

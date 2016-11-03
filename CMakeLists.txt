@@ -14,6 +14,7 @@ find_package(catkin REQUIRED COMPONENTS
     message_generation
   sensor_msgs
   cv_bridge
+  roslib
   #urdf
   #tf
   #moveit_ros_planning_interface
@@ -121,7 +122,7 @@ generate_messages(
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES icarus_rover_v2
-  CATKIN_DEPENDS roscpp rospy std_msgs
+  CATKIN_DEPENDS roscpp rospy std_msgs roslib
   DEPENDS system_lib message_runtime TinyXML
 )
 

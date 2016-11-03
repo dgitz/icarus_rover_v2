@@ -34,6 +34,11 @@
 	    <param name="verbosity_level"       value="DEBUG"/>
         <param name="require_pps_to_start"  value="false"/>    
     </node>
-</launch>
-
+    <!--<include file="$(find icarus_rover_v2)/launch/SensorLaunch/asusxtioncamera.launch" />-->
+    
+    <group>
+        <remap from="/camera" to="/$(env ROS_HOSTNAME)/asusxtioncamera/"/>
+        <include file="$(find icarus_rover_v2)/launch/SensorLaunch/asusxtioncamera.launch" />
+    </group>
+    
 </launch>

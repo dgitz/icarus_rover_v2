@@ -38,6 +38,7 @@ bool acquire_image(cv::VideoCapture cap)
 	proc_image.header.frame_id = "/world";
 	proc_image.image = edge_image;
 	proc_image_pub.publish(proc_image.toImageMsg());
+
     //Edge_Detection(src_gray,0,0);
     return true;
 }
