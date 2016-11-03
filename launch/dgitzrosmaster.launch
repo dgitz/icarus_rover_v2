@@ -50,5 +50,6 @@
         <arg name="depth_registration" value="true" />
         <arg name="color_depth_synchronization" value="true"/>
     </include>
+    <!--<include file="$(find icarus_rover_v2)/launch/SensorLaunch/rgbdslam.launch" />-->
     
 </launch>
