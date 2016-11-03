@@ -56,9 +56,9 @@ bool run_veryslowrate_code()
 void Image_Callback(const sensor_msgs::Image::ConstPtr& msg)
 {
 
-	//ros::Time start_time;
-	//start_time = ros::Time::now();
-	//logger->log_debug("Got image.");
+	ros::Time start_time;
+	start_time = ros::Time::now();
+	logger->log_debug("Got image.");
 	/*
 	cv_bridge::CvImagePtr newimage_ptr;
 	newimage_ptr = cv_bridge::toCvCopy(msg,sensor_msgs::image_encodings::BGR8);
@@ -129,9 +129,9 @@ void Image_Callback(const sensor_msgs::Image::ConstPtr& msg)
 		tracked_image.header.frame_id = "/world";
 		tracked_image.image = tracked;
 		tracked_image_pub.publish(tracked_image.toImageMsg());
-		*/
-	}
 
+	}
+	*/
 	//char tempstr[128];
 	//sprintf(tempstr,"Image Callback Duration: %f",measure_time_diff(ros::Time::now(),start_time));
 	//logger->log_debug(tempstr);

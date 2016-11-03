@@ -16,7 +16,7 @@ find_package(catkin REQUIRED COMPONENTS
   cv_bridge
   roslib
   #urdf
-  #tf
+  tf
   #moveit_ros_planning_interface
  # moveit_ros_planning
  # moveit_core
@@ -215,6 +215,7 @@ add_library(logger util/logger.cpp)
 add_library(udpmessage util/udpmessage.cpp)
 add_library(serialmessage util/serialmessage.cpp)
 add_library(resourcemonitor util/resourcemonitor.cpp)
+add_library(visionhelper util/visionhelper.cpp)
 
 add_executable(command_node src/Control/command_node.cpp)
 target_link_libraries(command_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor)
@@ -226,3 +227,7 @@ add_executable(network_transceiver_node src/Communication/network_transceiver_no
 target_link_libraries(network_transceiver_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} logger udpmessage resourcemonitor)
 add_executable(speaker_node src/Communication/speaker_node.cpp)
 target_link_libraries(speaker_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} logger resourcemonitor)
+add_executable(tracking_node src/Vision/tracking_node.cpp)
+target_link_libraries(tracking_node ${OpenCV_LIBRARIES} ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor visionhelper)
+add_executable(tfhelper_node src/Dynamics/tfhelper_node.cpp)
+target_link_libraries(tfhelper_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} logger resourcemonitor)
