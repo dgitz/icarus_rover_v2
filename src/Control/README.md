@@ -2,12 +2,23 @@ Author: David Gitz
 Task: Control
 Nodes:
 A. master_node
+Usage:
+This node should be run on every device.
+
 Purpose:
-Provides a master node
+1. Reads DeviceFile.xml and publishes icarus_rover_v2::device info for all nodes on current Device.
+2. Monitors Device Temperature, if supported.
+3. Publishes device's available resource information.
 
 B. command_node
+Usage: This device should be run on 1 device total.
 
+Purpose:
+1. Generates commands and publishes to icarus_rover_v2::command topic
 
 C. Arm Controller
+Usage:
+This node should be run for every Arm on the Robot.
+
 Purpose:
-Read in the desired pose of the gripper of each Arm, compute a path for the Arm and generate the target joint angles.
+1. Read in the desired pose of the gripper of each Arm, compute a path for the Arm and generate the target joint angles.
