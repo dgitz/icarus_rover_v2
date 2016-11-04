@@ -351,7 +351,6 @@ bool initialize(ros::NodeHandle nh)
         logger->log_warn("Missing Parameter: loop_rate.");
         return false;
     }
-    char hostname[1024];
 	hostname[1023] = '\0';
 	gethostname(hostname,1023);
 	process = new GPIONodeProcess;
@@ -477,7 +476,7 @@ void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg)
 	newdevice.BoardCount = msg->BoardCount;
 	newdevice.pins = msg->pins;
 	diagnostic_status = process->new_devicemsg(newdevice);
-	if((resource_monitor_running == false) and (process->is_finished_initializing() == true))
+	if((newdevice.DeviceName == hostname) and (resource_monitor_running == false) and (process->is_finished_initializing() == true))
 	{
 		myDevice = process->get_mydevice();
 		resourcemonitor = new ResourceMonitor(myDevice.Architecture,myDevice.DeviceName,node_name);

@@ -360,7 +360,6 @@ bool initialize(ros::NodeHandle nh)
         logger->log_warn("Missing Parameter: loop_rate.");
         return false;
     }
-    char hostname[1024];
 	hostname[1023] = '\0';
 	gethostname(hostname,1023);
     std::string device_topic = "/" + std::string(hostname) +"_master_node/device";
@@ -452,7 +451,7 @@ void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg)
 	newdevice.Architecture = msg->Architecture;
 	newdevice.DeviceType = msg->DeviceType;
 	newdevice.DeviceParent = msg->DeviceParent;
-	if((device_initialized == false))
+	if((device_initialized == false) and newdevice.DeviceName == hostname)
 	{
 		myDevice = newdevice;
 		resourcemonitor = new ResourceMonitor(myDevice.Architecture,myDevice.DeviceName,node_name);

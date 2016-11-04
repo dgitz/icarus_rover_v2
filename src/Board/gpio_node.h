@@ -72,6 +72,7 @@ ros::Time now;
 ros::Time boot_time;
 double mtime;
 bool device_initialized;
+char hostname[1024];
 //End Template Code: Define Global Variables
 
 //Start User Code: Define Global Variables

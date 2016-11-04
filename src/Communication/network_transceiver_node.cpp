@@ -352,7 +352,6 @@ bool initialize(ros::NodeHandle nh)
         logger->log_warn("Missing Parameter: loop_rate.");
         return false;
     }
-    char hostname[1024];
 	hostname[1023] = '\0';
 	gethostname(hostname,1023);
     std::string device_topic = "/" + std::string(hostname) +"_master_node/device";
@@ -416,6 +415,7 @@ bool initialize(ros::NodeHandle nh)
 		std::string arm2_joystick_topic = "/" + Mode + "/arm2_joystick";
 		arm2_joy_pub =  nh.advertise<sensor_msgs::Joy>(arm2_joystick_topic,1000);
 		ros::master::V_TopicInfo master_topics;
+		sleep(3.0);  //Have to wait for all other nodes to start before doing a mass subscribe
 		ros::master::getTopics(master_topics);
 
 		std::vector<std::string> diagnostic_topics;
@@ -432,7 +432,7 @@ bool initialize(ros::NodeHandle nh)
 		diagnostic_subs = new ros::Subscriber[diagnostic_topics.size()];
 		for(int i = 0; i < diagnostic_topics.size();i++)
 		{
-			char tempstr[50];
+			char tempstr[255];
 			sprintf(tempstr,"Subscribing to diagnostic topic: %s",diagnostic_topics.at(i).c_str());
 			logger->log_info(tempstr);
 			diagnostic_subs[i] = nh.subscribe<icarus_rover_v2::diagnostic>(diagnostic_topics.at(i),1000,diagnostic_Callback);
@@ -508,9 +508,10 @@ void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg)
 	icarus_rover_v2::device newdevice;
 	newdevice.DeviceName = msg->DeviceName;
 	newdevice.Architecture = msg->Architecture;
-	myDevice = newdevice;
-	if(myDevice.DeviceName != "")
+
+	if(newdevice.DeviceName == hostname)
 	{
+		myDevice = newdevice;
 		resourcemonitor = new ResourceMonitor(myDevice.Architecture,myDevice.DeviceName,node_name);
 		device_initialized = true;
 	}

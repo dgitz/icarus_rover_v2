@@ -18,6 +18,7 @@ ResourceMonitor::ResourceMonitor(std::string device_architecture,std::string hos
 		CPU_Used_Column = 9;
 		RAM_Used_Column = 6;
 	}
+
 	Task_Name = task_name;
 	Host_Name = host_name;
 	generic_node_name = Task_Name.substr(Host_Name.length()+2,Task_Name.size());
@@ -133,8 +134,7 @@ bool ResourceMonitor::update()
 	{
 		std::string line;
 		getline(myfile1,line);
-		//printf("Line:%s\r\n",line.c_str());
-		std::string find_string = "icarus_rover_v2/" + generic_node_name;
+		std::string find_string = generic_node_name;
 		std::size_t found = line.find(find_string);
 		if(found != std::string::npos)
 		{

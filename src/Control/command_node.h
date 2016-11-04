@@ -61,6 +61,7 @@ ros::Time veryslow_timer; //1 Hz
 ros::Time now;
 double mtime;
 bool device_initialized;
+char hostname[1024];
 //End Template Code: Define Global Variables
 
 //Start User Code: Define Global Variables

@@ -65,9 +65,6 @@ void diagnostic_Callback(const icarus_rover_v2::diagnostic::ConstPtr& msg)
 
 	}
 }
-void device_Callback(const icarus_rover_v2::device::ConstPtr& msg)
-{
-}
 
 bool run_fastrate_code()
 {
@@ -150,7 +147,6 @@ int main(int argc, char **argv)
     medium_timer = now;
     slow_timer = now;
     veryslow_timer = now;
-
     while (ros::ok())
     {
     	bool ok_to_start = false;
@@ -196,7 +192,6 @@ int main(int argc, char **argv)
 
 bool initialize(ros::NodeHandle nh)
 {
-	sleep(5);
     //Start Template Code: Initialization and Parameters
     myDevice.DeviceName = "";
     myDevice.Architecture = "";
@@ -234,7 +229,7 @@ bool initialize(ros::NodeHandle nh)
         logger->log_warn("Missing Parameter: loop_rate.");
         return false;
     }
-    char hostname[1024];
+
 	hostname[1023] = '\0';
 	gethostname(hostname,1023);
     std::string device_topic = "/" + std::string(hostname) +"_master_node/device";
@@ -249,13 +244,16 @@ bool initialize(ros::NodeHandle nh)
 	}
     std::string firmware_topic = "/" + node_name + "/firmware";
     firmware_pub =  nh.advertise<icarus_rover_v2::firmware>(firmware_topic,1000);
+
     //End Template Code: Initialization and Parameters
 
     //Start User Code: Initialization and Parameters
+    //sleep(3.0);  //Have to wait for all other nodes to start before doing a mass subscribe
     last_time_speech_ended = ros::Time::now();
     sc.reset(new sound_play::SoundClient());
     std::vector<std::string> diagnostic_topics;
     ros::master::V_TopicInfo master_topics;
+
     ros::master::getTopics(master_topics);
     for (ros::master::V_TopicInfo::iterator it = master_topics.begin() ; it != master_topics.end(); it++)
     {
@@ -264,14 +262,15 @@ bool initialize(ros::NodeHandle nh)
     	{
     		diagnostic_topics.push_back(info.name);
     	}
-
     }
+
     ros::Subscriber * diagnostic_subs;
     diagnostic_subs = new ros::Subscriber[diagnostic_topics.size()];
+
     for(int i = 0; i < diagnostic_topics.size();i++)
     {
-    	char tempstr[50];
-    	sprintf(tempstr,"Subscribing to diagnostic topic: %s",diagnostic_topics.at(i).c_str());
+    	char tempstr[255];
+    	sprintf(tempstr,"i: %d Subscribing to diagnostic topic: %s",i,diagnostic_topics.at(i).c_str());
     	logger->log_info(tempstr);
     	diagnostic_subs[i] = nh.subscribe<icarus_rover_v2::diagnostic>(diagnostic_topics.at(i),1000,diagnostic_Callback);
     }
@@ -304,9 +303,10 @@ void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg)
 	icarus_rover_v2::device newdevice;
 	newdevice.DeviceName = msg->DeviceName;
 	newdevice.Architecture = msg->Architecture;
-	myDevice = newdevice;
-	if(myDevice.DeviceName != "")
+
+	if(newdevice.DeviceName == hostname)
 	{
+		myDevice = newdevice;
 		resourcemonitor = new ResourceMonitor(myDevice.Architecture,myDevice.DeviceName,node_name);
 		device_initialized = true;
 	}

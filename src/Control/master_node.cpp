@@ -402,6 +402,15 @@ bool parse_devicefile(TiXmlDocument doc)
 					newDevice.BoardCount = atoi(l_pBoardCount->GetText());
 				}
 
+				TiXmlElement *l_pCapability = l_pDevice->FirstChildElement("Capability");
+				std::vector<std::string> capabilities;
+				while( l_pCapability )
+				{
+					std::string capability = l_pCapability->GetText();
+					capabilities.push_back(capability);
+					l_pCapability = l_pCapability->NextSiblingElement( "Capability" );
+				}
+				newDevice.Capabilities = capabilities;
 				TiXmlElement *l_pPin = l_pDevice->FirstChildElement( "Pin" );
 				while( l_pPin )
 				{
