@@ -16,7 +16,10 @@ void process_message_thread()
 		//memset(packet,0,sizeof(packet));
 		//ros::Time start_time = ros::Time::now();
 		int rx_length = read(device_fid, rx_buffer, sizeof(rx_buffer));
-		
+		if(rx_length > 0)
+		{
+			last_message_received_time = ros::Time::now();
+		}
 		for(int i = 0; i < rx_length; i++)
 		{
 			if((rx_buffer[i] == 0xAB) and (message_started == false))
@@ -69,37 +72,121 @@ bool run_fastrate_code()
 		if(packet_type == SERIAL_TestMessageCounter_ID)
 		{
 			diagnostic_status = process->new_serialmessage_TestMessageCounter(packet_type,packet);
+			if(WARN_ON_SOFTWARE_NOT_IMPLEMENTED == 1)
+			{
+				if(diagnostic_status.Level > NOTICE)
+				{
+					logger->log_warn(diagnostic_status.Description);
+					diagnostic_pub.publish(diagnostic_status);
+				}
+			}
 		}
 		else if(packet_type == SERIAL_FirmwareVersion_ID)
 		{
 			diagnostic_status = process->new_serialmessage_FirmwareVersion(packet_type,packet);
+			if(WARN_ON_SOFTWARE_NOT_IMPLEMENTED == 1)
+			{
+				if(diagnostic_status.Level > NOTICE)
+				{
+					logger->log_warn(diagnostic_status.Description);
+					diagnostic_pub.publish(diagnostic_status);
+				}
+			}
 		}
 		else if(packet_type == SERIAL_Diagnostic_ID)
 		{
 			diagnostic_status = process->new_serialmessage_Diagnostic(packet_type,packet);
+			if(WARN_ON_SOFTWARE_NOT_IMPLEMENTED == 1)
+			{
+				if(diagnostic_status.Level > NOTICE)
+				{
+					logger->log_warn(diagnostic_status.Description);
+					diagnostic_pub.publish(diagnostic_status);
+				}
+			}
 		}
 		else if(packet_type == SERIAL_Get_ANA_PortA_ID)
 		{
 			diagnostic_status = process->new_serialmessage_Get_ANA_PortA(packet_type,packet);
+			if(WARN_ON_SOFTWARE_NOT_IMPLEMENTED == 1)
+			{
+				if(diagnostic_status.Level > NOTICE)
+				{
+					logger->log_warn(diagnostic_status.Description);
+					diagnostic_pub.publish(diagnostic_status);
+				}
+			}
 		}
 		else if(packet_type == SERIAL_Get_ANA_PortB_ID)
 		{
 			diagnostic_status = process->new_serialmessage_Get_ANA_PortB(packet_type,packet);
+			if(WARN_ON_SOFTWARE_NOT_IMPLEMENTED == 1)
+			{
+				if(diagnostic_status.Level > NOTICE)
+				{
+					logger->log_warn(diagnostic_status.Description);
+					diagnostic_pub.publish(diagnostic_status);
+				}
+			}
 		}
 		else if(packet_type == SERIAL_Get_DIO_PortA_ID)
 		{
 			diagnostic_status = process->new_serialmessage_Get_DIO_PortA(packet_type,packet);
+			if(WARN_ON_SOFTWARE_NOT_IMPLEMENTED == 1)
+			{
+				if(diagnostic_status.Level > NOTICE)
+				{
+					logger->log_warn(diagnostic_status.Description);
+					diagnostic_pub.publish(diagnostic_status);
+				}
+			}
 		}
 		else if(packet_type == SERIAL_Get_DIO_PortB_ID)
 		{
 			diagnostic_status = process->new_serialmessage_Get_DIO_PortB(packet_type,packet);
+			if(WARN_ON_SOFTWARE_NOT_IMPLEMENTED == 1)
+			{
+				if(diagnostic_status.Level > NOTICE)
+				{
+					logger->log_warn(diagnostic_status.Description);
+					diagnostic_pub.publish(diagnostic_status);
+				}
+			}
 		}
 		else if(packet_type == SERIAL_Mode_ID)
 		{
 			diagnostic_status = process->new_serialmessage_Get_Mode(packet_type,packet);
+			if(WARN_ON_SOFTWARE_NOT_IMPLEMENTED == 1)
+			{
+				if(diagnostic_status.Level > NOTICE)
+				{
+					logger->log_warn(diagnostic_status.Description);
+					diagnostic_pub.publish(diagnostic_status);
+				}
+			}
+		}
+		else
+		{
+			if(WARN_ON_SOFTWARE_NOT_IMPLEMENTED == 1)
+			{
+				diagnostic_status.Level = WARN;
+				diagnostic_status.Diagnostic_Type= COMMUNICATIONS;
+				diagnostic_status.Diagnostic_Message = DROPPING_PACKETS;
+				char tempstr[255];
+				sprintf(tempstr,"Message: %0x not processed.",packet_type);
+				diagnostic_status.Description = tempstr;
+				logger->log_warn(tempstr);
+			}
+
 		}
 	}
 	diagnostic_status = process->update(20);  //Need to change 20 to the actual dt!!!
+	if(diagnostic_status.Level > NOTICE)
+	{
+		logger->log_warn(diagnostic_status.Description);
+		diagnostic_pub.publish(diagnostic_status);
+	}
+	//printf("diag: %s\n",diagnostic_status.Description.c_str());
 	std::vector<std::vector<unsigned char> > tx_buffers;
 	bool send = process->checkTriggers(tx_buffers);
 	if(send == true)
@@ -126,28 +213,70 @@ bool run_fastrate_code()
 }
 bool run_mediumrate_code()
 {
-	
-	
+	double time_since_last_message = measure_time_diff(ros::Time::now(),last_message_received_time);
+	if((time_since_last_message > 3.0) && (time_since_last_message < 6.0))
+	{
+		diagnostic_status.Level = WARN;
+		diagnostic_status.Diagnostic_Message = DROPPING_PACKETS;
+		char tempstr[255];
+		sprintf(tempstr,"No Message received from GPIO Board in %f seconds",time_since_last_message);
+		diagnostic_status.Description = tempstr;
+	}
+	else if(time_since_last_message >= 6.0)
+	{
+		diagnostic_status.Level = ERROR;
+		diagnostic_status.Diagnostic_Message = DROPPING_PACKETS;
+		char tempstr[255];
+		sprintf(tempstr,"No Message received from GPIO Board in %f seconds",time_since_last_message);
+		diagnostic_status.Description = tempstr;
+	}
+
+	beat.stamp = ros::Time::now();
+	heartbeat_pub.publish(beat);
 	diagnostic_pub.publish(diagnostic_status);
 	return true;
 }
 bool run_slowrate_code()
 {
-	char tempstr[128];
-	sprintf(tempstr,"Board Mode: %d Node Mode: %d",process->get_boardstate(),process->get_nodestate());
-    logger->log_debug(tempstr);
+	{
+		char tempstr[255];
+		sprintf(tempstr,"Board Mode: %s Node Mode: %s",
+			process->map_mode_ToString(process->get_boardstate()).c_str(),
+			process->map_mode_ToString(process->get_nodestate()).c_str());
+		logger->log_info(tempstr);
+		diagnostic_status.Diagnostic_Type = SOFTWARE;
+		diagnostic_status.Level = INFO;
+		diagnostic_status.Diagnostic_Message = NOERROR;
+		diagnostic_status.Description = tempstr;
+		diagnostic_pub.publish(diagnostic_status);
+	}
+
 	if(device_initialized == true)
 	{
-		bool status = resourcemonitor->update();
-		if(status == true)
+		icarus_rover_v2::diagnostic resource_diagnostic;
+		resource_diagnostic = resourcemonitor->update();
+		if(resource_diagnostic.Diagnostic_Message == DEVICE_NOT_AVAILABLE)
+		{
+			diagnostic_pub.publish(resource_diagnostic);
+			logger->log_warn("Couldn't read resources used.");
+		}
+		else if(resource_diagnostic.Level >= WARN)
+		{
+			resources_used = resourcemonitor->get_resourceused();
+			resource_pub.publish(resources_used);
+			diagnostic_pub.publish(resource_diagnostic);
+		}
+		else if(resource_diagnostic.Level <= NOTICE)
 		{
 			resources_used = resourcemonitor->get_resourceused();
 			resource_pub.publish(resources_used);
 		}
-		else
-		{
-			logger->log_warn("Couldn't read resources used.");
-		}
+	}
+
+	{
+		char tempstr[255];
+		sprintf(tempstr,"Checksum passed: %d failed: %d",good_checksum_counter,bad_checksum_counter);
+		logger->log_info(tempstr);
 	}
 	return true;
 }
@@ -159,11 +288,24 @@ bool run_veryslowrate_code()
 	icarus_rover_v2::firmware fw;
 	fw.Generic_Node_Name = "gpio_node";
 	fw.Node_Name = node_name;
-	fw.Description = "Latest Rev: 8-Sep-2016";
+	fw.Description = "Latest Rev: 9-Nov-2016";
 	fw.Major_Release = GPIONODE_MAJOR_RELEASE;
 	fw.Minor_Release = GPIONODE_MINOR_RELEASE;
 	fw.Build_Number = GPIONODE_BUILD_NUMBER;
 	firmware_pub.publish(fw);
+	std::vector<message_info> allmessage_info = process->get_allmessage_info();
+	for(int i = 0; i < allmessage_info.size(); i++)
+	{
+		char tempstr[255];
+		message_info message = allmessage_info.at(i);
+		sprintf(tempstr,"Message: AB%0X Received Counter: %ld Received Rate: %f (Hz) Transmitted Counter: %ld Transmitted Rate: %f (Hz)",
+				message.id,
+				message_receive_counter,
+				message.received_rate,
+				message.sent_counter,
+				message.transmitted_rate);
+		logger->log_info(tempstr);
+	}
 	return true;
 }
 void DigitalOutput_Callback(const icarus_rover_v2::pin::ConstPtr& msg)
@@ -200,7 +342,7 @@ void PwmOutput_Callback(const icarus_rover_v2::pin::ConstPtr& msg)
 void Command_Callback(const icarus_rover_v2::command::ConstPtr& msg)
 {
 	char tempstr[128];
-	sprintf(tempstr,"Got Command: %d Level: %d",msg->Command,msg->Option1);
+	sprintf(tempstr,"Got Command: %0x Level: %d",msg->Command,msg->Option1);
 	logger->log_info(tempstr);
 	if (msg->Command ==  DIAGNOSTIC_ID)
 	{
@@ -314,7 +456,6 @@ bool initialize(ros::NodeHandle nh)
     myDevice.DeviceParent = "";
     myDevice.DeviceType = "";
     myDevice.BoardCount = 0;
-    resource_monitor_running = false;
     device_initialized = false;
     std::string diagnostic_topic = "/" + node_name + "/diagnostic";
 	diagnostic_pub =  nh.advertise<icarus_rover_v2::diagnostic>(diagnostic_topic,1000);
@@ -353,6 +494,9 @@ bool initialize(ros::NodeHandle nh)
     }
 	hostname[1023] = '\0';
 	gethostname(hostname,1023);
+	std::string heartbeat_topic = "/" + node_name + "/heartbeat";
+	heartbeat_pub = nh.advertise<icarus_rover_v2::heartbeat>(heartbeat_topic,1000);
+	beat.Node_Name = node_name;
 	process = new GPIONodeProcess;
 	diagnostic_status = process->init(diagnostic_status,logger,std::string(hostname));
     std::string device_topic = "/" + std::string(hostname) +"_master_node/device";
@@ -380,6 +524,7 @@ bool initialize(ros::NodeHandle nh)
     //End Template Code: Initialization and Parameters
 
     //Start User Code: Initialization and Parameters
+    last_message_received_time = ros::Time::now();
     std::string digitalinput_topic = "/" + node_name + "/DigitalInput";
     digitalinput_pub = nh.advertise<icarus_rover_v2::pin>(digitalinput_topic,1000);
     std::string analoginput_topic = "/" + node_name + "/AnalogInput";
@@ -476,11 +621,11 @@ void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg)
 	newdevice.BoardCount = msg->BoardCount;
 	newdevice.pins = msg->pins;
 	diagnostic_status = process->new_devicemsg(newdevice);
-	if((newdevice.DeviceName == hostname) and (resource_monitor_running == false) and (process->is_finished_initializing() == true))
+	if((newdevice.DeviceName == hostname) and (device_initialized == false) and (process->is_finished_initializing() == true))
 	{
 		myDevice = process->get_mydevice();
-		resourcemonitor = new ResourceMonitor(myDevice.Architecture,myDevice.DeviceName,node_name);
-		resource_monitor_running = true;
+		resourcemonitor = new ResourceMonitor(diagnostic_status,myDevice.Architecture,myDevice.DeviceName,node_name);
+		device_initialized = true;
 	}
 
 }

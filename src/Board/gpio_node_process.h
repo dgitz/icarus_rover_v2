@@ -39,6 +39,18 @@ struct state_ack
 	bool failed;
 	int flag1;  //Various Purposes
 };
+struct message_info
+{
+	int id;
+	std::string protocol;
+	ros::Time last_time_received;
+	ros::Time last_time_transmitted;
+	long received_counter;
+	long sent_counter;
+	double received_rate;
+	double transmitted_rate;
+
+};
 class GPIONodeProcess
 {
 public:
@@ -75,8 +87,10 @@ public:
 	icarus_rover_v2::diagnostic new_serialmessage_Get_DIO_PortA(int packet_type,unsigned char* inpacket);
 	icarus_rover_v2::diagnostic new_serialmessage_Get_DIO_PortB(int packet_type,unsigned char* inpacket);
 	icarus_rover_v2::diagnostic new_serialmessage_Get_Mode(int packet_type,unsigned char* inpacket);
+	std::vector<message_info> get_allmessage_info() { return messages; }
 	state_ack get_stateack(std::string name);
 	bool set_stateack(state_ack stateack);
+	std::string map_mode_ToString(int mode);
 protected:
 	state_ack send_configure_DIO_PortA;
 	state_ack send_configure_DIO_PortB;
@@ -92,6 +106,8 @@ private:
 	SerialMessageHandler *serialmessagehandler;
 	bool configure_pin(std::string BoardName,std::string Port, uint8_t Number, std::string Function);
 	void initialize_stateack_messages();
+	void initialize_message_info();
+	bool gather_message_info(int id, std::string mode);
 	std::string myhostname;
 	bool all_device_info_received;
 	icarus_rover_v2::device mydevice;
@@ -105,5 +121,9 @@ private:
 	long ms_timer;
 	long timeout_value_ms;
 	bool timer_timeout;
+	double time_diff(ros::Time timer_a, ros::Time timer_b);
+
+
+	std::vector<message_info> messages;
 };
 #endif

@@ -1,10 +1,103 @@
 #include "network_transceiver_node.h"
 //Start Template Code: Firmware Definition
-#define NETWORKTRANSCEIVERNODE_MAJOR_RELEASE 1
-#define NETWORKTRANSCEIVERNODE_MINOR_RELEASE 3
+#define NETWORKTRANSCEIVERNODE_MAJOR_RELEASE 2
+#define NETWORKTRANSCEIVERNODE_MINOR_RELEASE 1
 #define NETWORKTRANSCEIVERNODE_BUILD_NUMBER 0
 //End Template Code: Firmware Definition
 //Start User Code: Functions
+icarus_rover_v2::diagnostic rescan_topics(icarus_rover_v2::diagnostic diag)
+{
+	int found_new_topics = 0;
+	ros::master::V_TopicInfo master_topics;
+	ros::master::getTopics(master_topics);
+	for (ros::master::V_TopicInfo::iterator it = master_topics.begin() ; it != master_topics.end(); it++)
+	{
+		const ros::master::TopicInfo& info = *it;
+		if(info.datatype == "icarus_rover_v2/resource")
+		{
+			bool found = true;
+			for(int i = 0; i < resource_topics.size();i++)
+			{
+				if(resource_topics.at(i) == info.name)
+				{
+					found = false;
+					break;
+				}
+			}
+			if(found == true)
+			{
+				found_new_topics++;
+				resource_topics.push_back(info.name);
+				char tempstr[255];
+				sprintf(tempstr,"Subscribing to resource topic: %s",info.name.c_str());
+				logger->log_info(tempstr);
+				ros::Subscriber sub = n->subscribe<icarus_rover_v2::resource>(info.name,1000,resource_Callback);
+				resource_subs.push_back(sub);
+			}
+		}
+		else if(info.datatype == "icarus_rover_v2/diagnostic")
+		{
+			bool found = true;
+			for(int i = 0; i < diagnostic_topics.size();i++)
+			{
+				if(diagnostic_topics.at(i) == info.name)
+				{
+					found = false;
+					break;
+				}
+			}
+			if(found == true)
+			{
+				found_new_topics++;
+				diagnostic_topics.push_back(info.name);
+				char tempstr[255];
+				sprintf(tempstr,"Subscribing to diagnostic topic: %s",info.name.c_str());
+				logger->log_info(tempstr);
+				ros::Subscriber sub = n->subscribe<icarus_rover_v2::diagnostic>(info.name,1000,diagnostic_Callback);
+				diagnostic_subs.push_back(sub);
+			}
+		}
+		else if(info.datatype == "icarus_rover_v2/device")
+		{
+			bool found = true;
+			for(int i = 0; i < device_topics.size();i++)
+			{
+				if(device_topics.at(i) == info.name)
+				{
+					found = false;
+					break;
+				}
+			}
+			if(found == true)
+			{
+				found_new_topics++;
+				device_topics.push_back(info.name);
+				char tempstr[255];
+				sprintf(tempstr,"Subscribing to device topic: %s",info.name.c_str());
+				logger->log_info(tempstr);
+				ros::Subscriber sub = n->subscribe<icarus_rover_v2::device>(info.name,1000,device_Callback);
+				device_subs.push_back(sub);
+			}
+		}
+
+	}
+	diag.Diagnostic_Type = SOFTWARE;
+	diag.Level = INFO;
+	diag.Diagnostic_Message = NOERROR;
+
+	char tempstr[255];
+	if(found_new_topics > 0)
+	{
+		sprintf(tempstr,"Rescanned and found %d new topics.",found_new_topics);
+	}
+	else
+	{
+		sprintf(tempstr,"Rescanned and found no new topics.");
+	}
+	logger->log_info(tempstr);
+	diag.Description = tempstr;
+	return diag;
+}
 void diagnostic_Callback(const icarus_rover_v2::diagnostic::ConstPtr& msg)
 {
 	char tempstr[240];
@@ -190,6 +283,8 @@ bool run_fastrate_code()
 }
 bool run_mediumrate_code()
 {
+	beat.stamp = ros::Time::now();
+	heartbeat_pub.publish(beat);
 	//logger->log_debug("Running medium rate code.");
 	diagnostic_status.Diagnostic_Type = SOFTWARE;
 	diagnostic_status.Level = INFO;
@@ -202,15 +297,23 @@ bool run_slowrate_code()
 {
 	if(device_initialized == true)
 	{
-		bool status = resourcemonitor->update();
-		if(status == true)
+		icarus_rover_v2::diagnostic resource_diagnostic;
+		resource_diagnostic = resourcemonitor->update();
+		if(resource_diagnostic.Diagnostic_Message == DEVICE_NOT_AVAILABLE)
+		{
+			diagnostic_pub.publish(resource_diagnostic);
+			logger->log_warn("Couldn't read resources used.");
+		}
+		else if(resource_diagnostic.Level >= WARN)
 		{
 			resources_used = resourcemonitor->get_resourceused();
 			resource_pub.publish(resources_used);
+			diagnostic_pub.publish(resource_diagnostic);
 		}
-		else
+		else if(resource_diagnostic.Level <= NOTICE)
 		{
-			logger->log_warn("Couldn't read resources used.");
+			resources_used = resourcemonitor->get_resourceused();
+			resource_pub.publish(resources_used);
 		}
 	}
 	//logger->log_debug("Running slow rate code.");
@@ -220,11 +323,13 @@ bool run_slowrate_code()
 bool run_veryslowrate_code()
 {
 	//logger->log_debug("Running very slow rate code.");
+	diagnostic_status = rescan_topics(diagnostic_status);
+	diagnostic_pub.publish(diagnostic_status);
 	logger->log_info("Node Running.");
 	icarus_rover_v2::firmware fw;
 	fw.Generic_Node_Name = "network_transceiver_Node";
 	fw.Node_Name = node_name;
-	fw.Description = "Latest Rev: 18-Oct-2016";
+	fw.Description = "Latest Rev: 7-Nov-2016";
 	fw.Major_Release = NETWORKTRANSCEIVERNODE_MAJOR_RELEASE;
 	fw.Minor_Release = NETWORKTRANSCEIVERNODE_MINOR_RELEASE;
 	fw.Build_Number = NETWORKTRANSCEIVERNODE_BUILD_NUMBER;
@@ -242,10 +347,9 @@ int main(int argc, char **argv)
 
     ros::init(argc, argv, node_name);
     node_name = ros::this_node::getName();
-
-    ros::NodeHandle n;
+    n.reset(new ros::NodeHandle);
     
-    if(initialize(n) == false)
+    if(initializenode() == false)
     {
         logger->log_fatal("Unable to Initialize.  Exiting.");
     	diagnostic_status.Diagnostic_Type = SOFTWARE;
@@ -312,15 +416,14 @@ int main(int argc, char **argv)
     return 0;
 }
 
-bool initialize(ros::NodeHandle nh)
+bool initializenode()
 {
-	sleep(15);
     //Start Template Code: Initialization and Parameters
     myDevice.DeviceName = "";
     myDevice.Architecture = "";
     device_initialized = false;
     std::string diagnostic_topic = "/" + node_name + "/diagnostic";
-	diagnostic_pub =  nh.advertise<icarus_rover_v2::diagnostic>(diagnostic_topic,1000);
+	diagnostic_pub =  n->advertise<icarus_rover_v2::diagnostic>(diagnostic_topic,1000);
 	diagnostic_status.Node_Name = node_name;
 	diagnostic_status.System = ROVER;
 	diagnostic_status.SubSystem = ROBOT_CONTROLLER;
@@ -333,10 +436,10 @@ bool initialize(ros::NodeHandle nh)
 	diagnostic_pub.publish(diagnostic_status);
 
 	std::string resource_topic = "/" + node_name + "/resource";
-	resource_pub = nh.advertise<icarus_rover_v2::resource>(resource_topic,1000);
+	resource_pub = n->advertise<icarus_rover_v2::resource>(resource_topic,1000);
 
     std::string param_verbosity_level = node_name +"/verbosity_level";
-    if(nh.getParam(param_verbosity_level,verbosity_level) == false)
+    if(n->getParam(param_verbosity_level,verbosity_level) == false)
     {
         logger = new Logger("WARN",ros::this_node::getName());
         logger->log_warn("Missing Parameter: verbosity_level");
@@ -347,43 +450,46 @@ bool initialize(ros::NodeHandle nh)
         logger = new Logger(verbosity_level,ros::this_node::getName());      
     }
     std::string param_loop_rate = node_name +"/loop_rate";
-    if(nh.getParam(param_loop_rate,rate) == false)
+    if(n->getParam(param_loop_rate,rate) == false)
     {
         logger->log_warn("Missing Parameter: loop_rate.");
         return false;
     }
 	hostname[1023] = '\0';
 	gethostname(hostname,1023);
+	std::string heartbeat_topic = "/" + node_name + "/heartbeat";
+	heartbeat_pub = n->advertise<icarus_rover_v2::heartbeat>(heartbeat_topic,1000);
+	beat.Node_Name = node_name;
     std::string device_topic = "/" + std::string(hostname) +"_master_node/device";
-    device_sub = nh.subscribe<icarus_rover_v2::device>(device_topic,1000,Device_Callback);
+    device_sub = n->subscribe<icarus_rover_v2::device>(device_topic,1000,Device_Callback);
 
-    pps_sub = nh.subscribe<std_msgs::Bool>("/pps",1000,PPS_Callback);  //This is a pps consumer.
+    pps_sub = n->subscribe<std_msgs::Bool>("/pps",1000,PPS_Callback);  //This is a pps consumer.
     std::string param_require_pps_to_start = node_name +"/require_pps_to_start";
-    if(nh.getParam(param_require_pps_to_start,require_pps_to_start) == false)
+    if(n->getParam(param_require_pps_to_start,require_pps_to_start) == false)
 	{
 		logger->log_warn("Missing Parameter: require_pps_to_start.");
 		return false;
 	}
     std::string firmware_topic = "/" + node_name + "/firmware";
-    firmware_pub =  nh.advertise<icarus_rover_v2::firmware>(firmware_topic,1000);
+    firmware_pub =  n->advertise<icarus_rover_v2::firmware>(firmware_topic,1000);
     //End Template Code: Initialization and Parameters
 
     //Start User Code: Initialization and Parameters
     std::string param_send_multicast_address = node_name +"/Send_Multicast_Group";
-    if(nh.getParam(param_send_multicast_address,send_multicast_group) == false)
+    if(n->getParam(param_send_multicast_address,send_multicast_group) == false)
    	{
    		logger->log_warn("Missing Parameter: Send_Multicast_Group. Exiting.");
    		return false;
    	}
 
     std::string param_send_multicast_port = node_name +"/Send_Multicast_Port";
-   	if(nh.getParam(param_send_multicast_port,send_multicast_port) == false)
+   	if(n->getParam(param_send_multicast_port,send_multicast_port) == false)
    	{
    		logger->log_warn("Missing Parameter: Send_Multicast_Port. Exiting.");
    		return false;
    	}
    	std::string param_recv_unicast_port = node_name +"/Recv_Unicast_Port";
-	if(nh.getParam(param_recv_unicast_port,recv_unicast_port) == false)
+	if(n->getParam(param_recv_unicast_port,recv_unicast_port) == false)
 	{
 		logger->log_warn("Missing Parameter: Recv_Unicast_Port. Exiting.");
 		return false;
@@ -399,7 +505,7 @@ bool initialize(ros::NodeHandle nh)
 		return false;
 	}
    	std::string param_Mode = node_name +"/Mode";
-	if(nh.getParam(param_Mode,Mode) == false)
+	if(n->getParam(param_Mode,Mode) == false)
 	{
 		logger->log_warn("Missing Parameter: Mode.");
 		return false;
@@ -407,76 +513,13 @@ bool initialize(ros::NodeHandle nh)
 	if(Mode=="Diagnostics_GUI")
 	{
 		std::string joystick_topic = "/" + Mode + "/joystick";
-		joy_pub =  nh.advertise<sensor_msgs::Joy>(joystick_topic,1000);
+		joy_pub =  n->advertise<sensor_msgs::Joy>(joystick_topic,1000);
 
 		std::string arm1_joystick_topic = "/" + Mode + "/arm1_joystick";
-		arm1_joy_pub =  nh.advertise<sensor_msgs::Joy>(arm1_joystick_topic,1000);
+		arm1_joy_pub =  n->advertise<sensor_msgs::Joy>(arm1_joystick_topic,1000);
 
 		std::string arm2_joystick_topic = "/" + Mode + "/arm2_joystick";
-		arm2_joy_pub =  nh.advertise<sensor_msgs::Joy>(arm2_joystick_topic,1000);
-		ros::master::V_TopicInfo master_topics;
-		sleep(3.0);  //Have to wait for all other nodes to start before doing a mass subscribe
-		ros::master::getTopics(master_topics);
-
-		std::vector<std::string> diagnostic_topics;
-		for (ros::master::V_TopicInfo::iterator it = master_topics.begin() ; it != master_topics.end(); it++)
-		{
-			const ros::master::TopicInfo& info = *it;
-			if(info.datatype == "icarus_rover_v2/diagnostic")
-			{
-				diagnostic_topics.push_back(info.name);
-			}
-
-		}
-		ros::Subscriber * diagnostic_subs;
-		diagnostic_subs = new ros::Subscriber[diagnostic_topics.size()];
-		for(int i = 0; i < diagnostic_topics.size();i++)
-		{
-			char tempstr[255];
-			sprintf(tempstr,"Subscribing to diagnostic topic: %s",diagnostic_topics.at(i).c_str());
-			logger->log_info(tempstr);
-			diagnostic_subs[i] = nh.subscribe<icarus_rover_v2::diagnostic>(diagnostic_topics.at(i),1000,diagnostic_Callback);
-		}
-
-		std::vector<std::string> device_topics;
-		for (ros::master::V_TopicInfo::iterator it = master_topics.begin() ; it != master_topics.end(); it++)
-		{
-			const ros::master::TopicInfo& info = *it;
-			if(info.datatype == "icarus_rover_v2/device")
-			{
-				device_topics.push_back(info.name);
-			}
-
-		}
-		ros::Subscriber * device_subs;
-		device_subs = new ros::Subscriber[device_topics.size()];
-		for(int i = 0; i < device_topics.size();i++)
-		{
-			char tempstr[50];
-			sprintf(tempstr,"Subscribing to device topic: %s",device_topics.at(i).c_str());
-			logger->log_info(tempstr);
-			device_subs[i] = nh.subscribe<icarus_rover_v2::device>(device_topics.at(i),1000,device_Callback);
-		}
-
-		std::vector<std::string> resource_topics;
-		for (ros::master::V_TopicInfo::iterator it = master_topics.begin() ; it != master_topics.end(); it++)
-		{
-			const ros::master::TopicInfo& info = *it;
-			if(info.datatype == "icarus_rover_v2/resource")
-			{
-				resource_topics.push_back(info.name);
-			}
-
-		}
-		ros::Subscriber * resource_subs;
-		resource_subs = new ros::Subscriber[resource_topics.size()];
-		for(int i = 0; i < resource_topics.size();i++)
-		{
-			char tempstr[50];
-			sprintf(tempstr,"Subscribing to resource topic: %s",resource_topics.at(i).c_str());
-			logger->log_info(tempstr);
-			resource_subs[i] = nh.subscribe<icarus_rover_v2::resource>(resource_topics.at(i),1000,resource_Callback);
-		}
+		arm2_joy_pub =  n->advertise<sensor_msgs::Joy>(arm2_joystick_topic,1000);
 	}
 	udpmessagehandler = new UDPMessageHandler();
 
@@ -509,10 +552,11 @@ void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg)
 	newdevice.DeviceName = msg->DeviceName;
 	newdevice.Architecture = msg->Architecture;
 
-	if(newdevice.DeviceName == hostname)
+	if((newdevice.DeviceName == hostname) && (device_initialized == false))
 	{
 		myDevice = newdevice;
-		resourcemonitor = new ResourceMonitor(myDevice.Architecture,myDevice.DeviceName,node_name);
+		logger->log_warn("Creating Resource Monitor.");
+		resourcemonitor = new ResourceMonitor(diagnostic_status,myDevice.Architecture,myDevice.DeviceName,node_name);
 		device_initialized = true;
 	}
 }

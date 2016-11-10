@@ -16,3 +16,7 @@ Purpose:
 
 C. vision_node
 Purpose: Obsolete node, keeping for archives and possible future expansion.
+
+C. cameramanager_node
+Purpose: 
+1. Publishes tf info for cameras

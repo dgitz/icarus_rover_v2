@@ -11,7 +11,7 @@
       </material>
     </visual>
   </link>
-
+  
     
   <joint name="leftarm_baserotate" type="revolute">
     <limit effort="1000.0" lower="-3.14159" upper="3.14159" velocity="0.5"/>
@@ -20,6 +20,27 @@
     <axis xyz="0 0 1"/>
     <origin rpy="0 0 0" xyz="0 0 0"/>
   </joint>
+
+  <joint name="asusxtioncamera_fixedjoint" type="revolute">
+    <limit effort="1000.0" lower="-3.14159" upper="3.14159" velocity="0.5"/>
+    <parent link="base_link"/>
+    <child link="asusxtioncamera_link"/>
+    <axis xyz="0 0 1"/>
+    <origin rpy="0 0 0" xyz="0 0 0"/>
+  </joint>
+ 
+  <link name="asusxtioncamera_link">
+    <visual>
+      <geometry>
+        <cylinder length="0" radius="0"/>
+      </geometry>
+      <origin rpy="0 1.57075 0" xyz="0 0 0.0"/>
+      <material name="blue">
+        <color rgba="0 0 .8 1"/>
+      </material>
+    </visual>
+  </link>
+
 
   <link name="leftarm_armbase">
     <visual>

@@ -12,7 +12,7 @@
 #include <icarus_rover_v2/device.h>
 #include <icarus_rover_v2/resource.h>
 #include <icarus_rover_v2/firmware.h>
-
+#include <icarus_rover_v2/heartbeat.h>
 //Start User Code: Includes
 #include "visionhelper.h"
 #include "opencv2/opencv.hpp"
@@ -22,6 +22,13 @@
 //End User Code: Includes
 
 //Start User Code: Data Structures
+struct imageresample_map
+{
+	std::string input_topic;
+	ros::Subscriber image_sub;
+	std::string output_topic;
+	ros::Publisher image_pub;
+};
 //End User Code: Data Structures
 
 //Start Template Code: Function Prototypes
@@ -37,9 +44,10 @@ void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg);
 
 //Start User Code: Function Prototypes
 bool check_tasks();
-bool acquire_image(cv::VideoCapture cap);
+bool capture_image(cv::VideoCapture cap);
 bool Edge_Detection(cv::Mat gray_image,int, void*);
 void Edge_Detect_Threshold_Callback(const std_msgs::UInt8::ConstPtr& msg);
+void ResizeImage_Callback(const sensor_msgs::Image::ConstPtr& msg,const std::string &topicname);
 //End User Code: Function Prototypes
 
 //Start Template Code: Define Global variables
@@ -67,9 +75,12 @@ ros::Time now;
 double mtime;
 bool device_initialized;
 char hostname[1024];
+ros::Publisher heartbeat_pub;
+icarus_rover_v2::heartbeat beat;
 //End Template Code: Define Global Variables
 
 //Start User Code: Define Global Variables
+std::string operation_mode;
 VisionHelper *visionhelper;
 cv::VideoCapture capture;
 vector<int> compression_params;
@@ -78,8 +89,10 @@ ros::Publisher proc_image_pub;
 ros::Subscriber edge_threshold_sub;
 int16_t counter;
 int edge_detect_threshold;
+
 int image_width;
 int image_height;
+std::vector<imageresample_map> resample_maps;
 //CvCapture *capture;
 //End User Code: Define Global Variables
 

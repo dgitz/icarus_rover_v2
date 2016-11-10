@@ -33,20 +33,32 @@ bool run_mediumrate_code()
 	diagnostic_status.Diagnostic_Message = NOERROR;
 	diagnostic_status.Description = "Node Executing.";
 	diagnostic_pub.publish(diagnostic_status);
+
+	beat.stamp = ros::Time::now();
+	heartbeat_pub.publish(beat);
 	return true;
 }
 bool run_slowrate_code()
 {
 	publish_deviceinfo();
-	bool status = resourcemonitor->update();
-	if(status == true)
+	icarus_rover_v2::diagnostic resource_diagnostic;
+
+	resource_diagnostic = resourcemonitor->update();
+	if(resource_diagnostic.Diagnostic_Message == DEVICE_NOT_AVAILABLE)
+	{
+		diagnostic_pub.publish(resource_diagnostic);
+		logger->log_warn("Couldn't read resources used.");
+	}
+	else if(resource_diagnostic.Level >= WARN)
 	{
 		resources_used = resourcemonitor->get_resourceused();
 		resource_pub.publish(resources_used);
+		diagnostic_pub.publish(resource_diagnostic);
 	}
-	else
+	else if(resource_diagnostic.Level <= NOTICE)
 	{
-		logger->log_warn("Couldn't read resources used.");
+		resources_used = resourcemonitor->get_resourceused();
+		resource_pub.publish(resources_used);
 	}
 	icarus_rover_v2::resource device_resource_available;
 	device_resource_available.Node_Name = myDevice.DeviceName;
@@ -226,6 +238,10 @@ bool initialize(ros::NodeHandle nh)
 	gethostname(hostname,1023);
 	myDevice.DeviceName = hostname;
     //Start Template Code: Initialization and Parameters
+	std::string heartbeat_topic = "/" + node_name + "/heartbeat";
+	heartbeat_pub = nh.advertise<icarus_rover_v2::heartbeat>(heartbeat_topic,1000);
+	beat.Node_Name = node_name;
+
     std::string diagnostic_topic = "/" + node_name + "/diagnostic";
 	diagnostic_pub =  nh.advertise<icarus_rover_v2::diagnostic>(diagnostic_topic,1000);
 	diagnostic_status.Node_Name = node_name;
@@ -283,7 +299,7 @@ bool initialize(ros::NodeHandle nh)
     {
     	if(parse_devicefile(device_doc) == true)
     	{
-    		resourcemonitor = new ResourceMonitor(myDevice.Architecture,hostname,node_name);
+    		resourcemonitor = new ResourceMonitor(diagnostic_status,myDevice.Architecture,hostname,node_name);
     	}
     	else { return false; }
     }

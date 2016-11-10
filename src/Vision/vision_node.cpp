@@ -16,22 +16,37 @@ bool run_fastrate_code()
 }
 bool run_mediumrate_code()
 {
+	beat.stamp = ros::Time::now();
+	heartbeat_pub.publish(beat);
 	//logger->log_debug("Running medium rate code.");
+	diagnostic_status.Diagnostic_Type = SOFTWARE;
+	diagnostic_status.Level = INFO;
+	diagnostic_status.Diagnostic_Message = NOERROR;
+	diagnostic_status.Description = "Node Executing.";
+	diagnostic_pub.publish(diagnostic_status);
 	return true;
 }
 bool run_slowrate_code()
 {
 	if(device_initialized == true)
 	{
-		bool status = resourcemonitor->update();
-		if(status == true)
+		icarus_rover_v2::diagnostic resource_diagnostic;
+		resource_diagnostic = resourcemonitor->update();
+		if(resource_diagnostic.Diagnostic_Message == DEVICE_NOT_AVAILABLE)
+		{
+			diagnostic_pub.publish(resource_diagnostic);
+			logger->log_warn("Couldn't read resources used.");
+		}
+		else if(resource_diagnostic.Level >= WARN)
 		{
 			resources_used = resourcemonitor->get_resourceused();
 			resource_pub.publish(resources_used);
+			diagnostic_pub.publish(resource_diagnostic);
 		}
-		else
+		else if(resource_diagnostic.Level <= NOTICE)
 		{
-			logger->log_warn("Couldn't read resources used.");
+			resources_used = resourcemonitor->get_resourceused();
+			resource_pub.publish(resources_used);
 		}
 	}
 	//logger->log_debug("Running slow rate code.");
@@ -91,6 +106,9 @@ bool initialize(ros::NodeHandle nh)
 	}
 	hostname[1023] = '\0';
 	gethostname(hostname,1023);
+	std::string heartbeat_topic = "/" + node_name + "/heartbeat";
+	heartbeat_pub = nh.advertise<icarus_rover_v2::heartbeat>(heartbeat_topic,1000);
+	beat.Node_Name = node_name;
 	std::string device_topic = "/" + std::string(hostname) +"_master_node/device";
 	device_sub = nh.subscribe<icarus_rover_v2::device>(device_topic,1000,Device_Callback);
 	pps_sub = nh.subscribe<std_msgs::Bool>("/pps",1000,PPS_Callback);  //This is a pps consumer.
@@ -212,10 +230,10 @@ void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg)
 	newdevice.DeviceName = msg->DeviceName;
 	newdevice.Architecture = msg->Architecture;
 
-	if(newdevice.DeviceName == hostname)
+	if((newdevice.DeviceName == hostname) && (device_initialized == false))
 	{
 		myDevice = newdevice;
-		resourcemonitor = new ResourceMonitor(myDevice.Architecture,myDevice.DeviceName,node_name);
+		resourcemonitor = new ResourceMonitor(diagnostic_status,myDevice.Architecture,myDevice.DeviceName,node_name);
 		device_initialized = true;
 	}
 }

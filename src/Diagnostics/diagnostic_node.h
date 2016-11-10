@@ -11,6 +11,7 @@
 #include <icarus_rover_v2/device.h>
 #include <icarus_rover_v2/resource.h>
 #include <icarus_rover_v2/firmware.h>
+#include <icarus_rover_v2/heartbeat.h>
 
 //Start User Code: Data Structures
 struct Task
@@ -18,6 +19,7 @@ struct Task
 	std::string Task_Name;
 	ros::Time last_diagnostic_received;
 	ros::Time last_resource_received;
+	ros::Time last_heartbeat_received;
 	int16_t PID;
 	int16_t CPU_Perc;
 	int64_t RAM_MB;
@@ -26,7 +28,7 @@ struct Task
 //End User Code: Data Structures
 
 //Start Template Code: Function Prototypes
-bool initialize(ros::NodeHandle nh);
+bool initializenode();//ros::NodeHandle nh);
 bool run_fastrate_code();
 bool run_mediumrate_code();
 bool run_slowrate_code();
@@ -37,6 +39,10 @@ void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg);
 //Stop Template Code: Function Prototypes
 
 //Start User Code: Function Prototypes
+icarus_rover_v2::diagnostic rescan_topics(icarus_rover_v2::diagnostic diag);
+void heartbeat_Callback(const icarus_rover_v2::heartbeat::ConstPtr& msg);
+void resource_Callback(const icarus_rover_v2::resource::ConstPtr& msg);
+void diagnostic_Callback(const icarus_rover_v2::diagnostic::ConstPtr& msg);
 bool check_tasks();
 //End User Code: Function Prototypes
 
@@ -65,9 +71,12 @@ ros::Time now;
 double mtime;
 bool device_initialized;
 char hostname[1024];
+ros::Publisher heartbeat_pub;
+icarus_rover_v2::heartbeat beat;
 //End Template Code: Define Global Variables
 
 //Start User Code: Define Global Variables
+boost::shared_ptr<ros::NodeHandle> n;
 std::vector<Task> TaskList;
 int RAM_usage_threshold_MB;
 int CPU_usage_threshold_percent;
@@ -76,6 +85,12 @@ int Log_Resources_Used;
 bool logging_initialized;
 ofstream ram_used_file;
 ofstream cpu_used_file;
+std::vector<std::string> resource_topics;
+std::vector<std::string> diagnostic_topics;
+std::vector<std::string> heartbeat_topics;
+std::vector<ros::Subscriber> heartbeat_subs;
+std::vector<ros::Subscriber> resource_subs;
+std::vector<ros::Subscriber> diagnostic_subs;
 //End User Code: Define Global Variables
 
 

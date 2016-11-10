@@ -16,6 +16,7 @@
 #include <icarus_rover_v2/pin.h>
 #include <icarus_rover_v2/command.h>
 #include <icarus_rover_v2/firmware.h>
+#include <icarus_rover_v2/heartbeat.h>
 //End Template Code: Includes
 //Start User Code: Includes
 #include <boost/algorithm/string.hpp>
@@ -69,6 +70,8 @@ ros::Time slow_timer;
 ros::Time veryslow_timer;
 ros::Time now;
 double mtime;
+ros::Publisher heartbeat_pub;
+icarus_rover_v2::heartbeat beat;
 //End Template Code: Global Variables
 
 //Start User Code: Global Variables

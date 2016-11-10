@@ -15,6 +15,7 @@
 #include <icarus_rover_v2/resource.h>
 #include <icarus_rover_v2/command.h>
 #include <icarus_rover_v2/firmware.h>
+#include <icarus_rover_v2/heartbeat.h>
 //End Template Code: Includes
 
 //Start User Code: Includes
@@ -28,6 +29,9 @@
 #include <boost/thread.hpp>
 
 //End User Code: Includes
+//Start User Code: Defines
+#define WARN_ON_SOFTWARE_NOT_IMPLEMENTED 0
+//End User Code: Defines
 
 
 //Start Template Code: Function Prototypes
@@ -57,6 +61,8 @@ ros::Publisher diagnostic_pub;
 ros::Publisher resource_pub;
 ros::Subscriber command_sub;
 ros::Publisher firmware_pub;
+ros::Publisher heartbeat_pub;
+icarus_rover_v2::heartbeat beat;
 icarus_rover_v2::diagnostic diagnostic_status;
 icarus_rover_v2::device myDevice;
 icarus_rover_v2::resource resources_used;
@@ -76,14 +82,13 @@ char hostname[1024];
 //End Template Code: Define Global Variables
 
 //Start User Code: Define Global Variables
-bool resource_monitor_running;
+ros::Time last_message_received_time;
 GPIONodeProcess *process;
 ros::Publisher digitalinput_pub;
 ros::Subscriber pwmoutput_sub;
 ros::Subscriber digitaloutput_sub;
 ros::Publisher analoginput_pub;
 ros::Publisher forcesensorinput_pub;
-int gpio_board_mode;
 ros::Time gpio_comm_test_start;
 bool checking_gpio_comm;
 int message_receive_counter;

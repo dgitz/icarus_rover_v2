@@ -1,100 +1,34 @@
-#include "cameracapture_node.h"
+#include "cameramanager_node.h"
 //Start Template Code: Firmware Definition
-#define CAMERACAPTURENODE_MAJOR_RELEASE 2
-#define CAMERACAPTURENODE_MINOR_RELEASE 1
-#define CAMERACAPTURENODE_BUILD_NUMBER 0
+#define CAMERAMANAGERNODE_MAJOR_RELEASE 1
+#define CAMERAMANAGERNODE_MINOR_RELEASE 1
+#define CAMERAMANAGERNODE_BUILD_NUMBER 0
 //End Template Code: Firmware Definition
 //Start User Code: Functions
-void Edge_Detect_Threshold_Callback(const std_msgs::UInt8::ConstPtr& msg)
-{
-	logger->log_debug("Got edge detect threshold");
-	edge_detect_threshold = msg->data;
-}
-void ResizeImage_Callback(const sensor_msgs::Image::ConstPtr& msg,const std::string &topicname)
+icarus_rover_v2::diagnostic publish_tf_frames(icarus_rover_v2::diagnostic diag)
 {
 
-	logger->log_debug("Got Image.");
-	double width_scale_factor = (double)msg->width/(double)image_width;
-	double height_scale_factor = (double)msg->height/(double)image_height;
+	static tf::TransformBroadcaster br;
 
-	cv_bridge::CvImage resampled_image;
-	resampled_image.encoding = msg->encoding;
-	resampled_image.header.stamp = ros::Time::now();
-	resampled_image.header.frame_id = "/world";
-
-	cv::Size size(image_width,image_height);
-	cv::resize(msg->data,resampled_image.image,size);
-	resampled_image.image.step = 3*image_width;
-	printf("Got Image from topic: %s byte size: %d height: %d width: %d step: %d scaled by: %f/%f "
-			"new height: %d new width: %d/%d new step: %d\n",
-			topicname.c_str(),msg->data.size(),msg->height,msg->width,msg->step,height_scale_factor,width_scale_factor,
-			resampled_image.image.rows,resampled_image.image.cols,image_width,resampled_image.image.step);
-	/*
-	sensor_msgs::Image newimage;
-	newimage.data = resampled_image.image;
-	newimage.encoding = msg->encoding;
-	newimage.header = resampled_image.header;
-	newimage.width = image_width;
-	newimage.height = image_height;
-	newimage.step = 3*image_width;
+	tf::Transform transform_mapodom;
+	transform_mapodom.setOrigin(tf::Vector3(0.0,0.0,0.0));
+	tf::Quaternion q_mapodom;
+	q_mapodom.setRPY(0,0,0);
+	transform_mapodom.setRotation(q_mapodom);
+	br.sendTransform(tf::StampedTransform(transform_mapodom, ros::Time::now(), "map", "odom"));
 
 
-	for(int i = 0; i < resample_maps.size();i++)
-	{
-		if(topicname == resample_maps.at(i).input_topic)
-		{
-			resample_maps.at(i).image_pub.publish(newimage);
-			break;
-		}
-	}
-	*/
-
-}
-bool capture_image(cv::VideoCapture cap)
-{
-    ros::Time start = ros::Time::now();
-    cv_bridge::CvImage cv_image;
-    cv::Mat frame;
-    cap >> frame;
-    cv_image.encoding = "rgb8";
-    cv_image.header.stamp = ros::Time::now();
-    cv_image.header.frame_id = "/world";
-    cv_image.image = frame;
-    int bytes = frame.total() * frame.elemSize();
-    if(bytes > 0)
-    {
-		raw_image_pub.publish(cv_image.toImageMsg());
-    }
-    char tempstr[128];
-    sprintf(tempstr,"Image Data size: %d",bytes);
-    logger->log_debug(tempstr);
-    cv::Mat src_gray;
-    cv::cvtColor(frame,src_gray,cv::COLOR_BGR2GRAY);
-    cv::Mat edge_image = visionhelper->Detect_Edges(src_gray,edge_detect_threshold);
-
-    cv_bridge::CvImage proc_image;
-	proc_image.encoding = "mono8";
-	proc_image.header.stamp = ros::Time::now();
-	proc_image.header.frame_id = "/world";
-	proc_image.image = edge_image;
-
-	proc_image_pub.publish(proc_image.toImageMsg());
-
-    //Edge_Detection(src_gray,0,0);
-    return true;
-}
-bool Edge_Detection(cv::Mat gray_image,int,void*)
-{
-	cv::Mat det_edges;
-	cv::blur(gray_image,det_edges,cv::Size(3,3));
-	cv::Canny(det_edges,det_edges,edge_detect_threshold,edge_detect_threshold*3,3);
-	cv_bridge::CvImage proc_image;
-	proc_image.encoding = "mono8";
-	proc_image.header.stamp = ros::Time::now();
-	proc_image.header.frame_id = "/world";
-	proc_image.image = det_edges;
-	proc_image_pub.publish(proc_image.toImageMsg());
-	return true;
+	tf::Transform transform_cam1;
+	transform_cam1.setOrigin(tf::Vector3(0.0,0.0,0.0));
+	tf::Quaternion q_cam1;
+	q_cam1.setRPY(0,0,0);
+	transform_cam1.setRotation(q_cam1);
+	br.sendTransform(tf::StampedTransform(transform_cam1, ros::Time::now(), "base_link", "asusxtioncamera_link"));
+	diag.Diagnostic_Type = SOFTWARE;
+	diag.Diagnostic_Message = NOERROR;
+	diag.Level = INFO;
+	diag.Description = "Broadcasting tf frames.";
+	return diag;
 }
 bool run_fastrate_code()
 {
@@ -105,17 +39,14 @@ bool run_mediumrate_code()
 {
 	beat.stamp = ros::Time::now();
 	heartbeat_pub.publish(beat);
-
+	diagnostic_status = publish_tf_frames(diagnostic_status);
+	diagnostic_pub.publish(diagnostic_status);
 	diagnostic_status.Diagnostic_Type = SOFTWARE;
 	diagnostic_status.Level = INFO;
 	diagnostic_status.Diagnostic_Message = NOERROR;
 	diagnostic_status.Description = "Node Executing.";
 	diagnostic_pub.publish(diagnostic_status);
 	//logger->log_debug("Running medium rate code.");
-	if(operation_mode == "capture")
-	{
-		capture_image(capture);
-	}
 	return true;
 }
 bool run_slowrate_code()
@@ -148,12 +79,12 @@ bool run_veryslowrate_code()
 	//logger->log_debug("Running very slow rate code.");
 	logger->log_info("Node Running.");
 	icarus_rover_v2::firmware fw;
-	fw.Generic_Node_Name = "cameracapture_node";
+	fw.Generic_Node_Name = "cameramanager_node";
 	fw.Node_Name = node_name;
-	fw.Description = "Latest Rev: 8-Nov-2016";
-	fw.Major_Release = CAMERACAPTURENODE_MAJOR_RELEASE;
-	fw.Minor_Release = CAMERACAPTURENODE_MINOR_RELEASE;
-	fw.Build_Number = CAMERACAPTURENODE_BUILD_NUMBER;
+	fw.Description = "Latest Rev: 7-Nov-2016";
+	fw.Major_Release = CAMERAMANAGERNODE_MAJOR_RELEASE;
+	fw.Minor_Release = CAMERAMANAGERNODE_MINOR_RELEASE;
+	fw.Build_Number = CAMERAMANAGERNODE_BUILD_NUMBER;
 	firmware_pub.publish(fw);
 	return true;
 }
@@ -226,16 +157,13 @@ int main(int argc, char **argv)
 		ros::spinOnce();
 		loop_rate.sleep();
     }
-    if(operation_mode == "capture")
-    {
-    	capture.release();
-    }
     return 0;
 }
 //End Main Loop
 bool initialize(ros::NodeHandle nh)
 {
     //Start Template Code: Initialization, Parameters and Topics
+    printf("Node name: %s\r\n",node_name.c_str());
     myDevice.DeviceName = "";
     myDevice.Architecture = "";
     device_initialized = false;
@@ -291,86 +219,7 @@ bool initialize(ros::NodeHandle nh)
 	diagnostic_status.Description = "Node Initializing";
 	diagnostic_pub.publish(diagnostic_status);
 
-	visionhelper = new VisionHelper();
-	std::string param_image_width = node_name +"/image_width";
-	if(nh.getParam(param_image_width,image_width) == false)
-	{
-		logger->log_fatal("Missing Parameter: image_width. Exiting");
-		return false;
-	}
-	std::string param_image_height = node_name +"/image_height";
-	if(nh.getParam(param_image_height,image_height) == false)
-	{
-		logger->log_fatal("Missing Parameter: image_height. Exiting");
-		return false;
-	}
 
-	std::string param_operation_mode = node_name + "/operation_mode";
-	if(nh.getParam(param_operation_mode,operation_mode) == false)
-	{
-		logger->log_fatal("Missing Parameter: operation_mode. Exiting");
-		return false;
-	}
-	if(operation_mode == "capture")
-	{
-		int video_device;
-		std::string param_video_device = node_name +"/video_device";
-		if(nh.getParam(param_video_device,video_device) == false)
-		{
-			logger->log_fatal("Missing Parameter: video_device. Exiting");
-			return false;
-		}
-		std::string rawimage_topic = "/" + node_name + "/raw_image";
-		raw_image_pub = nh.advertise<sensor_msgs::Image>(rawimage_topic,1000);
-		std::string procimage_topic = "/" + node_name + "/proc_image";
-		proc_image_pub = nh.advertise<sensor_msgs::Image>(procimage_topic,1000);
-		counter = 0;
-		edge_detect_threshold = 100;
-		std::string edge_detect_topic = "/" + node_name +"/edge_detect_threshold";
-		edge_threshold_sub = nh.subscribe<std_msgs::UInt8>(edge_detect_topic,1000,Edge_Detect_Threshold_Callback);
-		capture.open(video_device);
-		printf("here\n");
-		capture.set(CV_CAP_PROP_FRAME_WIDTH, image_width);
-		capture.set(CV_CAP_PROP_FRAME_HEIGHT, image_height);
-		compression_params.push_back(CV_IMWRITE_PNG_COMPRESSION); //CV_IMWRITE_PNG_COMPRESSION
-		compression_params.push_back(3);  //3
-		if(!capture.isOpened())  // check if we succeeded
-		{
-			logger->log_fatal("Can't initialize camera. Exiting.");
-			return false;
-		}
-		else
-		{
-		   logger->log_info("Camera working!");
-		}
-	}
-	else if(operation_mode == "resample")
-	{
-		std::string topicname;
-		std::string param_topic1 = node_name +"/image_topic1";
-		if(nh.getParam(param_topic1,topicname) == false)
-		{
-			logger->log_fatal("Missing Parameter: image_topic1. Exiting");
-			return false;
-		}
-		imageresample_map newmap;
-		newmap.input_topic = topicname;
-		resample_maps.push_back(newmap);
-
-
-		for(int i = 0; i < resample_maps.size();i++)
-		{
-
-			ros::Subscriber sub = nh.subscribe<sensor_msgs::Image>(resample_maps.at(i).input_topic,1000,boost::bind(ResizeImage_Callback,
-					_1,resample_maps.at(i).input_topic));
-			resample_maps.at(i).image_sub = sub;
-			std::string outputimage_topic = topicname + "_resized";
-			ros::Publisher pub = nh.advertise<sensor_msgs::Image>(outputimage_topic,1000);
-			resample_maps.at(i).output_topic = outputimage_topic;
-			resample_maps.at(i).image_pub = pub;
-		}
-
-	}
 	//End User Code: Initialization, Parameters and Topics
     logger->log_info("Initialized!");
     return true;

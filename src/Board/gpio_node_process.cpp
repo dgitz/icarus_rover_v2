@@ -47,6 +47,7 @@ bool GPIONodeProcess::initialize_Ports()
 icarus_rover_v2::diagnostic GPIONodeProcess::init(icarus_rover_v2::diagnostic indiag,Logger *log,std::string hostname)
 {
 	initialize_stateack_messages();
+	initialize_message_info();
 	serialmessagehandler = new SerialMessageHandler();
 	board_state = GPIO_MODE_UNDEFINED;
 
@@ -88,6 +89,9 @@ icarus_rover_v2::diagnostic GPIONodeProcess::update(long dt)
 		send_set_DIO_PortA.trigger = true;
 	}
 	//send_nodemode.trigger = true;
+	diagnostic.Level = INFO;
+	diagnostic.Diagnostic_Message = NOERROR;
+	diagnostic.Description = "Node Executing.";
 	return diagnostic;
 }
 state_ack GPIONodeProcess::get_stateack(std::string name)
@@ -369,30 +373,66 @@ icarus_rover_v2::diagnostic GPIONodeProcess::new_commandmsg(icarus_rover_v2::com
 }
 icarus_rover_v2::diagnostic GPIONodeProcess::new_serialmessage_TestMessageCounter(int packet_type,unsigned char* inpacket)
 {
-	/*diagnostic.Level = WARN;
-	diagnostic.Description = "Not implemented yet.";
-	*/
+	bool status = gather_message_info(SERIAL_TestMessageCounter_ID, "receive");
+	if(status == false)
+	{
+		diagnostic.Level = ERROR;
+		diagnostic.Diagnostic_Type = COMMUNICATIONS;
+		diagnostic.Diagnostic_Message = DROPPING_PACKETS;
+		diagnostic.Description = "TestMessageCounter not received correctly.";
+	}
+	else
+	{
+		diagnostic.Level = WARN;
+		diagnostic.Diagnostic_Type = COMMUNICATIONS;
+		diagnostic.Diagnostic_Message = DROPPING_PACKETS;
+		diagnostic.Description = "TestMessageCounter Message Not Implemented Yet.";
+	}
 	return diagnostic;
 	
 }
 icarus_rover_v2::diagnostic GPIONodeProcess::new_serialmessage_FirmwareVersion(int packet_type,unsigned char* inpacket)
 {
-	//diagnostic.Level = WARN;
-	//diagnostic.Description = "Not implemented yet.";
+	bool status = gather_message_info(SERIAL_FirmwareVersion_ID, "receive");
+	if(status == false)
+	{
+		diagnostic.Level = ERROR;
+		diagnostic.Diagnostic_Type = COMMUNICATIONS;
+		diagnostic.Diagnostic_Message = DROPPING_PACKETS;
+		diagnostic.Description = "FirmwareVersion not received correctly.";
+	}
+	else
+	{
+		diagnostic.Level = WARN;
+		diagnostic.Diagnostic_Type = COMMUNICATIONS;
+		diagnostic.Diagnostic_Message = DROPPING_PACKETS;
+		diagnostic.Description = "FirmwareVersion Message Not Implemented Yet.";
+	}
 	return diagnostic;
 }
 icarus_rover_v2::diagnostic GPIONodeProcess::new_serialmessage_Diagnostic(int packet_type,unsigned char* inpacket)
 {
 	if(packet_type ==SERIAL_Diagnostic_ID)
 	{
-		mylogger->log_debug("Got Diagnostic from GPIO Board.");
-		char gpio_board_system,gpio_board_subsystem,gpio_board_component,gpio_board_diagtype,gpio_board_level,gpio_board_message;
-		serialmessagehandler->decode_DiagnosticSerial(inpacket,&gpio_board_system,&gpio_board_subsystem,&gpio_board_component,&gpio_board_diagtype,&gpio_board_level,&gpio_board_message);
-		if(gpio_board_level > INFO)
+		bool status = gather_message_info(SERIAL_Diagnostic_ID, "receive");
+		if(status == false)
 		{
-			diagnostic.Level = gpio_board_level;
-			diagnostic.Diagnostic_Message = gpio_board_level;
-			diagnostic.Description = "GPIO Board Empty Message.";
+			diagnostic.Level = ERROR;
+			diagnostic.Diagnostic_Type = COMMUNICATIONS;
+			diagnostic.Diagnostic_Message = DROPPING_PACKETS;
+			diagnostic.Description = "Diagnostic not received correctly.";
+		}
+		else
+		{
+			mylogger->log_debug("Got Diagnostic from GPIO Board.");
+			char gpio_board_system,gpio_board_subsystem,gpio_board_component,gpio_board_diagtype,gpio_board_level,gpio_board_message;
+			serialmessagehandler->decode_DiagnosticSerial(inpacket,&gpio_board_system,&gpio_board_subsystem,&gpio_board_component,&gpio_board_diagtype,&gpio_board_level,&gpio_board_message);
+			if(gpio_board_level > INFO)
+			{
+				diagnostic.Level = gpio_board_level;
+				diagnostic.Diagnostic_Message = gpio_board_level;
+				diagnostic.Description = "GPIO Board Empty Message.";
+			}
 		}
 	}
 	else
@@ -405,80 +445,143 @@ icarus_rover_v2::diagnostic GPIONodeProcess::new_serialmessage_Diagnostic(int pa
 }
 icarus_rover_v2::diagnostic GPIONodeProcess::new_serialmessage_Get_ANA_PortA(int packet_type,unsigned char* inpacket)
 {
-	//diagnostic.Level = WARN;
-	//diagnostic.Description = "Not implemented yet.";
+	bool status = gather_message_info(SERIAL_Get_ANA_PortA_ID, "receive");
+	if(status == false)
+	{
+		diagnostic.Level = ERROR;
+		diagnostic.Diagnostic_Type = COMMUNICATIONS;
+		diagnostic.Diagnostic_Message = DROPPING_PACKETS;
+		diagnostic.Description = "Get_ANA_PortA not received correctly.";
+	}
+	else
+	{
+		diagnostic.Level = WARN;
+		diagnostic.Diagnostic_Type = COMMUNICATIONS;
+		diagnostic.Diagnostic_Message = DROPPING_PACKETS;
+		diagnostic.Description = "Get_ANA_PortA Message Not Implemented Yet.";
+	}
 	return diagnostic;
 }
 icarus_rover_v2::diagnostic GPIONodeProcess::new_serialmessage_Get_ANA_PortB(int packet_type,unsigned char* inpacket)
 {
-	//diagnostic.Level = WARN;
-	//diagnostic.Description = "Not implemented yet.";
+	bool status = gather_message_info(SERIAL_Configure_DIO_PortB_ID, "receive");
+	if(status == false)
+	{
+		diagnostic.Level = ERROR;
+		diagnostic.Diagnostic_Type = COMMUNICATIONS;
+		diagnostic.Diagnostic_Message = DROPPING_PACKETS;
+		diagnostic.Description = "Get_ANA_PortB not received correctly.";
+	}
+	else
+	{
+		diagnostic.Level = WARN;
+		diagnostic.Diagnostic_Type = COMMUNICATIONS;
+		diagnostic.Diagnostic_Message = DROPPING_PACKETS;
+		diagnostic.Description = "Get_ANA_PortB Message Not Implemented Yet.";
+	}
 	return diagnostic;
 }
 icarus_rover_v2::diagnostic GPIONodeProcess::new_serialmessage_Get_DIO_PortA(int packet_type,unsigned char* inpacket)
 {
-	//diagnostic.Level = WARN;
-	//diagnostic.Description = "Not implemented yet.";
+	bool status = gather_message_info(SERIAL_Get_DIO_PortA_ID, "receive");
+	if(status == false)
+	{
+		diagnostic.Level = ERROR;
+		diagnostic.Diagnostic_Type = COMMUNICATIONS;
+		diagnostic.Diagnostic_Message = DROPPING_PACKETS;
+		diagnostic.Description = "Get_DIO_PortA not received correctly.";
+	}
+	else
+	{
+		diagnostic.Level = WARN;
+		diagnostic.Diagnostic_Type = COMMUNICATIONS;
+		diagnostic.Diagnostic_Message = DROPPING_PACKETS;
+		diagnostic.Description = "Get_DIO_PortA Message Not Implemented Yet.";
+	}
 	return diagnostic;
 }
 icarus_rover_v2::diagnostic GPIONodeProcess::new_serialmessage_Get_DIO_PortB(int packet_type,unsigned char* inpacket)
 {
-	//diagnostic.Level = WARN;
-	//diagnostic.Description = "Not implemented yet.";
+	bool status = gather_message_info(SERIAL_Get_DIO_PortB_ID, "receive");
+	if(status == false)
+	{
+		diagnostic.Level = ERROR;
+		diagnostic.Diagnostic_Type = COMMUNICATIONS;
+		diagnostic.Diagnostic_Message = DROPPING_PACKETS;
+		diagnostic.Description = "Get_DIO_PortB not received correctly.";
+	}
+	else
+	{
+		diagnostic.Level = WARN;
+		diagnostic.Diagnostic_Type = COMMUNICATIONS;
+		diagnostic.Diagnostic_Message = DROPPING_PACKETS;
+		diagnostic.Description = "Get_DIO_PortB Message Not Implemented Yet.";
+	}
 	return diagnostic;
 }
 icarus_rover_v2::diagnostic GPIONodeProcess::new_serialmessage_Get_Mode(int packet_type,unsigned char* inpacket)
 {
-	if(packet_type ==SERIAL_Mode_ID)
+	bool status = gather_message_info(SERIAL_Mode_ID, "receive");
+	if(status == false)
 	{
-		char tempstr[128];
-		char value1;
-		serialmessagehandler->decode_ModeSerial(inpacket,&value1);
-		board_state = value1;
-		//sprintf(tempstr,"Got GPIO Board Mode: %d from GPIO Board.  Node Mode is: %d",board_state,node_state);
-		//mylogger->log_debug(tempstr);
-		diagnostic.Level = NOERROR;
-		diagnostic.Description = "GPIO Board Mode Decoded successfully.";
-		diagnostic.Diagnostic_Message = NOERROR;
-		if(board_state == GPIO_MODE_BOOT)
-		{
-			send_configure_DIO_PortA.trigger = false;
-			send_configure_DIO_PortB.trigger = false;
-		}
-		else if(node_state == GPIO_MODE_INITIALIZING)
-		{
-			send_configure_DIO_PortA.trigger = true;
-			send_configure_DIO_PortB.trigger = true;
-			prev_node_state = node_state;
-			node_state = GPIO_MODE_INITIALIZED;
-		}
-		else if(board_state == GPIO_MODE_RUNNING)
-		{
-			if(node_state == GPIO_MODE_INITIALIZED)
-			{
-				node_state = prev_node_state;
-				node_state = GPIO_MODE_RUNNING;
-			}
-		}
-		else if((board_state == GPIO_MODE_INITIALIZING) && (node_state == GPIO_MODE_RUNNING))
-		{
-			node_state = GPIO_MODE_INITIALIZING;
-		}
-	/*	else if((board_state == GPIO_MODE_INITIALIZING) && (node_state == GPIO_MODE_INITIALIZED))
-		{
-			node_state = GPIO_MODE_INITIALIZING;
-		}
-		*/
-		else
-		{
-		}
-
+		diagnostic.Level = ERROR;
+		diagnostic.Diagnostic_Type = COMMUNICATIONS;
+		diagnostic.Diagnostic_Message = DROPPING_PACKETS;
+		diagnostic.Description = "GPIO Board Mode not received correctly.";
 	}
 	else
 	{
-		diagnostic.Level = ERROR;
-		diagnostic.Description = "GPIO Board Mode Not Decoded successfully.";
-		diagnostic.Diagnostic_Message = DROPPING_PACKETS;
+		if(packet_type ==SERIAL_Mode_ID)
+		{
+			char tempstr[128];
+			char value1;
+			serialmessagehandler->decode_ModeSerial(inpacket,&value1);
+			board_state = value1;
+			//sprintf(tempstr,"Got GPIO Board Mode: %d from GPIO Board.  Node Mode is: %d",board_state,node_state);
+			//mylogger->log_debug(tempstr);
+			diagnostic.Level = NOERROR;
+			diagnostic.Description = "GPIO Board Mode Decoded successfully.";
+			diagnostic.Diagnostic_Message = NOERROR;
+			if(board_state == GPIO_MODE_BOOT)
+			{
+				send_configure_DIO_PortA.trigger = false;
+				send_configure_DIO_PortB.trigger = false;
+			}
+			else if(node_state == GPIO_MODE_INITIALIZING)
+			{
+				send_configure_DIO_PortA.trigger = true;
+				send_configure_DIO_PortB.trigger = true;
+				prev_node_state = node_state;
+				node_state = GPIO_MODE_INITIALIZED;
+			}
+			else if(board_state == GPIO_MODE_RUNNING)
+			{
+				if(node_state == GPIO_MODE_INITIALIZED)
+				{
+					node_state = prev_node_state;
+					node_state = GPIO_MODE_RUNNING;
+				}
+			}
+			else if((board_state == GPIO_MODE_INITIALIZING) && (node_state == GPIO_MODE_RUNNING))
+			{
+				node_state = GPIO_MODE_INITIALIZING;
+			}
+			/*	else if((board_state == GPIO_MODE_INITIALIZING) && (node_state == GPIO_MODE_INITIALIZED))
+		{
+			node_state = GPIO_MODE_INITIALIZING;
+		}
+			 */
+			else
+			{
+			}
+
+		}
+		else
+		{
+			diagnostic.Level = ERROR;
+			diagnostic.Description = "GPIO Board Mode Not Decoded successfully.";
+			diagnostic.Diagnostic_Message = DROPPING_PACKETS;
+		}
 	}
 	return diagnostic;
 }
@@ -591,6 +694,24 @@ bool GPIONodeProcess::configure_pin(std::string BoardName,std::string Port, uint
 	else { 	status = false; }
 	return status;
 }
+std::string GPIONodeProcess::map_mode_ToString(int mode)
+{
+
+	switch(mode)
+	{
+	case GPIO_MODE_UNDEFINED: 					return "Undefined";					break;
+	case GPIO_MODE_BOOT:						return "Boot";						break;
+	case GPIO_MODE_INITIALIZING:				return "Initializing";				break;
+	case GPIO_MODE_INITIALIZED:					return "Initialized";				break;
+	case GPIO_MODE_RUNNING:						return "Running";					break;
+	case GPIO_MODE_STOPPED:						return "Stopped";					break;
+	default:
+		std::string tempstr;
+		tempstr = "Mode: " + boost::lexical_cast<std::string>(mode) + " Not Supported";
+		return tempstr;
+	}
+}
+
 std::string GPIONodeProcess::map_PinFunction_ToString(int function)
 {
 	switch(function)
@@ -696,5 +817,141 @@ void GPIONodeProcess::initialize_stateack_messages()
 	send_set_DIO_PortB.timeout_counter = 0;
 	send_set_DIO_PortB.retry_mode = false;
 	send_set_DIO_PortB.failed = false;
+
+}
+bool GPIONodeProcess::gather_message_info(int id, std::string mode)
+{
+	bool found = false;
+	for(int i = 0; i < messages.size();i++)
+	{
+		if(messages.at(i).id == id)
+		{
+			found = true;
+			if(mode == "transmit")
+			{
+				double time_since_last = time_diff(ros::Time::now(),messages.at(i).last_time_transmitted);
+				messages.at(i).transmitted_rate = 1.0/time_since_last;
+				messages.at(i).sent_counter++;
+				messages.at(i).last_time_transmitted = ros::Time::now();
+			}
+			else if(mode == "receive")
+			{
+				double time_since_last = time_diff(ros::Time::now(),messages.at(i).last_time_received);
+				messages.at(i).received_rate = 1.0/time_since_last;
+				messages.at(i).received_counter++;
+				messages.at(i).last_time_received = ros::Time::now();
+			}
+			break;
+		}
+	}
+	return found;
+}
+double GPIONodeProcess::time_diff(ros::Time timer_a, ros::Time timer_b)
+{
+	ros::Duration etime = timer_a - timer_b;
+	return etime.toSec();
+}
+void GPIONodeProcess::initialize_message_info()
+{
+	{
+		message_info newmessage;
+		newmessage.id = SERIAL_Diagnostic_ID;
+		messages.push_back(newmessage);
+	}
+
+	{
+		message_info newmessage;
+		newmessage.id = SERIAL_TestMessageCounter_ID;
+		messages.push_back(newmessage);
+	}
+
+	{
+		message_info newmessage;
+		newmessage.id = SERIAL_TestMessageCommand_ID;
+		messages.push_back(newmessage);
+	}
+
+	{
+		message_info newmessage;
+		newmessage.id = SERIAL_Configure_DIO_PortA_ID;
+		messages.push_back(newmessage);
+	}
+
+	{
+		message_info newmessage;
+		newmessage.id = SERIAL_Mode_ID;
+		messages.push_back(newmessage);
+	}
+
+	{
+		message_info newmessage;
+		newmessage.id = SERIAL_Set_DIO_PortA_ID;
+		messages.push_back(newmessage);
+	}
+
+	{
+		message_info newmessage;
+		newmessage.id = SERIAL_Get_ANA_PortA_ID;
+		messages.push_back(newmessage);
+	}
+
+	{
+		message_info newmessage;
+		newmessage.id = SERIAL_Get_ANA_PortB_ID;
+		messages.push_back(newmessage);
+	}
+
+	{
+		message_info newmessage;
+		newmessage.id = SERIAL_Configure_DIO_PortB_ID;
+		messages.push_back(newmessage);
+	}
+
+	{
+		message_info newmessage;
+		newmessage.id = SERIAL_Set_DIO_PortB_ID;
+		messages.push_back(newmessage);
+	}
+
+	{
+		message_info newmessage;
+		newmessage.id = SERIAL_Get_DIO_PortA_ID;
+		messages.push_back(newmessage);
+	}
+
+	{
+		message_info newmessage;
+		newmessage.id = SERIAL_Get_DIO_PortB_ID;
+		messages.push_back(newmessage);
+	}
+
+	{
+		message_info newmessage;
+		newmessage.id = SERIAL_FirmwareVersion_ID;
+		messages.push_back(newmessage);
+	}
+
+	{
+		message_info newmessage;
+		newmessage.id = SERIAL_StopMovement_ID;
+		messages.push_back(newmessage);
+	}
+
+	for(int i = 0; i < messages.size(); i++)
+	{
+		messages.at(i).protocol = "serial";
+		messages.at(i).last_time_received = ros::Time::now();
+		messages.at(i).last_time_transmitted = ros::Time::now();
+		messages.at(i).received_counter = 0;
+		messages.at(i).sent_counter = 0;
+		messages.at(i).received_rate = 0.0;
+		messages.at(i).transmitted_rate = 0.0;
+	}
+
+
+
+
+
+
 
 }

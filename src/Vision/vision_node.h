@@ -10,6 +10,7 @@
 #include <icarus_rover_v2/diagnostic.h>
 #include <icarus_rover_v2/device.h>
 #include <icarus_rover_v2/resource.h>
+#include <icarus_rover_v2/heartbeat.h>
 //Start User Code: Includes
 #include <cv_bridge/cv_bridge.h>
 #include <sensor_msgs/image_encodings.h>
@@ -59,6 +60,8 @@ ros::Time now;
 double mtime;
 bool device_initialized;
 char hostname[1024];
+ros::Publisher heartbeat_pub;
+icarus_rover_v2::heartbeat beat;
 //End Template Code: Define Global Variables
 
 //Start User Code: Define Global Variables

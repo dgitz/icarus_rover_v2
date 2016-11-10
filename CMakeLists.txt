@@ -68,6 +68,7 @@ add_message_files(
   pin.msg
   command.msg
   firmware.msg
+  heartbeat.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -219,6 +220,8 @@ add_library(visionhelper util/visionhelper.cpp)
 
 add_executable(command_node src/Control/command_node.cpp)
 target_link_libraries(command_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor)
+add_executable(cameracapture_node src/Vision/cameracapture_node.cpp)
+target_link_libraries(cameracapture_node ${OpenCV_LIBRARIES} ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor visionhelper)
 add_executable(master_node src/Control/master_node.cpp)
 target_link_libraries(master_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor)
 add_executable(diagnostic_node src/Diagnostics/diagnostic_node.cpp)
@@ -231,3 +234,5 @@ add_executable(tracking_node src/Vision/tracking_node.cpp)
 target_link_libraries(tracking_node ${OpenCV_LIBRARIES} ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor visionhelper)
 add_executable(tfhelper_node src/Dynamics/tfhelper_node.cpp)
 target_link_libraries(tfhelper_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} logger resourcemonitor)
+add_executable(cameramanager_node src/Vision/cameramanager_node.cpp)
+target_link_libraries(cameramanager_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} logger resourcemonitor)

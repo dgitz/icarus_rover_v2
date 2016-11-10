@@ -1,5 +1,6 @@
 <!--xml-->
 <launch>
+    <include file="$(find icarus_rover_v2)/launch/ConfigLaunch/robotconfigload.launch" />
     <node name="$(env ROS_HOSTNAME)_master_node" pkg="icarus_rover_v2" type="master_node"  output="screen">
         <param name="loop_rate"             value="500"/>
 	    <param name="verbosity_level"       value="DEBUG"/>
@@ -23,33 +24,50 @@
         <param name="loop_rate"             value="500"/>
         <param name="verbosity_level"       value="INFO"/>
         <param name="require_pps_to_start"  value="false"/> 
-        <param name="RAM_usage_threshold_MB"    value="50"/>
-        <param name="CPU_usage_threshold_percent"    value="15"/> 
+        <param name="RAM_usage_threshold_MB"    value="2000"/>
+        <param name="CPU_usage_threshold_percent"    value="30"/> 
         <param name="Log_Resources_Used"        value="0"/>  
     </node>
+	<!--
     <node name="$(env ROS_HOSTNAME)_soundplay_node" pkg="sound_play" type="soundplay_node.py">
     </node>
     <node name="$(env ROS_HOSTNAME)_speaker_node" pkg="icarus_rover_v2" type="speaker_node"  output="screen">
         <param name="loop_rate"             value="500"/>
 	    <param name="verbosity_level"       value="DEBUG"/>
-        <param name="require_pps_to_start"  value="false"/>    
+        <param name="require_pps_to_start"  value="false"/>   
+        <param name="initial_speech_wait"   value="10.0"/>
     </node>
+	-->
     <node name="$(env ROS_HOSTNAME)_tracking_node" pkg="icarus_rover_v2" type="tracking_node"  output="screen">
         <param name="loop_rate"             value="500"/>
         <param name="verbosity_level"       value="DEBUG"/>
         <param name="require_pps_to_start"  value="false"/> 
         <param name="image_to_track_topic"  value="/dgitzrosmaster/asusxtioncamera/rgb/image"/>
     </node>
+    <node name="$(env ROS_HOSTNAME)_cameramanager_node" pkg="icarus_rover_v2" type="cameramanager_node"  output="screen">
+        <param name="loop_rate"             value="500"/>
+	    <param name="verbosity_level"       value="DEBUG"/>
+        <param name="require_pps_to_start"  value="false"/>    
+    </node>
     <node name="$(env ROS_HOSTNAME)_tfhelper_node" pkg="icarus_rover_v2" type="tfhelper_node"  output="screen">
         <param name="loop_rate"             value="500"/>
 	    <param name="verbosity_level"       value="DEBUG"/>
         <param name="require_pps_to_start"  value="false"/>    
+    </node>
+    <node name="$(env ROS_HOSTNAME)_imageresampler_node" pkg="icarus_rover_v2" type="cameracapture_node"  output="screen">
+        <param name="loop_rate"             value="500"/>
+        <param name="verbosity_level"       value="DEBUG"/>
+        <param name="require_pps_to_start"  value="false"/> 
+        <param name="operation_mode"        value="resample"/> <!-- capture,resample, -->
+        <param name="image_topic1"          value="/asusxtioncamera/rgb/image_rect_color"/>
+        <param name="image_width"           value="30"/>
+        <param name="image_height"          value="18"/>
     </node>
     <include file="$(find icarus_rover_v2)/launch/SensorLaunch/asusxtioncamera.launch" >
         <arg name="camera" value="asusxtioncamera"/>
         <arg name="depth_registration" value="true" />
         <arg name="color_depth_synchronization" value="true"/>
     </include>
-    <!--<include file="$(find icarus_rover_v2)/launch/SensorLaunch/rgbdslam.launch" />-->
+    <!-- <include file="$(find icarus_rover_v2)/launch/SensorLaunch/rgbdslam.launch" /> -->
     
 </launch>

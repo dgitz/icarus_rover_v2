@@ -7,28 +7,32 @@
 //Start User Code: Functions
 bool speak(std::string s,bool mode)
 {
-	if(mode == false) //periodic update mode
+	double runtime = measure_time_diff(ros::Time::now(),boot_time);
+	if(runtime > initial_speech_wait)
 	{
-		if(speechbuffer.size() > 0)
+		if(mode == false) //periodic update mode
 		{
-			s = speechbuffer.at(0);
-			double how_long_to_say_sec = (double)(s.size()/(double)SPEECH_RATE);
-			double etime = measure_time_diff(ros::Time::now(),last_time_speech_ended);
-			if(etime > MIN_TIME_BEFORE_SPEAK_AGAIN)
+			if(speechbuffer.size() > 0)
 			{
-				sc->say(s);
-				last_time_speech_ended  = ros::Time::now() + ros::Duration(how_long_to_say_sec);
-				speechbuffer.erase(speechbuffer.begin());
-				if(speechbuffer.size() > MAX_SPEECHBUFFER_SIZE)
+				s = speechbuffer.at(0);
+				double how_long_to_say_sec = (double)(s.size()/(double)SPEECH_RATE);
+				double etime = measure_time_diff(ros::Time::now(),last_time_speech_ended);
+				if(etime > MIN_TIME_BEFORE_SPEAK_AGAIN)
 				{
-					speechbuffer.erase(speechbuffer.begin(),speechbuffer.begin()+(speechbuffer.size()-MAX_SPEECHBUFFER_SIZE));
+					sc->say(s);
+					last_time_speech_ended  = ros::Time::now() + ros::Duration(how_long_to_say_sec);
+					speechbuffer.erase(speechbuffer.begin());
+					if(speechbuffer.size() > MAX_SPEECHBUFFER_SIZE)
+					{
+						speechbuffer.erase(speechbuffer.begin(),speechbuffer.begin()+(speechbuffer.size()-MAX_SPEECHBUFFER_SIZE));
+					}
 				}
 			}
 		}
-	}
-	else //add entry mode
-	{
-		speechbuffer.push_back(s);
+		else //add entry mode
+		{
+			speechbuffer.push_back(s);
+		}
 	}
 	return true;
 }
@@ -73,6 +77,8 @@ bool run_fastrate_code()
 }
 bool run_mediumrate_code()
 {
+	beat.stamp = ros::Time::now();
+	heartbeat_pub.publish(beat);
 	//logger->log_debug("Running medium rate code.");
 	speak("",false);
 	diagnostic_status.Diagnostic_Type = SOFTWARE;
@@ -85,17 +91,28 @@ bool run_mediumrate_code()
 bool run_slowrate_code()
 {
 
+	char tempstr[255];
+	sprintf(tempstr,"Speech Buffer Length: %d",speechbuffer.size());
+	logger->log_info(tempstr);
 	if(device_initialized == true)
 	{
-		bool status = resourcemonitor->update();
-		if(status == true)
+		icarus_rover_v2::diagnostic resource_diagnostic;
+		resource_diagnostic = resourcemonitor->update();
+		if(resource_diagnostic.Diagnostic_Message == DEVICE_NOT_AVAILABLE)
+		{
+			diagnostic_pub.publish(resource_diagnostic);
+			logger->log_warn("Couldn't read resources used.");
+		}
+		else if(resource_diagnostic.Level >= WARN)
 		{
 			resources_used = resourcemonitor->get_resourceused();
 			resource_pub.publish(resources_used);
+			diagnostic_pub.publish(resource_diagnostic);
 		}
-		else
+		else if(resource_diagnostic.Level <= NOTICE)
 		{
-			logger->log_warn("Couldn't read resources used.");
+			resources_used = resourcemonitor->get_resourceused();
+			resource_pub.publish(resources_used);
 		}
 	}
 	//logger->log_debug("Running slow rate code.");
@@ -143,6 +160,7 @@ int main(int argc, char **argv)
     }
     ros::Rate loop_rate(rate);
     now = ros::Time::now();
+    boot_time = now;
     fast_timer = now;
     medium_timer = now;
     slow_timer = now;
@@ -232,6 +250,9 @@ bool initialize(ros::NodeHandle nh)
 
 	hostname[1023] = '\0';
 	gethostname(hostname,1023);
+	std::string heartbeat_topic = "/" + node_name + "/heartbeat";
+	heartbeat_pub = nh.advertise<icarus_rover_v2::heartbeat>(heartbeat_topic,1000);
+	beat.Node_Name = node_name;
     std::string device_topic = "/" + std::string(hostname) +"_master_node/device";
     device_sub = nh.subscribe<icarus_rover_v2::device>(device_topic,1000,Device_Callback);
 
@@ -249,6 +270,13 @@ bool initialize(ros::NodeHandle nh)
 
     //Start User Code: Initialization and Parameters
     //sleep(3.0);  //Have to wait for all other nodes to start before doing a mass subscribe
+    std::string param_initial_speech_wait = node_name +"/initial_speech_wait";
+    if(nh.getParam(param_initial_speech_wait,initial_speech_wait) == false)
+    {
+    	logger->log_warn("Missing Parameter: initial_speech_wait. Using Default value: 10 Seconds.");
+    	initial_speech_wait = 10.0;
+    }
+
     last_time_speech_ended = ros::Time::now();
     sc.reset(new sound_play::SoundClient());
     std::vector<std::string> diagnostic_topics;
@@ -304,10 +332,10 @@ void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg)
 	newdevice.DeviceName = msg->DeviceName;
 	newdevice.Architecture = msg->Architecture;
 
-	if(newdevice.DeviceName == hostname)
+	if((newdevice.DeviceName == hostname) && (device_initialized == false))
 	{
 		myDevice = newdevice;
-		resourcemonitor = new ResourceMonitor(myDevice.Architecture,myDevice.DeviceName,node_name);
+		resourcemonitor = new ResourceMonitor(diagnostic_status,myDevice.Architecture,myDevice.DeviceName,node_name);
 		device_initialized = true;
 	}
 }

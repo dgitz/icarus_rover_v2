@@ -16,6 +16,7 @@
 #include <icarus_rover_v2/pin.h>
 #include <icarus_rover_v2/command.h>
 #include <icarus_rover_v2/firmware.h>
+#include <icarus_rover_v2/heartbeat.h>
 //End Template Code: Includes
 
 //Start User Code: Includes
@@ -73,6 +74,8 @@ ros::Time now;
 double mtime;
 bool device_initialized;
 char hostname[1024];
+ros::Publisher heartbeat_pub;
+icarus_rover_v2::heartbeat beat;
 //End Template Code: Define Global Variables
 
 //Start User Code: Define Global Variables
