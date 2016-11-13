@@ -2,4 +2,5 @@
 string Port
 uint8 Number
 string Function
-int16 Value
+int32 Value
+string ConnectedDevice

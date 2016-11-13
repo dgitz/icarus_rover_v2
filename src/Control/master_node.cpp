@@ -418,6 +418,12 @@ bool parse_devicefile(TiXmlDocument doc)
 					newDevice.BoardCount = atoi(l_pBoardCount->GetText());
 				}
 
+				TiXmlElement *l_pSensorCount = l_pDevice->FirstChildElement( "SensorCount" );
+				if ( NULL != l_pSensorCount )
+				{
+					newDevice.SensorCount = atoi(l_pSensorCount->GetText());
+				}
+
 				TiXmlElement *l_pCapability = l_pDevice->FirstChildElement("Capability");
 				std::vector<std::string> capabilities;
 				while( l_pCapability )
@@ -447,6 +453,17 @@ bool parse_devicefile(TiXmlDocument doc)
 					{
 						newpin.Function = l_pPinFunction->GetText();
 					}
+
+					TiXmlElement *l_pPinConnectedDevice = l_pPin->FirstChildElement( "ConnectedDevice" );
+					if ( NULL != l_pPinConnectedDevice )
+					{
+						newpin.ConnectedDevice = l_pPinConnectedDevice->GetText();
+					}
+					else
+					{
+						newpin.ConnectedDevice = "";
+					}
+
 					l_pPin = l_pPin->NextSiblingElement( "Pin" );
 					pins.push_back(newpin);
 

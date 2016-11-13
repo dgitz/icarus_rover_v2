@@ -1,6 +1,6 @@
 #include "gpio_node.h"
 //Start Template Code: Firmware Definition
-#define GPIONODE_MAJOR_RELEASE 2
+#define GPIONODE_MAJOR_RELEASE 3
 #define GPIONODE_MINOR_RELEASE 1
 #define GPIONODE_BUILD_NUMBER 1
 //End Template Code: Firmware Definition
@@ -96,37 +96,28 @@ bool run_fastrate_code()
 		else if(packet_type == SERIAL_Diagnostic_ID)
 		{
 			diagnostic_status = process->new_serialmessage_Diagnostic(packet_type,packet);
-			if(WARN_ON_SOFTWARE_NOT_IMPLEMENTED == 1)
+			if(diagnostic_status.Level > NOTICE)
 			{
-				if(diagnostic_status.Level > NOTICE)
-				{
-					logger->log_warn(diagnostic_status.Description);
-					diagnostic_pub.publish(diagnostic_status);
-				}
+				logger->log_warn(diagnostic_status.Description);
+				diagnostic_pub.publish(diagnostic_status);
 			}
 		}
 		else if(packet_type == SERIAL_Get_ANA_PortA_ID)
 		{
 			diagnostic_status = process->new_serialmessage_Get_ANA_PortA(packet_type,packet);
-			if(WARN_ON_SOFTWARE_NOT_IMPLEMENTED == 1)
+			if(diagnostic_status.Level > NOTICE)
 			{
-				if(diagnostic_status.Level > NOTICE)
-				{
-					logger->log_warn(diagnostic_status.Description);
-					diagnostic_pub.publish(diagnostic_status);
-				}
+				logger->log_warn(diagnostic_status.Description);
+				diagnostic_pub.publish(diagnostic_status);
 			}
 		}
 		else if(packet_type == SERIAL_Get_ANA_PortB_ID)
 		{
 			diagnostic_status = process->new_serialmessage_Get_ANA_PortB(packet_type,packet);
-			if(WARN_ON_SOFTWARE_NOT_IMPLEMENTED == 1)
+			if(diagnostic_status.Level > NOTICE)
 			{
-				if(diagnostic_status.Level > NOTICE)
-				{
-					logger->log_warn(diagnostic_status.Description);
-					diagnostic_pub.publish(diagnostic_status);
-				}
+				logger->log_warn(diagnostic_status.Description);
+				diagnostic_pub.publish(diagnostic_status);
 			}
 		}
 		else if(packet_type == SERIAL_Get_DIO_PortA_ID)
@@ -156,13 +147,10 @@ bool run_fastrate_code()
 		else if(packet_type == SERIAL_Mode_ID)
 		{
 			diagnostic_status = process->new_serialmessage_Get_Mode(packet_type,packet);
-			if(WARN_ON_SOFTWARE_NOT_IMPLEMENTED == 1)
+			if(diagnostic_status.Level > NOTICE)
 			{
-				if(diagnostic_status.Level > NOTICE)
-				{
-					logger->log_warn(diagnostic_status.Description);
-					diagnostic_pub.publish(diagnostic_status);
-				}
+				logger->log_warn(diagnostic_status.Description);
+				diagnostic_pub.publish(diagnostic_status);
 			}
 		}
 		else
@@ -195,19 +183,83 @@ bool run_fastrate_code()
 		{
 			unsigned char tx_buffer[12];
 			std::vector<unsigned char> tempstr = tx_buffers.at(i);
-			int count = write(device_fid,reinterpret_cast<char*> (&tempstr[0]),12);
-			if (count < 0)
+			#if(USE_UART == 1)
+				int count = write(device_fid,reinterpret_cast<char*> (&tempstr[0]),12);
+				if (count < 0)
+				{
+					logger->log_error("UART TX error\n");
+					icarus_rover_v2::diagnostic diag=diagnostic_status;
+					diag.Diagnostic_Type = COMMUNICATIONS;
+					diag.Level = ERROR;
+					diag.Diagnostic_Message = DROPPING_PACKETS;
+					diag.Description = "Cannot write to UART.";
+					diagnostic_pub.publish(diag);
+				}
+			#endif
+		}
+	}
+	if((process->get_boardstate() == GPIO_MODE_RUNNING) &&
+	   (process->get_nodestate() == GPIO_MODE_RUNNING))
+	{
+		std::vector<icarus_rover_v2::device> boards = process->get_boards();
+		for(int i = 0; i < boards.size(); i++)
+		{
+			std::string boardname = boards.at(i).DeviceName;
+			Port_Info ANA_PortA = process->get_PortInfo(boardname,"ANA_PortA");
+			if(ANA_PortA.PortName == "")
 			{
-				logger->log_error("UART TX error\n");
-				icarus_rover_v2::diagnostic diag=diagnostic_status;
-				diag.Diagnostic_Type = COMMUNICATIONS;
-				diag.Level = ERROR;
-				diag.Diagnostic_Message = DROPPING_PACKETS;
-				diag.Description = "Cannot write to UART.";
-				diagnostic_pub.publish(diag);
+			}
+			else
+			{
+				for(int j = 0; j < 4; j++)
+				{
+					icarus_rover_v2::pin newpin;
+					newpin.Function = process->map_PinFunction_ToString(ANA_PortA.Mode[j]);
+					newpin.Number = ANA_PortA.Number[j];
+					newpin.Port = "ANA_PortA";
+					newpin.Value = ANA_PortA.Value[j];
+					newpin.ConnectedDevice = ANA_PortA.ConnectingDevice.at(j);
+					//printf("Port Name: %s Pin Number: %d Pin Function: %d Pin Value: %d\n",
+					//		ANA_PortA.PortName.c_str(),ANA_PortA.Number[j],ANA_PortA.Mode[j],ANA_PortA.Value[j]);
+					if(ANA_PortA.Mode[j] == PINMODE_ANALOG_INPUT)
+					{
+						analoginput_pub.publish(newpin);
+					}
+					else if(ANA_PortA.Mode[j] == PINMODE_FORCESENSOR_INPUT)
+					{
+						forcesensorinput_pub.publish(newpin);
+					}
+				}
+			}
+			Port_Info ANA_PortB = process->get_PortInfo(boardname,"ANA_PortB");
+			if(ANA_PortB.PortName == "")
+			{
+			}
+			else
+			{
+				for(int j = 0; j < 4; j++)
+				{
+					icarus_rover_v2::pin newpin;
+					newpin.Function = process->map_PinFunction_ToString(ANA_PortB.Mode[j]);
+					newpin.Number = ANA_PortB.Number[j];
+					newpin.Port = "ANA_PortB";
+					newpin.Value = ANA_PortB.Value[j];
+					newpin.ConnectedDevice = ANA_PortB.ConnectingDevice.at(j);
+					//printf("Port Name: %s Pin Number: %d Pin Function: %d Pin Value: %d\n",
+					//		ANA_PortA.PortName.c_str(),ANA_PortA.Number[j],ANA_PortA.Mode[j],ANA_PortA.Value[j]);
+					if(ANA_PortB.Mode[j] == PINMODE_ANALOG_INPUT)
+					{
+						analoginput_pub.publish(newpin);
+					}
+					else if(ANA_PortB.Mode[j] == PINMODE_FORCESENSOR_INPUT)
+					{
+						forcesensorinput_pub.publish(newpin);
+					}
+				}
 			}
 		}
 	}
+
 	//diagnostic_pub.publish(diagnostic_status);
 	return true;
 }
@@ -288,7 +340,7 @@ bool run_veryslowrate_code()
 	icarus_rover_v2::firmware fw;
 	fw.Generic_Node_Name = "gpio_node";
 	fw.Node_Name = node_name;
-	fw.Description = "Latest Rev: 9-Nov-2016";
+	fw.Description = "Latest Rev: 13-Nov-2016";
 	fw.Major_Release = GPIONODE_MAJOR_RELEASE;
 	fw.Minor_Release = GPIONODE_MINOR_RELEASE;
 	fw.Build_Number = GPIONODE_BUILD_NUMBER;
@@ -298,9 +350,9 @@ bool run_veryslowrate_code()
 	{
 		char tempstr[255];
 		message_info message = allmessage_info.at(i);
-		sprintf(tempstr,"Message: AB%0X Received Counter: %ld Received Rate: %f (Hz) Transmitted Counter: %ld Transmitted Rate: %f (Hz)",
+		sprintf(tempstr,"Message: AB%0X Received Counter: %d Received Rate: %f (Hz) Transmitted Counter: %d Transmitted Rate: %f (Hz)",
 				message.id,
-				message_receive_counter,
+				message.received_counter,
 				message.received_rate,
 				message.sent_counter,
 				message.transmitted_rate);
@@ -400,10 +452,17 @@ int main(int argc, char **argv)
     medium_timer = now;
     slow_timer = now;
     veryslow_timer = now;
-	boost::thread processmessage_thread(&process_message_thread);
+	#if( USE_UART == 1)
+
+    	boost::thread processmessage_thread(&process_message_thread);
+
+	#endif
     while (ros::ok())
     {
-		
+		if(kill_node == true)
+		{
+			return 0;
+		}
     	bool ok_to_start = false;
 		if(require_pps_to_start == false) { ok_to_start = true;}
 		else if(require_pps_to_start == true && received_pps == true) { ok_to_start = true; }
@@ -443,14 +502,19 @@ int main(int argc, char **argv)
 		ros::spinOnce();
 		loop_rate.sleep();
     }
-	close(device_fid);
-	processmessage_thread.join();
+    close(device_fid);
+
+	#if(USE_UART == 1)
+
+    	processmessage_thread.join();
+	#endif
     return 0;
 }
 
 bool initialize(ros::NodeHandle nh)
 {
     //Start Template Code: Initialization and Parameters
+	kill_node = false;
     myDevice.DeviceName = "";
     myDevice.Architecture = "";
     myDevice.DeviceParent = "";
@@ -497,19 +561,9 @@ bool initialize(ros::NodeHandle nh)
 	std::string heartbeat_topic = "/" + node_name + "/heartbeat";
 	heartbeat_pub = nh.advertise<icarus_rover_v2::heartbeat>(heartbeat_topic,1000);
 	beat.Node_Name = node_name;
-	process = new GPIONodeProcess;
-	diagnostic_status = process->init(diagnostic_status,logger,std::string(hostname));
+
     std::string device_topic = "/" + std::string(hostname) +"_master_node/device";
-	printf("Subscribing to: %s\n",device_topic.c_str());
     device_sub = nh.subscribe<icarus_rover_v2::device>(device_topic,1000,Device_Callback);
-	if(device_sub)
-	{
-		printf("Created subscriber\n");
-	}
-	else
-	{
-		printf("Couldn't create subscriber\n");
-	}
 	
     pps_sub = nh.subscribe<std_msgs::Bool>("/pps",1000,PPS_Callback);  //This is a pps consumer.
 	command_sub = nh.subscribe<icarus_rover_v2::command>("/command",1000,Command_Callback);
@@ -524,6 +578,23 @@ bool initialize(ros::NodeHandle nh)
     //End Template Code: Initialization and Parameters
 
     //Start User Code: Initialization and Parameters
+    std::string sensor_spec_path;
+    std::string param_sensor_spec_path = node_name +"/sensor_spec_path";
+	if(nh.getParam(param_sensor_spec_path,sensor_spec_path) == false)
+	{
+		logger->log_error("Missing Parameter: sensor_spec_path.");
+		return false;
+	}
+	bool extrapolate;
+	std::string param_extrapolate_sensor_values = node_name +"/extrapolate_sensor_values";
+	if(nh.getParam(param_sensor_spec_path,sensor_spec_path) == false)
+	{
+		logger->log_warn("Missing Parameter: extrapolate_sensor_values. Using default: False.");
+		extrapolate = false;
+	}
+
+    process = new GPIONodeProcess;
+	diagnostic_status = process->init(diagnostic_status,logger,std::string(hostname),sensor_spec_path,extrapolate);
     last_message_received_time = ros::Time::now();
     std::string digitalinput_topic = "/" + node_name + "/DigitalInput";
     digitalinput_pub = nh.advertise<icarus_rover_v2::pin>(digitalinput_topic,1000);
@@ -546,22 +617,22 @@ bool initialize(ros::NodeHandle nh)
 	new_message = false;
 	checking_gpio_comm = false;
 	message_receive_counter = 0;
-	device_fid = open("/dev/ttyAMA0", O_RDWR | O_NOCTTY /*| O_NDELAY*/);
-    if(device_fid < 0)
-    {
-    	logger->log_fatal("Unable to setup UART.  Exiting.");
-		return false;
-    }
-	struct termios options;
-	tcgetattr(device_fid, &options);
-	options.c_cflag = B115200 | CS8 | CLOCAL | CREAD;		//<Set baud rate
-	options.c_iflag = IGNPAR;
-	options.c_oflag = 0;
-	options.c_lflag = 0;
-	tcflush(device_fid, TCIFLUSH);
-	tcsetattr(device_fid, TCSANOW, &options);
-
-
+	#if(USE_UART == 1)
+		device_fid = open("/dev/ttyAMA0", O_RDWR | O_NOCTTY /*| O_NDELAY*/);
+		if(device_fid < 0)
+		{
+			logger->log_fatal("Unable to setup UART.  Exiting.");
+			return false;
+		}
+		struct termios options;
+		tcgetattr(device_fid, &options);
+		options.c_cflag = B115200 | CS8 | CLOCAL | CREAD;		//<Set baud rate
+		options.c_iflag = IGNPAR;
+		options.c_oflag = 0;
+		options.c_lflag = 0;
+		tcflush(device_fid, TCIFLUSH);
+		tcsetattr(device_fid, TCSANOW, &options);
+	#endif
     //Finish User Code: Initialization and Parameters
 
     //Start Template Code: Final Initialization.
@@ -619,8 +690,15 @@ void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg)
 	newdevice.DeviceType = msg->DeviceType;
 	newdevice.DeviceParent = msg->DeviceParent;
 	newdevice.BoardCount = msg->BoardCount;
+	newdevice.SensorCount = msg->SensorCount;
 	newdevice.pins = msg->pins;
 	diagnostic_status = process->new_devicemsg(newdevice);
+	if(diagnostic_status.Level == FATAL)
+	{
+		logger->log_fatal(diagnostic_status.Description);
+		logger->log_fatal("This is a Safety Issue!  Killing Node.");
+		kill_node = true;
+	}
 	if((newdevice.DeviceName == hostname) and (device_initialized == false) and (process->is_finished_initializing() == true))
 	{
 		myDevice = process->get_mydevice();

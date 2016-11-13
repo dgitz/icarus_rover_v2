@@ -30,6 +30,7 @@
 
 //End User Code: Includes
 //Start User Code: Defines
+#define USE_UART 1
 #define WARN_ON_SOFTWARE_NOT_IMPLEMENTED 0
 //End User Code: Defines
 
@@ -79,6 +80,7 @@ ros::Time boot_time;
 double mtime;
 bool device_initialized;
 char hostname[1024];
+bool kill_node;
 //End Template Code: Define Global Variables
 
 //Start User Code: Define Global Variables

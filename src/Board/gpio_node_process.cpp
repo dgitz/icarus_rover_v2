@@ -4,10 +4,14 @@ GPIONodeProcess::GPIONodeProcess()
 {
 	board_state = GPIO_MODE_UNDEFINED;
 	node_state = GPIO_MODE_BOOT;
+	all_sensor_info_received = false;
+	all_board_info_received = false;
 	all_device_info_received = false;
+	extrapolate_values = false;
 	initialize_Ports();
 	ms_timer = 0;
 	timeout_value_ms = 0;
+    init_time = ros::Time::now();
 }
 GPIONodeProcess::~GPIONodeProcess()
 {
@@ -23,11 +27,13 @@ bool GPIONodeProcess::initialize_Ports()
 		DIO_PortA.Mode[i] = PINMODE_UNDEFINED;
 		DIO_PortA.Available[i] = false;
 		DIO_PortA.Value[i] = 0;
+		DIO_PortA.ConnectingDevice.push_back("");
 		
 		DIO_PortB.Number[i] = i-1;
 		DIO_PortB.Mode[i] = PINMODE_UNDEFINED;
 		DIO_PortB.Available[i] = false;
 		DIO_PortB.Value[i] = 0;
+		DIO_PortB.ConnectingDevice.push_back("");
 	}
 	ANA_PortA.PortName = "ANA_PortA";
 	ANA_PortB.PortName = "ANA_PortB";
@@ -37,14 +43,17 @@ bool GPIONodeProcess::initialize_Ports()
 		ANA_PortA.Mode[i] = PINMODE_ANALOG_INPUT;
 		ANA_PortA.Available[i] = false;
 		ANA_PortA.Value[i] = 0;
+		ANA_PortA.ConnectingDevice.push_back("");
 		
 		ANA_PortB.Number[i] = 4+i+1;
 		ANA_PortB.Mode[i] = PINMODE_ANALOG_INPUT;
 		ANA_PortB.Available[i] = false;
 		ANA_PortB.Value[i] = 0;
+		ANA_PortB.ConnectingDevice.push_back("");
 	}
 }
-icarus_rover_v2::diagnostic GPIONodeProcess::init(icarus_rover_v2::diagnostic indiag,Logger *log,std::string hostname)
+icarus_rover_v2::diagnostic GPIONodeProcess::init(icarus_rover_v2::diagnostic indiag,
+		Logger *log,std::string hostname,std::string sensorspecpath,bool extrapolate)
 {
 	initialize_stateack_messages();
 	initialize_message_info();
@@ -58,6 +67,8 @@ icarus_rover_v2::diagnostic GPIONodeProcess::init(icarus_rover_v2::diagnostic in
 	mylogger = log;
 	mydevice.DeviceName = hostname;
 	timeout_value_ms = INITIAL_TIMEOUT_VALUE_MS;
+	sensor_spec_path = sensorspecpath;
+	extrapolate_values = extrapolate;
 	return diagnostic;
 }
 icarus_rover_v2::diagnostic GPIONodeProcess::update(long dt)
@@ -204,6 +215,7 @@ bool GPIONodeProcess::checkTriggers(std::vector<std::vector<unsigned char > > &t
 		int length;
 		int tx_status = serialmessagehandler->encode_Configure_DIO_PortASerial(buffer,&length,
 				Port.Mode[0],Port.Mode[1],Port.Mode[2],Port.Mode[3],Port.Mode[4],Port.Mode[5],Port.Mode[6],Port.Mode[7]);
+		bool status = gather_message_info(SERIAL_Configure_DIO_PortA_ID, "transmit");
 		tx_buffers.push_back(std::vector<unsigned char>(buffer,buffer+sizeof(buffer)/sizeof(buffer[0])));
 		send_configure_DIO_PortA.state = true;
 		if (send_configure_DIO_PortA.retrying == false)
@@ -223,6 +235,7 @@ bool GPIONodeProcess::checkTriggers(std::vector<std::vector<unsigned char > > &t
 		int length;
 		int tx_status = serialmessagehandler->encode_Configure_DIO_PortBSerial(buffer,&length,
 				Port.Mode[0],Port.Mode[1],Port.Mode[2],Port.Mode[3],Port.Mode[4],Port.Mode[5],Port.Mode[6],Port.Mode[7]);
+		bool status = gather_message_info(SERIAL_Configure_DIO_PortB_ID, "transmit");
 		tx_buffers.push_back(std::vector<unsigned char>(buffer,buffer+sizeof(buffer)/sizeof(buffer[0])));
 
 		send_configure_DIO_PortB.state = true;
@@ -241,6 +254,7 @@ bool GPIONodeProcess::checkTriggers(std::vector<std::vector<unsigned char > > &t
 		int length;
 		int tx_status = serialmessagehandler->encode_TestMessageCommandSerial(buffer,&length,
 				0,0,0,0,0,0,0,0);
+		bool status = gather_message_info(SERIAL_TestMessageCommand_ID, "transmit");
 		tx_buffers.push_back(std::vector<unsigned char>(buffer,buffer+sizeof(buffer)/sizeof(buffer[0])));
 
 		send_testmessage_command.state = true;
@@ -259,6 +273,7 @@ bool GPIONodeProcess::checkTriggers(std::vector<std::vector<unsigned char > > &t
 		int length;
 		int computed_checksum;
 		int tx_status = serialmessagehandler->encode_ModeSerial(buffer,&length,node_state);
+		bool status = gather_message_info(SERIAL_Mode_ID, "transmit");
 		tx_buffers.push_back(std::vector<unsigned char>(buffer,buffer+sizeof(buffer)/sizeof(buffer[0])));
 		send_nodemode.state = true;
 		if (send_nodemode.retrying == false)
@@ -286,6 +301,7 @@ bool GPIONodeProcess::checkTriggers(std::vector<std::vector<unsigned char > > &t
 		}
 		int tx_status = serialmessagehandler->encode_Set_DIO_PortASerial(buffer,&length,Port.Value[0],Port.Value[1],Port.Value[2],Port.Value[3],
 				Port.Value[4],Port.Value[5],Port.Value[6],Port.Value[7]);
+		bool status = gather_message_info(SERIAL_Set_DIO_PortA_ID, "transmit");
 		//char tempstr[128];
 		//sprintf(tempstr,"Setting Pin 0 to: %d",Port.Value[0]);
 		//mylogger->log_debug(tempstr);
@@ -317,6 +333,7 @@ bool GPIONodeProcess::checkTriggers(std::vector<std::vector<unsigned char > > &t
 		}
 		int tx_status = serialmessagehandler->encode_Set_DIO_PortBSerial(buffer,&length,DIO_PortB.Value[0],DIO_PortB.Value[1],DIO_PortB.Value[2],DIO_PortB.Value[3],
 				DIO_PortB.Value[4],DIO_PortB.Value[5],DIO_PortB.Value[6],DIO_PortB.Value[7]);
+		bool status = gather_message_info(SERIAL_Set_DIO_PortB_ID, "transmit");
 		tx_buffers.push_back(std::vector<unsigned char>(buffer,buffer+sizeof(buffer)/sizeof(buffer[0])));
 		send_set_DIO_PortB.state = true;
 		if (send_set_DIO_PortB.retrying == false)
@@ -455,16 +472,60 @@ icarus_rover_v2::diagnostic GPIONodeProcess::new_serialmessage_Get_ANA_PortA(int
 	}
 	else
 	{
-		diagnostic.Level = WARN;
-		diagnostic.Diagnostic_Type = COMMUNICATIONS;
-		diagnostic.Diagnostic_Message = DROPPING_PACKETS;
-		diagnostic.Description = "Get_ANA_PortA Message Not Implemented Yet.";
+		if(packet_type ==SERIAL_Get_ANA_PortA_ID)
+		{
+			char tempstr[128];
+			int value1,value2,value3,value4;
+			serialmessagehandler->decode_Get_ANA_PortASerial(inpacket,&value1,&value2,&value3,&value4);
+			if(ANA_PortA.Mode[0] == PINMODE_ANALOG_INPUT)
+			{
+				ANA_PortA.Value[0] = value1;
+			}
+			else if(ANA_PortA.Mode[0] == PINMODE_FORCESENSOR_INPUT)
+			{
+				ANA_PortA.Value[0] = transducer_model(ANA_PortA.Mode[0],ANA_PortA.ConnectingDevice.at(0),(double)(value1));
+			}
+
+			if(ANA_PortA.Mode[1] == PINMODE_ANALOG_INPUT)
+			{
+				ANA_PortA.Value[1] = value2;
+			}
+			else if(ANA_PortA.Mode[1] == PINMODE_FORCESENSOR_INPUT)
+			{
+				ANA_PortA.Value[1] = transducer_model(ANA_PortA.Mode[1],ANA_PortA.ConnectingDevice.at(1),(double)(value2));
+			}
+
+			if(ANA_PortA.Mode[2] == PINMODE_ANALOG_INPUT)
+			{
+				ANA_PortA.Value[2] = value3;
+			}
+			else if(ANA_PortA.Mode[2] == PINMODE_FORCESENSOR_INPUT)
+			{
+				ANA_PortA.Value[2] = transducer_model(ANA_PortA.Mode[2],ANA_PortA.ConnectingDevice.at(2),(double)(value3));
+			}
+
+			if(ANA_PortA.Mode[3] == PINMODE_ANALOG_INPUT)
+			{
+				ANA_PortA.Value[3] = value4;
+			}
+			else if(ANA_PortA.Mode[3] == PINMODE_FORCESENSOR_INPUT)
+			{
+				ANA_PortA.Value[3] = transducer_model(ANA_PortA.Mode[3],ANA_PortA.ConnectingDevice.at(3),(double)(value4));
+			}
+		}
+		else
+		{
+			diagnostic.Level = ERROR;
+			diagnostic.Description = "Get_ANA_PortA Not Decoded successfully.";
+			diagnostic.Diagnostic_Message = DROPPING_PACKETS;
+		}
 	}
 	return diagnostic;
 }
+
 icarus_rover_v2::diagnostic GPIONodeProcess::new_serialmessage_Get_ANA_PortB(int packet_type,unsigned char* inpacket)
 {
-	bool status = gather_message_info(SERIAL_Configure_DIO_PortB_ID, "receive");
+	bool status = gather_message_info(SERIAL_Get_ANA_PortB_ID, "receive");
 	if(status == false)
 	{
 		diagnostic.Level = ERROR;
@@ -474,10 +535,55 @@ icarus_rover_v2::diagnostic GPIONodeProcess::new_serialmessage_Get_ANA_PortB(int
 	}
 	else
 	{
-		diagnostic.Level = WARN;
-		diagnostic.Diagnostic_Type = COMMUNICATIONS;
-		diagnostic.Diagnostic_Message = DROPPING_PACKETS;
-		diagnostic.Description = "Get_ANA_PortB Message Not Implemented Yet.";
+		if(packet_type ==SERIAL_Get_ANA_PortB_ID)
+		{
+			char tempstr[128];
+			int value1,value2,value3,value4;
+			serialmessagehandler->decode_Get_ANA_PortBSerial(inpacket,&value1,&value2,&value3,&value4);
+
+			if(ANA_PortB.Mode[0] == PINMODE_ANALOG_INPUT)
+			{
+				ANA_PortB.Value[0] = value1;
+			}
+			else if(ANA_PortB.Mode[0] == PINMODE_FORCESENSOR_INPUT)
+			{
+				ANA_PortB.Value[0] = transducer_model(ANA_PortB.Mode[0],ANA_PortB.ConnectingDevice.at(0),(double)(value1));
+				//printf("input: %d out: %d\n",value1,ANA_PortB.Value[0]);
+			}
+
+			if(ANA_PortB.Mode[1] == PINMODE_ANALOG_INPUT)
+			{
+				ANA_PortB.Value[1] = value2;
+			}
+			else if(ANA_PortB.Mode[1] == PINMODE_FORCESENSOR_INPUT)
+			{
+				ANA_PortB.Value[1] = transducer_model(ANA_PortB.Mode[1],ANA_PortB.ConnectingDevice.at(1),(double)(value2));
+			}
+
+			if(ANA_PortB.Mode[2] == PINMODE_ANALOG_INPUT)
+			{
+				ANA_PortB.Value[2] = value3;
+			}
+			else if(ANA_PortB.Mode[2] == PINMODE_FORCESENSOR_INPUT)
+			{
+				ANA_PortB.Value[2] = transducer_model(ANA_PortB.Mode[2],ANA_PortB.ConnectingDevice.at(2),(double)(value3));
+			}
+
+			if(ANA_PortB.Mode[3] == PINMODE_ANALOG_INPUT)
+			{
+				ANA_PortB.Value[3] = value4;
+			}
+			else if(ANA_PortB.Mode[3] == PINMODE_FORCESENSOR_INPUT)
+			{
+				ANA_PortB.Value[3] = transducer_model(ANA_PortB.Mode[3],ANA_PortB.ConnectingDevice.at(3),(double)(value4));
+			}
+		}
+		else
+		{
+			diagnostic.Level = ERROR;
+			diagnostic.Description = "Get_ANA_PortB Not Decoded successfully.";
+			diagnostic.Diagnostic_Message = DROPPING_PACKETS;
+		}
 	}
 	return diagnostic;
 }
@@ -585,33 +691,59 @@ icarus_rover_v2::diagnostic GPIONodeProcess::new_serialmessage_Get_Mode(int pack
 	}
 	return diagnostic;
 }
+double GPIONodeProcess::find_slope(std::vector<double> x,std::vector<double> y)
+{
+	double slope = 0.0;
+	for(int i = 1; i < x.size()-1;i++)
+	{
+		double temp = (y.at(i)-y.at(i-1))/(x.at(i)-x.at(i-1));
+		slope = slope + temp;
+	}
+	slope = slope/(double)(x.size()-2);
+	return slope;
+}
+double GPIONodeProcess::find_intercept(double slope,std::vector<double> x,std::vector<double> y)
+{
+	double intercept = 0.0;
+	for(int i = 0; i < x.size();i++)
+	{
+		double temp = y.at(i)-(slope*x.at(i));
+		intercept = intercept + temp;
+	}
+	intercept = intercept/(double)(x.size());
+	return intercept;
+}
 icarus_rover_v2::diagnostic GPIONodeProcess::new_devicemsg(icarus_rover_v2::device newdevice)
 {
-	//cout << "Got Device: " << newdevice.DeviceName << " Parent: " << newdevice.DeviceParent << endl;
-	if((newdevice.DeviceParent == "None") && (newdevice.DeviceName == myhostname) && (all_device_info_received == false))
+	if( (all_board_info_received == true) &&
+		(all_sensor_info_received == true))
+	{
+		all_device_info_received = true;
+	}
+	if((newdevice.DeviceParent == "None") && (newdevice.DeviceName == myhostname))// && (all_device_info_received == false))
 	{
 		mydevice = newdevice;
 	}
 
-	if((newdevice.DeviceParent == mydevice.DeviceName) && (mydevice.DeviceName != "") && (all_device_info_received == false))
+	if((newdevice.DeviceType == "GPIOBoard") && (newdevice.DeviceParent == mydevice.DeviceName) && (mydevice.DeviceName != "") && (all_board_info_received == false))
 	{
 		icarus_rover_v2::device board;
 		board.DeviceName = newdevice.DeviceName;
 		board.pins = newdevice.pins;
 		myboards.push_back(board);
-		printf("Device Name: %s\n",newdevice.DeviceName.c_str());
 		printf("Board Count so far: %d\n",myboards.size());
 		printf("Board pin count: %d\n",board.pins.size());
 		for(int i = 0; i < board.pins.size();i++)
 		{
-			if(configure_pin(board.DeviceName,board.pins.at(i).Port,board.pins.at(i).Number,board.pins.at(i).Function)==false)
+			if(configure_pin(board.DeviceName,board.pins.at(i).Port,board.pins.at(i).Number,board.pins.at(i).Function,board.pins.at(i).ConnectedDevice)==false)
 			{
 				char tempstr[256];
-				sprintf(tempstr,"Board: %s Couldn't Configure Pin on Port: %s Number: %d Function: %s",
+				sprintf(tempstr,"Board: %s Couldn't Configure Pin on Port: %s Number: %d Function: %s Connecting Device: %s",
 						board.DeviceName.c_str(),
 						board.pins.at(i).Port.c_str(),
 						board.pins.at(i).Number,
-						board.pins.at(i).Function.c_str());
+						board.pins.at(i).Function.c_str(),
+						board.pins.at(i).ConnectedDevice.c_str());
 				//printf("%s\n",tempstr);
 				mylogger->log_error(tempstr);
 				diagnostic.Diagnostic_Type = SOFTWARE;
@@ -622,21 +754,22 @@ icarus_rover_v2::diagnostic GPIONodeProcess::new_devicemsg(icarus_rover_v2::devi
 			else
 			{
 				char tempstr[256];
-				sprintf(tempstr,"Board: %s Configured Pin on Port: %s Number: %d Function: %s",
+				sprintf(tempstr,"Board: %s Configured Pin on Port: %s Number: %d Function: %s Connected Device: %s",
 						board.DeviceName.c_str(),
 						board.pins.at(i).Port.c_str(),
 						board.pins.at(i).Number,
-						board.pins.at(i).Function.c_str());
+						board.pins.at(i).Function.c_str(),
+						board.pins.at(i).ConnectedDevice.c_str());
 				//printf("%s\n",tempstr);
 				mylogger->log_debug(tempstr);
 			}
 		}
-		if((mydevice.BoardCount == myboards.size()) && (mydevice.BoardCount > 0) && (all_device_info_received == false))
+		if((mydevice.BoardCount == myboards.size()) && (mydevice.BoardCount > 0) && (all_board_info_received == false))
 		{
 			diagnostic.Diagnostic_Type = NOERROR;
 			diagnostic.Level = INFO;
 			diagnostic.Diagnostic_Message = NOERROR;
-			diagnostic.Description = "Received all Device Info.";
+			diagnostic.Description = "Received all Board Info.";
 			mylogger->log_info("Received all Device Info.");
 			for(int b = 0; b < myboards.size(); b++)
 			{
@@ -648,7 +781,211 @@ icarus_rover_v2::diagnostic GPIONodeProcess::new_devicemsg(icarus_rover_v2::devi
 					mylogger->log_debug(tempstr);
 				}
 			}
-			all_device_info_received = true;
+			all_board_info_received = true;
+			ms_timer = 0;
+			//printf("Received all device info.\n");
+			prev_node_state = node_state;
+			node_state = GPIO_MODE_INITIALIZING;
+		}
+	}
+	else if((newdevice.DeviceType == "ForceSensor") && (newdevice.DeviceParent == mydevice.DeviceName) && (mydevice.DeviceName != "") && (all_sensor_info_received == false))
+	{
+		icarus_rover_v2::device dev_sensor;
+		dev_sensor.DeviceName = newdevice.DeviceName;
+		mysensors.push_back(dev_sensor);
+		printf("Device Name: %s\n",newdevice.DeviceName.c_str());
+		printf("Sensor Count so far: %d/%d\n",mysensors.size(),mydevice.SensorCount);
+		Sensor newsensor;
+		newsensor.type = newdevice.DeviceType;
+		newsensor.name = newdevice.DeviceName;
+		newsensor.spec_path = sensor_spec_path + "/" + newdevice.DeviceType + "/" + newdevice.DeviceName + ".csv";
+		ifstream specpath(newsensor.spec_path.c_str());
+		if( specpath.good() == false)
+		{
+			diagnostic.Diagnostic_Type = SENSORS;
+			diagnostic.Level = FATAL;
+			diagnostic.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
+			char tempstr[1024];
+			sprintf(tempstr,"Specification for Sensor: %s not found at %s",
+					newsensor.name.c_str(),
+					newsensor.spec_path.c_str());
+			diagnostic.Description = tempstr;
+			mylogger->log_fatal(tempstr);
+			return diagnostic;
+		}
+		string line;
+		std::string name,type,relationship;
+		bool voltage_reference_read,adc_resolution_read,rm_read,relationship_read = false;
+		double voltage_reference,rm_ohms = 0.0;
+		int adc_resolution = 0;
+		std::vector<double> input_vector;
+		std::vector<double> output_vector;
+		bool reading_inputoutputmap = false;
+		if (specpath.is_open())
+		{
+			while ( getline (specpath,line) )
+			{
+				std::vector<std::string> items;
+				boost::split(items,line,boost::is_any_of(","),boost::token_compress_on);
+				if(reading_inputoutputmap == false)
+				{
+					if(items.size() != 2)
+					{
+						diagnostic.Diagnostic_Type = SENSORS;
+						diagnostic.Level = FATAL;
+						diagnostic.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
+						char tempstr[1024];
+						sprintf(tempstr,"Specification for Sensor: %s not in correct format at %s",
+								newsensor.name.c_str(),
+								newsensor.spec_path.c_str());
+						diagnostic.Description = tempstr;
+						mylogger->log_fatal(tempstr);
+						return diagnostic;
+					}
+					if(items.at(0) == "Name")
+					{
+						name = items.at(1);
+					}
+					else if(items.at(0) == "Type")
+					{
+						type = items.at(1);
+					}
+					else if(items.at(0) == "Voltage Reference")
+					{
+						voltage_reference_read = true;
+						voltage_reference = std::atof(items.at(1).c_str());
+					}
+					else if(items.at(0) == "ADC Resolution")
+					{
+						adc_resolution_read = true;
+						adc_resolution = std::atoi(items.at(1).c_str());
+					}
+					else if(items.at(0) == "Rm")
+					{
+						rm_read = true;
+						rm_ohms = std::atof(items.at(1).c_str());
+					}
+					else if(items.at(0) == "Relationship")
+					{
+						relationship_read = true;
+						relationship = items.at(1);
+					}
+					else if(items.at(0) == "Specification:")
+					{
+						getline (specpath,line);
+						boost::split(items,line,boost::is_any_of(","),boost::token_compress_on);
+
+						if((items.at(0) == "Input") && (items.at(1) == "Output"))
+						{
+							reading_inputoutputmap = true;
+						}
+					}
+				}
+				else
+				{
+					if(items.size() != 2)
+					{
+						diagnostic.Diagnostic_Type = SENSORS;
+						diagnostic.Level = FATAL;
+						diagnostic.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
+						char tempstr[1024];
+						sprintf(tempstr,"Specification for Sensor: %s not in correct format at %s",
+								newsensor.name.c_str(),
+								newsensor.spec_path.c_str());
+						diagnostic.Description = tempstr;
+						mylogger->log_fatal(tempstr);
+						return diagnostic;
+					}
+					double input = std::atof(items.at(0).c_str());
+					double output = std::atof(items.at(1).c_str());
+					input_vector.push_back(input);
+					output_vector.push_back(output);
+				}
+			}
+		}
+		specpath.close();
+		if(	(name == newsensor.name) &&
+			(type == newsensor.type) &&
+			(voltage_reference_read == true) &&
+			(adc_resolution_read == true) &&
+			(rm_read == true) &&
+			(relationship_read == true) &&
+			(input_vector.size() == output_vector.size()) &&
+			(reading_inputoutputmap == true))
+		{
+			newsensor.input_vector = input_vector;
+			newsensor.output_vector = output_vector;
+			newsensor.adc_resolution = adc_resolution;
+			newsensor.voltage_reference = voltage_reference;
+			newsensor.Rm_ohms = rm_ohms;
+			newsensor.spec_relationship = relationship;
+			std::vector<double> x,y;
+			if(newsensor.spec_relationship == "log-log")
+			{
+				for(int i = 0; i < newsensor.input_vector.size(); i++)
+				{
+					x.push_back(log10(newsensor.input_vector.at(i)));
+					y.push_back(log10(newsensor.output_vector.at(i)));
+				}
+				double slope = find_slope(x,y);
+				double intercept = find_intercept(slope,x,y);
+				newsensor.slope = slope;
+				newsensor.intercept = intercept;
+
+			}
+			else
+			{
+				diagnostic.Diagnostic_Type = SENSORS;
+				diagnostic.Level = FATAL;
+				diagnostic.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
+				char tempstr[1024];
+				sprintf(tempstr,"Specification for Sensor: %s relationship: %s Not Currently Supported",
+						newsensor.name.c_str(),
+						newsensor.spec_relationship.c_str());
+				diagnostic.Description = tempstr;
+				mylogger->log_fatal(tempstr);
+				return diagnostic;
+			}
+			SensorSpecs.push_back(newsensor);
+			diagnostic.Diagnostic_Type = SENSORS;
+			diagnostic.Level = NOTICE;
+			diagnostic.Diagnostic_Message = INITIALIZING;
+			char tempstr[255];
+			sprintf(tempstr,"Sensor Spec for: %s read correctly. Using slope: %f intercept: %f",newsensor.name.c_str(),
+					newsensor.slope,newsensor.intercept);
+			diagnostic.Description = "Received all Sensor Info.";
+			mylogger->log_notice(tempstr);
+		}
+		else
+		{
+			diagnostic.Diagnostic_Type = SENSORS;
+			diagnostic.Level = FATAL;
+			diagnostic.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
+			char tempstr[1024];
+			sprintf(tempstr,"Specification for Sensor: %s not read correctly at %s",
+					newsensor.name.c_str(),
+					newsensor.spec_path.c_str());
+			diagnostic.Description = tempstr;
+			mylogger->log_fatal(tempstr);
+			char tempstr2[1024];
+			sprintf(tempstr2,"Found: Sensor Name: %s/%s Sensor Type: %s/%s Voltage Reference: %f "
+					"ADC Resolution: %d Rm: %f I/O Map Read: %d Size: %d/%d Please Correct as appropriate.",
+					name.c_str(),newsensor.name.c_str(),
+					type.c_str(),newsensor.type.c_str(),
+					voltage_reference,adc_resolution,rm_ohms,
+					reading_inputoutputmap,
+					input_vector.size(),output_vector.size());
+			mylogger->log_fatal(tempstr2);
+			return diagnostic;
+		}
+		if((mydevice.SensorCount == mysensors.size()) && (mydevice.SensorCount > 0) && (all_sensor_info_received == false))
+		{
+			diagnostic.Diagnostic_Type = NOERROR;
+			diagnostic.Level = INFO;
+			diagnostic.Diagnostic_Message = NOERROR;
+			diagnostic.Description = "Received all Sensor Info.";
+			mylogger->log_info("Received all Sensor Info.");
+			all_sensor_info_received = true;
 			ms_timer = 0;
 			//printf("Received all device info.\n");
 			prev_node_state = node_state;
@@ -657,7 +994,7 @@ icarus_rover_v2::diagnostic GPIONodeProcess::new_devicemsg(icarus_rover_v2::devi
 	}
 	return diagnostic;
 }
-bool GPIONodeProcess::configure_pin(std::string BoardName,std::string Port, uint8_t Number, std::string Function)
+bool GPIONodeProcess::configure_pin(std::string BoardName,std::string Port, uint8_t Number, std::string Function,std::string ConnectedDevice)
 {
 	bool status = true;
 	int function = map_PinFunction_ToInt(Function);
@@ -669,6 +1006,7 @@ bool GPIONodeProcess::configure_pin(std::string BoardName,std::string Port, uint
 		DIO_PortA.Mode[Number-1] = function;
 		DIO_PortA.Available[Number-1] = true;
 		DIO_PortA.Value[Number-1] = 0;
+		DIO_PortA.ConnectingDevice.at(Number-1) = ConnectedDevice;
 	}
 	else if(Port == "DIO_PortB")
 	{
@@ -676,6 +1014,7 @@ bool GPIONodeProcess::configure_pin(std::string BoardName,std::string Port, uint
 		DIO_PortB.Mode[Number-1] = function;
 		DIO_PortB.Available[Number-1] = true;
 		DIO_PortB.Value[Number-1] = 0;
+		DIO_PortB.ConnectingDevice.at(Number-1) = ConnectedDevice;
 	}
 	else if(Port == "ANA_PortA")
 	{
@@ -683,6 +1022,7 @@ bool GPIONodeProcess::configure_pin(std::string BoardName,std::string Port, uint
 		ANA_PortA.Mode[Number-1] = function;
 		ANA_PortA.Available[Number-1] = true;
 		ANA_PortA.Value[Number-1] = 0;
+		ANA_PortA.ConnectingDevice.at(Number-1) = ConnectedDevice;
 	}
 	else if(Port == "ANA_PortB")
 	{
@@ -690,6 +1030,7 @@ bool GPIONodeProcess::configure_pin(std::string BoardName,std::string Port, uint
 		ANA_PortB.Mode[Number-1] = function;
 		ANA_PortB.Available[Number-1] = true;
 		ANA_PortB.Value[Number-1] = 0;
+		ANA_PortB.ConnectingDevice.at(Number-1) = ConnectedDevice;
 	}
 	else { 	status = false; }
 	return status;
@@ -829,16 +1170,16 @@ bool GPIONodeProcess::gather_message_info(int id, std::string mode)
 			found = true;
 			if(mode == "transmit")
 			{
-				double time_since_last = time_diff(ros::Time::now(),messages.at(i).last_time_transmitted);
-				messages.at(i).transmitted_rate = 1.0/time_since_last;
+				double run_time = time_diff(ros::Time::now(),init_time);
 				messages.at(i).sent_counter++;
+                messages.at(i).transmitted_rate = (double)(messages.at(i)).sent_counter/run_time;
 				messages.at(i).last_time_transmitted = ros::Time::now();
 			}
 			else if(mode == "receive")
 			{
-				double time_since_last = time_diff(ros::Time::now(),messages.at(i).last_time_received);
-				messages.at(i).received_rate = 1.0/time_since_last;
+                double run_time = time_diff(ros::Time::now(),init_time);
 				messages.at(i).received_counter++;
+                messages.at(i).received_rate = (double)(messages.at(i)).received_counter/run_time;
 				messages.at(i).last_time_received = ros::Time::now();
 			}
 			break;
@@ -947,11 +1288,51 @@ void GPIONodeProcess::initialize_message_info()
 		messages.at(i).received_rate = 0.0;
 		messages.at(i).transmitted_rate = 0.0;
 	}
+}
+int GPIONodeProcess::transducer_model(int mode,std::string SensorName,double input)
+{
+	for(int i = 0; i < SensorSpecs.size();i++)
+	{
+		Sensor mysensor = SensorSpecs.at(i);
+		if(mysensor.name == SensorName)
+		{
+			if(mode == PINMODE_FORCESENSOR_INPUT)
+			{
+				double maxvalue = pow(2.0,(double)(mysensor.adc_resolution));
+				double scaled_voltage = (double)(input)*mysensor.voltage_reference/(double)(maxvalue);
+				double res = mysensor.Rm_ohms*((mysensor.voltage_reference/scaled_voltage) - 1.0);
+				//NEED TO DO INTERPOLATION/EXTRAPOLATION NOW
+				if(mysensor.spec_relationship == "log-log")
+				{
+					double x,y;
+					if(extrapolate_values == false)
+					{
+						if(res > mysensor.input_vector.at(0))
+						{
+							
+							y = mysensor.output_vector.at(0);
+							printf("res too small: %f using output: %f\n",res,y);
+							return (int)y;
+						}
+						else if(res < mysensor.input_vector.at(mysensor.input_vector.size()-1))
+						{
+							y = mysensor.output_vector.at(mysensor.output_vector.size()-1);
+							printf("res too big: %f using output: %f\n",res,y);
+							return (int)y;
+						}
+					}
 
+					x = log10(res);
+					double out = mysensor.slope*x + mysensor.intercept;
+					y = pow(10.0,out);
+					//printf("res: %f x: %f m: %f int: %f out: %f y: %f [y]: %d\n",res,x,mysensor.slope,mysensor.intercept,
+					//		out,y,(int)y);
+					return (int)y;
 
-
-
-
-
-
+				}
+			}
+			return 0;
+		}
+	}
+	return 0;
 }
