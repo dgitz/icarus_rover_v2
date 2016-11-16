@@ -22,3 +22,8 @@ This node should be run for every Arm on the Robot.
 
 Purpose:
 1. Read in the desired pose of the gripper of each Arm, compute a path for the Arm and generate the target joint angles.
+
+D. io_node
+Usage: This node should be run for each ControlModule.
+Purpose: 
+1. Controls the GPIO pins that are hooked directly to the ControlModule.

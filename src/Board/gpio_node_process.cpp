@@ -731,8 +731,8 @@ icarus_rover_v2::diagnostic GPIONodeProcess::new_devicemsg(icarus_rover_v2::devi
 		board.DeviceName = newdevice.DeviceName;
 		board.pins = newdevice.pins;
 		myboards.push_back(board);
-		printf("Board Count so far: %d\n",myboards.size());
-		printf("Board pin count: %d\n",board.pins.size());
+		//printf("Board Count so far: %d\n",myboards.size());
+		//printf("Board pin count: %d\n",board.pins.size());
 		for(int i = 0; i < board.pins.size();i++)
 		{
 			if(configure_pin(board.DeviceName,board.pins.at(i).Port,board.pins.at(i).Number,board.pins.at(i).Function,board.pins.at(i).ConnectedDevice)==false)
@@ -793,8 +793,8 @@ icarus_rover_v2::diagnostic GPIONodeProcess::new_devicemsg(icarus_rover_v2::devi
 		icarus_rover_v2::device dev_sensor;
 		dev_sensor.DeviceName = newdevice.DeviceName;
 		mysensors.push_back(dev_sensor);
-		printf("Device Name: %s\n",newdevice.DeviceName.c_str());
-		printf("Sensor Count so far: %d/%d\n",mysensors.size(),mydevice.SensorCount);
+		//printf("Device Name: %s\n",newdevice.DeviceName.c_str());
+		//printf("Sensor Count so far: %d/%d\n",mysensors.size(),mydevice.SensorCount);
 		Sensor newsensor;
 		newsensor.type = newdevice.DeviceType;
 		newsensor.name = newdevice.DeviceName;

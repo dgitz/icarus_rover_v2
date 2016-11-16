@@ -173,8 +173,11 @@ bool initialize(ros::NodeHandle nh)
     myDevice.DeviceName = "";
     myDevice.Architecture = "";
     device_initialized = false;
+    hostname[1023] = '\0';
+	gethostname(hostname,1023);
     std::string diagnostic_topic = "/" + node_name + "/diagnostic";
 	diagnostic_pub =  nh.advertise<icarus_rover_v2::diagnostic>(diagnostic_topic,1000);
+    diagnostic_status.DeviceName = hostname;
 	diagnostic_status.Node_Name = node_name;
 	diagnostic_status.System = ROVER;
 	diagnostic_status.SubSystem = ROBOT_CONTROLLER;
@@ -206,8 +209,7 @@ bool initialize(ros::NodeHandle nh)
         logger->log_warn("Missing Parameter: loop_rate.");
         return false;
     }
-	hostname[1023] = '\0';
-	gethostname(hostname,1023);
+	
 	std::string heartbeat_topic = "/" + node_name + "/heartbeat";
 	heartbeat_pub = nh.advertise<icarus_rover_v2::heartbeat>(heartbeat_topic,1000);
 	beat.Node_Name = node_name;

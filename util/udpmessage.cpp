@@ -1,5 +1,5 @@
 /***************AUTO-GENERATED.  DO NOT EDIT********************/
-/***Created on:2016-10-25 18:38:34.159049***/
+/***Created on:2016-11-14 07:31:08.298358***/
 #include "udpmessage.h"
 UDPMessageHandler::UDPMessageHandler(){}
 UDPMessageHandler::~UDPMessageHandler(){}
@@ -40,10 +40,12 @@ std::string UDPMessageHandler::encode_ResourceUDP(std::string Node_Name,uint16_t
 	tempstr.append(boost::lexical_cast<std::string>((int)CPU_Used));
 	return tempstr;
 }
-std::string UDPMessageHandler::encode_DiagnosticUDP(std::string Node_Name,uint8_t System,uint8_t SubSystem,uint8_t Component,uint8_t Diagnostic_Type,uint8_t Level,uint8_t Diagnostic_Message,std::string Description)
+std::string UDPMessageHandler::encode_DiagnosticUDP(std::string DeviceName,std::string Node_Name,uint8_t System,uint8_t SubSystem,uint8_t Component,uint8_t Diagnostic_Type,uint8_t Level,uint8_t Diagnostic_Message,std::string Description)
 {
 	std::string tempstr = "";
 	tempstr.append(boost::lexical_cast<std::string>(UDP_Diagnostic_ID));
+	tempstr.append(",");
+	tempstr.append(DeviceName);
 	tempstr.append(",");
 	tempstr.append(Node_Name);
 	tempstr.append(",");

@@ -1,4 +1,5 @@
 #diagnostic
+string DeviceName
 string Node_Name
 uint8 System
 uint8 SubSystem

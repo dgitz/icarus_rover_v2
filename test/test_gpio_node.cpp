@@ -256,7 +256,7 @@ TEST(FSM_Tests,FSM_Running)
 	EXPECT_TRUE(process->get_nodestate() == GPIO_MODE_RUNNING);
 
 }
-/*TEST(FSM_Tests,TestMessage)
+TEST(FSM_Tests,TestMessage)
 {
 	EXPECT_TRUE(setup()==true);
 	EXPECT_TRUE(process->get_boardstate() == GPIO_MODE_UNDEFINED);
@@ -332,7 +332,7 @@ TEST(FSM_Tests,FSM_Running)
 	EXPECT_TRUE(is_sending_testmessage_command == true);
 
 }
-*/
+
 TEST(FSM_Tests,FSM_ReadSerial)
 {
 	EXPECT_TRUE(setup()==true);
@@ -536,10 +536,12 @@ TEST(Bugs,checksum_test_issue1)
 
 	}
 }
+
 int main(int argc, char **argv){
   testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
 }
+
 void print_mydevice()
 {
 	cout << "\n-----------------------------\nMY DEVICE:\n-----------------------------" << endl;
@@ -603,7 +605,8 @@ bool setup()
 
 
 	process = new GPIONodeProcess;
-	diagnostic_status = process->init(diagnostic_status,logger,std::string(hostname));
+	diagnostic_status = process->init(diagnostic_status,logger,std::string(hostname),
+			"/home/robot/catkin_ws/src/icarus_rover_v2/test/unittest_sensors",false);
 	EXPECT_TRUE(diagnostic_status.Level == INFO);
 
 	return true;
@@ -694,6 +697,7 @@ bool parse_devicefile(TiXmlDocument doc)
 	}
 	return true;
 }
+
 int compute_checksum(std::vector<unsigned char> inpacket,int startbyte,int length)
 {
 	int checksum = 0;

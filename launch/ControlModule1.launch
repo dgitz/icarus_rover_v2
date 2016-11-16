@@ -10,5 +10,11 @@
 	    <param name="verbosity_level"       value="DEBUG"/>
         <param name="require_pps_to_start"  value="false"/>
         <param name="sensor_spec_path" value="/home/robot/config/sensors"/>
+        <param name="extrapolate_sensor_values" value="false" />
+    </node>
+    <node name="$(env ROS_HOSTNAME)_io_node" pkg="icarus_rover_v2" type="io_node" output="screen" >  
+        <param name="loop_rate"             value="500"/>
+	    <param name="verbosity_level"       value="DEBUG"/>
+        <param name="require_pps_to_start"  value="false"/>
     </node>
 </launch>

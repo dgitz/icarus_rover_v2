@@ -1,6 +1,6 @@
 #include "topicremapper_node.h"
 //Start Template Code: Firmware Definition
-#define TOPICREMAPPERNODE_MAJOR_RELEASE 1
+#define TOPICREMAPPERNODE_MAJOR_RELEASE 2
 #define TOPICREMAPPERNODE_MINOR_RELEASE 1
 #define TOPICREMAPPERNODE_BUILD_NUMBER 1
 //End Template Code: Firmware Definition
@@ -56,7 +56,7 @@ bool run_veryslowrate_code()
 	icarus_rover_v2::firmware fw;
 	fw.Generic_Node_Name = "topicremapper_node";
 	fw.Node_Name = node_name;
-	fw.Description = "Latest Rev: 19-Sep-2016";
+	fw.Description = "Latest Rev: 15-Nov-2016";
 	fw.Major_Release = TOPICREMAPPERNODE_MAJOR_RELEASE;
 	fw.Minor_Release = TOPICREMAPPERNODE_MINOR_RELEASE;
 	fw.Build_Number = TOPICREMAPPERNODE_BUILD_NUMBER;
@@ -428,7 +428,7 @@ bool initialize(ros::NodeHandle nh)
 				TopicMaps.at(i).pub = nh.advertise<icarus_rover_v2::pin>(TopicMaps.at(i).output_topic_name,1000);
 			}
 		}
-		resourcemonitor = new ResourceMonitor(myDevice.Architecture,hostname,node_name);
+		resourcemonitor = new ResourceMonitor(diagnostic_status,myDevice.Architecture,myDevice.DeviceName,node_name);
 	}
 	else
 	{
