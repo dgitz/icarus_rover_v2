@@ -290,7 +290,7 @@ int main(int argc, char **argv)
 		if(require_pps_to_start == false) { ok_to_start = true;}
 		ros::spinOnce();
 		loop_rate.sleep();
-		/*
+		if(require_pps_to_start == false) { ok_to_start = true;}
 		else if(require_pps_to_start == true && received_pps == true) { ok_to_start = true; }
     	if(ok_to_start == true)
     	{
@@ -326,7 +326,7 @@ int main(int argc, char **argv)
 		}
 		ros::spinOnce();
 		loop_rate.sleep();
-		*/
+
     }
     return 0;
 }

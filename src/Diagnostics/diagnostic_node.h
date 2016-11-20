@@ -25,6 +25,12 @@ struct Task
 	int64_t RAM_MB;
 	uint8_t last_diagnostic_level;
 };
+struct DeviceResourceAvailable
+{
+	std::string Device_Name;
+	int16_t CPU_Perc_Available;
+	int64_t RAM_Mb_Available;
+};
 //End User Code: Data Structures
 
 //Start Template Code: Function Prototypes
@@ -41,7 +47,7 @@ void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg);
 //Start User Code: Function Prototypes
 icarus_rover_v2::diagnostic rescan_topics(icarus_rover_v2::diagnostic diag);
 void heartbeat_Callback(const icarus_rover_v2::heartbeat::ConstPtr& msg);
-void resource_Callback(const icarus_rover_v2::resource::ConstPtr& msg);
+void resource_Callback(const icarus_rover_v2::resource::ConstPtr& msg,const std::string &topicname);
 void diagnostic_Callback(const icarus_rover_v2::diagnostic::ConstPtr& msg);
 bool check_tasks();
 //End User Code: Function Prototypes
@@ -78,6 +84,7 @@ icarus_rover_v2::heartbeat beat;
 //Start User Code: Define Global Variables
 boost::shared_ptr<ros::NodeHandle> n;
 std::vector<Task> TaskList;
+std::vector<DeviceResourceAvailable> DeviceResourceAvailableList;
 int RAM_usage_threshold_MB;
 int CPU_usage_threshold_percent;
 ros::Time boot_time;
@@ -85,6 +92,8 @@ int Log_Resources_Used;
 bool logging_initialized;
 ofstream ram_used_file;
 ofstream cpu_used_file;
+ofstream ram_free_file;
+ofstream cpu_free_file;
 std::vector<std::string> resource_topics;
 std::vector<std::string> diagnostic_topics;
 std::vector<std::string> heartbeat_topics;

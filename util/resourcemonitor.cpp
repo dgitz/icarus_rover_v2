@@ -97,7 +97,7 @@ int ResourceMonitor::get_RAMFree_kB()
 	}
 	else if(Device_Architecture == "armv7l")
 	{
-		RAMFree_kB = memfree;
+		RAMFree_kB = memavail;
 	}
 	return RAMFree_kB;
 }

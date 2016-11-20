@@ -32,7 +32,9 @@ icarus_rover_v2::diagnostic rescan_topics(icarus_rover_v2::diagnostic diag)
 				char tempstr[255];
 				sprintf(tempstr,"Subscribing to resource topic: %s",info.name.c_str());
 				logger->log_info(tempstr);
-				ros::Subscriber sub = n->subscribe<icarus_rover_v2::resource>(info.name,1000,resource_Callback);
+				//ros::Subscriber sub = n->subscribe<icarus_rover_v2::resource>(info.name,1000,resource_Callback);
+				ros::Subscriber sub = n->subscribe<icarus_rover_v2::resource>(info.name,1000,
+						boost::bind(resource_Callback,_1,info.name));
 				resource_subs.push_back(sub);
 			}
 		}
@@ -114,6 +116,8 @@ bool log_resources()
 {
 	std::string ram_used_file_path = "/home/robot/logs/ram_used.csv";
 	std::string cpu_used_file_path = "/home/robot/logs/cpu_used.csv";
+	std::string ram_free_file_path = "/home/robot/logs/ram_free.csv";
+	std::string cpu_free_file_path = "/home/robot/logs/cpu_free.csv";
 	if(logging_initialized == false)
 	{
 		ram_used_file.open(ram_used_file_path.c_str(),ios::out);
@@ -123,6 +127,7 @@ bool log_resources()
 		}
 		else
 		{
+			ram_used_file << "Time (s),";
 			for(int i = 0; i < TaskList.size();i++)
 			{
 				ram_used_file << TaskList.at(i).Task_Name << ",";
@@ -137,6 +142,7 @@ bool log_resources()
 		}
 		else
 		{
+			cpu_used_file << "Time (s),";
 			for(int i = 0; i < TaskList.size();i++)
 			{
 				cpu_used_file << TaskList.at(i).Task_Name << ",";
@@ -144,10 +150,43 @@ bool log_resources()
 			cpu_used_file << endl;
 		}
 		cpu_used_file.close();
+		ram_free_file.open(ram_free_file_path.c_str(),ios::out);
+		if(ram_free_file.is_open() == false)
+		{
+			logger->log_error("Couldn't open ram_free.csv file.  Exiting.");
+		}
+		else
+		{
+			ram_free_file << "Time (s),";
+			for(int i = 0; i < DeviceResourceAvailableList.size();i++)
+			{
+				ram_free_file << DeviceResourceAvailableList.at(i).Device_Name << ",";
+			}
+			ram_free_file << endl;
+		}
+		ram_free_file.close();
+
+		cpu_free_file.open(cpu_free_file_path.c_str(),ios::out);
+		if(cpu_free_file.is_open() == false)
+		{
+			logger->log_error("Couldn't open cpu_free.csv file.  Exiting.");
+		}
+		else
+		{
+			cpu_free_file << "Time (s),";
+			for(int i = 0; i < DeviceResourceAvailableList.size();i++)
+			{
+				cpu_free_file << DeviceResourceAvailableList.at(i).Device_Name << ",";
+			}
+			cpu_free_file << endl;
+		}
+		cpu_free_file.close();
+
 		logging_initialized = true;
 	}
 	else
 	{
+		double mtime = measure_time_diff(ros::Time::now(),boot_time);
 		ram_used_file.open(ram_used_file_path.c_str(),ios::app);
 		if(ram_used_file.is_open() == false)
 		{
@@ -155,6 +194,7 @@ bool log_resources()
 		}
 		else
 		{
+			ram_used_file << mtime << ",";
 			for(int i = 0; i < TaskList.size();i++)
 			{
 				ram_used_file << TaskList.at(i).RAM_MB << ",";
@@ -169,6 +209,7 @@ bool log_resources()
 		}
 		else
 		{
+			cpu_used_file << mtime << ",";
 			for(int i = 0; i < TaskList.size();i++)
 			{
 				cpu_used_file << TaskList.at(i).CPU_Perc << ",";
@@ -176,6 +217,38 @@ bool log_resources()
 			cpu_used_file << endl;
 		}
 		cpu_used_file.close();
+
+		ram_free_file.open(ram_free_file_path.c_str(),ios::app);
+		if(ram_free_file.is_open() == false)
+		{
+			logger->log_error("Couldn't open ram_free.csv file.  Exiting.");
+		}
+		else
+		{
+			ram_free_file << mtime << ",";
+			for(int i = 0; i < DeviceResourceAvailableList.size();i++)
+			{
+				ram_free_file << DeviceResourceAvailableList.at(i).RAM_Mb_Available << ",";
+			}
+			ram_free_file << endl;
+		}
+		ram_free_file.close();
+
+		cpu_free_file.open(cpu_free_file_path.c_str(),ios::app);
+		if(cpu_free_file.is_open() == false)
+		{
+			logger->log_error("Couldn't open cpu_free.csv file.  Exiting.");
+		}
+		else
+		{
+			cpu_free_file << mtime << ",";
+			for(int i = 0; i < DeviceResourceAvailableList.size();i++)
+			{
+				cpu_free_file << DeviceResourceAvailableList.at(i).CPU_Perc_Available << ",";
+			}
+			cpu_free_file << endl;
+		}
+		cpu_free_file.close();
 
 	}
 	return true;
@@ -292,7 +365,7 @@ bool run_mediumrate_code()
 	beat.stamp = ros::Time::now();
 	heartbeat_pub.publish(beat);
 	//logger->log_debug("Running medium rate code.");
-	if(measure_time_diff(ros::Time::now(),boot_time) > 10.0) //Wait 5 seconds for all Nodes to start.
+	if(measure_time_diff(ros::Time::now(),boot_time) > 20.0) //Wait 5 seconds for all Nodes to start.
 	{
 		if(Log_Resources_Used == 1)
 		{
@@ -353,7 +426,7 @@ bool run_veryslowrate_code()
 	firmware_pub.publish(fw);
 	return true;
 }
-void resource_Callback(const icarus_rover_v2::resource::ConstPtr& msg)
+void resource_Callback(const icarus_rover_v2::resource::ConstPtr& msg,const std::string &topicname)
 {
 	for(int i = 0; i < TaskList.size();i++)
 	{
@@ -364,6 +437,29 @@ void resource_Callback(const icarus_rover_v2::resource::ConstPtr& msg)
 			TaskList.at(i).CPU_Perc = msg->CPU_Perc;
 			TaskList.at(i).RAM_MB = msg->RAM_MB;
 			TaskList.at(i).PID = msg->PID;
+		}
+	}
+	std::size_t resource_available_topic = topicname.find("resource_available");
+	if(resource_available_topic != std::string::npos)
+	{
+		bool found = true;
+		for(int i = 0; i < DeviceResourceAvailableList.size();i++)
+		{
+			if(DeviceResourceAvailableList.at(i).Device_Name == msg->Node_Name)
+			{
+				found = false;
+				DeviceResourceAvailableList.at(i).CPU_Perc_Available = msg->CPU_Perc;
+				DeviceResourceAvailableList.at(i).RAM_Mb_Available = msg->RAM_MB;
+				break;
+			}
+		}
+		if(found == true)
+		{
+			DeviceResourceAvailable newdevice;
+			newdevice.Device_Name = msg->Node_Name;
+			newdevice.CPU_Perc_Available = msg->CPU_Perc;
+			newdevice.RAM_Mb_Available = msg->RAM_MB;
+			DeviceResourceAvailableList.push_back(newdevice);
 		}
 	}
 }

@@ -282,8 +282,9 @@ bool IONodeProcess::configure_pin(std::string Port, uint8_t Number, std::string 
 				char tempstr[255];
 				sprintf(tempstr,"Unable to export GPIO Pin: %d",Number);
 				mylogger->log_fatal(tempstr);
+				return false;
 			}
-			export_file << Number; //write GPIO number to export
+			export_file <<  boost::lexical_cast<std::string>((int)Number); //write GPIO number to export
 			export_file.close(); //close export file
 			ofstream setdirection_file;
 			std::string setdirection_str = "/sys/class/gpio/gpio" + boost::lexical_cast<std::string>((int)Number) + "/direction";
@@ -291,8 +292,9 @@ bool IONodeProcess::configure_pin(std::string Port, uint8_t Number, std::string 
 			if (setdirection_file.is_open() == false)
 			{
 				char tempstr[255];
-				sprintf(tempstr,"Unable to Set Direction for GPIO Pin: %d",Number);
+				sprintf(tempstr,"Unable to Set Direction for GPIO Pin: %d using script: %s",Number,setdirection_str.c_str());
 				mylogger->log_fatal(tempstr);
+				return false;
 			}
 			if(function == PINMODE_DIGITAL_INPUT)
 			{
