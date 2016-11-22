@@ -1,3 +1,6 @@
+#ifndef DIAGNOSTIC_H
+#define DIAGNOSTIC_H
+//Start Template Code: Includes
 #include "ros/ros.h"
 #include "std_msgs/String.h"
 #include "logger.h"
@@ -12,6 +15,10 @@
 #include <icarus_rover_v2/resource.h>
 #include <icarus_rover_v2/firmware.h>
 #include <icarus_rover_v2/heartbeat.h>
+//End Template Code: Includes
+
+//Start User Code: Includes
+//End User Code: Includes
 
 //Start User Code: Data Structures
 struct Task
@@ -82,6 +89,8 @@ icarus_rover_v2::heartbeat beat;
 //End Template Code: Define Global Variables
 
 //Start User Code: Define Global Variables
+ros::Publisher ready_to_arm_pub;
+bool ready_to_arm;
 boost::shared_ptr<ros::NodeHandle> n;
 std::vector<Task> TaskList;
 std::vector<DeviceResourceAvailable> DeviceResourceAvailableList;
@@ -102,5 +111,4 @@ std::vector<ros::Subscriber> resource_subs;
 std::vector<ros::Subscriber> diagnostic_subs;
 //End User Code: Define Global Variables
 
-
-
+#endif

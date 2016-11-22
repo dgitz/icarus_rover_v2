@@ -1,5 +1,5 @@
 /***************AUTO-GENERATED.  DO NOT EDIT********************/
-/***Created on:2016-11-14 07:31:08.298358***/
+/***Created on:2016-11-21 18:01:01.386446***/
 #include "udpmessage.h"
 UDPMessageHandler::UDPMessageHandler(){}
 UDPMessageHandler::~UDPMessageHandler(){}
@@ -100,11 +100,21 @@ int UDPMessageHandler::decode_ArmControlUDP(std::vector<std::string> items,uint8
 	*button6=(uint8_t)atoi(items.at(13).c_str());
 	return 1;
 }
-std::string UDPMessageHandler::encode_StopMovementUDP(uint8_t Level)
+int UDPMessageHandler::decode_Arm_CommandUDP(std::vector<std::string> items,uint8_t* command)
+{
+	char tempstr[8];
+	sprintf(tempstr,"0x%s",items.at(0).c_str());
+	int id = (int)strtol(tempstr,NULL,0);
+	if(id != UDP_Arm_Command_ID){ return 0; }
+	if(items.size() != 2){ return 0; }
+	*command=(uint8_t)atoi(items.at(1).c_str());
+	return 1;
+}
+std::string UDPMessageHandler::encode_Arm_StatusUDP(uint8_t Status)
 {
 	std::string tempstr = "";
-	tempstr.append(boost::lexical_cast<std::string>(UDP_StopMovement_ID));
+	tempstr.append(boost::lexical_cast<std::string>(UDP_Arm_Status_ID));
 	tempstr.append(",");
-	tempstr.append(boost::lexical_cast<std::string>((int)Level));
+	tempstr.append(boost::lexical_cast<std::string>((int)Status));
 	return tempstr;
 }

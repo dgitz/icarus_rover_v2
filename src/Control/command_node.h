@@ -20,6 +20,8 @@
 //End Template Code: Includes
 
 //Start User Code: Includes
+#include "std_msgs/UInt8.h"
+#include "command_node_process.h"
 //End User Code: Includes
 
 
@@ -39,6 +41,7 @@ void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg);
 
 
 //Start Template Code: Define Global variables
+bool kill_node;
 std::string node_name;
 int rate = 1;
 std::string verbosity_level = "";
@@ -68,6 +71,10 @@ icarus_rover_v2::heartbeat beat;
 //End Template Code: Define Global Variables
 
 //Start User Code: Define Global Variables
+uint8_t robot_armdisarmed_state;
+ros::Publisher armeddisarmed_state_pub;
+CommandNodeProcess *process;
 ros::Publisher command_pub;
+std::vector<ros::Subscriber> ready_to_arm_subs;
 //End User Code: Define Global Variables
 #endif

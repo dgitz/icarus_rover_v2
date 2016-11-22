@@ -1,6 +1,6 @@
 #include "command_node.h"
 //Start Template Code: Firmware Definition
-#define COMMANDNODE_MAJOR_RELEASE 1
+#define COMMANDNODE_MAJOR_RELEASE 2
 #define COMMANDNODE_MINOR_RELEASE 1
 #define COMMANDNODE_BUILD_NUMBER 1
 //End Template Code: Firmware Definition
@@ -8,10 +8,19 @@
 bool run_fastrate_code()
 {
 	//logger->log_debug("Running fast rate code.");
+	std_msgs::UInt8 state;
+	state.data = robot_armdisarmed_state;
+	armeddisarmed_state_pub.publish(state);
 	return true;
 }
 bool run_mediumrate_code()
 {
+
+
+	icarus_rover_v2::command newcommand;
+	newcommand.Command=ARM_COMMAND_ID;
+	newcommand.Option1 = ARMEDCOMMAND_DISARM;
+	command_pub.publish(newcommand);
 
 	beat.stamp = ros::Time::now();
 	heartbeat_pub.publish(beat);
@@ -54,14 +63,25 @@ bool run_veryslowrate_code()
 {
 	//logger->log_debug("Running very slow rate code.");
 	logger->log_info("Node Running.");
-	icarus_rover_v2::command newcommand;
-	newcommand.Command=DIAGNOSTIC_ID;
-	newcommand.Option1 = LEVEL2;
-	command_pub.publish(newcommand);
+	{
+		icarus_rover_v2::command newcommand;
+		newcommand.Command=DIAGNOSTIC_ID;
+		newcommand.Option1 = LEVEL2;
+		command_pub.publish(newcommand);
+	}
+
+	{
+		icarus_rover_v2::command newcommand;
+		newcommand.Command=ARM_COMMAND_ID;
+		newcommand.Option1 = ARMEDCOMMAND_DISARM;
+		command_pub.publish(newcommand);
+	}
+
+
 	icarus_rover_v2::firmware fw;
 	fw.Generic_Node_Name = "command_node";
 	fw.Node_Name = node_name;
-	fw.Description = "Latest Rev: 8-Sep-2016";
+	fw.Description = "Latest Rev: 20-Nov-2016";
 	fw.Major_Release = COMMANDNODE_MAJOR_RELEASE;
 	fw.Minor_Release = COMMANDNODE_MINOR_RELEASE;
 	fw.Build_Number = COMMANDNODE_BUILD_NUMBER;
@@ -100,9 +120,14 @@ int main(int argc, char **argv)
     veryslow_timer = now;
     while (ros::ok())
     {
+    	if(kill_node == true)
+    	{
+    		return 0;
+    	}
     	bool ok_to_start = false;
 		if(require_pps_to_start == false) { ok_to_start = true;}
 		else if(require_pps_to_start == true && received_pps == true) { ok_to_start = true; }
+
     	if(ok_to_start == true)
     	{
     		now = ros::Time::now();
@@ -144,6 +169,8 @@ int main(int argc, char **argv)
 bool initialize(ros::NodeHandle nh)
 {
     //Start Template Code: Initialization and Parameters
+	kill_node = false;
+	process = new CommandNodeProcess;
     myDevice.DeviceName = "";
     myDevice.Architecture = "";
     device_initialized = false;
@@ -203,8 +230,27 @@ bool initialize(ros::NodeHandle nh)
     //End Template Code: Initialization and Parameters
 
     //Start User Code: Initialization and Parameters
+    robot_armdisarmed_state = ARMEDSTATUS_DISARMED_CANNOTARM;
+    diagnostic_status = process->init(diagnostic_status,logger,std::string(hostname));
     std::string command_topic = "/command";
     command_pub =  nh.advertise<icarus_rover_v2::command>(command_topic,1000);
+
+    std::string param_ready_to_arm = node_name +"/ready_to_arm_topics";
+    std::string ready_to_arm_strings;
+    if(nh.getParam(param_ready_to_arm,ready_to_arm_strings) == false)
+    {
+        logger->log_error("Missing parameter: ready_to_arm_topics. Exiting.");
+        return false;
+    }
+    std::vector<std::string> ready_to_arm_topics;
+    boost::split(ready_to_arm_topics,ready_to_arm_strings,boost::is_any_of(","));
+    for(int i = 0; i < ready_to_arm_topics.size();i++)
+    {
+        printf("Subscribing to ready to arm topic: %s\n",ready_to_arm_topics.at(i).c_str());
+    }    
+
+    std::string armeddisarmed_state_topic = "/armed_disarmed";
+    armeddisarmed_state_pub = nh.advertise<std_msgs::UInt8>(armeddisarmed_state_topic,1000);
     //Finish User Code: Initialization and Parameters
 
     //Start Template Code: Final Initialization.
@@ -231,12 +277,22 @@ void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg)
 {
 	icarus_rover_v2::device newdevice;
 	newdevice.DeviceName = msg->DeviceName;
+	newdevice.DeviceParent = msg->DeviceParent;
+	newdevice.DeviceType = msg->DeviceType;
 	newdevice.Architecture = msg->Architecture;
-	if((newdevice.DeviceName == hostname) && (device_initialized == false))
+	process->new_devicemsg(newdevice);
+	if(diagnostic_status.Level == FATAL)
 	{
-		myDevice = newdevice;
+		logger->log_fatal(diagnostic_status.Description);
+		logger->log_fatal("This is a Safety Issue!  Killing Node.");
+		kill_node = true;
+	}
+	if((device_initialized == false) && (process->is_finished_initializing()))
+	{
+		myDevice = process->get_mydevice();
 		resourcemonitor = new ResourceMonitor(diagnostic_status,myDevice.Architecture,myDevice.DeviceName,node_name);
 		device_initialized = true;
+
 	}
 }
 //End Template Code: Functions

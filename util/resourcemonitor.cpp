@@ -18,6 +18,11 @@ ResourceMonitor::ResourceMonitor(icarus_rover_v2::diagnostic diag,std::string de
 		CPU_Used_Column = 9;
 		RAM_Used_Column = 5;
 	}
+    else if(Device_Architecture == "arm_64")
+    {
+        CPU_Used_Column = 9;
+        RAM_Used_Column = 5;
+    }
 
 	Task_Name = task_name;
 	Host_Name = host_name;
@@ -68,6 +73,8 @@ int ResourceMonitor::get_RAMFree_kB()
 	myfile.open("/proc/meminfo");
 	int memfree = 0;
 	int memavail = 0;
+    int membuffer = 0;
+    int memcached = 0;
 	if(myfile.is_open())
 	{
 		std::string line;
@@ -86,6 +93,14 @@ int ResourceMonitor::get_RAMFree_kB()
 				{
 					memavail =  atoi(fields.at(1).c_str());
 				}
+                if(fields.at(0) == "Buffers:")
+                {
+                    membuffer = atoi(fields.at(1).c_str());
+                }
+                if(fields.at(0) == "Cached:")
+                {
+                    memcached = atoi(fields.at(1).c_str());
+                }
 			}
 
 		}
@@ -99,6 +114,10 @@ int ResourceMonitor::get_RAMFree_kB()
 	{
 		RAMFree_kB = memavail;
 	}
+    else if(Device_Architecture == "arm_64")
+    {
+        RAMFree_kB = memfree + membuffer + memcached;
+    }
 	return RAMFree_kB;
 }
 int ResourceMonitor::get_CPUUsed_perc()

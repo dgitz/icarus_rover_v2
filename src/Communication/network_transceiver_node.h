@@ -19,6 +19,7 @@
 
 //Start User Code: Includes
 #include "sensor_msgs/Joy.h"
+#include "std_msgs/UInt8.h"
 #include "udpmessage.h"
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -52,6 +53,7 @@ void process_udp_receive();
 void diagnostic_Callback(const icarus_rover_v2::diagnostic::ConstPtr& msg);
 void device_Callback(const icarus_rover_v2::device::ConstPtr& msg);
 void resource_Callback(const icarus_rover_v2::resource::ConstPtr& msg);
+void ArmedDisarmedState_Callback(const std_msgs::UInt8::ConstPtr& msg);
 //End User Code: Function Prototypes
 
 
@@ -85,6 +87,7 @@ icarus_rover_v2::heartbeat beat;
 //End Template Code: Define Global Variables
 
 //Start User Code: Define Global Variables
+bool ready_to_arm;
 boost::shared_ptr<ros::NodeHandle> n;
 UDPMessageHandler *udpmessagehandler;
 struct sockaddr_in senddevice_addr;
@@ -105,5 +108,8 @@ std::vector<std::string> device_topics;
 std::vector<ros::Subscriber> device_subs;
 std::vector<ros::Subscriber> resource_subs;
 std::vector<ros::Subscriber> diagnostic_subs;
+ros::Subscriber armed_disarmed_state_sub;
+ros::Publisher arm_command_pub;
+ros::Publisher ready_to_arm_pub;
 //End User Code: Define Global Variables
 #endif

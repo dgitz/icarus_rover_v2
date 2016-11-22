@@ -339,8 +339,10 @@ bool check_tasks()
 	}
 	if(task_ok_counter == TasksToCheck.size())
 	{
+        ready_to_arm = true;
 		char tempstr[255];
 		sprintf(tempstr,"%d/%d (All) Tasks Operational.",task_ok_counter,TasksToCheck.size());
+        
 		logger->log_info(tempstr);
 	}
 	else
@@ -357,6 +359,9 @@ bool check_tasks()
 }
 bool run_fastrate_code()
 {
+	std_msgs::Bool bool_ready_to_arm;
+	bool_ready_to_arm.data = ready_to_arm;
+    ready_to_arm_pub.publish(bool_ready_to_arm);
 	//logger->log_debug("Running fast rate code.");
 	return true;
 }
@@ -568,6 +573,7 @@ bool initializenode()
 	//End Template Code: Initialization, Parameters and Topics
 
 	//Start User Code: Initialization, Parameters and Topics
+    ready_to_arm = false;
     diagnostic_status.DeviceName = hostname;
 	diagnostic_status.Node_Name = node_name;
 	diagnostic_status.System = ROVER;
@@ -598,59 +604,8 @@ bool initializenode()
 		logger->log_warn("Missing Parameter: Log_Resources Used.  Using Default: 0");
 	}
 	logging_initialized = false;
-	/*
-	ros::master::V_TopicInfo master_topics;
-	ros::master::getTopics(master_topics);
-	std::vector<std::string> resource_topics;
-	std::vector<std::string> diagnostic_topics;
-	std::vector<std::string> heartbeat_topics;
-	for (ros::master::V_TopicInfo::iterator it = master_topics.begin() ; it != master_topics.end(); it++)
-	{
-		const ros::master::TopicInfo& info = *it;
-		if(info.datatype == "icarus_rover_v2/resource")
-		{
-			resource_topics.push_back(info.name);
-		}
-		else if(info.datatype == "icarus_rover_v2/diagnostic")
-		{
-			diagnostic_topics.push_back(info.name);
-		}
-		else if(info.datatype == "icarus_rover_v2/heartbeat")
-		{
-			heartbeat_topics.push_back(info.name);
-		}
-
-	}
-	ros::Subscriber * resource_subs;
-	resource_subs = new ros::Subscriber[resource_topics.size()];
-	for(int i = 0; i < resource_topics.size();i++)
-	{
-		char tempstr[255];
-		sprintf(tempstr,"Subscribing to resource topic: %s",resource_topics.at(i).c_str());
-		logger->log_info(tempstr);
-		resource_subs[i] = nh.subscribe<icarus_rover_v2::resource>(resource_topics.at(i),1000,resource_Callback);
-	}
-
-	ros::Subscriber * diagnostic_subs;
-	diagnostic_subs = new ros::Subscriber[diagnostic_topics.size()];
-	for(int i = 0; i < diagnostic_topics.size();i++)
-	{
-		char tempstr[255];
-		sprintf(tempstr,"Subscribing to diagnostic topic: %s",diagnostic_topics.at(i).c_str());
-		logger->log_info(tempstr);
-		diagnostic_subs[i] = nh.subscribe<icarus_rover_v2::diagnostic>(diagnostic_topics.at(i),1000,diagnostic_Callback);
-	}
-
-	ros::Subscriber * heartbeat_subs;
-	heartbeat_subs = new ros::Subscriber[heartbeat_topics.size()];
-	for(int i = 0; i < heartbeat_topics.size();i++)
-	{
-		char tempstr[255];
-		sprintf(tempstr,"Subscribing to heartbeat topic: %s",heartbeat_topics.at(i).c_str());
-		logger->log_info(tempstr);
-		heartbeat_subs[i] = nh.subscribe<icarus_rover_v2::heartbeat>(heartbeat_topics.at(i),1000,heartbeat_Callback);
-	}
-	*/
+	std::string ready_to_arm_topic = "/" + node_name + "/ready_to_arm";
+	ready_to_arm_pub =  n->advertise<std_msgs::Bool>(ready_to_arm_topic,1000);
 	//End User Code: Initialization, Parameters and Topics
     logger->log_info("Initialized!");
     return true;

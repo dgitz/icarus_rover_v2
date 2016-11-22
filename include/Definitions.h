@@ -2,9 +2,6 @@
 #define __DEFINITIONS_INCLUDED__
 #include "eROS_Definitions.h"
 //Armed State Definitions
-#define ARMED 1
-#define DISARMED 0
-
 
 //Gear Definitions
 #define GEAR_FORWARD 1

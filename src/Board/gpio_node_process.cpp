@@ -1272,12 +1272,6 @@ void GPIONodeProcess::initialize_message_info()
 		messages.push_back(newmessage);
 	}
 
-	{
-		message_info newmessage;
-		newmessage.id = SERIAL_StopMovement_ID;
-		messages.push_back(newmessage);
-	}
-
 	for(int i = 0; i < messages.size(); i++)
 	{
 		messages.at(i).protocol = "serial";

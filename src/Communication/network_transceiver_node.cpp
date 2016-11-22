@@ -98,9 +98,19 @@ icarus_rover_v2::diagnostic rescan_topics(icarus_rover_v2::diagnostic diag)
 	diag.Description = tempstr;
 	return diag;
 }
+void ArmedDisarmedState_Callback(const std_msgs::UInt8::ConstPtr& msg)
+{
+	std::string send_string = udpmessagehandler->encode_Arm_StatusUDP(
+																		msg->data);
+	if(sendto(senddevice_sock, send_string.c_str(), send_string.size(), 0, (struct sockaddr *)&senddevice_addr, sizeof(senddevice_addr))!=send_string.size())
+	{
+		logger->log_warn("Mismatch in number of bytes sent");
+
+	}
+}
 void diagnostic_Callback(const icarus_rover_v2::diagnostic::ConstPtr& msg)
 {
-	char tempstr[240];
+	char tempstr[255];
 	sprintf(tempstr,"Got Diagnostic from Task: %s with System: %d Level: %d",msg->Node_Name.c_str(),msg->Level,msg->System);
 	logger->log_info(tempstr);
 	std::string send_string = udpmessagehandler->encode_DiagnosticUDP(
@@ -165,13 +175,27 @@ void process_udp_receive()
 		char tempstr[8];
 		sprintf(tempstr,"0x%s",items.at(0).c_str());
 		int id = (int)strtol(tempstr,NULL,0);
-		cout << id << endl;
+		//printf("Got ID: %0X\n",id);
 
-		uint8_t device;
+		uint8_t device,armcommand;
 		int axis1,axis2,axis3,axis4,axis5,axis6,axis7,axis8;
 		uint8_t button1,button2,button3,button4,button5,button6,button7,button8;
 		switch (id)
 		{
+			case UDPMessageHandler::UDP_Arm_Command_ID:
+				success = udpmessagehandler->decode_Arm_CommandUDP(items,&armcommand);
+				if(success == 1)
+				{
+					std_msgs::UInt8 int_arm_command;
+					int_arm_command.data = armcommand;
+					arm_command_pub.publish(int_arm_command);
+				}
+				else
+				{
+					printf("Couldn't decode message.\n");
+				}
+				break;
+
 			case UDPMessageHandler::UDP_RemoteControl_ID:
 
 				success = udpmessagehandler->decode_RemoteControlUDP(items,&axis1,&axis2,&axis3,&axis4,&axis5,&axis6,&axis7,&axis8,
@@ -280,6 +304,9 @@ bool initialize_sendsocket()
 }
 bool run_fastrate_code()
 {
+	std_msgs::Bool bool_ready_to_arm;
+	bool_ready_to_arm.data = ready_to_arm;
+	ready_to_arm_pub.publish(bool_ready_to_arm);
 	//logger->log_debug("Running fast rate code.");
 	return true;
 }
@@ -477,6 +504,10 @@ bool initializenode()
     //End Template Code: Initialization and Parameters
 
     //Start User Code: Initialization and Parameters
+    ready_to_arm = false;
+
+    std::string armed_disarmed_state_topic = "/armed_disarmed";
+    armed_disarmed_state_sub = n->subscribe<std_msgs::UInt8>(armed_disarmed_state_topic,1000,ArmedDisarmedState_Callback);
     std::string param_send_multicast_address = node_name +"/Send_Multicast_Group";
     if(n->getParam(param_send_multicast_address,send_multicast_group) == false)
    	{
@@ -522,6 +553,12 @@ bool initializenode()
 
 		std::string arm2_joystick_topic = "/" + Mode + "/arm2_joystick";
 		arm2_joy_pub =  n->advertise<sensor_msgs::Joy>(arm2_joystick_topic,1000);
+
+		std::string arm_command_topic = "/" + Mode + "/arm_command";
+		arm_command_pub = n->advertise<std_msgs::UInt8>(arm_command_topic,1000);
+
+		std::string ready_to_arm_topic = "/" + Mode + "/ready_to_arm";
+		ready_to_arm_pub = n->advertise<std_msgs::Bool>(ready_to_arm_topic,1000);
 	}
 	udpmessagehandler = new UDPMessageHandler();
 
