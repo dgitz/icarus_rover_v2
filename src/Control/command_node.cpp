@@ -5,11 +5,19 @@
 #define COMMANDNODE_BUILD_NUMBER 1
 //End Template Code: Firmware Definition
 //Start User Code: Functions
+void ReadyToArm_Callback(const std_msgs::Bool::ConstPtr& msg,const std::string &topic)
+{
+    diagnostic_status = process->new_readytoarmmsg(topic,msg->data);
+}
+void ArmCommand_Callback(const std_msgs::UInt8::ConstPtr& msg)
+{
+    diagnostic_status = process->new_armcommandmsg(msg->data);
+}
 bool run_fastrate_code()
 {
 	//logger->log_debug("Running fast rate code.");
 	std_msgs::UInt8 state;
-	state.data = robot_armdisarmed_state;
+	state.data = process->get_armeddisarmed_state();
 	armeddisarmed_state_pub.publish(state);
 	return true;
 }
@@ -247,10 +255,28 @@ bool initialize(ros::NodeHandle nh)
     for(int i = 0; i < ready_to_arm_topics.size();i++)
     {
         printf("Subscribing to ready to arm topic: %s\n",ready_to_arm_topics.at(i).c_str());
-    }    
+        //joy_sub = nh.subscribe<sensor_msgs::Joy>(TopicMaps.at(i).input_topic_name,1000,boost::bind(Joystick_Callback,_1,TopicMaps.at(i).input_topic_name));
+        ready_to_arm_sub = nh.subscribe<std_msgs::Bool>(ready_to_arm_topics.at(i),1000,boost::bind(ReadyToArm_Callback,_1,ready_to_arm_topics.at(i)));
+    } 
+    diagnostic_status = process->init_readytoarm_list(ready_to_arm_topics);
+    if(diagnostic_status.Level >= WARN)
+    {
+        logger->log_warn("Unable to initialize Ready To Arm List.  Exiting.");
+        return false;
+    }
 
+    std::string param_armcommand_topic = node_name +"/armcommand_topic";
+    std::string armcommand_topic;
+    if(nh.getParam(param_armcommand_topic,armcommand_topic) == false)
+    {
+        logger->log_error("Missing parameter: armcommand_topic. Exiting.");
+        return false;
+    }
+    armcommand_sub = nh.subscribe<std_msgs::UInt8>(armcommand_topic,1000,ArmCommand_Callback);
+    
     std::string armeddisarmed_state_topic = "/armed_disarmed";
     armeddisarmed_state_pub = nh.advertise<std_msgs::UInt8>(armeddisarmed_state_topic,1000);
+
     //Finish User Code: Initialization and Parameters
 
     //Start Template Code: Final Initialization.

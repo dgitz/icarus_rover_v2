@@ -22,7 +22,12 @@
 #include <math.h>
 using std::string;
 using namespace std;
-
+struct ReadyToArm
+{
+    std::string Device;
+    std::string topic;
+    bool ready_to_arm;
+};
 class CommandNodeProcess
 {
 public:
@@ -36,6 +41,10 @@ public:
 	icarus_rover_v2::diagnostic new_devicemsg(icarus_rover_v2::device devicemsg);
 	icarus_rover_v2::device get_mydevice() { return mydevice; }
 	bool is_finished_initializing() { return all_device_info_received; }
+	int get_armeddisarmed_state() { return armeddisarmed_state; 
+    icarus_rover_v2::diagnostic new_readytoarmmsg(std::string topic, bool value);
+    icarus_rover_v2::diagnostic init_readytoarm_list(std::vector<std::string> topics);
+    icarus_rover_v2::diagnostic new_armcommandmsg(uint8_t value);
 	//std::vector<icarus_rover_v2::device> get_myboards() { return myboards;
 
 	bool set_timeout_ms(long timeout){ timeout_value_ms = timeout; return true; }
@@ -62,5 +71,8 @@ private:
     ros::Time init_time;
 	bool timer_timeout;
 	double time_diff(ros::Time timer_a, ros::Time timer_b);
+    std::vector<ReadyToArm> ReadyToArmList;
+    bool readytoarm;
+	int armeddisarmed_state;
 };
 #endif
