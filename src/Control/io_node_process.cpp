@@ -7,6 +7,9 @@ IONodeProcess::IONodeProcess()
 	initialize_Ports();
 	ms_timer = 0;
 	timeout_value_ms = 0;
+	armed_driver = false;
+	armed_state = ARMEDSTATUS_DISARMED_CANNOTARM;
+	arm_command = ARMEDCOMMAND_DISARM;
     init_time = ros::Time::now();
 }
 IONodeProcess::~IONodeProcess()
@@ -35,10 +38,68 @@ icarus_rover_v2::diagnostic IONodeProcess::init(icarus_rover_v2::diagnostic indi
 	mylogger = log;
 	mydevice.DeviceName = hostname;
 	timeout_value_ms = INITIAL_TIMEOUT_VALUE_MS;
+
 	return diagnostic;
 }
-icarus_rover_v2::diagnostic IONodeProcess::update(long dt)
+icarus_rover_v2::diagnostic IONodeProcess::enable_actuators(bool state)
 {
+	if(mydevice.Architecture == "armv7l")
+	{
+		for(int i = 0; i < 32;i++)
+		{
+			if(GPIO_Port.Available[i] == true)
+			{
+				if((GPIO_Port.Mode[i] == PINMODE_DIGITAL_OUTPUT) or
+				   (GPIO_Port.Mode[i] == PINMODE_PWM_OUTPUT))
+				{
+					ofstream setdirection_file;
+					std::string setdirection_str = "/sys/class/gpio/gpio" + boost::lexical_cast<std::string>((int)GPIO_Port.Number[i]) + "/direction";
+					setdirection_file.open(setdirection_str.c_str());
+					if (setdirection_file.is_open() == false)
+					{
+						char tempstr[255];
+						diagnostic.Level = FATAL;
+						diagnostic.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
+						sprintf(tempstr,"Unable to set direction of Pin: %d",GPIO_Port.Number[i]);
+						diagnostic.Description = tempstr;
+						mylogger->log_error(tempstr);
+						return diagnostic;
+					}
+					if(state == true)
+					{
+						setdirection_file << "out";
+					}
+					else
+					{
+						setdirection_file << "in";
+					}
+					setdirection_file.close();
+				}
+			}
+		}
+	}
+	if(state == true)
+	{
+		//mylogger->log_info("Actuators Enabled.");
+		diagnostic.Diagnostic_Type = REMOTE_CONTROL;
+		diagnostic.Level = NOTICE;
+		diagnostic.Diagnostic_Message = ROVER_ARMED;
+		diagnostic.Description = "Actuators Enabled.";
+		return diagnostic;
+	}
+	else
+	{
+		//mylogger->log_info("Actuators Disabled.");
+		diagnostic.Diagnostic_Type = REMOTE_CONTROL;
+		diagnostic.Level = NOTICE;
+		diagnostic.Diagnostic_Message = ROVER_ARMED;
+		diagnostic.Description = "Actuators Disabled.";
+		return diagnostic;
+	}
+}
+icarus_rover_v2::diagnostic IONodeProcess::update(long dt,uint8_t state,uint8_t command)
+{
+	arm_command = command;
 	ms_timer += dt;
 	if(ms_timer >= timeout_value_ms) { timer_timeout = true; }
 	if(timer_timeout == true)
@@ -89,6 +150,76 @@ icarus_rover_v2::diagnostic IONodeProcess::update(long dt)
 						GPIO_Port.Value[i] = 1;
 					}
 					getvalgpio.close(); //close the value file
+				}
+				else if(GPIO_Port.Mode[i] == PINMODE_ARMCOMMAND_INPUT)
+				{
+					std::string getval_str = "/sys/class/gpio/gpio" +
+							boost::lexical_cast<std::string>((int)GPIO_Port.Number[i]) + "/value";
+					ifstream getvalgpio(getval_str.c_str());// open value file for gpio
+					if (getvalgpio.is_open() == false)
+					{
+						char tempstr[255];
+						diagnostic.Level = ERROR;
+						diagnostic.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
+						sprintf(tempstr,"Unable to get value of Pin: %d",GPIO_Port.Number[i]);
+						diagnostic.Description = tempstr;
+						mylogger->log_error(tempstr);
+						return diagnostic;
+					}
+					std::string val;
+					getvalgpio >> val ;  //read gpio value
+
+					if(val == "0")
+					{
+						GPIO_Port.Value[i] = 0;
+						if((state == ARMEDSTATUS_ARMED) || (state == ARMEDSTATUS_ARMING))
+						{
+							armed_state = ARMEDSTATUS_DISARMED;
+							char tempstr[255];
+							diagnostic.Diagnostic_Type = REMOTE_CONTROL;
+							diagnostic.Level = WARN;
+							diagnostic.Diagnostic_Message = ROVER_DISARMED;
+							sprintf(tempstr,"Armed State is ARMED (or ARMING) but Arm Signal is DISARM.  DISARMING.");
+							diagnostic.Description = tempstr;
+							mylogger->log_warn(tempstr);
+							return diagnostic;
+						}
+					}
+					else
+					{
+						if((state == ARMEDSTATUS_ARMED) && (command == ARMEDCOMMAND_ARM))
+						{
+							armed_state = ARMEDSTATUS_ARMED;
+						}
+						GPIO_Port.Value[i] = 1;
+					}
+					getvalgpio.close(); //close the value file
+				}
+				else if(GPIO_Port.Mode[i] == PINMODE_ARMCOMMAND_OUTPUT)
+				{
+					string setval_str = "/sys/class/gpio/gpio" + boost::lexical_cast<std::string>((int)GPIO_Port.Number[i]) + "/value";
+					ofstream setvalgpio(setval_str.c_str()); // open value file for gpio
+					if (setvalgpio.is_open() == false)
+					{
+						char tempstr[255];
+						sprintf(tempstr,"Unable to set GPIO Pin: %d",GPIO_Port.Number[i]);
+						diagnostic.Diagnostic_Type = SOFTWARE;
+						diagnostic.Level = ERROR;
+						diagnostic.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
+						diagnostic.Description = std::string(tempstr);
+						mylogger->log_error(tempstr);
+					}
+					if((arm_command == ARMEDCOMMAND_ARM) && (state == ARMEDSTATUS_ARMED))
+					{
+						setvalgpio << "1";
+						armed_state = ARMEDSTATUS_ARMED;
+					}
+					else
+					{
+						setvalgpio << "0";
+						armed_state = ARMEDSTATUS_DISARMED;
+					}
+					setvalgpio.close();// close value file
 				}
 			}
 		}
@@ -184,9 +315,7 @@ icarus_rover_v2::diagnostic IONodeProcess::new_pinmsg(icarus_rover_v2::pin pinms
 			GPIO_Port.Value[pinmsg.Number-1] = pinmsg.Value;
 			if(mydevice.Architecture == "armv7l")
 			{
-				//printf("pin: %d\n",pinmsg.Number);
 				string setval_str = "/sys/class/gpio/gpio" + boost::lexical_cast<std::string>((int)pinmsg.Number) + "/value";
-				//printf("Using set string: %s\n",setval_str.c_str());
 				ofstream setvalgpio(setval_str.c_str()); // open value file for gpio
 				if (setvalgpio.is_open() == false)
 				{
@@ -304,6 +433,16 @@ bool IONodeProcess::configure_pin(std::string Port, uint8_t Number, std::string 
 			{
 				setdirection_file << "out";
 			}
+			else if(function == PINMODE_ARMCOMMAND_INPUT)
+			{
+				armed_driver = false;
+				setdirection_file << "in";
+			}
+			else if(function == PINMODE_ARMCOMMAND_OUTPUT)
+			{
+				armed_driver = true;
+				setdirection_file << "out";
+			}
 			else
 			{
 				char tempstr[255];
@@ -326,26 +465,34 @@ std::string IONodeProcess::map_PinFunction_ToString(int function)
 {
 	switch(function)
 	{
-	case PINMODE_UNDEFINED:						return "Undefined";					break;
-	case PINMODE_DIGITAL_OUTPUT: 				return "DigitalOutput"; 			break;
-	case PINMODE_DIGITAL_INPUT: 				return "DigitalInput"; 				break;
-	case PINMODE_ANALOG_INPUT: 					return "AnalogInput"; 				break;
-	case PINMODE_FORCESENSOR_INPUT: 			return "ForceSensorInput"; 			break;
-	case PINMODE_ULTRASONIC_INPUT: 				return "UltraSonicSensorInput"; 	break;
-	case PINMODE_QUADRATUREENCODER_INPUT: 		return "QuadratureEncoderInput";	break;
-	case PINMODE_PWM_OUTPUT: 					return "PwmOutput"; 				break;
-	default: 									return ""; 							break;
+		case PINMODE_UNDEFINED:						return "Undefined";					break;
+		case PINMODE_DIGITAL_OUTPUT: 				return "DigitalOutput"; 			break;
+		case PINMODE_DIGITAL_INPUT: 				return "DigitalInput"; 				break;
+		case PINMODE_ANALOG_INPUT: 					return "AnalogInput"; 				break;
+		case PINMODE_FORCESENSOR_INPUT: 			return "ForceSensorInput"; 			break;
+		case PINMODE_ULTRASONIC_INPUT: 				return "UltraSonicSensorInput"; 	break;
+		case PINMODE_QUADRATUREENCODER_INPUT: 		return "QuadratureEncoderInput";	break;
+		case PINMODE_PWM_OUTPUT: 					return "PWMOutput"; 				break;
+		case PINMODE_PWM_OUTPUT_NON_ACTUATOR:		return "PWMOutput-NonActuator";		break;
+		case PINMODE_DIGITAL_OUTPUT_NON_ACTUATOR:	return "DigitalOutput-NonActuator";	break;
+		case PINMODE_ARMCOMMAND_INPUT:				return "ArmCommandInput";			break;
+		case PINMODE_ARMCOMMAND_OUTPUT:				return "ArmCommandOutput";			break;
+		default: 									return ""; 							break;
 	}
 }
 int IONodeProcess::map_PinFunction_ToInt(std::string Function)
 {
-	if(Function == "DigitalInput")				{	return PINMODE_DIGITAL_INPUT;		}
-	else if(Function == "DigitalOutput")		{	return PINMODE_DIGITAL_OUTPUT;		}
-	else if(Function == "AnalogInput")			{	return PINMODE_ANALOG_INPUT;		}
-	else if(Function == "ForceSensorInput")		{	return PINMODE_FORCESENSOR_INPUT;	}
-	else if(Function == "UltraSonicSensorInput"){	return PINMODE_ULTRASONIC_INPUT;	}
-	else if(Function == "PWMOutput")			{	return PINMODE_PWM_OUTPUT;			}
-	else { return PINMODE_UNDEFINED; }
+	if(Function == "DigitalInput")						{	return PINMODE_DIGITAL_INPUT;				}
+	else if(Function == "DigitalOutput")				{	return PINMODE_DIGITAL_OUTPUT;				}
+	else if(Function == "AnalogInput")					{	return PINMODE_ANALOG_INPUT;				}
+	else if(Function == "ForceSensorInput")				{	return PINMODE_FORCESENSOR_INPUT;			}
+	else if(Function == "UltraSonicSensorInput")		{	return PINMODE_ULTRASONIC_INPUT;			}
+	else if(Function == "PWMOutput")					{	return PINMODE_PWM_OUTPUT;					}
+	else if(Function == "PWMOutput-NonActuator")		{	return PINMODE_PWM_OUTPUT_NON_ACTUATOR; 	}
+	else if(Function == "DigitalOutput-NonActuator")	{ 	return PINMODE_DIGITAL_OUTPUT_NON_ACTUATOR;	}
+	else if(Function == "ArmCommandInput")				{ 	return PINMODE_ARMCOMMAND_INPUT; 			}
+	else if(Function == "ArmCommandOutput")				{ 	return PINMODE_ARMCOMMAND_OUTPUT; 			}
+	else 												{ 	return PINMODE_UNDEFINED;					}
 }
 Port_Info IONodeProcess::get_PortInfo(std::string PortName)
 {

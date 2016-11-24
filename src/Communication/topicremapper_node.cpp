@@ -161,7 +161,7 @@ int parse_topicmapfile(TiXmlDocument doc)
 					if(NULL != l_pInputType)
 					{
 						std::string input_type = l_pInputType->GetText();
-						printf("input: %s\n",input_type.c_str());
+						//printf("input: %s\n",input_type.c_str());
 						if(input_type == "sensor_msgs/Joy")
 						{
 							newtopicmap.input_topic_type = input_type;

@@ -41,16 +41,18 @@ public:
 	icarus_rover_v2::diagnostic new_devicemsg(icarus_rover_v2::device devicemsg);
 	icarus_rover_v2::device get_mydevice() { return mydevice; }
 	bool is_finished_initializing() { return all_device_info_received; }
-	int get_armeddisarmed_state() { return armeddisarmed_state; 
+	int get_armeddisarmed_state() { return armeddisarmed_state; }
     icarus_rover_v2::diagnostic new_readytoarmmsg(std::string topic, bool value);
     icarus_rover_v2::diagnostic init_readytoarm_list(std::vector<std::string> topics);
-    icarus_rover_v2::diagnostic new_armcommandmsg(uint8_t value);
+    icarus_rover_v2::diagnostic new_user_armcommandmsg(uint8_t value);
+    int get_armcommand() { return armedcommand; }
 	//std::vector<icarus_rover_v2::device> get_myboards() { return myboards;
 
 	bool set_timeout_ms(long timeout){ timeout_value_ms = timeout; return true; }
 	int get_timeout_ms() { return timeout_value_ms; }
 	long get_timer_ms() { return ms_timer; }
 	bool reset_timer() { ms_timer = 0; timer_timeout = false; return true;}
+
 protected:
 
 private:
@@ -60,12 +62,6 @@ private:
 	icarus_rover_v2::device mydevice;
 	icarus_rover_v2::diagnostic diagnostic;
 	Logger *mylogger;
-	/*
-	Port_Info DIO_PortA;
-	Port_Info DIO_PortB;
-	Port_Info ANA_PortA;
-	Port_Info ANA_PortB;
-	*/
 	long ms_timer;
 	long timeout_value_ms;
     ros::Time init_time;
@@ -74,5 +70,6 @@ private:
     std::vector<ReadyToArm> ReadyToArmList;
     bool readytoarm;
 	int armeddisarmed_state;
+	int armedcommand;
 };
 #endif

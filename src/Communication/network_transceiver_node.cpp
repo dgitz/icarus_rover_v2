@@ -5,6 +5,35 @@
 #define NETWORKTRANSCEIVERNODE_BUILD_NUMBER 0
 //End Template Code: Firmware Definition
 //Start User Code: Functions
+bool check_remoteHeartbeats()
+{
+	bool heartbeat_pass = true;
+	for(int i = 0; i < remote_devices.size();i++)
+	{
+		double last_beat_time_sec = remote_devices.at(i).current_beatepoch_sec + remote_devices.at(i).offset_sec;
+		double now_sec = ros::Time::now().sec + ros::Time::now().nsec/1000000000.0;
+		double time_since_last = now_sec - last_beat_time_sec;
+		if(time_since_last > 0.5)
+		{
+			heartbeat_pass = false;
+			char tempstr[255];
+			sprintf(tempstr,"Haven't received Heartbeat from: %s in %f Seconds. Disarming."
+					,time_since_last,remote_devices.at(i).Name.c_str());
+			logger->log_error(tempstr);
+			diagnostic_status.Diagnostic_Type = COMMUNICATIONS;
+			diagnostic_status.Level = ERROR;
+			diagnostic_status.Diagnostic_Message = MISSING_HEARTBEATS;
+			diagnostic_status.Description = tempstr;
+			diagnostic_pub.publish(diagnostic_status);
+
+		}
+	}
+	if(remote_devices.size() == 0)
+	{
+		heartbeat_pass = false;
+	}
+	return heartbeat_pass;
+}
 icarus_rover_v2::diagnostic rescan_topics(icarus_rover_v2::diagnostic diag)
 {
 	int found_new_topics = 0;
@@ -98,7 +127,7 @@ icarus_rover_v2::diagnostic rescan_topics(icarus_rover_v2::diagnostic diag)
 	diag.Description = tempstr;
 	return diag;
 }
-void ArmedDisarmedState_Callback(const std_msgs::UInt8::ConstPtr& msg)
+void ArmedState_Callback(const std_msgs::UInt8::ConstPtr& msg)
 {
 	std::string send_string = udpmessagehandler->encode_Arm_StatusUDP(
 																		msg->data);
@@ -180,6 +209,8 @@ void process_udp_receive()
 		uint8_t device,armcommand;
 		int axis1,axis2,axis3,axis4,axis5,axis6,axis7,axis8;
 		uint8_t button1,button2,button3,button4,button5,button6,button7,button8;
+		std::string tempstr1;
+		uint64_t t,t2;
 		switch (id)
 		{
 			case UDPMessageHandler::UDP_Arm_Command_ID:
@@ -195,7 +226,38 @@ void process_udp_receive()
 					printf("Couldn't decode message.\n");
 				}
 				break;
-
+			case UDPMessageHandler::UDP_Heartbeat_ID:
+				success = udpmessagehandler->decode_HeartbeatUDP(items,&tempstr1,&t,&t2);
+				if(success == 1)
+				{
+					//printf("Dev: %s current t: %llu expected t: %llu\n",tempstr1.c_str(),t,t2);
+					bool add_new_entry = true;
+					for(int i = 0; i < remote_devices.size(); i++)
+					{
+						if(tempstr1 == remote_devices.at(i).Name)
+						{
+							add_new_entry = false;
+							remote_devices.at(i).current_beatepoch_sec = t/1000.0;
+							remote_devices.at(i).expected_beatepoch_sec = t2/1000.0;
+							break;
+						}
+					}
+					if(add_new_entry == true)
+					{
+						RemoteDevice dev;
+						dev.Name = tempstr1;
+						dev.current_beatepoch_sec = t/1000.0;
+						dev.expected_beatepoch_sec = t2/1000.0;
+						double now_sec = ros::Time::now().sec + ros::Time::now().nsec/1000000000.0;
+						dev.offset_sec = now_sec-dev.current_beatepoch_sec;
+						remote_devices.push_back(dev);
+					}
+				}
+				else
+				{
+					printf("Couldn't decode message.\n");
+				}
+				break;
 			case UDPMessageHandler::UDP_RemoteControl_ID:
 
 				success = udpmessagehandler->decode_RemoteControlUDP(items,&axis1,&axis2,&axis3,&axis4,&axis5,&axis6,&axis7,&axis8,
@@ -304,6 +366,15 @@ bool initialize_sendsocket()
 }
 bool run_fastrate_code()
 {
+	if((remote_heartbeat_pass == true) and
+	   (1 == 1)) //Others??
+	{
+		ready_to_arm = true;
+	}
+	else
+	{
+		ready_to_arm = false;
+	}
 	std_msgs::Bool bool_ready_to_arm;
 	bool_ready_to_arm.data = ready_to_arm;
 	ready_to_arm_pub.publish(bool_ready_to_arm);
@@ -312,6 +383,7 @@ bool run_fastrate_code()
 }
 bool run_mediumrate_code()
 {
+	remote_heartbeat_pass = check_remoteHeartbeats();
 	beat.stamp = ros::Time::now();
 	heartbeat_pub.publish(beat);
 	//logger->log_debug("Running medium rate code.");
@@ -324,6 +396,7 @@ bool run_mediumrate_code()
 }
 bool run_slowrate_code()
 {
+
 	if(device_initialized == true)
 	{
 		icarus_rover_v2::diagnostic resource_diagnostic;
@@ -505,9 +578,9 @@ bool initializenode()
 
     //Start User Code: Initialization and Parameters
     ready_to_arm = false;
-
-    std::string armed_disarmed_state_topic = "/armed_disarmed";
-    armed_disarmed_state_sub = n->subscribe<std_msgs::UInt8>(armed_disarmed_state_topic,1000,ArmedDisarmedState_Callback);
+    remote_heartbeat_pass = false;
+    std::string armed_disarmed_state_topic = "/armed_state";
+    armed_disarmed_state_sub = n->subscribe<std_msgs::UInt8>(armed_disarmed_state_topic,1000,ArmedState_Callback);
     std::string param_send_multicast_address = node_name +"/Send_Multicast_Group";
     if(n->getParam(param_send_multicast_address,send_multicast_group) == false)
    	{
@@ -554,12 +627,13 @@ bool initializenode()
 		std::string arm2_joystick_topic = "/" + Mode + "/arm2_joystick";
 		arm2_joy_pub =  n->advertise<sensor_msgs::Joy>(arm2_joystick_topic,1000);
 
-		std::string arm_command_topic = "/" + Mode + "/arm_command";
+		std::string arm_command_topic = "/" + Mode + "/user_armcommand";
 		arm_command_pub = n->advertise<std_msgs::UInt8>(arm_command_topic,1000);
 
-		std::string ready_to_arm_topic = "/" + Mode + "/ready_to_arm";
-		ready_to_arm_pub = n->advertise<std_msgs::Bool>(ready_to_arm_topic,1000);
+
 	}
+	std::string ready_to_arm_topic = node_name + "/ready_to_arm";
+	ready_to_arm_pub = n->advertise<std_msgs::Bool>(ready_to_arm_topic,1000);
 	udpmessagehandler = new UDPMessageHandler();
 
 

@@ -1,21 +1,27 @@
 #include "command_node.h"
 //Start Template Code: Firmware Definition
 #define COMMANDNODE_MAJOR_RELEASE 2
-#define COMMANDNODE_MINOR_RELEASE 1
+#define COMMANDNODE_MINOR_RELEASE 2
 #define COMMANDNODE_BUILD_NUMBER 1
 //End Template Code: Firmware Definition
 //Start User Code: Functions
 void ReadyToArm_Callback(const std_msgs::Bool::ConstPtr& msg,const std::string &topic)
 {
     diagnostic_status = process->new_readytoarmmsg(topic,msg->data);
+    if(diagnostic_status.Level > INFO)
+    {
+    	diagnostic_pub.publish(diagnostic_status);
+    }
 }
-void ArmCommand_Callback(const std_msgs::UInt8::ConstPtr& msg)
+void User_ArmCommand_Callback(const std_msgs::UInt8::ConstPtr& msg)
 {
-    diagnostic_status = process->new_armcommandmsg(msg->data);
+    diagnostic_status = process->new_user_armcommandmsg(msg->data);
+    diagnostic_pub.publish(diagnostic_status);
 }
 bool run_fastrate_code()
 {
 	//logger->log_debug("Running fast rate code.");
+	diagnostic_status = process->update(20);
 	std_msgs::UInt8 state;
 	state.data = process->get_armeddisarmed_state();
 	armeddisarmed_state_pub.publish(state);
@@ -27,7 +33,7 @@ bool run_mediumrate_code()
 
 	icarus_rover_v2::command newcommand;
 	newcommand.Command=ARM_COMMAND_ID;
-	newcommand.Option1 = ARMEDCOMMAND_DISARM;
+	newcommand.Option1 = process->get_armcommand();
 	command_pub.publish(newcommand);
 
 	beat.stamp = ros::Time::now();
@@ -89,7 +95,7 @@ bool run_veryslowrate_code()
 	icarus_rover_v2::firmware fw;
 	fw.Generic_Node_Name = "command_node";
 	fw.Node_Name = node_name;
-	fw.Description = "Latest Rev: 20-Nov-2016";
+	fw.Description = "Latest Rev: 23-Nov-2016";
 	fw.Major_Release = COMMANDNODE_MAJOR_RELEASE;
 	fw.Minor_Release = COMMANDNODE_MINOR_RELEASE;
 	fw.Build_Number = COMMANDNODE_BUILD_NUMBER;
@@ -254,9 +260,10 @@ bool initialize(ros::NodeHandle nh)
     boost::split(ready_to_arm_topics,ready_to_arm_strings,boost::is_any_of(","));
     for(int i = 0; i < ready_to_arm_topics.size();i++)
     {
-        printf("Subscribing to ready to arm topic: %s\n",ready_to_arm_topics.at(i).c_str());
+        //printf("Subscribing to ready to arm topic: %s\n",ready_to_arm_topics.at(i).c_str());
         //joy_sub = nh.subscribe<sensor_msgs::Joy>(TopicMaps.at(i).input_topic_name,1000,boost::bind(Joystick_Callback,_1,TopicMaps.at(i).input_topic_name));
-        ready_to_arm_sub = nh.subscribe<std_msgs::Bool>(ready_to_arm_topics.at(i),1000,boost::bind(ReadyToArm_Callback,_1,ready_to_arm_topics.at(i)));
+        ros::Subscriber sub = nh.subscribe<std_msgs::Bool>(ready_to_arm_topics.at(i),1000,boost::bind(ReadyToArm_Callback,_1,ready_to_arm_topics.at(i)));
+        ready_to_arm_subs.push_back(sub);
     } 
     diagnostic_status = process->init_readytoarm_list(ready_to_arm_topics);
     if(diagnostic_status.Level >= WARN)
@@ -265,16 +272,16 @@ bool initialize(ros::NodeHandle nh)
         return false;
     }
 
-    std::string param_armcommand_topic = node_name +"/armcommand_topic";
+    std::string param_user_armcommand_topic = node_name +"/user_armcommand_topic";
     std::string armcommand_topic;
-    if(nh.getParam(param_armcommand_topic,armcommand_topic) == false)
+    if(nh.getParam(param_user_armcommand_topic,armcommand_topic) == false)
     {
-        logger->log_error("Missing parameter: armcommand_topic. Exiting.");
+        logger->log_error("Missing parameter: user_armcommand_topic. Exiting.");
         return false;
     }
-    armcommand_sub = nh.subscribe<std_msgs::UInt8>(armcommand_topic,1000,ArmCommand_Callback);
+    armcommand_sub = nh.subscribe<std_msgs::UInt8>(armcommand_topic,1000,User_ArmCommand_Callback);
     
-    std::string armeddisarmed_state_topic = "/armed_disarmed";
+    std::string armeddisarmed_state_topic = "/armed_state";
     armeddisarmed_state_pub = nh.advertise<std_msgs::UInt8>(armeddisarmed_state_topic,1000);
 
     //Finish User Code: Initialization and Parameters

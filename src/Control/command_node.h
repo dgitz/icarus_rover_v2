@@ -38,7 +38,7 @@ void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg);
 
 //Start User Code: Function Prototypes
 void ReadyToArm_Callback(const std_msgs::Bool::ConstPtr& msg,const std::string &topic);
-void ArmCommand_Callback(const std_msgs::UInt8::ConstPtr& msg);
+void User_ArmCommand_Callback(const std_msgs::UInt8::ConstPtr& msg);
 //End User Code: Function Prototypes
 
 
@@ -77,7 +77,7 @@ uint8_t robot_armdisarmed_state;
 ros::Publisher armeddisarmed_state_pub;
 CommandNodeProcess *process;
 ros::Publisher command_pub;
-ros::Subscriber ready_to_arm_sub;
+std::vector<ros::Subscriber> ready_to_arm_subs;
 ros::Subscriber armcommand_sub;
 //End User Code: Define Global Variables
 #endif

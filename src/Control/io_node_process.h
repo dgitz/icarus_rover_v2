@@ -79,7 +79,7 @@ public:
 	~IONodeProcess();
 
 	icarus_rover_v2::diagnostic init(icarus_rover_v2::diagnostic indiag,Logger *log,std::string hostname);
-	icarus_rover_v2::diagnostic update(long dt);
+	icarus_rover_v2::diagnostic update(long dt,uint8_t state,uint8_t command);
 	icarus_rover_v2::diagnostic new_devicemsg(icarus_rover_v2::device devicemsg);
 	icarus_rover_v2::diagnostic new_commandmsg(icarus_rover_v2::command commandmsg);
 	icarus_rover_v2::diagnostic new_pinmsg(icarus_rover_v2::pin pinmsg);
@@ -98,6 +98,8 @@ public:
 	bool checkTriggers(std::vector<std::vector<unsigned char > > &tx_buffers);
 	state_ack get_stateack(std::string name);
 	bool set_stateack(state_ack stateack);
+	icarus_rover_v2::diagnostic enable_actuators(bool state);
+	uint8_t get_armedstate() { return armed_state; }
 protected:
 	/*
 	state_ack send_configure_DIO_PortA;
@@ -131,6 +133,9 @@ private:
 	long timeout_value_ms;
     ros::Time init_time;
 	bool timer_timeout;
+	bool armed_driver;
 	double time_diff(ros::Time timer_a, ros::Time timer_b);
+	uint8_t armed_state;
+	uint8_t arm_command;
 };
 #endif

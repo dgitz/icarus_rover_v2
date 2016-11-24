@@ -339,7 +339,14 @@ bool check_tasks()
 	}
 	if(task_ok_counter == TasksToCheck.size())
 	{
-        ready_to_arm = true;
+		if(TasksToCheck.size() > 0)
+		{
+			ready_to_arm = true;
+		}
+		else
+		{
+			ready_to_arm = false;
+		}
 		char tempstr[255];
 		sprintf(tempstr,"%d/%d (All) Tasks Operational.",task_ok_counter,TasksToCheck.size());
         
@@ -347,6 +354,7 @@ bool check_tasks()
 	}
 	else
 	{
+		ready_to_arm = false;
 		char tempstr[255];
 		sprintf(tempstr,"%d/%d Tasks are in WARN state or Higher!",TasksToCheck.size()-task_ok_counter,TasksToCheck.size());
 		logger->log_warn(tempstr);
@@ -502,10 +510,10 @@ void diagnostic_Callback(const icarus_rover_v2::diagnostic::ConstPtr& msg)
 	switch(msg->Level)
 	{
 		case DEBUG:
-			logger->log_debug(tempstr);
+			//logger->log_debug(tempstr);
 			break;
 		case INFO:
-			logger->log_info(tempstr);
+			//logger->log_info(tempstr);
 			break;
 		case NOTICE:
 			logger->log_notice(tempstr);

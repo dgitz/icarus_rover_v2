@@ -7,6 +7,7 @@
 #include "resourcemonitor.h"
 #include <boost/algorithm/string.hpp>
 #include <std_msgs/Bool.h>
+#include <std_msgs/UInt8.h>
 #include <sstream>
 #include <stdlib.h>
 #include "Definitions.h"
@@ -40,6 +41,7 @@ std::vector<icarus_rover_v2::diagnostic> check_program_variables();
 
 //Start User Code: Function Prototypes
 void DigitalOutput_Callback(const icarus_rover_v2::pin::ConstPtr& msg);
+void ArmedState_Callback(const std_msgs::UInt8::ConstPtr& msg);
 //End User Code: Function Prototypes
 
 
@@ -79,6 +81,11 @@ bool kill_node;
 IONodeProcess *process;
 ros::Publisher digitalinput_pub;
 ros::Subscriber digitaloutput_sub;
-
+ros::Subscriber armed_state_sub;
+uint8_t remote_armed_state;
+uint8_t local_armed_state;
+uint8_t arm_command;
+bool enable_actuators;
+bool last_enable_actuators;
 //End User Code: Define Global Variables
 #endif

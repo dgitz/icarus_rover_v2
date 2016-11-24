@@ -1,14 +1,15 @@
 #include "io_node.h"
 //Start Template Code: Firmware Definition
-#define IONODE_MAJOR_RELEASE 1
-#define IONODE_MINOR_RELEASE 2
+#define IONODE_MAJOR_RELEASE 2
+#define IONODE_MINOR_RELEASE 3
 #define IONODE_BUILD_NUMBER 1
 //End Template Code: Firmware Definition
 //Start User Code: Functions
 
 bool run_fastrate_code()
 {
-	diagnostic_status = process->update(20);  //Need to change 20 to the actual dt!!!
+	diagnostic_status = process->update(20,remote_armed_state,arm_command);  //Need to change 20 to the actual dt!!!
+	local_armed_state = process->get_armedstate();
 	if(diagnostic_status.Level > NOTICE)
 	{
 		logger->log_warn(diagnostic_status.Description);
@@ -32,6 +33,28 @@ bool run_fastrate_code()
 			}
 		}
 	}
+	if((arm_command == ARMEDCOMMAND_ARM) and
+	   (local_armed_state == ARMEDSTATUS_ARMED))
+	{
+		enable_actuators = true;
+
+	}
+	else
+	{
+		enable_actuators = false;
+		diagnostic_status = process->enable_actuators(enable_actuators);
+		if(diagnostic_status.Level > NOTICE)
+		{
+			diagnostic_pub.publish(diagnostic_status);
+		}
+	}
+	if(last_enable_actuators != enable_actuators)
+	{
+		diagnostic_status = process->enable_actuators(enable_actuators);
+		diagnostic_pub.publish(diagnostic_status);
+		last_enable_actuators =  enable_actuators;
+	}
+
 	return true;
 }
 bool run_mediumrate_code()
@@ -85,13 +108,18 @@ bool run_veryslowrate_code()
 	icarus_rover_v2::firmware fw;
 	fw.Generic_Node_Name = "io_node";
 	fw.Node_Name = node_name;
-	fw.Description = "Latest Rev: 15-Nov-2016";
+	fw.Description = "Latest Rev: 24-Nov-2016";
 	fw.Major_Release = IONODE_MAJOR_RELEASE;
 	fw.Minor_Release = IONODE_MINOR_RELEASE;
 	fw.Build_Number = IONODE_BUILD_NUMBER;
 	firmware_pub.publish(fw);
 	return true;
 }
+void ArmedState_Callback(const std_msgs::UInt8::ConstPtr& msg)
+{
+	remote_armed_state = msg->data;
+}
+
 void DigitalOutput_Callback(const icarus_rover_v2::pin::ConstPtr& msg)
 {
 	icarus_rover_v2::pin pinmsg;
@@ -138,6 +166,10 @@ void Command_Callback(const icarus_rover_v2::command::ConstPtr& msg)
 		{
 			logger->log_error("Shouldn't get here!!!");
 		}
+	}
+	else if(msg->Command == ARM_COMMAND_ID)
+	{
+		arm_command = msg->Option1;
 	}
 }
 int main(int argc, char **argv)
@@ -213,6 +245,10 @@ int main(int argc, char **argv)
 		ros::spinOnce();
 		loop_rate.sleep();
     }
+    logger->log_notice("Node Finished cleanly.  Disabling all Actuators.");
+    diagnostic_status = process->enable_actuators(false);
+    diagnostic_pub.publish(diagnostic_status);
+
     return 0;
 }
 
@@ -287,11 +323,21 @@ bool initialize(ros::NodeHandle nh)
     //End Template Code: Initialization and Parameters
 
     //Start User Code: Initialization and Parameters
+    remote_armed_state = ARMEDSTATUS_DISARMED_CANNOTARM;
+    local_armed_state = ARMEDSTATUS_DISARMED_CANNOTARM;
+    arm_command = ARMEDCOMMAND_DISARM;
+    enable_actuators = false;
+    last_enable_actuators = enable_actuators;
+
     std::string digitalinput_topic = "/" + node_name + "/DigitalInput";
     digitalinput_pub = nh.advertise<icarus_rover_v2::pin>(digitalinput_topic,1000);
 
     std::string digitaloutput_topic = "/" + node_name + "/DigitalOutput";
     digitaloutput_sub = nh.subscribe<icarus_rover_v2::pin>(digitaloutput_topic,1000,DigitalOutput_Callback);
+
+
+    std::string armed_state_topic = "/armed_state";
+    armed_state_sub = nh.subscribe<std_msgs::UInt8>(armed_state_topic,1000,ArmedState_Callback);
     //Finish User Code: Initialization and Parameters
 
     //Start Template Code: Final Initialization.
