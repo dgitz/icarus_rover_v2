@@ -115,10 +115,8 @@ void Joystick_Callback(const sensor_msgs::Joy::ConstPtr& msg,const std::string &
 					std::string port = output_strs.at(0);
 					int pinnumber = std::atoi(output_strs.at(1).c_str());
 					std::string pinmode = output_strs.at(2);
-					logger->log_debug("here2");
-					if(pinmode == "DigitalOutput")
+					if((pinmode == "DigitalOutput") || (pinmode == "DigitalOutput-NonActuator"))
 					{
-						logger->log_debug("here3");
 						output.Function = pinmode;
 						output.Number = pinnumber;
 						output.Port = port;
@@ -127,8 +125,11 @@ void Joystick_Callback(const sensor_msgs::Joy::ConstPtr& msg,const std::string &
 					}
 					else
 					{
-						char tempstr[128];
-						sprintf("Input: %s and Pinmode: %s not currently supported.",input_strs.at(0).c_str(),pinmode.c_str());
+						char tempstr[255];
+						sprintf(tempstr,"Input: %s Button: %d and Pinmode: %s not currently supported.",
+								input_strs.at(0).c_str(),
+								pinnumber,
+								pinmode.c_str());
 						logger->log_warn(tempstr);
 					}
 				}

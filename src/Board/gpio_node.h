@@ -48,6 +48,7 @@ std::vector<icarus_rover_v2::diagnostic> check_program_variables();
 //Stop Template Code: Function Prototypes
 
 //Start User Code: Function Prototypes
+void ArmedState_Callback(const std_msgs::UInt8::ConstPtr& msg);
 //End User Code: Function Prototypes
 
 
@@ -109,7 +110,8 @@ bool message_completed;
 int message_buffer_index;
 unsigned char message_buffer[64];
 int packet_length;
-
-
+ros::Subscriber armed_state_sub;
+bool ready_to_arm;
+ros::Publisher ready_to_arm_pub;
 //End User Code: Define Global Variables
 #endif

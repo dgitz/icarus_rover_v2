@@ -15,6 +15,7 @@ Purpose:
 https://github.com/dgitz/icarus_rover_v2/wiki/ICARUS_ROVER_V2_COMM#udp-messages
 2. Receives UDP Messages and converts to ROS messages and then Publishes.  For a list of supported messages visit:
 https://github.com/dgitz/icarus_rover_v2/wiki/ICARUS_ROVER_V2_COMM#udp-messages
+3. Generates ready_to_arm signal
 
 C. topicremapper_node
 Usage: This node should be run on one device on the Robot.

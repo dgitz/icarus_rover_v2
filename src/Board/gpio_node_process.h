@@ -16,6 +16,7 @@
 #include "icarus_rover_v2/device.h"
 #include "icarus_rover_v2/command.h"
 #include "icarus_rover_v2/pin.h"
+#include <std_msgs/UInt8.h>
 #include "logger.h"
 #include <serialmessage.h>
 #include <math.h>
@@ -41,6 +42,7 @@ struct Port_Info{
 		int Value[8];
 		int Mode[8];
 		int Number[8];
+		int DefaultValue[8];
 		std::vector<std::string> ConnectingDevice;
 	};
 struct state_ack
@@ -80,7 +82,8 @@ public:
 	icarus_rover_v2::diagnostic init(icarus_rover_v2::diagnostic indiag,Logger *log,std::string hostname,std::string sensorspecpath,bool extrapolate);
 	icarus_rover_v2::diagnostic update(long dt);
 	icarus_rover_v2::diagnostic new_devicemsg(icarus_rover_v2::device devicemsg);
-	icarus_rover_v2::diagnostic new_commandmsg(icarus_rover_v2::command commandmsg);
+	icarus_rover_v2::diagnostic new_commandmsg(uint16_t command,uint8_t option1,uint8_t option2,uint8_t option3,
+			std::string commandtext,std::string description);
 	icarus_rover_v2::diagnostic new_pinmsg(icarus_rover_v2::pin pinmsg);
 	icarus_rover_v2::device get_mydevice() { return mydevice; }
 	std::vector<icarus_rover_v2::device> get_myboards() { return myboards; }
@@ -106,24 +109,32 @@ public:
 	icarus_rover_v2::diagnostic new_serialmessage_Get_DIO_PortA(int packet_type,unsigned char* inpacket);
 	icarus_rover_v2::diagnostic new_serialmessage_Get_DIO_PortB(int packet_type,unsigned char* inpacket);
 	icarus_rover_v2::diagnostic new_serialmessage_Get_Mode(int packet_type,unsigned char* inpacket);
+	void transmit_armedstate();
+	icarus_rover_v2::diagnostic new_armedstatemsg(uint8_t v);
 	std::vector<message_info> get_allmessage_info() { return messages; }
 	state_ack get_stateack(std::string name);
 	bool set_stateack(state_ack stateack);
 	std::string map_mode_ToString(int mode);
+	uint8_t get_armedstate() { return armed_state; }
+	uint8_t get_armedcommand() { return armed_command; }
 protected:
 	state_ack send_configure_DIO_PortA;
 	state_ack send_configure_DIO_PortB;
+	state_ack send_defaultvalue_DIO_PortA;
+	state_ack send_defaultvalue_DIO_PortB;
 	state_ack send_testmessage_command;
 	state_ack send_nodemode;
 	state_ack send_set_DIO_PortA;
 	state_ack send_set_DIO_PortB;
+	state_ack send_armedcommand;
+	state_ack send_armedstate;
 private:
 
 	int board_state;
 	int node_state;
 	int prev_node_state;
 	SerialMessageHandler *serialmessagehandler;
-	bool configure_pin(std::string BoardName,std::string Port, uint8_t Number, std::string Function,std::string ConnectedDevice);
+	bool configure_pin(std::string BoardName,std::string Port, uint8_t Number, std::string Function,std::string ConnectedDevice,uint8_t defaultvalue);
 	int transducer_model(int mode,std::string SensorName,double input);
 	void initialize_stateack_messages();
 	void initialize_message_info();
@@ -148,6 +159,10 @@ private:
 	long timeout_value_ms;
     ros::Time init_time;
 	bool timer_timeout;
+	uint8_t armed_state;
+	uint8_t armed_command;
+	bool enable_actuators;
+	bool last_enable_actuators;
 	double time_diff(ros::Time timer_a, ros::Time timer_b);
 	double find_slope(std::vector<double> x,std::vector<double> y);
 	double find_intercept(double slope,std::vector<double> x,std::vector<double> y);

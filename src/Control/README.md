@@ -15,6 +15,8 @@ Usage: This device should be run on 1 device total.
 
 Purpose:
 1. Generates commands and publishes to icarus_rover_v2::command topic
+2. Reads */ready_to_arm topics
+3. Reads /user_armcommand
 
 C. Arm Controller
 Usage:
@@ -27,3 +29,4 @@ D. io_node
 Usage: This node should be run for each ControlModule.
 Purpose: 
 1. Controls the GPIO pins that are hooked directly to the ControlModule.
+2. Either drives Arm Pin or reads Arm Pin depending on Configuration.

@@ -429,7 +429,7 @@ bool IONodeProcess::configure_pin(std::string Port, uint8_t Number, std::string 
 			{
 				setdirection_file << "in";
 			}
-			else if(function == PINMODE_DIGITAL_OUTPUT)
+			else if(function == PINMODE_DIGITAL_OUTPUT_NON_ACTUATOR)
 			{
 				setdirection_file << "out";
 			}
@@ -442,6 +442,14 @@ bool IONodeProcess::configure_pin(std::string Port, uint8_t Number, std::string 
 			{
 				armed_driver = true;
 				setdirection_file << "out";
+			}
+			else if(function == PINMODE_DIGITAL_OUTPUT)
+			{
+				//Don't do anything here, handled in enable_actuators
+			}
+			else if(function == PINMODE_PWM_OUTPUT)
+			{
+				//Don't do anything here, handled in enable_actuators
 			}
 			else
 			{

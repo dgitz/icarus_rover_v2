@@ -30,4 +30,8 @@
 #define GPIO_MODE_INITIALIZED 3
 #define GPIO_MODE_RUNNING 4
 #define GPIO_MODE_STOPPED 5
+
+//Control Group Definitions
+#define CONTROLGROUP_MODE_UNDEFINED 0
+#define GPIO_PORT_UNDEFINED 0
 #endif

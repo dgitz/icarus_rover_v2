@@ -11,6 +11,8 @@ GPIONodeProcess::GPIONodeProcess()
 	initialize_Ports();
 	ms_timer = 0;
 	timeout_value_ms = 0;
+	armed_state = ARMEDSTATUS_DISARMED;
+	armed_command = ARMEDCOMMAND_DISARM;
     init_time = ros::Time::now();
 }
 GPIONodeProcess::~GPIONodeProcess()
@@ -27,12 +29,14 @@ bool GPIONodeProcess::initialize_Ports()
 		DIO_PortA.Mode[i] = PINMODE_UNDEFINED;
 		DIO_PortA.Available[i] = false;
 		DIO_PortA.Value[i] = 0;
+		DIO_PortA.DefaultValue[i] = 0;
 		DIO_PortA.ConnectingDevice.push_back("");
 		
 		DIO_PortB.Number[i] = i-1;
 		DIO_PortB.Mode[i] = PINMODE_UNDEFINED;
 		DIO_PortB.Available[i] = false;
 		DIO_PortB.Value[i] = 0;
+		DIO_PortB.DefaultValue[i] = 0;
 		DIO_PortB.ConnectingDevice.push_back("");
 	}
 	ANA_PortA.PortName = "ANA_PortA";
@@ -43,12 +47,14 @@ bool GPIONodeProcess::initialize_Ports()
 		ANA_PortA.Mode[i] = PINMODE_ANALOG_INPUT;
 		ANA_PortA.Available[i] = false;
 		ANA_PortA.Value[i] = 0;
+		ANA_PortA.DefaultValue[i] = 0;
 		ANA_PortA.ConnectingDevice.push_back("");
 		
 		ANA_PortB.Number[i] = 4+i+1;
 		ANA_PortB.Mode[i] = PINMODE_ANALOG_INPUT;
 		ANA_PortB.Available[i] = false;
 		ANA_PortB.Value[i] = 0;
+		ANA_PortB.DefaultValue[i] = 0;
 		ANA_PortB.ConnectingDevice.push_back("");
 	}
 }
@@ -71,6 +77,10 @@ icarus_rover_v2::diagnostic GPIONodeProcess::init(icarus_rover_v2::diagnostic in
 	extrapolate_values = extrapolate;
 	return diagnostic;
 }
+void  GPIONodeProcess::transmit_armedstate()
+{
+	send_armedstate.trigger = true;
+}
 icarus_rover_v2::diagnostic GPIONodeProcess::update(long dt)
 {
 	ms_timer += dt;
@@ -78,17 +88,26 @@ icarus_rover_v2::diagnostic GPIONodeProcess::update(long dt)
 	if(timer_timeout == true)
 	{
 		timer_timeout = false;
-		//printf("Mode: %d,%d\n",node_state,board_state);
-		/*if((node_state == GPIO_MODE_INITIALIZING) && (board_state == GPIO_MODE_INITIALIZING))
-		{
-			//printf("Setting to true.\n");
-			send_configure_DIO_PortA.trigger = true;
-			send_configure_DIO_PortB.trigger = true;
-			prev_node_state = node_state;
-			node_state = GPIO_MODE_INITIALIZED;
-		}
-		*/
 
+	}
+	if((armed_state == ARMEDSTATUS_ARMED) and (armed_command == ARMEDCOMMAND_ARM))
+	{
+		enable_actuators = true;
+	}
+	else
+	{
+		enable_actuators = false;
+	}
+	if(enable_actuators != last_enable_actuators)
+	{
+		if(enable_actuators == true)
+		{
+			send_armedcommand.trigger = true;
+		}
+	}
+	if(enable_actuators == false)
+	{
+		send_armedcommand.trigger = true;
 	}
 	if(prev_node_state != node_state)
 	{
@@ -99,10 +118,14 @@ icarus_rover_v2::diagnostic GPIONodeProcess::update(long dt)
 	{
 		send_set_DIO_PortA.trigger = true;
 	}
-	//send_nodemode.trigger = true;
 	diagnostic.Level = INFO;
 	diagnostic.Diagnostic_Message = NOERROR;
 	diagnostic.Description = "Node Executing.";
+	return diagnostic;
+}
+icarus_rover_v2::diagnostic GPIONodeProcess::new_armedstatemsg(uint8_t v)
+{
+	armed_state = v;
 	return diagnostic;
 }
 state_ack GPIONodeProcess::get_stateack(std::string name)
@@ -131,6 +154,14 @@ state_ack GPIONodeProcess::get_stateack(std::string name)
 	else if(name == send_set_DIO_PortB.name)
 	{
 		return send_set_DIO_PortB;
+	}
+	else if(name == send_defaultvalue_DIO_PortA.name)
+	{
+		return send_defaultvalue_DIO_PortA;
+	}
+	else if(name == send_defaultvalue_DIO_PortB.name)
+	{
+		return send_defaultvalue_DIO_PortB;
 	}
 	else
 	{
@@ -167,6 +198,14 @@ bool GPIONodeProcess::set_stateack(state_ack stateack)
 	{
 		send_set_DIO_PortB = stateack;
 	}
+	else if(stateack.name == "Send DefaultValue DIO PortA")
+	{
+		send_defaultvalue_DIO_PortA = stateack;
+	}
+	else if(stateack.name == "Send DefaultValue DIO PortB")
+	{
+		send_defaultvalue_DIO_PortB = stateack;
+	}
 	else
 	{
 		return false;
@@ -180,12 +219,14 @@ icarus_rover_v2::diagnostic GPIONodeProcess::new_pinmsg(icarus_rover_v2::pin pin
 		if(pinmsg.Port == DIO_PortA.PortName)
 		{
 			DIO_PortA.Value[pinmsg.Number-1] = pinmsg.Value;
+			DIO_PortA.DefaultValue[pinmsg.Number-1] = pinmsg.DefaultValue;
 			diagnostic.Level = NOERROR;
 			send_set_DIO_PortA.trigger = true;
 		}
 		else if(pinmsg.Port == DIO_PortB.PortName)
 		{
 			DIO_PortB.Value[pinmsg.Number-1] = pinmsg.Value;
+			DIO_PortB.DefaultValue[pinmsg.Number-1] = pinmsg.DefaultValue;
 			diagnostic.Level = NOERROR;
 			send_set_DIO_PortB.trigger = true;
 		}
@@ -199,6 +240,38 @@ icarus_rover_v2::diagnostic GPIONodeProcess::new_pinmsg(icarus_rover_v2::pin pin
 bool GPIONodeProcess::checkTriggers(std::vector<std::vector<unsigned char > > &tx_buffers)
 {
 	bool nothing_triggered = true;
+	if(send_armedcommand.trigger == true)
+	{
+		nothing_triggered = false;
+		char buffer[12];
+		int length;
+		int tx_status = serialmessagehandler->encode_Arm_CommandSerial(buffer,&length,armed_command);
+		bool status = gather_message_info(SERIAL_Arm_Command_ID, "transmit");
+		tx_buffers.push_back(std::vector<unsigned char>(buffer,buffer+sizeof(buffer)/sizeof(buffer[0])));
+		send_armedcommand.state = true;
+		if (send_armedcommand.retrying == false)
+		{
+			gettimeofday(&send_armedcommand.orig_send_time,NULL);
+			send_armedcommand.retries = 0;
+		}
+		send_armedcommand.trigger = false;
+	}
+	if(send_armedstate.trigger == true)
+	{
+		nothing_triggered = false;
+		char buffer[12];
+		int length;
+		int tx_status = serialmessagehandler->encode_Arm_StatusSerial(buffer,&length,armed_state);
+		bool status = gather_message_info(SERIAL_Arm_Status_ID, "transmit");
+		tx_buffers.push_back(std::vector<unsigned char>(buffer,buffer+sizeof(buffer)/sizeof(buffer[0])));
+		send_armedstate.state = true;
+		if (send_armedstate.retrying == false)
+		{
+			gettimeofday(&send_armedstate.orig_send_time,NULL);
+			send_armedstate.retries = 0;
+		}
+		send_armedstate.trigger = false;
+	}
 	if(send_configure_DIO_PortA.trigger == true)
 	{
 		nothing_triggered = false;
@@ -208,8 +281,6 @@ bool GPIONodeProcess::checkTriggers(std::vector<std::vector<unsigned char > > &t
 		{
 			nothing_triggered = false;
 			return false;
-			printf("SHOULD NOT GET HERE.\n");
-			mylogger->log_error("COULDN'T LOOK UP PORT NAME!!!");
 		}
 		char buffer[12];
 		int length;
@@ -224,6 +295,68 @@ bool GPIONodeProcess::checkTriggers(std::vector<std::vector<unsigned char > > &t
 			send_configure_DIO_PortA.retries = 0;
 		}
 		send_configure_DIO_PortA.trigger = false;
+	}
+	if(send_defaultvalue_DIO_PortA.trigger == true)
+	{
+		nothing_triggered = false;
+		std::string BoardName = myboards.at(send_defaultvalue_DIO_PortA.flag1).DeviceName;
+		Port_Info Port = get_PortInfo(BoardName,"DIO_PortA");
+		if(Port.PortName == "")
+		{
+			nothing_triggered = false;
+			return false;
+		}
+		char buffer[12];
+		int length;
+		int tx_status = serialmessagehandler->encode_Set_DIO_PortA_DefaultValueSerial(buffer,&length,
+				Port.DefaultValue[0],Port.DefaultValue[1],Port.DefaultValue[2],Port.DefaultValue[3],
+				Port.DefaultValue[4],Port.DefaultValue[5],Port.DefaultValue[6],Port.DefaultValue[7]);
+		printf("Sending: ");
+		for(int i = 0; i < 12; i++)
+		{
+			printf("%02X",buffer[i]);
+		}
+		printf("\n");
+		bool status = gather_message_info(SERIAL_Set_DIO_PortA_DefaultValue_ID, "transmit");
+		tx_buffers.push_back(std::vector<unsigned char>(buffer,buffer+sizeof(buffer)/sizeof(buffer[0])));
+		send_defaultvalue_DIO_PortA.state = true;
+		if (send_defaultvalue_DIO_PortA.retrying == false)
+		{
+			gettimeofday(&send_defaultvalue_DIO_PortA.orig_send_time,NULL);
+			send_defaultvalue_DIO_PortA.retries = 0;
+		}
+		send_defaultvalue_DIO_PortA.trigger = false;
+	}
+	if(send_defaultvalue_DIO_PortB.trigger == true)
+	{
+		nothing_triggered = false;
+		std::string BoardName = myboards.at(send_defaultvalue_DIO_PortB.flag1).DeviceName;
+		Port_Info Port = get_PortInfo(BoardName,"DIO_PortB");
+		if(Port.PortName == "")
+		{
+			nothing_triggered = false;
+			return false;
+		}
+		char buffer[12];
+		int length;
+		int tx_status = serialmessagehandler->encode_Set_DIO_PortB_DefaultValueSerial(buffer,&length,
+				Port.DefaultValue[0],Port.DefaultValue[1],Port.DefaultValue[2],Port.DefaultValue[3],
+				Port.DefaultValue[4],Port.DefaultValue[5],Port.DefaultValue[6],Port.DefaultValue[7]);
+		printf("Sending: ");
+		for(int i = 0; i < 12; i++)
+		{
+			printf("%02X",buffer[i]);
+		}
+		printf("\n");
+		bool status = gather_message_info(SERIAL_Set_DIO_PortB_DefaultValue_ID, "transmit");
+		tx_buffers.push_back(std::vector<unsigned char>(buffer,buffer+sizeof(buffer)/sizeof(buffer[0])));
+		send_defaultvalue_DIO_PortB.state = true;
+		if (send_defaultvalue_DIO_PortB.retrying == false)
+		{
+			gettimeofday(&send_defaultvalue_DIO_PortB.orig_send_time,NULL);
+			send_defaultvalue_DIO_PortB.retries = 0;
+		}
+		send_defaultvalue_DIO_PortB.trigger = false;
 	}
 	if(send_configure_DIO_PortB.trigger == true)
 	{
@@ -296,8 +429,6 @@ bool GPIONodeProcess::checkTriggers(std::vector<std::vector<unsigned char > > &t
 		{
 			nothing_triggered = false;
 			return false;
-			printf("SHOULD NOT GET HERE.\n");
-			mylogger->log_error("COULDN'T LOOK UP PORT NAME!!!");
 		}
 		int tx_status = serialmessagehandler->encode_Set_DIO_PortASerial(buffer,&length,Port.Value[0],Port.Value[1],Port.Value[2],Port.Value[3],
 				Port.Value[4],Port.Value[5],Port.Value[6],Port.Value[7]);
@@ -328,8 +459,6 @@ bool GPIONodeProcess::checkTriggers(std::vector<std::vector<unsigned char > > &t
 		{
 			nothing_triggered = false;
 			return false;
-			printf("SHOULD NOT GET HERE.\n");
-			mylogger->log_error("COULDN'T LOOK UP PORT NAME!!!");
 		}
 		int tx_status = serialmessagehandler->encode_Set_DIO_PortBSerial(buffer,&length,DIO_PortB.Value[0],DIO_PortB.Value[1],DIO_PortB.Value[2],DIO_PortB.Value[3],
 				DIO_PortB.Value[4],DIO_PortB.Value[5],DIO_PortB.Value[6],DIO_PortB.Value[7]);
@@ -353,14 +482,19 @@ bool GPIONodeProcess::checkTriggers(std::vector<std::vector<unsigned char > > &t
 		return true;
 	}
 }
-icarus_rover_v2::diagnostic GPIONodeProcess::new_commandmsg(icarus_rover_v2::command msg)
+icarus_rover_v2::diagnostic GPIONodeProcess::new_commandmsg(uint16_t command,
+															uint8_t option1,
+															uint8_t option2,
+															uint8_t option3,
+															std::string commandtext,
+															std::string description)
 {
-	if (msg.Command ==  DIAGNOSTIC_ID)
+	if (command ==  DIAGNOSTIC_ID)
 	{
-		if(msg.Option1 == LEVEL1)
+		if(option1 == LEVEL1)
 		{
 		}
-		else if(msg.Option1 == LEVEL2)
+		else if(option2 == LEVEL2)
 		{
 			if((board_state == GPIO_MODE_RUNNING) && (node_state == GPIO_MODE_RUNNING))
 			{
@@ -373,11 +507,11 @@ icarus_rover_v2::diagnostic GPIONodeProcess::new_commandmsg(icarus_rover_v2::com
 				diagnostic.Description = "Diagnostic not run.";
 			}
 		}
-		else if(msg.Option1 == LEVEL3)
+		else if(option1 == LEVEL3)
 		{
 
 		}
-		else if(msg.Option1 == LEVEL4)
+		else if(option1 == LEVEL4)
 		{
 
 		}
@@ -385,6 +519,10 @@ icarus_rover_v2::diagnostic GPIONodeProcess::new_commandmsg(icarus_rover_v2::com
 		{
 			mylogger->log_error("Shouldn't get here!!!");
 		}
+	}
+	else if(command == ARM_COMMAND_ID)
+	{
+		armed_command = option1;
 	}
 	return diagnostic;
 }
@@ -657,6 +795,8 @@ icarus_rover_v2::diagnostic GPIONodeProcess::new_serialmessage_Get_Mode(int pack
 			{
 				send_configure_DIO_PortA.trigger = true;
 				send_configure_DIO_PortB.trigger = true;
+				send_defaultvalue_DIO_PortA.trigger = true;
+				send_defaultvalue_DIO_PortB.trigger = true;
 				prev_node_state = node_state;
 				node_state = GPIO_MODE_INITIALIZED;
 			}
@@ -716,16 +856,18 @@ double GPIONodeProcess::find_intercept(double slope,std::vector<double> x,std::v
 icarus_rover_v2::diagnostic GPIONodeProcess::new_devicemsg(icarus_rover_v2::device newdevice)
 {
 	if( (all_board_info_received == true) &&
-		(all_sensor_info_received == true))
+		(all_sensor_info_received == true) &&
+		(all_device_info_received == false))
 	{
+		mylogger->log_info("Received all Device Info.");
 		all_device_info_received = true;
 	}
-	if((newdevice.DeviceParent == "None") && (newdevice.DeviceName == myhostname))// && (all_device_info_received == false))
+	else if((newdevice.DeviceParent == "None") && (newdevice.DeviceName == myhostname))// && (all_device_info_received == false))
 	{
 		mydevice = newdevice;
 	}
 
-	if((newdevice.DeviceType == "GPIOBoard") && (newdevice.DeviceParent == mydevice.DeviceName) && (mydevice.DeviceName != "") && (all_board_info_received == false))
+	else if((newdevice.DeviceType == "GPIOBoard") && (newdevice.DeviceParent == mydevice.DeviceName) && (mydevice.DeviceName != "") && (all_board_info_received == false))
 	{
 		icarus_rover_v2::device board;
 		board.DeviceName = newdevice.DeviceName;
@@ -735,15 +877,16 @@ icarus_rover_v2::diagnostic GPIONodeProcess::new_devicemsg(icarus_rover_v2::devi
 		//printf("Board pin count: %d\n",board.pins.size());
 		for(int i = 0; i < board.pins.size();i++)
 		{
-			if(configure_pin(board.DeviceName,board.pins.at(i).Port,board.pins.at(i).Number,board.pins.at(i).Function,board.pins.at(i).ConnectedDevice)==false)
+			if(configure_pin(board.DeviceName,board.pins.at(i).Port,board.pins.at(i).Number,board.pins.at(i).Function,board.pins.at(i).ConnectedDevice,(uint8_t)board.pins.at(i).DefaultValue)==false)
 			{
 				char tempstr[256];
-				sprintf(tempstr,"Board: %s Couldn't Configure Pin on Port: %s Number: %d Function: %s Connecting Device: %s",
+				sprintf(tempstr,"Board: %s Couldn't Configure Pin on Port: %s Number: %d Function: %s Connecting Device: %s Default Value: %d",
 						board.DeviceName.c_str(),
 						board.pins.at(i).Port.c_str(),
 						board.pins.at(i).Number,
 						board.pins.at(i).Function.c_str(),
-						board.pins.at(i).ConnectedDevice.c_str());
+						board.pins.at(i).ConnectedDevice.c_str(),
+						board.pins.at(i).DefaultValue);
 				//printf("%s\n",tempstr);
 				mylogger->log_error(tempstr);
 				diagnostic.Diagnostic_Type = SOFTWARE;
@@ -754,12 +897,13 @@ icarus_rover_v2::diagnostic GPIONodeProcess::new_devicemsg(icarus_rover_v2::devi
 			else
 			{
 				char tempstr[256];
-				sprintf(tempstr,"Board: %s Configured Pin on Port: %s Number: %d Function: %s Connected Device: %s",
+				sprintf(tempstr,"Board: %s Configured Pin on Port: %s Number: %d Function: %s Connected Device: %s Default Value: %d",
 						board.DeviceName.c_str(),
 						board.pins.at(i).Port.c_str(),
 						board.pins.at(i).Number,
 						board.pins.at(i).Function.c_str(),
-						board.pins.at(i).ConnectedDevice.c_str());
+						board.pins.at(i).ConnectedDevice.c_str(),
+						board.pins.at(i).DefaultValue);
 				//printf("%s\n",tempstr);
 				mylogger->log_debug(tempstr);
 			}
@@ -770,7 +914,7 @@ icarus_rover_v2::diagnostic GPIONodeProcess::new_devicemsg(icarus_rover_v2::devi
 			diagnostic.Level = INFO;
 			diagnostic.Diagnostic_Message = NOERROR;
 			diagnostic.Description = "Received all Board Info.";
-			mylogger->log_info("Received all Device Info.");
+
 			for(int b = 0; b < myboards.size(); b++)
 			{
 				for(int p = 0; p < myboards.at(b).pins.size(); p++)
@@ -994,7 +1138,7 @@ icarus_rover_v2::diagnostic GPIONodeProcess::new_devicemsg(icarus_rover_v2::devi
 	}
 	return diagnostic;
 }
-bool GPIONodeProcess::configure_pin(std::string BoardName,std::string Port, uint8_t Number, std::string Function,std::string ConnectedDevice)
+bool GPIONodeProcess::configure_pin(std::string BoardName,std::string Port, uint8_t Number, std::string Function,std::string ConnectedDevice,uint8_t DefaultValue)
 {
 	bool status = true;
 	int function = map_PinFunction_ToInt(Function);
@@ -1006,6 +1150,7 @@ bool GPIONodeProcess::configure_pin(std::string BoardName,std::string Port, uint
 		DIO_PortA.Mode[Number-1] = function;
 		DIO_PortA.Available[Number-1] = true;
 		DIO_PortA.Value[Number-1] = 0;
+		DIO_PortA.DefaultValue[Number-1] = DefaultValue;
 		DIO_PortA.ConnectingDevice.at(Number-1) = ConnectedDevice;
 	}
 	else if(Port == "DIO_PortB")
@@ -1014,6 +1159,7 @@ bool GPIONodeProcess::configure_pin(std::string BoardName,std::string Port, uint
 		DIO_PortB.Mode[Number-1] = function;
 		DIO_PortB.Available[Number-1] = true;
 		DIO_PortB.Value[Number-1] = 0;
+		DIO_PortB.DefaultValue[Number-1] = DefaultValue;
 		DIO_PortB.ConnectingDevice.at(Number-1) = ConnectedDevice;
 	}
 	else if(Port == "ANA_PortA")
@@ -1022,6 +1168,7 @@ bool GPIONodeProcess::configure_pin(std::string BoardName,std::string Port, uint
 		ANA_PortA.Mode[Number-1] = function;
 		ANA_PortA.Available[Number-1] = true;
 		ANA_PortA.Value[Number-1] = 0;
+		ANA_PortA.DefaultValue[Number-1] = DefaultValue;
 		ANA_PortA.ConnectingDevice.at(Number-1) = ConnectedDevice;
 	}
 	else if(Port == "ANA_PortB")
@@ -1030,6 +1177,7 @@ bool GPIONodeProcess::configure_pin(std::string BoardName,std::string Port, uint
 		ANA_PortB.Mode[Number-1] = function;
 		ANA_PortB.Available[Number-1] = true;
 		ANA_PortB.Value[Number-1] = 0;
+		ANA_PortB.DefaultValue[Number-1] = DefaultValue;
 		ANA_PortB.ConnectingDevice.at(Number-1) = ConnectedDevice;
 	}
 	else { 	status = false; }
@@ -1064,19 +1212,23 @@ std::string GPIONodeProcess::map_PinFunction_ToString(int function)
 	case PINMODE_FORCESENSOR_INPUT: 			return "ForceSensorInput"; 			break;
 	case PINMODE_ULTRASONIC_INPUT: 				return "UltraSonicSensorInput"; 	break;
 	case PINMODE_QUADRATUREENCODER_INPUT: 		return "QuadratureEncoderInput";	break;
-	case PINMODE_PWM_OUTPUT: 					return "PwmOutput"; 				break;
+	case PINMODE_PWM_OUTPUT: 					return "PWMOutput"; 				break;
+	case PINMODE_PWM_OUTPUT_NON_ACTUATOR:		return "PWMOutput-NonActuator";		break;
+	case PINMODE_DIGITAL_OUTPUT_NON_ACTUATOR:	return "DigitalOutput-NonActuator"; break;
 	default: 									return ""; 							break;
 	}
 }
 int GPIONodeProcess::map_PinFunction_ToInt(std::string Function)
 {
-	if(Function == "DigitalInput")				{	return PINMODE_DIGITAL_INPUT;		}
-	else if(Function == "DigitalOutput")		{	return PINMODE_DIGITAL_OUTPUT;		}
-	else if(Function == "AnalogInput")			{	return PINMODE_ANALOG_INPUT;		}
-	else if(Function == "ForceSensorInput")		{	return PINMODE_FORCESENSOR_INPUT;	}
-	else if(Function == "UltraSonicSensorInput"){	return PINMODE_ULTRASONIC_INPUT;	}
-	else if(Function == "PWMOutput")			{	return PINMODE_PWM_OUTPUT;			}
-	else { return PINMODE_UNDEFINED; }
+	if(Function == "DigitalInput")						{	return PINMODE_DIGITAL_INPUT;				}
+	else if(Function == "DigitalOutput")				{	return PINMODE_DIGITAL_OUTPUT;				}
+	else if(Function == "AnalogInput")					{	return PINMODE_ANALOG_INPUT;				}
+	else if(Function == "ForceSensorInput")				{	return PINMODE_FORCESENSOR_INPUT;			}
+	else if(Function == "UltraSonicSensorInput")		{	return PINMODE_ULTRASONIC_INPUT;			}
+	else if(Function == "PWMOutput")					{	return PINMODE_PWM_OUTPUT;					}
+	else if(Function == "PWMOutput-NonActuator") 		{ 	return PINMODE_PWM_OUTPUT_NON_ACTUATOR; 	}
+	else if(Function == "DigitalOutput-NonActuator")	{ 	return PINMODE_DIGITAL_OUTPUT_NON_ACTUATOR;	}
+	else 												{ 	return PINMODE_UNDEFINED; 					}
 }
 Port_Info GPIONodeProcess::get_PortInfo(std::string BoardName,std::string PortName)
 {
@@ -1158,6 +1310,45 @@ void GPIONodeProcess::initialize_stateack_messages()
 	send_set_DIO_PortB.timeout_counter = 0;
 	send_set_DIO_PortB.retry_mode = false;
 	send_set_DIO_PortB.failed = false;
+
+	send_armedcommand.name = "Send Arm Command";
+	send_armedcommand.trigger = false;
+	send_armedcommand.state = false;
+	gettimeofday(&send_armedcommand.orig_send_time,NULL);
+	send_armedcommand.retries = 0;
+	send_armedcommand.timeout_counter = 0;
+	send_armedcommand.retry_mode = false;
+	send_armedcommand.failed = false;
+
+	send_armedstate.name = "Send Armed State";
+	send_armedstate.trigger = false;
+	send_armedstate.state = false;
+	gettimeofday(&send_armedstate.orig_send_time,NULL);
+	send_armedstate.retries = 0;
+	send_armedstate.timeout_counter = 0;
+	send_armedstate.retry_mode = false;
+	send_armedstate.failed = false;
+
+
+	send_defaultvalue_DIO_PortA.name = "Send DefaultValue DIO PortA";
+	send_defaultvalue_DIO_PortA.trigger = false;
+	send_defaultvalue_DIO_PortA.state = false;
+	gettimeofday(&send_defaultvalue_DIO_PortA.orig_send_time,NULL);
+	send_defaultvalue_DIO_PortA.retries = 0;
+	send_defaultvalue_DIO_PortA.timeout_counter = 0;
+	send_defaultvalue_DIO_PortA.retry_mode = false;
+	send_defaultvalue_DIO_PortA.failed = false;
+	send_defaultvalue_DIO_PortA.flag1 = 0; //This flag represents the Board Index
+
+	send_defaultvalue_DIO_PortB.name = "Send DefaultValue DIO PortB";
+	send_defaultvalue_DIO_PortB.trigger = false;
+	send_defaultvalue_DIO_PortB.state = false;
+	gettimeofday(&send_defaultvalue_DIO_PortB.orig_send_time,NULL);
+	send_defaultvalue_DIO_PortB.retries = 0;
+	send_defaultvalue_DIO_PortB.timeout_counter = 0;
+	send_defaultvalue_DIO_PortB.retry_mode = false;
+	send_defaultvalue_DIO_PortB.failed = false;
+	send_defaultvalue_DIO_PortB.flag1 = 0; //This flag represents the Board Index
 
 }
 bool GPIONodeProcess::gather_message_info(int id, std::string mode)
@@ -1272,6 +1463,29 @@ void GPIONodeProcess::initialize_message_info()
 		messages.push_back(newmessage);
 	}
 
+	{
+		message_info newmessage;
+		newmessage.id = SERIAL_Arm_Command_ID;
+		messages.push_back(newmessage);
+	}
+
+	{
+		message_info newmessage;
+		newmessage.id = SERIAL_Arm_Status_ID;
+		messages.push_back(newmessage);
+	}
+
+	{
+		message_info newmessage;
+		newmessage.id = SERIAL_Set_DIO_PortA_DefaultValue_ID;
+		messages.push_back(newmessage);
+	}
+
+	{
+		message_info newmessage;
+		newmessage.id = SERIAL_Set_DIO_PortB_DefaultValue_ID;
+		messages.push_back(newmessage);
+	}
 	for(int i = 0; i < messages.size(); i++)
 	{
 		messages.at(i).protocol = "serial";

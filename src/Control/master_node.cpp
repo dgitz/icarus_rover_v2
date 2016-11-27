@@ -464,7 +464,15 @@ bool parse_devicefile(TiXmlDocument doc)
 					{
 						newpin.ConnectedDevice = "";
 					}
-
+                    TiXmlElement *l_pPinDefaultValue = l_pPin->FirstChildElement( "DefaultValue" );
+					if ( NULL != l_pPinDefaultValue )
+					{
+						newpin.DefaultValue = atoi(l_pPinDefaultValue->GetText());
+					}
+					else
+					{
+						newpin.DefaultValue = 0;
+					}
 					l_pPin = l_pPin->NextSiblingElement( "Pin" );
 					pins.push_back(newpin);
 

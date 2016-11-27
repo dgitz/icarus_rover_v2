@@ -2,7 +2,7 @@
 //Start Template Code: Firmware Definition
 #define GPIONODE_MAJOR_RELEASE 3
 #define GPIONODE_MINOR_RELEASE 1
-#define GPIONODE_BUILD_NUMBER 1
+#define GPIONODE_BUILD_NUMBER 2
 //End Template Code: Firmware Definition
 //Start User Code: Functions
 
@@ -64,14 +64,27 @@ void process_message_thread()
 		}
 	}
 }
+void ArmedState_Callback(const std_msgs::UInt8::ConstPtr& msg)
+{
+	diagnostic_status = process->new_armedstatemsg(msg->data);
+	if(diagnostic_status.Level > NOTICE)
+	{
+		diagnostic_pub.publish(diagnostic_status);
+	}
+}
 bool run_fastrate_code()
 {
+
+	uint8_t armed_command = process->get_armedcommand();
+	uint8_t armed_state = process->get_armedcommand();
 	if(new_message == true)
 	{
 		new_message = false;
 		if(packet_type == SERIAL_TestMessageCounter_ID)
 		{
+			//logger->log_debug("Starting to process SERIAL_TestMessageCounter_ID.");
 			diagnostic_status = process->new_serialmessage_TestMessageCounter(packet_type,packet);
+			//logger->log_debug("Finished processing SERIAL_TestMessageCounter_ID.");
 			if(WARN_ON_SOFTWARE_NOT_IMPLEMENTED == 1)
 			{
 				if(diagnostic_status.Level > NOTICE)
@@ -83,7 +96,9 @@ bool run_fastrate_code()
 		}
 		else if(packet_type == SERIAL_FirmwareVersion_ID)
 		{
+			//logger->log_debug("Starting to process SERIAL_FirmwareVersion_ID.");
 			diagnostic_status = process->new_serialmessage_FirmwareVersion(packet_type,packet);
+			//logger->log_debug("Finished processing SERIAL_FirmwareVersion_ID.");
 			if(WARN_ON_SOFTWARE_NOT_IMPLEMENTED == 1)
 			{
 				if(diagnostic_status.Level > NOTICE)
@@ -95,7 +110,9 @@ bool run_fastrate_code()
 		}
 		else if(packet_type == SERIAL_Diagnostic_ID)
 		{
+			//logger->log_debug("Starting to process SERIAL_Diagnostic_ID.");
 			diagnostic_status = process->new_serialmessage_Diagnostic(packet_type,packet);
+			//logger->log_debug("Finished processing SERIAL_Diagnostic_ID.");
 			if(diagnostic_status.Level > NOTICE)
 			{
 				logger->log_warn(diagnostic_status.Description);
@@ -104,7 +121,9 @@ bool run_fastrate_code()
 		}
 		else if(packet_type == SERIAL_Get_ANA_PortA_ID)
 		{
+			//logger->log_debug("Starting to process SERIAL_Get_ANA_PortA_ID.");
 			diagnostic_status = process->new_serialmessage_Get_ANA_PortA(packet_type,packet);
+			//logger->log_debug("Finished processing SERIAL_Get_ANA_PortA_ID.");
 			if(diagnostic_status.Level > NOTICE)
 			{
 				logger->log_warn(diagnostic_status.Description);
@@ -113,7 +132,9 @@ bool run_fastrate_code()
 		}
 		else if(packet_type == SERIAL_Get_ANA_PortB_ID)
 		{
+			//logger->log_debug("Starting to process SERIAL_Get_ANA_PortB_ID.");
 			diagnostic_status = process->new_serialmessage_Get_ANA_PortB(packet_type,packet);
+			//logger->log_debug("Finished processing SERIAL_Get_ANA_PortB_ID.");
 			if(diagnostic_status.Level > NOTICE)
 			{
 				logger->log_warn(diagnostic_status.Description);
@@ -122,7 +143,9 @@ bool run_fastrate_code()
 		}
 		else if(packet_type == SERIAL_Get_DIO_PortA_ID)
 		{
+			//logger->log_debug("Starting to process SERIAL_Get_DIO_PortA_ID.");
 			diagnostic_status = process->new_serialmessage_Get_DIO_PortA(packet_type,packet);
+			//logger->log_debug("Finished processing SERIAL_Get_DIO_PortA_ID.");
 			if(WARN_ON_SOFTWARE_NOT_IMPLEMENTED == 1)
 			{
 				if(diagnostic_status.Level > NOTICE)
@@ -134,7 +157,9 @@ bool run_fastrate_code()
 		}
 		else if(packet_type == SERIAL_Get_DIO_PortB_ID)
 		{
+			//logger->log_debug("Starting to process SERIAL_Get_DIO_PortB_ID.");
 			diagnostic_status = process->new_serialmessage_Get_DIO_PortB(packet_type,packet);
+			//logger->log_debug("Finished processing SERIAL_Get_DIO_PortB_ID.");
 			if(WARN_ON_SOFTWARE_NOT_IMPLEMENTED == 1)
 			{
 				if(diagnostic_status.Level > NOTICE)
@@ -146,7 +171,9 @@ bool run_fastrate_code()
 		}
 		else if(packet_type == SERIAL_Mode_ID)
 		{
+			//logger->log_debug("Starting to process SERIAL_Mode_ID.");
 			diagnostic_status = process->new_serialmessage_Get_Mode(packet_type,packet);
+			//logger->log_debug("Finished processing SERIAL_Mode_ID.");
 			if(diagnostic_status.Level > NOTICE)
 			{
 				logger->log_warn(diagnostic_status.Description);
@@ -168,6 +195,7 @@ bool run_fastrate_code()
 
 		}
 	}
+	//printf("Running process update.\n");
 	diagnostic_status = process->update(20);  //Need to change 20 to the actual dt!!!
 	if(diagnostic_status.Level > NOTICE)
 	{
@@ -176,6 +204,7 @@ bool run_fastrate_code()
 	}
 	//printf("diag: %s\n",diagnostic_status.Description.c_str());
 	std::vector<std::vector<unsigned char> > tx_buffers;
+	//logger->log_debug("Checking message output triggers.");
 	bool send = process->checkTriggers(tx_buffers);
 	if(send == true)
 	{
@@ -198,9 +227,12 @@ bool run_fastrate_code()
 			#endif
 		}
 	}
+	//logger->log_debug("Finished message output triggers.");
+
 	if((process->get_boardstate() == GPIO_MODE_RUNNING) &&
 	   (process->get_nodestate() == GPIO_MODE_RUNNING))
 	{
+		ready_to_arm = true;
 		std::vector<icarus_rover_v2::device> boards = process->get_boards();
 		for(int i = 0; i < boards.size(); i++)
 		{
@@ -258,13 +290,22 @@ bool run_fastrate_code()
 				}
 			}
 		}
+		//logger->log_debug("Finished reading ANA Ports.");
 	}
+	else
+	{
+		ready_to_arm = false;
+	}
+	std_msgs::Bool bool_ready_to_arm;
+	bool_ready_to_arm.data = ready_to_arm;
+	ready_to_arm_pub.publish(bool_ready_to_arm);
 
 	//diagnostic_pub.publish(diagnostic_status);
 	return true;
 }
 bool run_mediumrate_code()
 {
+	process->transmit_armedstate();
 	double time_since_last_message = measure_time_diff(ros::Time::now(),last_message_received_time);
 	if((time_since_last_message > 3.0) && (time_since_last_message < 6.0))
 	{
@@ -291,16 +332,26 @@ bool run_mediumrate_code()
 bool run_slowrate_code()
 {
 	{
+		icarus_rover_v2::diagnostic diag = diagnostic_status;
 		char tempstr[255];
 		sprintf(tempstr,"Board Mode: %s Node Mode: %s",
 			process->map_mode_ToString(process->get_boardstate()).c_str(),
 			process->map_mode_ToString(process->get_nodestate()).c_str());
-		logger->log_info(tempstr);
-		diagnostic_status.Diagnostic_Type = SOFTWARE;
-		diagnostic_status.Level = INFO;
-		diagnostic_status.Diagnostic_Message = NOERROR;
-		diagnostic_status.Description = tempstr;
-		diagnostic_pub.publish(diagnostic_status);
+		if((process->get_boardstate() == GPIO_MODE_RUNNING) &&
+			   (process->get_nodestate() == GPIO_MODE_RUNNING))
+		{
+			logger->log_info(tempstr);
+			diag.Level = INFO;
+		}
+		else
+		{
+			logger->log_warn(tempstr);
+			diag.Level = WARN;
+		}
+		diag.Diagnostic_Type = SOFTWARE;
+		diag.Diagnostic_Message = NOERROR;
+		diag.Description = tempstr;
+		diagnostic_pub.publish(diag);
 	}
 
 	if(device_initialized == true)
@@ -340,7 +391,7 @@ bool run_veryslowrate_code()
 	icarus_rover_v2::firmware fw;
 	fw.Generic_Node_Name = "gpio_node";
 	fw.Node_Name = node_name;
-	fw.Description = "Latest Rev: 13-Nov-2016";
+	fw.Description = "Latest Rev: 26-Nov-2016";
 	fw.Major_Release = GPIONODE_MAJOR_RELEASE;
 	fw.Minor_Release = GPIONODE_MINOR_RELEASE;
 	fw.Build_Number = GPIONODE_BUILD_NUMBER;
@@ -393,9 +444,15 @@ void PwmOutput_Callback(const icarus_rover_v2::pin::ConstPtr& msg)
 //Start Template Code: Functions
 void Command_Callback(const icarus_rover_v2::command::ConstPtr& msg)
 {
-	char tempstr[128];
-	sprintf(tempstr,"Got Command: %0x Level: %d",msg->Command,msg->Option1);
-	logger->log_info(tempstr);
+	//char tempstr[128];
+	//sprintf(tempstr,"Got Command: %0x Level: %d",msg->Command,msg->Option1);
+	//logger->log_info(tempstr);
+	diagnostic_status = process->new_commandmsg(
+			msg->Command,msg->Option1,msg->Option2,msg->Option3,msg->CommandText,msg->CommandText);
+	if(diagnostic_status.Level > NOTICE)
+	{
+		diagnostic_pub.publish(diagnostic_status);
+	}
 	if (msg->Command ==  DIAGNOSTIC_ID)
 	{
 		if(msg->Option1 == LEVEL1)
@@ -580,7 +637,10 @@ bool initialize(ros::NodeHandle nh)
     //End Template Code: Initialization and Parameters
 
     //Start User Code: Initialization and Parameters
+    ready_to_arm  = false;
     std::string sensor_spec_path;
+    std::string armed_state_topic = "/armed_state";
+    armed_state_sub = nh.subscribe<std_msgs::UInt8>(armed_state_topic,1000,ArmedState_Callback);
     std::string param_sensor_spec_path = node_name +"/sensor_spec_path";
 	if(nh.getParam(param_sensor_spec_path,sensor_spec_path) == false)
 	{
@@ -635,6 +695,9 @@ bool initialize(ros::NodeHandle nh)
 		tcflush(device_fid, TCIFLUSH);
 		tcsetattr(device_fid, TCSANOW, &options);
 	#endif
+
+	std::string ready_to_arm_topic = node_name + "/ready_to_arm";
+	ready_to_arm_pub = nh.advertise<std_msgs::Bool>(ready_to_arm_topic,1000);
     //Finish User Code: Initialization and Parameters
 
     //Start Template Code: Final Initialization.
@@ -694,19 +757,34 @@ void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg)
 	newdevice.BoardCount = msg->BoardCount;
 	newdevice.SensorCount = msg->SensorCount;
 	newdevice.pins = msg->pins;
-	diagnostic_status = process->new_devicemsg(newdevice);
+
+	if(device_initialized == false)
+	{
+		//printf("Starting to process device message for device: %s\n",newdevice.DeviceName.c_str());
+		for(int i = 0; i < newdevice.pins.size();i++)
+		{
+			printf("port: %s pin: %d def value: %d\n",newdevice.pins.at(i).Port.c_str(),newdevice.pins.at(i).Number,newdevice.pins.at(i).DefaultValue);
+		}
+		diagnostic_status = process->new_devicemsg(newdevice);
+		//printf("Processed device message.\n");
+	}
 	if(diagnostic_status.Level == FATAL)
 	{
 		logger->log_fatal(diagnostic_status.Description);
 		logger->log_fatal("This is a Safety Issue!  Killing Node.");
 		kill_node = true;
 	}
-	if((newdevice.DeviceName == hostname) and (device_initialized == false) and (process->is_finished_initializing() == true))
+	if((device_initialized == false) and (process->is_finished_initializing() == true))
 	{
+		//printf("Almost done.\n");
 		myDevice = process->get_mydevice();
+		//printf("Got device: %s\n",myDevice.DeviceName.c_str());
 		resourcemonitor = new ResourceMonitor(diagnostic_status,myDevice.Architecture,myDevice.DeviceName,node_name);
+		//logger->log_info("Resource Monitor Initialized.");
 		device_initialized = true;
+		logger->log_info("Device Initialized.");
 	}
+
 
 }
 //End Template Code: Functions
