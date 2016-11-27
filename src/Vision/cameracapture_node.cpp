@@ -16,8 +16,8 @@ void ResizeImage_Callback(const sensor_msgs::Image::ConstPtr& msg,const std::str
 	{
 		if(topicname == resample_maps.at(i).input_topic)
 		{
-			double width_scale_factor = (double)msg->width/(double)image_width;
-			double height_scale_factor = (double)msg->height/(double)image_height;
+			double width_scale_factor = (double)msg->width/(double)resample_maps.at(i).width;
+			double height_scale_factor = (double)msg->height/(double)resample_maps.at(i).height;
 
 			cv_bridge::CvImagePtr cv_ptr;
 			if(resample_maps.at(i).encoding == "rgb8")
@@ -388,33 +388,61 @@ bool initialize(ros::NodeHandle nh)
 	}
 	else if(operation_mode == "resample")
 	{
-		std::string topicname;
-		std::string imageencoding;
-		bool add_topic = true;
+
+		bool search_for_topics = true;
 		int topicindex = 1;
-		while(add_topic == true)
+		while(search_for_topics == true)
 		{
-			std::string param_encoding = node_name + "/image_encoding" + boost::lexical_cast<std::string>(topicindex);
-			if(nh.getParam(param_encoding,imageencoding) == false)
-			{
-				char tempstr[255];
-				sprintf(tempstr,"Didn't find image_encoding at: %s Not adding anymore.",param_encoding.c_str());
-				logger->log_info(tempstr);
-				add_topic = false;
-			}
+			std::string topicname;
+			std::string imageencoding;
+			int width;
+			int height;
+			bool add_new_topic = false;
 			std::string param_topic = node_name +"/image_topic" + boost::lexical_cast<std::string>(topicindex);
 			if(nh.getParam(param_topic,topicname) == false)
 			{
 				char tempstr[255];
 				sprintf(tempstr,"Didn't find image_topic at: %s Not adding anymore.",param_topic.c_str());
 				logger->log_info(tempstr);
-				add_topic = false;
+				add_new_topic = false;
+				search_for_topics = false;
 			}
 			else
 			{
+				add_new_topic = true;
+				search_for_topics = true;
+			}
+			if(add_new_topic == true)
+			{
+				std::string param_encoding = node_name + "/image_encoding" + boost::lexical_cast<std::string>(topicindex);
+				if(nh.getParam(param_encoding,imageencoding) == false)
+				{
+					char tempstr[255];
+					sprintf(tempstr,"Didn't find %s Exiting.",param_encoding.c_str());
+					logger->log_error(tempstr);
+					return false;
+				}
+				std::string param_width = node_name + "/image_width" + boost::lexical_cast<std::string>(topicindex);
+				if(nh.getParam(param_width,width) == false)
+				{
+					char tempstr[255];
+					sprintf(tempstr,"Didn't find %s Exiting.",param_width.c_str());
+					logger->log_error(tempstr);
+					return false;
+				}
+				std::string param_height = node_name + "/image_height" + boost::lexical_cast<std::string>(topicindex);
+				if(nh.getParam(param_height,height) == false)
+				{
+					char tempstr[255];
+					sprintf(tempstr,"Didn't find %s Exiting.",param_height.c_str());
+					logger->log_error(tempstr);
+					return false;
+				}
 				imageresample_map newmap;
 				newmap.input_topic = topicname;
 				newmap.encoding = imageencoding;
+				newmap.width = width;
+				newmap.height = height;
 				resample_maps.push_back(newmap);
 				topicindex = topicindex +1;
 			}

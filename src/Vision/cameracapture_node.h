@@ -29,6 +29,8 @@ struct imageresample_map
 	std::string encoding;
 	std::string output_topic;
 	ros::Publisher image_pub;
+	uint32_t width;
+	uint32_t height;
 };
 //End User Code: Data Structures
 

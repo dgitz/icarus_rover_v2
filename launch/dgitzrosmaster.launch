@@ -37,15 +37,17 @@
         <param name="operation_mode"        value="resample"/> <!-- capture,resample, -->
         <param name="image_topic1"          value="/asusxtioncamera/rgb/image_rect_color"/>
         <param name="image_encoding1"       value="rgb8"/>
+        <param name="image_width1"          value="300"/>
+        <param name="image_height1"          value="300"/>
         <param name="image_topic2"          value="/asusxtioncamera/depth/image_rect"/>
         <param name="image_encoding2"       value="32FC1"/>
-        <param name="image_width"           value="300"/>
-        <param name="image_height"          value="300"/>
+        <param name="image_width2"           value="300"/>
+        <param name="image_height2"          value="300"/>
     </node>
     <include file="$(find icarus_rover_v2)/launch/SensorLaunch/asusxtioncamera.launch" >
         <arg name="camera" value="asusxtioncamera"/>
         <arg name="depth_registration" value="true" />
         <arg name="color_depth_synchronization" value="true"/>
     </include>
-    <!-- <include file="$(find icarus_rover_v2)/launch/SensorLaunch/rgbdslam.launch" /> -->
+    <include file="$(find icarus_rover_v2)/launch/SensorLaunch/rgbdslam.launch" />
 </launch>
