@@ -1,7 +1,7 @@
 #include "cameracapture_node.h"
 //Start Template Code: Firmware Definition
 #define CAMERACAPTURENODE_MAJOR_RELEASE 2
-#define CAMERACAPTURENODE_MINOR_RELEASE 1
+#define CAMERACAPTURENODE_MINOR_RELEASE 2
 #define CAMERACAPTURENODE_BUILD_NUMBER 0
 //End Template Code: Firmware Definition
 //Start User Code: Functions
@@ -12,7 +12,53 @@ void Edge_Detect_Threshold_Callback(const std_msgs::UInt8::ConstPtr& msg)
 }
 void ResizeImage_Callback(const sensor_msgs::Image::ConstPtr& msg,const std::string &topicname)
 {
+	for(int i = 0; i < resample_maps.size();i++)
+	{
+		if(topicname == resample_maps.at(i).input_topic)
+		{
+			double width_scale_factor = (double)msg->width/(double)image_width;
+			double height_scale_factor = (double)msg->height/(double)image_height;
 
+			cv_bridge::CvImagePtr cv_ptr;
+			if(resample_maps.at(i).encoding == "rgb8")
+			{
+				cv_ptr = cv_bridge::toCvCopy(msg,sensor_msgs::image_encodings::BGR8);
+			}
+			else if(resample_maps.at(i).encoding == "32FC1")
+			{
+				cv_ptr = cv_bridge::toCvCopy(msg,sensor_msgs::image_encodings::TYPE_32FC1);
+			}
+			else
+			{
+				char tempstr[255];
+				sprintf(tempstr,"Image Encoding: %s Not Supported.",resample_maps.at(i).encoding.c_str());
+				logger->log_error(tempstr);
+				diagnostic_status.Diagnostic_Type = SOFTWARE;
+				diagnostic_status.Level = ERROR;
+				diagnostic_status.Diagnostic_Message = SENSORS;
+				diagnostic_status.Description = tempstr;
+				diagnostic_pub.publish(diagnostic_status);
+				return;
+
+			}
+			if(width_scale_factor > 1.0)
+			{
+				cv::resize(cv_ptr->image,cv_ptr->image,cv::Size(image_width,image_height),0,0,cv::INTER_LINEAR);
+			}
+			else
+			{
+				cv::resize(cv_ptr->image,cv_ptr->image,cv::Size(image_width,image_height),0,0,cv::INTER_AREA);
+			}
+
+			char tempstr[1024];
+			sprintf(tempstr,"Published resized image to topic: %s",resample_maps.at(i).output_topic.c_str());
+			logger->log_debug(tempstr);
+			resample_maps.at(i).image_pub.publish(cv_ptr->toImageMsg());
+			break;
+		}
+	}
+
+/*
 	logger->log_debug("Got Image.");
 	double width_scale_factor = (double)msg->width/(double)image_width;
 	double height_scale_factor = (double)msg->height/(double)image_height;
@@ -21,33 +67,28 @@ void ResizeImage_Callback(const sensor_msgs::Image::ConstPtr& msg,const std::str
 	resampled_image.encoding = msg->encoding;
 	resampled_image.header.stamp = ros::Time::now();
 	resampled_image.header.frame_id = "/world";
-
+	cv::Mat image;
 	cv::Size size(image_width,image_height);
-	cv::resize(msg->data,resampled_image.image,size);
-	resampled_image.image.step = 3*image_width;
+	cv::resize(msg->data,image,size,width_scale_factor,height_scale_factor,cv::INTER_AREA);
+	//cv::resize(msg->data,resampled_image.image,size);
+	//resampled_image.image.step = 3*image_width;
 	printf("Got Image from topic: %s byte size: %d height: %d width: %d step: %d scaled by: %f/%f "
 			"new height: %d new width: %d/%d new step: %d\n",
 			topicname.c_str(),msg->data.size(),msg->height,msg->width,msg->step,height_scale_factor,width_scale_factor,
-			resampled_image.image.rows,resampled_image.image.cols,image_width,resampled_image.image.step);
-	/*
+			image.rows,image.cols,image_width,image.step);
+
 	sensor_msgs::Image newimage;
-	newimage.data = resampled_image.image;
-	newimage.encoding = msg->encoding;
-	newimage.header = resampled_image.header;
-	newimage.width = image_width;
-	newimage.height = image_height;
-	newimage.step = 3*image_width;
+	newimage.data = image;
+	//newimage.encoding = msg->encoding;
+	//newimage.header.stamp = ros::Time::now();
+	//newimage.header.frame_id = "/world";
+	//newimage.width = image.rows;
+	//newimage.height = image.cols;
+	//newimage.step = 3*image.cols;
 
-
-	for(int i = 0; i < resample_maps.size();i++)
-	{
-		if(topicname == resample_maps.at(i).input_topic)
-		{
-			resample_maps.at(i).image_pub.publish(newimage);
-			break;
-		}
-	}
 	*/
+
+
 
 }
 bool capture_image(cv::VideoCapture cap)
@@ -150,7 +191,7 @@ bool run_veryslowrate_code()
 	icarus_rover_v2::firmware fw;
 	fw.Generic_Node_Name = "cameracapture_node";
 	fw.Node_Name = node_name;
-	fw.Description = "Latest Rev: 8-Nov-2016";
+	fw.Description = "Latest Rev: 27-Nov-2016";
 	fw.Major_Release = CAMERACAPTURENODE_MAJOR_RELEASE;
 	fw.Minor_Release = CAMERACAPTURENODE_MINOR_RELEASE;
 	fw.Build_Number = CAMERACAPTURENODE_BUILD_NUMBER;
@@ -348,27 +389,51 @@ bool initialize(ros::NodeHandle nh)
 	else if(operation_mode == "resample")
 	{
 		std::string topicname;
-		std::string param_topic1 = node_name +"/image_topic1";
-		if(nh.getParam(param_topic1,topicname) == false)
+		std::string imageencoding;
+		bool add_topic = true;
+		int topicindex = 1;
+		while(add_topic == true)
 		{
-			logger->log_fatal("Missing Parameter: image_topic1. Exiting");
-			return false;
+			std::string param_encoding = node_name + "/image_encoding" + boost::lexical_cast<std::string>(topicindex);
+			if(nh.getParam(param_encoding,imageencoding) == false)
+			{
+				char tempstr[255];
+				sprintf(tempstr,"Didn't find image_encoding at: %s Not adding anymore.",param_encoding.c_str());
+				logger->log_info(tempstr);
+				add_topic = false;
+			}
+			std::string param_topic = node_name +"/image_topic" + boost::lexical_cast<std::string>(topicindex);
+			if(nh.getParam(param_topic,topicname) == false)
+			{
+				char tempstr[255];
+				sprintf(tempstr,"Didn't find image_topic at: %s Not adding anymore.",param_topic.c_str());
+				logger->log_info(tempstr);
+				add_topic = false;
+			}
+			else
+			{
+				imageresample_map newmap;
+				newmap.input_topic = topicname;
+				newmap.encoding = imageencoding;
+				resample_maps.push_back(newmap);
+				topicindex = topicindex +1;
+			}
 		}
-		imageresample_map newmap;
-		newmap.input_topic = topicname;
-		resample_maps.push_back(newmap);
-
-
 		for(int i = 0; i < resample_maps.size();i++)
 		{
-
 			ros::Subscriber sub = nh.subscribe<sensor_msgs::Image>(resample_maps.at(i).input_topic,1000,boost::bind(ResizeImage_Callback,
 					_1,resample_maps.at(i).input_topic));
 			resample_maps.at(i).image_sub = sub;
-			std::string outputimage_topic = topicname + "_resized";
+			std::string outputimage_topic = resample_maps.at(i).input_topic + "_resized";
 			ros::Publisher pub = nh.advertise<sensor_msgs::Image>(outputimage_topic,1000);
 			resample_maps.at(i).output_topic = outputimage_topic;
 			resample_maps.at(i).image_pub = pub;
+			char tempstr[255];
+			sprintf(tempstr,"Added Topic Map input topic: %s with encoding: %s and linked to output topic: %s",
+					resample_maps.at(i).input_topic.c_str(),
+					resample_maps.at(i).encoding.c_str(),
+					resample_maps.at(i).output_topic.c_str());
+			logger->log_info(tempstr);
 		}
 
 	}

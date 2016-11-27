@@ -26,6 +26,7 @@ struct imageresample_map
 {
 	std::string input_topic;
 	ros::Subscriber image_sub;
+	std::string encoding;
 	std::string output_topic;
 	ros::Publisher image_pub;
 };
