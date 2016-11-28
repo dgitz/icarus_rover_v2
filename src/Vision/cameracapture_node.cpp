@@ -2,7 +2,7 @@
 //Start Template Code: Firmware Definition
 #define CAMERACAPTURENODE_MAJOR_RELEASE 2
 #define CAMERACAPTURENODE_MINOR_RELEASE 2
-#define CAMERACAPTURENODE_BUILD_NUMBER 0
+#define CAMERACAPTURENODE_BUILD_NUMBER 1
 //End Template Code: Firmware Definition
 //Start User Code: Functions
 void Edge_Detect_Threshold_Callback(const std_msgs::UInt8::ConstPtr& msg)
@@ -41,13 +41,14 @@ void ResizeImage_Callback(const sensor_msgs::Image::ConstPtr& msg,const std::str
 				return;
 
 			}
+
 			if(width_scale_factor > 1.0)
 			{
-				cv::resize(cv_ptr->image,cv_ptr->image,cv::Size(image_width,image_height),0,0,cv::INTER_LINEAR);
+				cv::resize(cv_ptr->image,cv_ptr->image,cv::Size(resample_maps.at(i).width,resample_maps.at(i).height),0,0,cv::INTER_LINEAR);
 			}
 			else
 			{
-				cv::resize(cv_ptr->image,cv_ptr->image,cv::Size(image_width,image_height),0,0,cv::INTER_AREA);
+				cv::resize(cv_ptr->image,cv_ptr->image,cv::Size(resample_maps.at(i).width,resample_maps.at(i).height),0,0,cv::INTER_AREA);
 			}
 
 			char tempstr[1024];
@@ -57,39 +58,6 @@ void ResizeImage_Callback(const sensor_msgs::Image::ConstPtr& msg,const std::str
 			break;
 		}
 	}
-
-/*
-	logger->log_debug("Got Image.");
-	double width_scale_factor = (double)msg->width/(double)image_width;
-	double height_scale_factor = (double)msg->height/(double)image_height;
-
-	cv_bridge::CvImage resampled_image;
-	resampled_image.encoding = msg->encoding;
-	resampled_image.header.stamp = ros::Time::now();
-	resampled_image.header.frame_id = "/world";
-	cv::Mat image;
-	cv::Size size(image_width,image_height);
-	cv::resize(msg->data,image,size,width_scale_factor,height_scale_factor,cv::INTER_AREA);
-	//cv::resize(msg->data,resampled_image.image,size);
-	//resampled_image.image.step = 3*image_width;
-	printf("Got Image from topic: %s byte size: %d height: %d width: %d step: %d scaled by: %f/%f "
-			"new height: %d new width: %d/%d new step: %d\n",
-			topicname.c_str(),msg->data.size(),msg->height,msg->width,msg->step,height_scale_factor,width_scale_factor,
-			image.rows,image.cols,image_width,image.step);
-
-	sensor_msgs::Image newimage;
-	newimage.data = image;
-	//newimage.encoding = msg->encoding;
-	//newimage.header.stamp = ros::Time::now();
-	//newimage.header.frame_id = "/world";
-	//newimage.width = image.rows;
-	//newimage.height = image.cols;
-	//newimage.step = 3*image.cols;
-
-	*/
-
-
-
 }
 bool capture_image(cv::VideoCapture cap)
 {
@@ -97,7 +65,7 @@ bool capture_image(cv::VideoCapture cap)
     cv_bridge::CvImage cv_image;
     cv::Mat frame;
     cap >> frame;
-    cv_image.encoding = "rgb8";
+    cv_image.encoding = "bgr8";
     cv_image.header.stamp = ros::Time::now();
     cv_image.header.frame_id = "/world";
     cv_image.image = frame;
@@ -106,9 +74,7 @@ bool capture_image(cv::VideoCapture cap)
     {
 		raw_image_pub.publish(cv_image.toImageMsg());
     }
-    char tempstr[128];
-    sprintf(tempstr,"Image Data size: %d",bytes);
-    logger->log_debug(tempstr);
+    /*
     cv::Mat src_gray;
     cv::cvtColor(frame,src_gray,cv::COLOR_BGR2GRAY);
     cv::Mat edge_image = visionhelper->Detect_Edges(src_gray,edge_detect_threshold);
@@ -120,7 +86,7 @@ bool capture_image(cv::VideoCapture cap)
 	proc_image.image = edge_image;
 
 	proc_image_pub.publish(proc_image.toImageMsg());
-
+	*/
     //Edge_Detection(src_gray,0,0);
     return true;
 }
@@ -191,7 +157,7 @@ bool run_veryslowrate_code()
 	icarus_rover_v2::firmware fw;
 	fw.Generic_Node_Name = "cameracapture_node";
 	fw.Node_Name = node_name;
-	fw.Description = "Latest Rev: 27-Nov-2016";
+	fw.Description = "Latest Rev: 28-Nov-2016";
 	fw.Major_Release = CAMERACAPTURENODE_MAJOR_RELEASE;
 	fw.Minor_Release = CAMERACAPTURENODE_MINOR_RELEASE;
 	fw.Build_Number = CAMERACAPTURENODE_BUILD_NUMBER;
@@ -334,18 +300,6 @@ bool initialize(ros::NodeHandle nh)
 	diagnostic_pub.publish(diagnostic_status);
 
 	visionhelper = new VisionHelper();
-	std::string param_image_width = node_name +"/image_width";
-	if(nh.getParam(param_image_width,image_width) == false)
-	{
-		logger->log_fatal("Missing Parameter: image_width. Exiting");
-		return false;
-	}
-	std::string param_image_height = node_name +"/image_height";
-	if(nh.getParam(param_image_height,image_height) == false)
-	{
-		logger->log_fatal("Missing Parameter: image_height. Exiting");
-		return false;
-	}
 
 	std::string param_operation_mode = node_name + "/operation_mode";
 	if(nh.getParam(param_operation_mode,operation_mode) == false)
@@ -355,6 +309,19 @@ bool initialize(ros::NodeHandle nh)
 	}
 	if(operation_mode == "capture")
 	{
+		std::string param_image_width = node_name +"/image_width";
+		if(nh.getParam(param_image_width,image_width) == false)
+		{
+			logger->log_fatal("Missing Parameter: image_width. Exiting");
+			return false;
+		}
+		std::string param_image_height = node_name +"/image_height";
+		if(nh.getParam(param_image_height,image_height) == false)
+		{
+			logger->log_fatal("Missing Parameter: image_height. Exiting");
+			return false;
+		}
+
 		int video_device;
 		std::string param_video_device = node_name +"/video_device";
 		if(nh.getParam(param_video_device,video_device) == false)
@@ -371,7 +338,6 @@ bool initialize(ros::NodeHandle nh)
 		std::string edge_detect_topic = "/" + node_name +"/edge_detect_threshold";
 		edge_threshold_sub = nh.subscribe<std_msgs::UInt8>(edge_detect_topic,1000,Edge_Detect_Threshold_Callback);
 		capture.open(video_device);
-		printf("here\n");
 		capture.set(CV_CAP_PROP_FRAME_WIDTH, image_width);
 		capture.set(CV_CAP_PROP_FRAME_HEIGHT, image_height);
 		compression_params.push_back(CV_IMWRITE_PNG_COMPRESSION); //CV_IMWRITE_PNG_COMPRESSION

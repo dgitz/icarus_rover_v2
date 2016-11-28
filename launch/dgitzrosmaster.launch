@@ -22,10 +22,12 @@
         <param name="ready_to_arm_topics" value="/dgitzrosmaster_diagnostic_node/ready_to_arm,/dgitzrosmaster_network_transceiver_node/ready_to_arm,/ControlModule1_gpio_node/ready_to_arm"/>
         <param name="user_armcommand_topic" value="/Diagnostics_GUI/user_armcommand"/>
     </node>
+    
     <node name="$(env ROS_HOSTNAME)_cameramanager_node" pkg="icarus_rover_v2" type="cameramanager_node"  output="screen">
         <param name="loop_rate"             value="500"/>
 	    <param name="verbosity_level"       value="DEBUG"/>
         <param name="require_pps_to_start"  value="false"/>    
+        <param name="task_monitor1"         value="rgbdslam"/>
     </node>
     <node name="$(env ROS_HOSTNAME)_diagnostic_node" pkg="icarus_rover_v2" type="diagnostic_node"  output="screen">
         <param name="loop_rate"             value="500"/>
@@ -39,7 +41,7 @@
         <param name="loop_rate"             value="500"/>
         <param name="verbosity_level"       value="DEBUG"/>
         <param name="require_pps_to_start"  value="false"/> 
-        <param name="operation_mode"        value="resample"/> <!-- capture,resample, -->
+        <param name="operation_mode"        value="resample"/> 
         <param name="image_topic1"          value="/asusxtioncamera/rgb/image_rect_color"/>
         <param name="image_encoding1"       value="rgb8"/>
         <param name="image_width1"          value="300"/>
@@ -54,5 +56,5 @@
         <arg name="depth_registration" value="true" />
         <arg name="color_depth_synchronization" value="true"/>
     </include>
-    <include file="$(find icarus_rover_v2)/launch/SensorLaunch/rgbdslam.launch" />
+    <include file="$(find icarus_rover_v2)/launch/SensorLaunch/rgbdslam.launch" /> 
 </launch>

@@ -31,6 +31,12 @@ struct Task
 	int16_t CPU_Perc;
 	int64_t RAM_MB;
 	uint8_t last_diagnostic_level;
+	std::string resource_topic;
+	std::string diagnostic_topic;
+	std::string heartbeat_topic;
+	ros::Subscriber resource_sub;
+	ros::Subscriber diagnostic_sub;
+	ros::Subscriber heartbeat_sub;
 };
 struct DeviceResourceAvailable
 {
@@ -53,9 +59,9 @@ void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg);
 
 //Start User Code: Function Prototypes
 icarus_rover_v2::diagnostic rescan_topics(icarus_rover_v2::diagnostic diag);
-void heartbeat_Callback(const icarus_rover_v2::heartbeat::ConstPtr& msg);
+void heartbeat_Callback(const icarus_rover_v2::heartbeat::ConstPtr& msg,const std::string &topicname);
 void resource_Callback(const icarus_rover_v2::resource::ConstPtr& msg,const std::string &topicname);
-void diagnostic_Callback(const icarus_rover_v2::diagnostic::ConstPtr& msg);
+void diagnostic_Callback(const icarus_rover_v2::diagnostic::ConstPtr& msg,const std::string &topicname);
 bool check_tasks();
 //End User Code: Function Prototypes
 
@@ -103,12 +109,14 @@ ofstream ram_used_file;
 ofstream cpu_used_file;
 ofstream ram_free_file;
 ofstream cpu_free_file;
+/*
 std::vector<std::string> resource_topics;
 std::vector<std::string> diagnostic_topics;
 std::vector<std::string> heartbeat_topics;
 std::vector<ros::Subscriber> heartbeat_subs;
 std::vector<ros::Subscriber> resource_subs;
 std::vector<ros::Subscriber> diagnostic_subs;
+*/
 //End User Code: Define Global Variables
 
 #endif

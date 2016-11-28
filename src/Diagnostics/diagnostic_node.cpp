@@ -11,87 +11,61 @@ icarus_rover_v2::diagnostic rescan_topics(icarus_rover_v2::diagnostic diag)
 	int found_new_topics = 0;
 	ros::master::V_TopicInfo master_topics;
 	ros::master::getTopics(master_topics);
+	std::vector<std::string> topics_to_add;
 	for (ros::master::V_TopicInfo::iterator it = master_topics.begin() ; it != master_topics.end(); it++)
 	{
 		const ros::master::TopicInfo& info = *it;
-		if(info.datatype == "icarus_rover_v2/resource")
+		if(info.datatype == "icarus_rover_v2/diagnostic")
 		{
-			bool found = true;
-			for(int i = 0; i < resource_topics.size();i++)
+			bool add_me = true;
+			for(int i = 0; i < TaskList.size();i++)
 			{
-				if(resource_topics.at(i) == info.name)
+				if(TaskList.at(i).diagnostic_topic == info.name)
 				{
-					found = false;
+					add_me = false;
 					break;
 				}
 			}
-			if(found == true)
+			if(add_me == true)
 			{
-				found_new_topics++;
-				resource_topics.push_back(info.name);
-				char tempstr[255];
-				sprintf(tempstr,"Subscribing to resource topic: %s",info.name.c_str());
-				logger->log_info(tempstr);
-				//ros::Subscriber sub = n->subscribe<icarus_rover_v2::resource>(info.name,1000,resource_Callback);
-				ros::Subscriber sub = n->subscribe<icarus_rover_v2::resource>(info.name,1000,
-						boost::bind(resource_Callback,_1,info.name));
-				resource_subs.push_back(sub);
+				topics_to_add.push_back(info.name);
 			}
 		}
-		else if(info.datatype == "icarus_rover_v2/diagnostic")
-		{
-			bool found = true;
-			for(int i = 0; i < diagnostic_topics.size();i++)
-			{
-				if(diagnostic_topics.at(i) == info.name)
-				{
-					found = false;
-					break;
-				}
-			}
-			if(found == true)
-			{
-				found_new_topics++;
-				diagnostic_topics.push_back(info.name);
-				char tempstr[255];
-				sprintf(tempstr,"Subscribing to diagnostic topic: %s",info.name.c_str());
-				logger->log_info(tempstr);
-				ros::Subscriber sub = n->subscribe<icarus_rover_v2::diagnostic>(info.name,1000,diagnostic_Callback);
-				diagnostic_subs.push_back(sub);
-			}
-		}
-		else if(info.datatype == "icarus_rover_v2/heartbeat")
-		{
-			bool found = true;
-			for(int i = 0; i < heartbeat_topics.size();i++)
-			{
-				if(heartbeat_topics.at(i) == info.name)
-				{
-					found = false;
-					break;
-				}
-			}
-			if(found == true)
-			{
-				found_new_topics++;
-				heartbeat_topics.push_back(info.name);
-				char tempstr[255];
-				sprintf(tempstr,"Subscribing to heartbeat topic: %s",info.name.c_str());
-				logger->log_info(tempstr);
-				ros::Subscriber sub = n->subscribe<icarus_rover_v2::heartbeat>(info.name,1000,heartbeat_Callback);
-				heartbeat_subs.push_back(sub);
-			}
-		}
+	}
+	for(int i = 0; i < topics_to_add.size(); i++)
+	{
+		std::string taskname = topics_to_add.at(i).substr(1,topics_to_add.at(i).find("/diagnostic")-1);
+		printf("Adding Task: %s\n",taskname.c_str());
+		Task newTask;
+		newTask.Task_Name = taskname;
+		newTask.diagnostic_topic = topics_to_add.at(i);
+		newTask.heartbeat_topic = "/" + taskname + "/heartbeat";
+		newTask.resource_topic = "/" + taskname + "/resource";
+		newTask.CPU_Perc = 0;
+		newTask.PID = -1;
+		newTask.RAM_MB = 0;
+		newTask.last_diagnostic_level = WARN;
+		ros::Subscriber resource_sub = n->subscribe<icarus_rover_v2::resource>(newTask.resource_topic,1000,boost::bind(resource_Callback,_1,newTask.resource_topic));
+		newTask.resource_sub = resource_sub;
+		ros::Subscriber diagnostic_sub = n->subscribe<icarus_rover_v2::diagnostic>(newTask.diagnostic_topic,1000,boost::bind(diagnostic_Callback,_1,newTask.diagnostic_topic));
+		newTask.diagnostic_sub = diagnostic_sub;
+		ros::Subscriber heartbeat_sub = n->subscribe<icarus_rover_v2::heartbeat>(newTask.heartbeat_topic,1000,boost::bind(heartbeat_Callback,_1,newTask.heartbeat_topic));
+		newTask.heartbeat_sub = heartbeat_sub;
+		newTask.last_diagnostic_received = ros::Time::now();
+		newTask.last_heartbeat_received = ros::Time::now();
+		newTask.last_resource_received = ros::Time::now();
+		TaskList.push_back(newTask);
 
 	}
+
 	diag.Diagnostic_Type = SOFTWARE;
 	diag.Level = INFO;
 	diag.Diagnostic_Message = NOERROR;
 
 	char tempstr[255];
-	if(found_new_topics > 0)
+	if(topics_to_add.size() > 0)
 	{
-		sprintf(tempstr,"Rescanned and found %d new topics.",found_new_topics);
+		sprintf(tempstr,"Rescanned and found %d new topics.",topics_to_add.size());
 	}
 	else
 	{
@@ -101,11 +75,11 @@ icarus_rover_v2::diagnostic rescan_topics(icarus_rover_v2::diagnostic diag)
 	diag.Description = tempstr;
 	return diag;
 }
-void heartbeat_Callback(const icarus_rover_v2::heartbeat::ConstPtr& msg)
+void heartbeat_Callback(const icarus_rover_v2::heartbeat::ConstPtr& msg,const std::string &topicname)
 {
 	for(int i = 0; i < TaskList.size(); i++)
 	{
-		if(	TaskList.at(i).Task_Name == msg->Node_Name)
+		if(	TaskList.at(i).heartbeat_topic == topicname)
 		{
 			TaskList.at(i).last_heartbeat_received = msg->stamp;
 		}
@@ -444,7 +418,7 @@ void resource_Callback(const icarus_rover_v2::resource::ConstPtr& msg,const std:
 	for(int i = 0; i < TaskList.size();i++)
 	{
 		//printf("------------------\r\n%s/%s\r\n",TaskList.at(i).Task_Name.c_str(),msg->Node_Name.c_str());
-		if(	TaskList.at(i).Task_Name == msg->Node_Name)
+		if(	TaskList.at(i).resource_topic == topicname)
 		{
 			TaskList.at(i).last_resource_received = ros::Time::now();//measure_time_diff(ros::Time::now(),boot_time);
 			TaskList.at(i).CPU_Perc = msg->CPU_Perc;
@@ -476,31 +450,16 @@ void resource_Callback(const icarus_rover_v2::resource::ConstPtr& msg,const std:
 		}
 	}
 }
-void diagnostic_Callback(const icarus_rover_v2::diagnostic::ConstPtr& msg)
+void diagnostic_Callback(const icarus_rover_v2::diagnostic::ConstPtr& msg,const std::string &topicname)
 {
 	bool add_me = true;
 	for(int i = 0; i < TaskList.size();i++)
 	{
-		if(	TaskList.at(i).Task_Name == msg->Node_Name)
+		if(	TaskList.at(i).diagnostic_topic == topicname)
 		{
-			add_me = false;
-
 			TaskList.at(i).last_diagnostic_received = ros::Time::now();//measure_time_diff(ros::Time::now(),boot_time);
 			TaskList.at(i).last_diagnostic_level = msg->Level;
 		}
-	}
-	if(add_me == true)
-	{
-		Task newTask;
-		newTask.Task_Name = msg->Node_Name;
-		newTask.last_diagnostic_received = ros::Time::now();//measure_time_diff(ros::Time::now(),boot_time);
-		newTask.last_heartbeat_received = ros::Time::now();
-		newTask.last_resource_received = ros::Time::now();
-		newTask.last_diagnostic_level = msg->Level;
-		newTask.CPU_Perc = 0;
-		newTask.RAM_MB = 0;
-		newTask.PID = -1;
-		TaskList.push_back(newTask);
 	}
 	//sprintf(tempstr,"TaskList size: %d",TaskList.size());
 	//logger->log_debug(tempstr);

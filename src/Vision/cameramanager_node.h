@@ -29,6 +29,9 @@ struct CameraTask
 	ResourceMonitor resourcemonitor;
 	ros::Publisher resource_pub;
 	icarus_rover_v2::resource resources_used;
+	icarus_rover_v2::diagnostic diagnostic;
+	ros::Publisher diagnostic_pub;
+	ros::Publisher heartbeat_pub;
 };
 //End User Code: Data Structures
 

@@ -46,6 +46,12 @@ bool run_mediumrate_code()
 	diagnostic_status.Diagnostic_Message = NOERROR;
 	diagnostic_status.Description = "Node Executing.";
 	diagnostic_pub.publish(diagnostic_status);
+	for(int i = 0; i < external_tasks.size();i++)
+	{
+		icarus_rover_v2::heartbeat newbeat;
+		newbeat.stamp = ros::Time::now();
+		external_tasks.at(i).heartbeat_pub.publish(newbeat);
+	}
 	//logger->log_debug("Running medium rate code.");
 	return true;
 }
@@ -73,9 +79,10 @@ bool run_slowrate_code()
 		}
 		for(int i = 0; i < external_tasks.size();i++)
 		{
-			resource_diagnostic = external_tasks.at(i).resourcemonitor.update();
+			external_tasks.at(i).diagnostic = external_tasks.at(i).resourcemonitor.update();
 			if(resource_diagnostic.Diagnostic_Message == DEVICE_NOT_AVAILABLE)
 			{
+				external_tasks.at(i).diagnostic_pub.publish(external_tasks.at(i).diagnostic);
 				//diagnostic_pub.publish(resource_diagnostic);
 				logger->log_warn(resource_diagnostic.Description.c_str());
 				char tempstr[255];
@@ -87,12 +94,14 @@ bool run_slowrate_code()
 			{
 				external_tasks.at(i).resources_used = external_tasks.at(i).resourcemonitor.get_resourceused();
 				external_tasks.at(i).resource_pub.publish(external_tasks.at(i).resources_used);
-				//diagnostic_pub.publish(resource_diagnostic);
+				external_tasks.at(i).diagnostic_pub.publish(external_tasks.at(i).diagnostic);
 			}
 			else if(resource_diagnostic.Level <= NOTICE)
 			{
+
 				external_tasks.at(i).resources_used = external_tasks.at(i).resourcemonitor.get_resourceused();
 				external_tasks.at(i).resource_pub.publish(external_tasks.at(i).resources_used);
+				external_tasks.at(i).diagnostic_pub.publish(external_tasks.at(i).diagnostic);
 			}
 		}
 	}
@@ -244,12 +253,47 @@ bool initialize(ros::NodeHandle nh)
 	diagnostic_status.Description = "Node Initializing";
 	diagnostic_pub.publish(diagnostic_status);
 
-	CameraTask newcameratask;
-	newcameratask.TaskName = "rgbdslam";
-	std::string topic_cameratask_resource = "/" + newcameratask.TaskName + "/resource";
-	ros::Publisher pub = nh.advertise<icarus_rover_v2::resource>(topic_cameratask_resource,1000);
-	newcameratask.resource_pub = pub;
-	external_tasks.push_back(newcameratask);
+	bool search_for_topics = true;
+	int topicindex = 1;
+	while(search_for_topics == true)
+	{
+		std::string taskname;
+		bool add_new_topic = false;
+		std::string param_task = node_name +"/task_monitor" + boost::lexical_cast<std::string>(topicindex);
+		if(nh.getParam(param_task,taskname) == false)
+		{
+			char tempstr[255];
+			sprintf(tempstr,"Didn't find %s Not adding anymore.",param_task.c_str());
+			logger->log_info(tempstr);
+			add_new_topic = false;
+			search_for_topics = false;
+		}
+		else
+		{
+			add_new_topic = true;
+			search_for_topics = true;
+		}
+		if(add_new_topic == true)
+		{
+			CameraTask newcameratask;
+			newcameratask.TaskName = taskname;
+			std::string topic_cameratask_resource = "/" + newcameratask.TaskName + "/resource";
+			ros::Publisher r_pub = nh.advertise<icarus_rover_v2::resource>(topic_cameratask_resource,1000);
+			newcameratask.resource_pub = r_pub;
+			std::string topic_cameratask_diagnostic = "/" + newcameratask.TaskName + "/diagnostic";
+			ros::Publisher d_pub = nh.advertise<icarus_rover_v2::diagnostic>(topic_cameratask_diagnostic,1000);
+			std::string topic_cameratask_heartbeat = "/" + newcameratask.TaskName + "/heartbeat";
+			ros::Publisher h_pub = nh.advertise<icarus_rover_v2::heartbeat>(topic_cameratask_heartbeat,1000);
+			newcameratask.diagnostic_pub = d_pub;
+			newcameratask.heartbeat_pub = h_pub;
+			newcameratask.diagnostic = diagnostic_status;
+			newcameratask.diagnostic.Node_Name = newcameratask.TaskName;
+			newcameratask.diagnostic.Description = "External Task Initializing";
+			external_tasks.push_back(newcameratask);
+			topicindex++;
+		}
+	}
+
 
 
 
@@ -277,7 +321,7 @@ void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg)
 		resourcemonitor = new ResourceMonitor(diagnostic_status,myDevice.Architecture,myDevice.DeviceName,node_name);
 		for(int i = 0; i < external_tasks.size();i++)
 		{
-			external_tasks.at(i).resourcemonitor.init(diagnostic_status,myDevice.Architecture,myDevice.DeviceName,external_tasks.at(i).TaskName);
+			external_tasks.at(i).resourcemonitor.init(external_tasks.at(i).diagnostic,myDevice.Architecture,myDevice.DeviceName,external_tasks.at(i).TaskName);
 		}
 		device_initialized = true;
 	}

@@ -134,7 +134,6 @@ void PPS_Callback(const std_msgs::Bool::ConstPtr& msg)
 //Start Template Code: Functions
 void Command_Callback(const icarus_rover_v2::command::ConstPtr& msg)
 {
-	logger->log_info("Got command");
 	if (msg->Command ==  DIAGNOSTIC_ID)
 	{
 		if(msg->Option1 == LEVEL1)
