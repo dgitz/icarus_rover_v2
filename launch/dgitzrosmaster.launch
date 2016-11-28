@@ -22,6 +22,11 @@
         <param name="ready_to_arm_topics" value="/dgitzrosmaster_diagnostic_node/ready_to_arm,/dgitzrosmaster_network_transceiver_node/ready_to_arm,/ControlModule1_gpio_node/ready_to_arm"/>
         <param name="user_armcommand_topic" value="/Diagnostics_GUI/user_armcommand"/>
     </node>
+    <node name="$(env ROS_HOSTNAME)_cameramanager_node" pkg="icarus_rover_v2" type="cameramanager_node"  output="screen">
+        <param name="loop_rate"             value="500"/>
+	    <param name="verbosity_level"       value="DEBUG"/>
+        <param name="require_pps_to_start"  value="false"/>    
+    </node>
     <node name="$(env ROS_HOSTNAME)_diagnostic_node" pkg="icarus_rover_v2" type="diagnostic_node"  output="screen">
         <param name="loop_rate"             value="500"/>
         <param name="verbosity_level"       value="INFO"/>

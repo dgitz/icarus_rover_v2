@@ -23,6 +23,7 @@ class ResourceMonitor
 public:
     ResourceMonitor();
     ResourceMonitor(icarus_rover_v2::diagnostic diag,std::string DeviceArchitecture,std::string HostName,std::string TaskName);
+    void init(icarus_rover_v2::diagnostic diag,std::string DeviceArchitecture,std::string HostName,std::string TaskName);
     icarus_rover_v2::diagnostic update();
     int get_CPUUsed_perc();  //Helper function, not needed in application.
     int get_RAMUsed_kB(); //Helper function, not needed in application.

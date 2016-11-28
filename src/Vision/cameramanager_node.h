@@ -23,6 +23,13 @@
 //End User Code: Includes
 
 //Start User Code: Data Structures
+struct CameraTask
+{
+	std::string TaskName;
+	ResourceMonitor resourcemonitor;
+	ros::Publisher resource_pub;
+	icarus_rover_v2::resource resources_used;
+};
 //End User Code: Data Structures
 
 //Start Template Code: Function Prototypes
@@ -70,6 +77,7 @@ icarus_rover_v2::heartbeat beat;
 //End Template Code: Define Global Variables
 
 //Start User Code: Define Global Variables
+std::vector<CameraTask> external_tasks;
 //End User Code: Define Global Variables
 
 

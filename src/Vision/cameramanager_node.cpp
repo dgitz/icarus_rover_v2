@@ -1,7 +1,7 @@
 #include "cameramanager_node.h"
 //Start Template Code: Firmware Definition
 #define CAMERAMANAGERNODE_MAJOR_RELEASE 1
-#define CAMERAMANAGERNODE_MINOR_RELEASE 1
+#define CAMERAMANAGERNODE_MINOR_RELEASE 2
 #define CAMERAMANAGERNODE_BUILD_NUMBER 0
 //End Template Code: Firmware Definition
 //Start User Code: Functions
@@ -71,6 +71,30 @@ bool run_slowrate_code()
 			resources_used = resourcemonitor->get_resourceused();
 			resource_pub.publish(resources_used);
 		}
+		for(int i = 0; i < external_tasks.size();i++)
+		{
+			resource_diagnostic = external_tasks.at(i).resourcemonitor.update();
+			if(resource_diagnostic.Diagnostic_Message == DEVICE_NOT_AVAILABLE)
+			{
+				//diagnostic_pub.publish(resource_diagnostic);
+				logger->log_warn(resource_diagnostic.Description.c_str());
+				char tempstr[255];
+				sprintf(tempstr,"Couldn't read resources used for external task: %s",external_tasks.at(i).TaskName.c_str());
+				logger->log_warn(tempstr);
+
+			}
+			else if(resource_diagnostic.Level >= WARN)
+			{
+				external_tasks.at(i).resources_used = external_tasks.at(i).resourcemonitor.get_resourceused();
+				external_tasks.at(i).resource_pub.publish(external_tasks.at(i).resources_used);
+				//diagnostic_pub.publish(resource_diagnostic);
+			}
+			else if(resource_diagnostic.Level <= NOTICE)
+			{
+				external_tasks.at(i).resources_used = external_tasks.at(i).resourcemonitor.get_resourceused();
+				external_tasks.at(i).resource_pub.publish(external_tasks.at(i).resources_used);
+			}
+		}
 	}
 	return true;
 }
@@ -81,7 +105,7 @@ bool run_veryslowrate_code()
 	icarus_rover_v2::firmware fw;
 	fw.Generic_Node_Name = "cameramanager_node";
 	fw.Node_Name = node_name;
-	fw.Description = "Latest Rev: 7-Nov-2016";
+	fw.Description = "Latest Rev: 27-Nov-2016";
 	fw.Major_Release = CAMERAMANAGERNODE_MAJOR_RELEASE;
 	fw.Minor_Release = CAMERAMANAGERNODE_MINOR_RELEASE;
 	fw.Build_Number = CAMERAMANAGERNODE_BUILD_NUMBER;
@@ -220,6 +244,14 @@ bool initialize(ros::NodeHandle nh)
 	diagnostic_status.Description = "Node Initializing";
 	diagnostic_pub.publish(diagnostic_status);
 
+	CameraTask newcameratask;
+	newcameratask.TaskName = "rgbdslam";
+	std::string topic_cameratask_resource = "/" + newcameratask.TaskName + "/resource";
+	ros::Publisher pub = nh.advertise<icarus_rover_v2::resource>(topic_cameratask_resource,1000);
+	newcameratask.resource_pub = pub;
+	external_tasks.push_back(newcameratask);
+
+
 
 	//End User Code: Initialization, Parameters and Topics
     logger->log_info("Initialized!");
@@ -243,6 +275,10 @@ void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg)
 	{
 		myDevice = newdevice;
 		resourcemonitor = new ResourceMonitor(diagnostic_status,myDevice.Architecture,myDevice.DeviceName,node_name);
+		for(int i = 0; i < external_tasks.size();i++)
+		{
+			external_tasks.at(i).resourcemonitor.init(diagnostic_status,myDevice.Architecture,myDevice.DeviceName,external_tasks.at(i).TaskName);
+		}
 		device_initialized = true;
 	}
 }

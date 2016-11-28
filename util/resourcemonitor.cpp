@@ -24,9 +24,38 @@ ResourceMonitor::ResourceMonitor(icarus_rover_v2::diagnostic diag,std::string de
         RAM_Used_Column = 5;
     }
 
-	Task_Name = task_name;
+	Task_Name = task_name.substr(1,task_name.size());
 	Host_Name = host_name;
 	generic_node_name = Task_Name.substr(Host_Name.length()+2,Task_Name.size());
+	PID = -1;
+	CPUUsed_perc = -1;
+	RAMUsed_kB = -1;
+	shortterm_buffer_index = 0;
+	diagnostic = diag;
+}
+void ResourceMonitor::init(icarus_rover_v2::diagnostic diag,std::string device_architecture,std::string host_name,std::string task_name)
+{
+	CPU_Used_Column = -1;
+	RAM_Used_Column = -1;
+	Device_Architecture = device_architecture;
+	if(Device_Architecture == "x86_64")
+	{
+		CPU_Used_Column = 9;
+		RAM_Used_Column = 5;
+	}
+	else if(Device_Architecture == "armv7l")
+	{
+		CPU_Used_Column = 9;
+		RAM_Used_Column = 5;
+	}
+    else if(Device_Architecture == "arm_64")
+    {
+        CPU_Used_Column = 9;
+        RAM_Used_Column = 5;
+    }
+	Task_Name = task_name;
+	Host_Name = host_name;
+	generic_node_name = Task_Name;
 	PID = -1;
 	CPUUsed_perc = -1;
 	RAMUsed_kB = -1;
@@ -156,9 +185,10 @@ icarus_rover_v2::diagnostic ResourceMonitor::update()
 		std::string local_node_name;
 		local_node_name = Task_Name.substr(1,Task_Name.size());
 		std::string pid_filename;
-		pid_filename = "/home/robot/logs/output/PID" + Task_Name;
+		pid_filename = "/home/robot/logs/output/PID/" + Task_Name;
 		char tempstr1[130];
-		sprintf(tempstr1,"ps aux | grep __name:=%s > %s",local_node_name.c_str(),pid_filename.c_str());
+		//sprintf(tempstr1,"ps aux | grep __name:=%s > %s",local_node_name.c_str(),pid_filename.c_str());
+		sprintf(tempstr1,"ps aux | grep \"%s\" > %s",local_node_name.c_str(),pid_filename.c_str());
 		system(tempstr1);
 		ifstream myfile1;
 		myfile1.open(pid_filename.c_str());

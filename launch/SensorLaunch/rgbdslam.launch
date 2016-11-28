@@ -5,7 +5,7 @@
 <launch>
   <node pkg="rgbdslam" type="rgbdslam" name="rgbdslam" cwd="node" required="true" output="screen"> 
     <!-- Input data settings-->
-    <param name="/config/use_gui" value="true"/>
+    <param name="/config/use_gui" value="false"/>
     <param name="concurrent_node_construction" value="false" />
     <param name="config/topic_image_mono"              value="/asusxtioncamera/rgb/image_rect_color"/> 
     <param name="config/topic_image_depth"             value="/asusxtioncamera/depth/image_rect"/>
