@@ -248,7 +248,7 @@ int main(int argc, char **argv)
     logger->log_notice("Node Finished cleanly.  Disabling all Actuators.");
     diagnostic_status = process->enable_actuators(false);
     diagnostic_pub.publish(diagnostic_status);
-
+    logger->log_notice("Node Finished Safely.");
     return 0;
 }
 

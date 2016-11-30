@@ -645,6 +645,7 @@ int main(int argc, char **argv)
 		ros::spinOnce();
 		loop_rate.sleep();
     }
+    logger->log_notice("Node Finished Safely.");
     return 0;
 }
 //End Main Loop

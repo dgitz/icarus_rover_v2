@@ -2,7 +2,7 @@
 //Start Template Code: Firmware Definition
 #define CAMERACAPTURENODE_MAJOR_RELEASE 2
 #define CAMERACAPTURENODE_MINOR_RELEASE 2
-#define CAMERACAPTURENODE_BUILD_NUMBER 1
+#define CAMERACAPTURENODE_BUILD_NUMBER 2
 //End Template Code: Firmware Definition
 //Start User Code: Functions
 void Edge_Detect_Threshold_Callback(const std_msgs::UInt8::ConstPtr& msg)
@@ -157,7 +157,7 @@ bool run_veryslowrate_code()
 	icarus_rover_v2::firmware fw;
 	fw.Generic_Node_Name = "cameracapture_node";
 	fw.Node_Name = node_name;
-	fw.Description = "Latest Rev: 28-Nov-2016";
+	fw.Description = "Latest Rev: 30-Nov-2016";
 	fw.Major_Release = CAMERACAPTURENODE_MAJOR_RELEASE;
 	fw.Minor_Release = CAMERACAPTURENODE_MINOR_RELEASE;
 	fw.Build_Number = CAMERACAPTURENODE_BUILD_NUMBER;
@@ -185,7 +185,7 @@ int main(int argc, char **argv)
 		diagnostic_status.Diagnostic_Message = INITIALIZING_ERROR;
 		diagnostic_status.Description = "Node Initializing Error.";
 		diagnostic_pub.publish(diagnostic_status);
-        return 0; 
+		kill_node = 1;
     }
     ros::Rate loop_rate(rate);
     now = ros::Time::now();
@@ -193,7 +193,7 @@ int main(int argc, char **argv)
     medium_timer = now;
     slow_timer = now;
     veryslow_timer = now;
-    while (ros::ok())
+    while (ros::ok() && (kill_node == 0))
     {
     	bool ok_to_start = false;
 		if(require_pps_to_start == false) { ok_to_start = true;}
@@ -237,12 +237,15 @@ int main(int argc, char **argv)
     {
     	capture.release();
     }
+    logger->log_notice("Node Finished Safely.");
     return 0;
 }
 //End Main Loop
 bool initialize(ros::NodeHandle nh)
 {
     //Start Template Code: Initialization, Parameters and Topics
+	kill_node = 0;
+	signal(SIGINT,signalinterrupt_handler);
     myDevice.DeviceName = "";
     myDevice.Architecture = "";
     device_initialized = false;
@@ -460,5 +463,9 @@ double measure_time_diff(ros::Time timer_a, ros::Time timer_b)
 {
 	ros::Duration etime = timer_a - timer_b;
 	return etime.toSec();
+}
+void signalinterrupt_handler(int sig)
+{
+	kill_node = 1;
 }
 //End Template Code: Functions

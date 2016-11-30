@@ -2,7 +2,7 @@
 //Start Template Code: Firmware Definition
 #define NETWORKTRANSCEIVERNODE_MAJOR_RELEASE 2
 #define NETWORKTRANSCEIVERNODE_MINOR_RELEASE 1
-#define NETWORKTRANSCEIVERNODE_BUILD_NUMBER 0
+#define NETWORKTRANSCEIVERNODE_BUILD_NUMBER 1
 //End Template Code: Firmware Definition
 //Start User Code: Functions
 bool check_remoteHeartbeats()
@@ -190,11 +190,12 @@ void device_Callback(const icarus_rover_v2::device::ConstPtr& msg)
 }
 void process_udp_receive()
 {
-	while(1)
+	while(kill_node == 0)
 	{
 		char buf[RECV_BUFFERSIZE] = {0};
 		socklen_t addrlen = sizeof(remote_addr);
 		int recvlen = recvfrom(recvdevice_sock,buf,RECV_BUFFERSIZE,0,(struct sockaddr *)&remote_addr,&addrlen);
+		if(recvlen < 0) { continue; }
 		buf[recvlen] = '\0';
 		std::string buffer(buf);
 		std::vector<std::string> items;
@@ -332,6 +333,10 @@ bool initialize_recvsocket()
 		logger->log_error("Failed to create recv socket. Exiting.");
 		return false;
 	}
+	struct timeval timeout;
+	timeout.tv_sec = 1;
+	timeout.tv_usec = 0;
+	setsockopt(recvdevice_sock,SOL_SOCKET,SO_RCVTIMEO,(char *)&timeout,sizeof(struct timeval));
 	memset((char*)&my_addr,0,sizeof(my_addr));
 	my_addr.sin_family = AF_INET;
 	my_addr.sin_addr.s_addr = htonl(INADDR_ANY);
@@ -431,7 +436,7 @@ bool run_veryslowrate_code()
 	icarus_rover_v2::firmware fw;
 	fw.Generic_Node_Name = "network_transceiver_Node";
 	fw.Node_Name = node_name;
-	fw.Description = "Latest Rev: 7-Nov-2016";
+	fw.Description = "Latest Rev: 30-Nov-2016";
 	fw.Major_Release = NETWORKTRANSCEIVERNODE_MAJOR_RELEASE;
 	fw.Minor_Release = NETWORKTRANSCEIVERNODE_MINOR_RELEASE;
 	fw.Build_Number = NETWORKTRANSCEIVERNODE_BUILD_NUMBER;
@@ -459,7 +464,7 @@ int main(int argc, char **argv)
 		diagnostic_status.Diagnostic_Message = INITIALIZING_ERROR;
 		diagnostic_status.Description = "Node Initializing Error.";
 		diagnostic_pub.publish(diagnostic_status);
-        return 0; 
+        kill_node = 1;
     }
     ros::Rate loop_rate(rate);
     now = ros::Time::now();
@@ -471,7 +476,7 @@ int main(int argc, char **argv)
 
 	int counter = 0;
 	boost::thread process_udpreceive_thread(&process_udp_receive);
-    while (ros::ok())
+    while (ros::ok() && (kill_node == 0))
     {
     	bool ok_to_start = false;
 		if(require_pps_to_start == false) { ok_to_start = true;}
@@ -512,15 +517,19 @@ int main(int argc, char **argv)
 		ros::spinOnce();
 		loop_rate.sleep();
     }
+    kill_node = true;
     process_udpreceive_thread.join();
     close(recvdevice_sock);
     close(senddevice_sock);
+    logger->log_notice("Node Finished Safely.");
     return 0;
 }
 
 bool initializenode()
 {
     //Start Template Code: Initialization and Parameters
+	kill_node = 0;
+	signal(SIGINT,signalinterrupt_handler);
     myDevice.DeviceName = "";
     myDevice.Architecture = "";
     device_initialized = false;
@@ -672,5 +681,9 @@ void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg)
 		resourcemonitor = new ResourceMonitor(diagnostic_status,myDevice.Architecture,myDevice.DeviceName,node_name);
 		device_initialized = true;
 	}
+}
+void signalinterrupt_handler(int sig)
+{
+	kill_node = 1;
 }
 //End Template Code: Functions

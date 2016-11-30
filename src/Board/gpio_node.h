@@ -16,6 +16,7 @@
 #include <icarus_rover_v2/command.h>
 #include <icarus_rover_v2/firmware.h>
 #include <icarus_rover_v2/heartbeat.h>
+#include <signal.h>
 //End Template Code: Includes
 
 //Start User Code: Includes
@@ -27,6 +28,7 @@
 #include <fcntl.h>			//Used for UART
 #include <termios.h>		//Used for UART
 #include <boost/thread.hpp>
+
 
 //End User Code: Includes
 //Start User Code: Defines
@@ -49,6 +51,7 @@ std::vector<icarus_rover_v2::diagnostic> check_program_variables();
 
 //Start User Code: Function Prototypes
 void ArmedState_Callback(const std_msgs::UInt8::ConstPtr& msg);
+void signalinterrupt_handler(int sig);
 //End User Code: Function Prototypes
 
 
@@ -81,7 +84,7 @@ ros::Time boot_time;
 double mtime;
 bool device_initialized;
 char hostname[1024];
-bool kill_node;
+volatile sig_atomic_t kill_node;
 //End Template Code: Define Global Variables
 
 //Start User Code: Define Global Variables
@@ -113,5 +116,6 @@ int packet_length;
 ros::Subscriber armed_state_sub;
 bool ready_to_arm;
 ros::Publisher ready_to_arm_pub;
+
 //End User Code: Define Global Variables
 #endif

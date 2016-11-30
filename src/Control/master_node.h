@@ -17,6 +17,7 @@
 #include <icarus_rover_v2/command.h>
 #include <icarus_rover_v2/firmware.h>
 #include <icarus_rover_v2/heartbeat.h>
+#include <signal.h>
 //End Template Code: Includes
 //Start User Code: Includes
 #include <boost/algorithm/string.hpp>
@@ -46,6 +47,7 @@ std::vector<icarus_rover_v2::diagnostic> check_program_variables();
 //Start User Code: Function Prototypes
 double read_device_temperature();
 bool parse_devicefile(TiXmlDocument doc);
+void signalinterrupt_handler(int sig);
 //End User Code: Function Prototypes
 
 //Start Template Code: Global Variables
@@ -81,6 +83,7 @@ std::vector<std::string> NodeList;
 double device_temperature;
 ros::Publisher device_resourceavail_pub;
 ofstream process_file;
+volatile sig_atomic_t kill_node;
 //End User Code: Global Variables
 
 #endif

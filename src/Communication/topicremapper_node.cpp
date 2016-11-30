@@ -2,7 +2,7 @@
 //Start Template Code: Firmware Definition
 #define TOPICREMAPPERNODE_MAJOR_RELEASE 2
 #define TOPICREMAPPERNODE_MINOR_RELEASE 1
-#define TOPICREMAPPERNODE_BUILD_NUMBER 1
+#define TOPICREMAPPERNODE_BUILD_NUMBER 2
 //End Template Code: Firmware Definition
 //Start User Code: Functions
 bool run_fastrate_code()
@@ -56,7 +56,7 @@ bool run_veryslowrate_code()
 	icarus_rover_v2::firmware fw;
 	fw.Generic_Node_Name = "topicremapper_node";
 	fw.Node_Name = node_name;
-	fw.Description = "Latest Rev: 15-Nov-2016";
+	fw.Description = "Latest Rev: 30-Nov-2016";
 	fw.Major_Release = TOPICREMAPPERNODE_MAJOR_RELEASE;
 	fw.Minor_Release = TOPICREMAPPERNODE_MINOR_RELEASE;
 	fw.Build_Number = TOPICREMAPPERNODE_BUILD_NUMBER;
@@ -277,7 +277,7 @@ int main(int argc, char **argv)
 		diagnostic_status.Diagnostic_Message = INITIALIZING_ERROR;
 		diagnostic_status.Description = "Node Initializing Error.";
 		diagnostic_pub.publish(diagnostic_status);
-        return 0; 
+        kill_node = 1;
     }
     ros::Rate loop_rate(rate);
     now = ros::Time::now();
@@ -285,7 +285,7 @@ int main(int argc, char **argv)
     medium_timer = now;
     slow_timer = now;
     veryslow_timer = now;
-    while (ros::ok())
+    while (ros::ok() && (kill_node == 0))
     {
     	bool ok_to_start = false;
 		if(require_pps_to_start == false) { ok_to_start = true;}
@@ -329,12 +329,15 @@ int main(int argc, char **argv)
 		loop_rate.sleep();
 
     }
+    logger->log_notice("Node Finished Safely.");
     return 0;
 }
 
 bool initialize(ros::NodeHandle nh)
 {
     //Start Template Code: Initialization and Parameters
+	kill_node = 0;
+	signal(SIGINT,signalinterrupt_handler);
     myDevice.DeviceName = "";
     myDevice.Architecture = "";
     device_initialized = false;
@@ -471,5 +474,9 @@ void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg)
 		resourcemonitor = new ResourceMonitor(diagnostic_status,myDevice.Architecture,myDevice.DeviceName,node_name);
 		device_initialized = true;
 	}
+}
+void signalinterrupt_handler(int sig)
+{
+	kill_node = 1;
 }
 //End Template Code: Functions

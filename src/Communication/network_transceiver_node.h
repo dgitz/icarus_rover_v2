@@ -15,6 +15,7 @@
 #include <icarus_rover_v2/resource.h>
 #include <icarus_rover_v2/firmware.h>
 #include <icarus_rover_v2/heartbeat.h>
+#include <signal.h>
 //End Template Code: Includes
 
 //Start User Code: Includes
@@ -43,6 +44,7 @@ bool run_veryslowrate_code();
 double measure_time_diff(ros::Time timer_a, ros::Time tiber_b);
 void PPS_Callback(const std_msgs::Bool::ConstPtr& msg);
 void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg);
+void signalinterrupt_handler(int sig);
 //Stop Template Code: Function Prototypes
 
 //Start User Code: Function Prototypes
@@ -85,6 +87,7 @@ bool device_initialized;
 char hostname[1024];
 ros::Publisher heartbeat_pub;
 icarus_rover_v2::heartbeat beat;
+volatile sig_atomic_t kill_node;
 //End Template Code: Define Global Variables
 
 //Start User Code: Define Global Variables

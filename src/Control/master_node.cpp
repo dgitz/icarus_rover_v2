@@ -2,7 +2,7 @@
 //Start Template Code: Firmware Definition
 #define MASTERNODE_MAJOR_RELEASE 1
 #define MASTERNODE_MINOR_RELEASE 2
-#define MASTERNODE_BUILD_NUMBER 1
+#define MASTERNODE_BUILD_NUMBER 2
 //End Template Code: Firmware Definition
 //Start User Code: Functions
 double read_device_temperature()
@@ -105,7 +105,7 @@ bool run_veryslowrate_code()
 	icarus_rover_v2::firmware fw;
 	fw.Generic_Node_Name = "master_node";
 	fw.Node_Name = node_name;
-	fw.Description = "Latest Rev: 2-Nov-2016";
+	fw.Description = "Latest Rev: 30-Nov-2016";
 	fw.Major_Release = MASTERNODE_MAJOR_RELEASE;
 	fw.Minor_Release = MASTERNODE_MINOR_RELEASE;
 	fw.Build_Number = MASTERNODE_BUILD_NUMBER;
@@ -174,6 +174,7 @@ int main(int argc, char **argv)
 		diagnostic_status.Diagnostic_Message = INITIALIZING_ERROR;
 		diagnostic_status.Description = "Node Initializing Error.";
 		diagnostic_pub.publish(diagnostic_status);
+		kill_node = 1;
         return 0; 
     }
     ros::Rate loop_rate(rate);
@@ -182,7 +183,7 @@ int main(int argc, char **argv)
     medium_timer = now;
     slow_timer = now;
     veryslow_timer = now;
-    while (ros::ok())
+    while (ros::ok() && (kill_node == 0))
     {
     	bool ok_to_start = false;
 		if(require_pps_to_start == false) { ok_to_start = true;}
@@ -222,12 +223,16 @@ int main(int argc, char **argv)
 		ros::spinOnce();
 		loop_rate.sleep();
     }
+    printf("Finished\n");
+    logger->log_notice("Node Finished Safely.");
     return 0;
 }
 
 bool initialize(ros::NodeHandle nh)
 {
 	//Start Template Code: Initialization and Parameters
+	kill_node = 0;
+	signal(SIGINT,signalinterrupt_handler);
 	rate = 1;
 	verbosity_level = "";
 	require_pps_to_start = false;
@@ -292,7 +297,7 @@ bool initialize(ros::NodeHandle nh)
     //End Template Code: Initialization and Parameters
 
     //Start User Code: Initialization and Parameters
-    sleep(3.0);  //Wait for all nodes ot start
+
     TiXmlDocument device_doc("/home/robot/config/DeviceFile.xml");
     bool devicefile_loaded = device_doc.LoadFile();
     if(devicefile_loaded == true)
@@ -548,5 +553,9 @@ std::vector<icarus_rover_v2::diagnostic> check_program_variables()
 		diaglist.push_back(diag);
 	}
 	return diaglist;
+}
+void signalinterrupt_handler(int sig)
+{
+	kill_node = 1;
 }
 //End Template Code: Function Definitions

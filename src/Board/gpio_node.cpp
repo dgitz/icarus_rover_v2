@@ -2,13 +2,13 @@
 //Start Template Code: Firmware Definition
 #define GPIONODE_MAJOR_RELEASE 3
 #define GPIONODE_MINOR_RELEASE 1
-#define GPIONODE_BUILD_NUMBER 2
+#define GPIONODE_BUILD_NUMBER 3
 //End Template Code: Firmware Definition
 //Start User Code: Functions
 
 void process_message_thread()
 {
-	while(1)
+	while(kill_node == 0)
 	{
 		unsigned char rx_buffer[64];
 		
@@ -74,7 +74,6 @@ void ArmedState_Callback(const std_msgs::UInt8::ConstPtr& msg)
 }
 bool run_fastrate_code()
 {
-
 	uint8_t armed_command = process->get_armedcommand();
 	uint8_t armed_state = process->get_armedcommand();
 	if(new_message == true)
@@ -391,7 +390,7 @@ bool run_veryslowrate_code()
 	icarus_rover_v2::firmware fw;
 	fw.Generic_Node_Name = "gpio_node";
 	fw.Node_Name = node_name;
-	fw.Description = "Latest Rev: 26-Nov-2016";
+	fw.Description = "Latest Rev: 30-Nov-2016";
 	fw.Major_Release = GPIONODE_MAJOR_RELEASE;
 	fw.Minor_Release = GPIONODE_MINOR_RELEASE;
 	fw.Build_Number = GPIONODE_BUILD_NUMBER;
@@ -514,12 +513,8 @@ int main(int argc, char **argv)
     	boost::thread processmessage_thread(&process_message_thread);
 
 	#endif
-    while (ros::ok())
+    while (ros::ok() && (kill_node == 0))
     {
-		if(kill_node == true)
-		{
-			return 0;
-		}
     	bool ok_to_start = false;
 		if(require_pps_to_start == false) { ok_to_start = true;}
 		else if(require_pps_to_start == true && received_pps == true) { ok_to_start = true; }
@@ -565,13 +560,16 @@ int main(int argc, char **argv)
 
     	processmessage_thread.join();
 	#endif
+    kill_node = true;
+    logger->log_notice("Node Finished Safely.");
     return 0;
 }
 
 bool initialize(ros::NodeHandle nh)
 {
     //Start Template Code: Initialization and Parameters
-	kill_node = false;
+	kill_node = 0;
+    signal(SIGINT,signalinterrupt_handler);
     myDevice.DeviceName = "";
     myDevice.Architecture = "";
     myDevice.DeviceParent = "";
@@ -637,7 +635,9 @@ bool initialize(ros::NodeHandle nh)
     //End Template Code: Initialization and Parameters
 
     //Start User Code: Initialization and Parameters
+
     ready_to_arm  = false;
+
     std::string sensor_spec_path;
     std::string armed_state_topic = "/armed_state";
     armed_state_sub = nh.subscribe<std_msgs::UInt8>(armed_state_topic,1000,ArmedState_Callback);
@@ -786,5 +786,9 @@ void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg)
 	}
 
 
+}
+void signalinterrupt_handler(int sig)
+{
+	kill_node = 1;
 }
 //End Template Code: Functions
