@@ -3,7 +3,6 @@
 #define TFHELPERNODE_MAJOR_RELEASE 1
 #define TFHELPERNODE_MINOR_RELEASE 1
 #define TFHELPERNODE_BUILD_NUMBER 0
-//End Template Code: Firmware Definition
 //Start User Code: Functions
 void joint_callback(const std_msgs::Float32::ConstPtr& msg,const std::string &topic)
 {
@@ -102,18 +101,44 @@ bool run_veryslowrate_code()
 	firmware_pub.publish(fw);
 	return true;
 }
+std::vector<icarus_rover_v2::diagnostic> check_program_variables()
+{
+}
 //End User Code: Functions
 
-//Start Template Code: Functions
+void Command_Callback(const icarus_rover_v2::command::ConstPtr& msg)
+{
+	logger->log_info("Got command");
+	if (msg->Command ==  DIAGNOSTIC_ID)
+	{
+		if(msg->Option1 == LEVEL1)
+		{
+			diagnostic_pub.publish(diagnostic_status);
+		}
+		else if(msg->Option1 == LEVEL2)
+		{
+			std::vector<icarus_rover_v2::diagnostic> diaglist = check_program_variables();
+			for(int i = 0; i < diaglist.size();i++) { diagnostic_pub.publish(diaglist.at(i)); }
+		}
+		else if(msg->Option1 == LEVEL3)
+		{
+		}
+		else if(msg->Option1 == LEVEL4)
+		{
+		}
+		else
+		{
+			logger->log_error("Shouldn't get here!!!");
+		}
+	}
+}
+//End User Code: Functions
+
 int main(int argc, char **argv)
 {
- 
 	node_name = "tfhelper_node";
-
-
     ros::init(argc, argv, node_name);
     node_name = ros::this_node::getName();
-
     ros::NodeHandle n;
     
     if(initialize(n) == false)
@@ -124,16 +149,16 @@ int main(int argc, char **argv)
 		diagnostic_status.Diagnostic_Message = INITIALIZING_ERROR;
 		diagnostic_status.Description = "Node Initializing Error.";
 		diagnostic_pub.publish(diagnostic_status);
-        return 0; 
+		kill_node = 1;
     }
     ros::Rate loop_rate(rate);
+	boot_time = ros::Time::now();
     now = ros::Time::now();
     fast_timer = now;
     medium_timer = now;
     slow_timer = now;
     veryslow_timer = now;
-
-    while (ros::ok())
+    while (ros::ok() && (kill_node == 0))
     {
     	bool ok_to_start = false;
 		if(require_pps_to_start == false) { ok_to_start = true;}
@@ -179,7 +204,9 @@ int main(int argc, char **argv)
 
 bool initialize(ros::NodeHandle nh)
 {
-    //Start Template Code: Initialization and Parameters
+    //Start Template Code: Initialization, Parameters and Topics
+	kill_node = 0;
+	signal(SIGINT,signalinterrupt_handler);
     myDevice.DeviceName = "";
     myDevice.Architecture = "";
     device_initialized = false;
@@ -227,6 +254,7 @@ bool initialize(ros::NodeHandle nh)
     device_sub = nh.subscribe<icarus_rover_v2::device>(device_topic,1000,Device_Callback);
 
     pps_sub = nh.subscribe<std_msgs::Bool>("/pps",1000,PPS_Callback);  //This is a pps consumer.
+    command_sub = nh.subscribe<icarus_rover_v2::command>("/command",1000,Command_Callback);
     std::string param_require_pps_to_start = node_name +"/require_pps_to_start";
     if(nh.getParam(param_require_pps_to_start,require_pps_to_start) == false)
 	{
@@ -283,6 +311,7 @@ bool initialize(ros::NodeHandle nh)
     return true;
     //End Template Code: Finish Initialization.
 }
+//Start Template Code: Functions
 double measure_time_diff(ros::Time timer_a, ros::Time timer_b)
 {
 	ros::Duration etime = timer_a - timer_b;
@@ -290,7 +319,7 @@ double measure_time_diff(ros::Time timer_a, ros::Time timer_b)
 }
 void PPS_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
-	logger->log_info("Got pps");
+	//logger->log_info("Got pps");
 	received_pps = true;
 }
 void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg)
@@ -305,5 +334,9 @@ void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg)
 		resourcemonitor = new ResourceMonitor(diagnostic_status,myDevice.Architecture,myDevice.DeviceName,node_name);
 		device_initialized = true;
 	}
+}
+void signalinterrupt_handler(int sig)
+{
+	kill_node = 1;
 }
 //End Template Code: Functions

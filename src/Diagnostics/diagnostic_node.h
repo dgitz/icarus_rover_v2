@@ -7,15 +7,22 @@
 #include "resourcemonitor.h"
 #include <boost/algorithm/string.hpp>
 #include <std_msgs/Bool.h>
+#include <std_msgs/UInt8.h>
 #include <sstream>
 #include <stdlib.h>
-#include "Definitions.h"
+#include <icarus_rover_v2/Definitions.h>
 #include <icarus_rover_v2/diagnostic.h>
 #include <icarus_rover_v2/device.h>
 #include <icarus_rover_v2/resource.h>
+#include <icarus_rover_v2/pin.h>
+#include <icarus_rover_v2/command.h>
 #include <icarus_rover_v2/firmware.h>
 #include <icarus_rover_v2/heartbeat.h>
+#include <signal.h>
 //End Template Code: Includes
+
+//Start User Code: Defines
+//End User Code: Defines
 
 //Start User Code: Includes
 //End User Code: Includes
@@ -55,7 +62,10 @@ bool run_veryslowrate_code();
 double measure_time_diff(ros::Time timer_a, ros::Time tiber_b);
 void PPS_Callback(const std_msgs::Bool::ConstPtr& msg);
 void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg);
-//Stop Template Code: Function Prototypes
+void Command_Callback(const icarus_rover_v2::command& msg);
+std::vector<icarus_rover_v2::diagnostic> check_program_variables();
+void signalinterrupt_handler(int sig);
+//End Template Code: Function Prototypes
 
 //Start User Code: Function Prototypes
 icarus_rover_v2::diagnostic rescan_topics(icarus_rover_v2::diagnostic diag);
@@ -67,31 +77,33 @@ bool check_tasks();
 
 //Start Template Code: Define Global variables
 std::string node_name;
-int rate = 1;
-std::string verbosity_level = "";
-ros::Publisher pps_pub;  //Not used as this is a pps consumer only.
+int rate;
+std::string verbosity_level;
 ros::Subscriber pps_sub;  
 ros::Subscriber device_sub;
 ros::Publisher diagnostic_pub;
 ros::Publisher resource_pub;
+ros::Subscriber command_sub;
 ros::Publisher firmware_pub;
 icarus_rover_v2::diagnostic diagnostic_status;
 icarus_rover_v2::device myDevice;
 icarus_rover_v2::resource resources_used;
 Logger *logger;
 ResourceMonitor *resourcemonitor;
-bool require_pps_to_start = false;
-bool received_pps = false;
-ros::Time fast_timer; //50 Hz
-ros::Time medium_timer; //10 Hz
-ros::Time slow_timer; //1 Hz
-ros::Time veryslow_timer; //1 Hz
+bool require_pps_to_start;
+bool received_pps;
+ros::Time fast_timer;
+ros::Time medium_timer;
+ros::Time slow_timer;
+ros::Time veryslow_timer;
 ros::Time now;
+ros::Time boot_time;
 double mtime;
 bool device_initialized;
 char hostname[1024];
 ros::Publisher heartbeat_pub;
 icarus_rover_v2::heartbeat beat;
+volatile sig_atomic_t kill_node;
 //End Template Code: Define Global Variables
 
 //Start User Code: Define Global Variables
@@ -102,21 +114,11 @@ std::vector<Task> TaskList;
 std::vector<DeviceResourceAvailable> DeviceResourceAvailableList;
 int RAM_usage_threshold_MB;
 int CPU_usage_threshold_percent;
-ros::Time boot_time;
 int Log_Resources_Used;
 bool logging_initialized;
 ofstream ram_used_file;
 ofstream cpu_used_file;
 ofstream ram_free_file;
 ofstream cpu_free_file;
-/*
-std::vector<std::string> resource_topics;
-std::vector<std::string> diagnostic_topics;
-std::vector<std::string> heartbeat_topics;
-std::vector<ros::Subscriber> heartbeat_subs;
-std::vector<ros::Subscriber> resource_subs;
-std::vector<ros::Subscriber> diagnostic_subs;
-*/
 //End User Code: Define Global Variables
-
 #endif

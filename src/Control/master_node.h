@@ -7,9 +7,10 @@
 #include "resourcemonitor.h"
 #include <boost/algorithm/string.hpp>
 #include <std_msgs/Bool.h>
+#include <std_msgs/UInt8.h>
 #include <sstream>
 #include <stdlib.h>
-#include "Definitions.h"
+#include <icarus_rover_v2/Definitions.h>
 #include <icarus_rover_v2/diagnostic.h>
 #include <icarus_rover_v2/device.h>
 #include <icarus_rover_v2/resource.h>
@@ -19,6 +20,7 @@
 #include <icarus_rover_v2/heartbeat.h>
 #include <signal.h>
 //End Template Code: Includes
+
 //Start User Code: Includes
 #include <boost/algorithm/string.hpp>
 #include <tinyxml.h>
@@ -37,30 +39,32 @@ bool run_slowrate_code();
 bool run_veryslowrate_code();
 double measure_time_diff(ros::Time timer_a, ros::Time tiber_b);
 void PPS_Callback(const std_msgs::Bool::ConstPtr& msg);
+void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg);
 void Command_Callback(const icarus_rover_v2::command& msg);
-void print_myDevice();
-void print_otherDevices();
-void publish_deviceinfo();
 std::vector<icarus_rover_v2::diagnostic> check_program_variables();
+void signalinterrupt_handler(int sig);
 //End Template Code: Function Prototypes
 
 //Start User Code: Function Prototypes
+void print_myDevice();
+void print_otherDevices();
+void publish_deviceinfo();
 double read_device_temperature();
 bool parse_devicefile(TiXmlDocument doc);
-void signalinterrupt_handler(int sig);
 //End User Code: Function Prototypes
 
-//Start Template Code: Global Variables
+
+//Start Template Code: Define Global variables
 std::string node_name;
 int rate;
 std::string verbosity_level;
-ros::Subscriber pps_sub;
-ros::Subscriber command_sub;
+ros::Subscriber pps_sub;  
+ros::Publisher device_pub;
 ros::Publisher diagnostic_pub;
 ros::Publisher resource_pub;
+ros::Subscriber command_sub;
 ros::Publisher firmware_pub;
 icarus_rover_v2::diagnostic diagnostic_status;
-ros::Publisher device_pub;
 icarus_rover_v2::resource resources_used;
 Logger *logger;
 ResourceMonitor *resourcemonitor;
@@ -71,10 +75,14 @@ ros::Time medium_timer;
 ros::Time slow_timer;
 ros::Time veryslow_timer;
 ros::Time now;
+ros::Time boot_time;
 double mtime;
+bool device_initialized;
+char hostname[1024];
 ros::Publisher heartbeat_pub;
 icarus_rover_v2::heartbeat beat;
-//End Template Code: Global Variables
+volatile sig_atomic_t kill_node;
+//End Template Code: Define Global Variables
 
 //Start User Code: Global Variables
 icarus_rover_v2::device myDevice;
@@ -83,7 +91,5 @@ std::vector<std::string> NodeList;
 double device_temperature;
 ros::Publisher device_resourceavail_pub;
 ofstream process_file;
-volatile sig_atomic_t kill_node;
 //End User Code: Global Variables
-
 #endif

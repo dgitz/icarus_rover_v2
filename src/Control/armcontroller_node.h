@@ -7,14 +7,18 @@
 #include "resourcemonitor.h"
 #include <boost/algorithm/string.hpp>
 #include <std_msgs/Bool.h>
+#include <std_msgs/UInt8.h>
 #include <sstream>
 #include <stdlib.h>
-#include "Definitions.h"
+#include <icarus_rover_v2/Definitions.h>
 #include <icarus_rover_v2/diagnostic.h>
 #include <icarus_rover_v2/device.h>
 #include <icarus_rover_v2/resource.h>
+#include <icarus_rover_v2/pin.h>
+#include <icarus_rover_v2/command.h>
 #include <icarus_rover_v2/firmware.h>
 #include <icarus_rover_v2/heartbeat.h>
+#include <signal.h>
 //End Template Code: Includes
 
 //Start User Code: Defines
@@ -44,7 +48,10 @@ bool run_veryslowrate_code();
 double measure_time_diff(ros::Time timer_a, ros::Time tiber_b);
 void PPS_Callback(const std_msgs::Bool::ConstPtr& msg);
 void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg);
-//Stop Template Code: Function Prototypes
+void Command_Callback(const icarus_rover_v2::command& msg);
+std::vector<icarus_rover_v2::diagnostic> check_program_variables();
+void signalinterrupt_handler(int sig);
+//End Template Code: Function Prototypes
 
 //Start User Code: Function Prototypes
 //End User Code: Function Prototypes
@@ -59,6 +66,7 @@ ros::Subscriber pps_sub;
 ros::Subscriber device_sub;
 ros::Publisher diagnostic_pub;
 ros::Publisher resource_pub;
+ros::Subscriber command_sub;
 ros::Publisher firmware_pub;
 icarus_rover_v2::diagnostic diagnostic_status;
 icarus_rover_v2::device myDevice;
@@ -77,6 +85,7 @@ bool device_initialized;
 char hostname[1024];
 ros::Publisher heartbeat_pub;
 icarus_rover_v2::heartbeat beat;
+volatile sig_atomic_t kill_node;
 //End Template Code: Define Global Variables
 
 //Start User Code: Define Global Variables

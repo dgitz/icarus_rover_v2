@@ -1,9 +1,9 @@
 #include "command_node.h"
-//Start Template Code: Firmware Definition
+//Start User Code: Firmware Definition
 #define COMMANDNODE_MAJOR_RELEASE 2
 #define COMMANDNODE_MINOR_RELEASE 2
-#define COMMANDNODE_BUILD_NUMBER 1
-//End Template Code: Firmware Definition
+#define COMMANDNODE_BUILD_NUMBER 3
+//End User Code: Firmware Definition
 //Start User Code: Functions
 void ReadyToArm_Callback(const std_msgs::Bool::ConstPtr& msg,const std::string &topic)
 {
@@ -95,25 +95,47 @@ bool run_veryslowrate_code()
 	icarus_rover_v2::firmware fw;
 	fw.Generic_Node_Name = "command_node";
 	fw.Node_Name = node_name;
-	fw.Description = "Latest Rev: 23-Nov-2016";
+	fw.Description = "Latest Rev: 30-Nov-2016";
 	fw.Major_Release = COMMANDNODE_MAJOR_RELEASE;
 	fw.Minor_Release = COMMANDNODE_MINOR_RELEASE;
 	fw.Build_Number = COMMANDNODE_BUILD_NUMBER;
 	firmware_pub.publish(fw);
 	return true;
 }
+
+std::vector<icarus_rover_v2::diagnostic> check_program_variables()
+{
+	std::vector<icarus_rover_v2::diagnostic> diaglist;
+	bool status = true;
+	logger->log_notice("checking program variables.");
+
+	if(status == true)
+	{
+		icarus_rover_v2::diagnostic diag=diagnostic_status;
+		diag.Diagnostic_Type = SOFTWARE;
+		diag.Level = NOTICE;
+		diag.Diagnostic_Message = DIAGNOSTIC_PASSED;
+		diag.Description = "Checked Program Variables -> PASSED";
+		diaglist.push_back(diag);
+	}
+	else
+	{
+		icarus_rover_v2::diagnostic diag=diagnostic_status;
+		diag.Diagnostic_Type = SOFTWARE;
+		diag.Level = WARN;
+		diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
+		diag.Description = "Checked Program Variables -> FAILED";
+		diaglist.push_back(diag);
+	}
+	return diaglist;
+}
 //End User Code: Functions
 
-//Start Template Code: Functions
 int main(int argc, char **argv)
 {
- 
 	node_name = "command_node";
-
-
     ros::init(argc, argv, node_name);
     node_name = ros::this_node::getName();
-
     ros::NodeHandle n;
     
     if(initialize(n) == false)
@@ -124,24 +146,20 @@ int main(int argc, char **argv)
 		diagnostic_status.Diagnostic_Message = INITIALIZING_ERROR;
 		diagnostic_status.Description = "Node Initializing Error.";
 		diagnostic_pub.publish(diagnostic_status);
-        return 0; 
+		kill_node = 1;
     }
     ros::Rate loop_rate(rate);
+	boot_time = ros::Time::now();
     now = ros::Time::now();
     fast_timer = now;
     medium_timer = now;
     slow_timer = now;
     veryslow_timer = now;
-    while (ros::ok())
+    while (ros::ok() && (kill_node == 0))
     {
-    	if(kill_node == true)
-    	{
-    		return 0;
-    	}
     	bool ok_to_start = false;
 		if(require_pps_to_start == false) { ok_to_start = true;}
 		else if(require_pps_to_start == true && received_pps == true) { ok_to_start = true; }
-
     	if(ok_to_start == true)
     	{
     		now = ros::Time::now();
@@ -183,9 +201,9 @@ int main(int argc, char **argv)
 
 bool initialize(ros::NodeHandle nh)
 {
-    //Start Template Code: Initialization and Parameters
-	kill_node = false;
-	process = new CommandNodeProcess;
+    //Start Template Code: Initialization, Parameters and Topics
+	kill_node = 0;
+	signal(SIGINT,signalinterrupt_handler);
     myDevice.DeviceName = "";
     myDevice.Architecture = "";
     device_initialized = false;
@@ -225,7 +243,6 @@ bool initialize(ros::NodeHandle nh)
         logger->log_warn("Missing Parameter: loop_rate.");
         return false;
     }
-
     
     std::string heartbeat_topic = "/" + node_name + "/heartbeat";
     heartbeat_pub = nh.advertise<icarus_rover_v2::heartbeat>(heartbeat_topic,1000);
@@ -245,6 +262,7 @@ bool initialize(ros::NodeHandle nh)
     //End Template Code: Initialization and Parameters
 
     //Start User Code: Initialization and Parameters
+	process = new CommandNodeProcess;
     robot_armdisarmed_state = ARMEDSTATUS_DISARMED_CANNOTARM;
     diagnostic_status = process->init(diagnostic_status,logger,std::string(hostname));
     std::string command_topic = "/command";
@@ -297,6 +315,7 @@ bool initialize(ros::NodeHandle nh)
     return true;
     //End Template Code: Finish Initialization.
 }
+//Start Template Code: Functions
 double measure_time_diff(ros::Time timer_a, ros::Time timer_b)
 {
 	ros::Duration etime = timer_a - timer_b;
@@ -304,7 +323,7 @@ double measure_time_diff(ros::Time timer_a, ros::Time timer_b)
 }
 void PPS_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
-	logger->log_info("Got pps");
+	//logger->log_info("Got pps");
 	received_pps = true;
 }
 void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg)
@@ -319,7 +338,7 @@ void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg)
 	{
 		logger->log_fatal(diagnostic_status.Description);
 		logger->log_fatal("This is a Safety Issue!  Killing Node.");
-		kill_node = true;
+		kill_node = 1;
 	}
 	if((device_initialized == false) && (process->is_finished_initializing()))
 	{
@@ -328,5 +347,9 @@ void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg)
 		device_initialized = true;
 
 	}
+}
+void signalinterrupt_handler(int sig)
+{
+	kill_node = 1;
 }
 //End Template Code: Functions

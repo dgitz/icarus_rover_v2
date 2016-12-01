@@ -1,5 +1,5 @@
-#ifndef VISIONNODE_H
-#define VISIONNODE_H
+#ifndef SAMPLE_H
+#define SAMPLE_H
 //Start Template Code: Includes
 #include "ros/ros.h"
 #include "std_msgs/String.h"
@@ -25,10 +25,6 @@
 //End User Code: Defines
 
 //Start User Code: Includes
-#include <cv_bridge/cv_bridge.h>
-#include <sensor_msgs/image_encodings.h>
-#include <sensor_msgs/Image.h>
-#include <icarus_rover_v2/firmware.h>
 //End User Code: Includes
 
 //Start User Code: Data Structures
@@ -83,7 +79,5 @@ volatile sig_atomic_t kill_node;
 //End Template Code: Define Global Variables
 
 //Start User Code: Define Global Variables
-ros::Subscriber image_sub;
-void image_Callback(sensor_msgs::ImageConstPtr& msg);
 //End User Code: Define Global Variables
 #endif

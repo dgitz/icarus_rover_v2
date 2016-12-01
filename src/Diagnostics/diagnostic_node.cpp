@@ -1,11 +1,10 @@
 #include "diagnostic_node.h"
-//Start Template Code: Firmware Definition
+//Start User Code: Firmware Definition
 #define DIAGNOSTICNODE_MAJOR_RELEASE 2
 #define DIAGNOSTICNODE_MINOR_RELEASE 1
-#define DIAGNOSTICNODE_BUILD_NUMBER 0
-//End Template Code: Firmware Definition
+#define DIAGNOSTICNODE_BUILD_NUMBER 1
+//End User Code: Firmware Definition
 //Start User Code: Functions
-//Start User Code: Function Prototypes
 icarus_rover_v2::diagnostic rescan_topics(icarus_rover_v2::diagnostic diag)
 {
 	int found_new_topics = 0;
@@ -490,9 +489,128 @@ void diagnostic_Callback(const icarus_rover_v2::diagnostic::ConstPtr& msg,const 
 			break;
 	}
 }
+std::vector<icarus_rover_v2::diagnostic> check_program_variables()
+{
+	std::vector<icarus_rover_v2::diagnostic> diaglist;
+	bool status = true;
+	logger->log_notice("checking program variables.");
+
+	if(status == true)
+	{
+		icarus_rover_v2::diagnostic diag=diagnostic_status;
+		diag.Diagnostic_Type = SOFTWARE;
+		diag.Level = NOTICE;
+		diag.Diagnostic_Message = DIAGNOSTIC_PASSED;
+		diag.Description = "Checked Program Variables -> PASSED";
+		diaglist.push_back(diag);
+	}
+	else
+	{
+		icarus_rover_v2::diagnostic diag=diagnostic_status;
+		diag.Diagnostic_Type = SOFTWARE;
+		diag.Level = WARN;
+		diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
+		diag.Description = "Checked Program Variables -> FAILED";
+		diaglist.push_back(diag);
+	}
+	return diaglist;
+}
+
+void Command_Callback(const icarus_rover_v2::command::ConstPtr& msg)
+{
+	//logger->log_info("Got command");
+	if (msg->Command ==  DIAGNOSTIC_ID)
+	{
+		if(msg->Option1 == LEVEL1)
+		{
+			diagnostic_pub.publish(diagnostic_status);
+		}
+		else if(msg->Option1 == LEVEL2)
+		{
+			std::vector<icarus_rover_v2::diagnostic> diaglist = check_program_variables();
+			for(int i = 0; i < diaglist.size();i++) { diagnostic_pub.publish(diaglist.at(i)); }
+		}
+		else if(msg->Option1 == LEVEL3)
+		{
+		}
+		else if(msg->Option1 == LEVEL4)
+		{
+		}
+		else
+		{
+			logger->log_error("Shouldn't get here!!!");
+		}
+	}
+}
 //End User Code: Functions
 
-//Start Initialize Function
+int main(int argc, char **argv)
+{
+	node_name = "diagnostic_node";
+    ros::init(argc, argv, node_name);
+    n.reset(new ros::NodeHandle);
+    node_name = ros::this_node::getName();
+
+    if(initializenode() == false)
+    {
+        logger->log_fatal("Unable to Initialize.  Exiting.");
+    	diagnostic_status.Diagnostic_Type = SOFTWARE;
+		diagnostic_status.Level = FATAL;
+		diagnostic_status.Diagnostic_Message = INITIALIZING_ERROR;
+		diagnostic_status.Description = "Node Initializing Error.";
+		diagnostic_pub.publish(diagnostic_status);
+		kill_node = 1;
+    }
+    ros::Rate loop_rate(rate);
+	boot_time = ros::Time::now();
+    now = ros::Time::now();
+    fast_timer = now;
+    medium_timer = now;
+    slow_timer = now;
+    veryslow_timer = now;
+    while (ros::ok() && (kill_node == 0))
+    {
+    	bool ok_to_start = false;
+		if(require_pps_to_start == false) { ok_to_start = true;}
+		else if(require_pps_to_start == true && received_pps == true) { ok_to_start = true; }
+    	if(ok_to_start == true)
+    	{
+    		now = ros::Time::now();
+    		mtime = measure_time_diff(now,fast_timer);
+			if(mtime > .02)
+			{
+				run_fastrate_code();
+				fast_timer = ros::Time::now();
+			}
+			mtime = measure_time_diff(now,medium_timer);
+			if(mtime > 0.1)
+			{
+				run_mediumrate_code();
+				medium_timer = ros::Time::now();
+			}
+			mtime = measure_time_diff(now,slow_timer);
+			if(mtime > 1.0)
+			{
+				run_slowrate_code();
+				slow_timer = ros::Time::now();
+			}
+			mtime = measure_time_diff(now,veryslow_timer);
+			if(mtime > 10.0)
+			{
+				run_veryslowrate_code();
+				veryslow_timer = ros::Time::now();
+			}
+		}
+		else
+		{
+			logger->log_warn("Waiting on PPS to Start.");
+		}
+		ros::spinOnce();
+		loop_rate.sleep();
+    }
+    logger->log_notice("Node Finished Safely.");
+    return 0;
+}
 bool initializenode()
 {
     //Start Template Code: Initialization, Parameters and Topics
@@ -579,84 +697,17 @@ bool initializenode()
 }
 //End Initialize Function
 
-//Start Main Loop
-int main(int argc, char **argv)
-{
-	usleep(2000000); //Wait 2 seconds for other nodes to start.
-	node_name = "diagnostic_node";
-    ros::init(argc, argv, node_name);
-    n.reset(new ros::NodeHandle);
-    node_name = ros::this_node::getName();
-
-    if(initializenode() == false)
-    {
-        logger->log_fatal("Unable to Initialize.  Exiting.");
-    	diagnostic_status.Diagnostic_Type = SOFTWARE;
-		diagnostic_status.Level = FATAL;
-		diagnostic_status.Diagnostic_Message = INITIALIZING_ERROR;
-		diagnostic_status.Description = "Node Initializing Error.";
-		diagnostic_pub.publish(diagnostic_status);
-        return 0; 
-    }
-    ros::Rate loop_rate(rate);
-    now = ros::Time::now();
-    fast_timer = now;
-    medium_timer = now;
-    slow_timer = now;
-    veryslow_timer = now;
-    boot_time = now;
-    while (ros::ok())
-    {
-    	bool ok_to_start = false;
-		if(require_pps_to_start == false) { ok_to_start = true;}
-		else if(require_pps_to_start == true && received_pps == true) { ok_to_start = true; }
-    	if(ok_to_start == true)
-    	{
-    		now = ros::Time::now();
-    		mtime = measure_time_diff(now,fast_timer);
-			if(mtime > .02)
-			{
-				run_fastrate_code();
-				fast_timer = ros::Time::now();
-			}
-			mtime = measure_time_diff(now,medium_timer);
-			if(mtime > 0.1)
-			{
-				run_mediumrate_code();
-				medium_timer = ros::Time::now();
-			}
-			mtime = measure_time_diff(now,slow_timer);
-			if(mtime > 1.0)
-			{
-				run_slowrate_code();
-				slow_timer = ros::Time::now();
-			}
-			mtime = measure_time_diff(now,veryslow_timer);
-			if(mtime > 10.0)
-			{
-				run_veryslowrate_code();
-				veryslow_timer = ros::Time::now();
-			}
-		}
-		else
-		{
-			logger->log_warn("Waiting on PPS to Start.");
-		}
-		ros::spinOnce();
-		loop_rate.sleep();
-    }
-    logger->log_notice("Node Finished Safely.");
-    return 0;
-}
-//End Main Loop
-
 //Start Template Code: Functions
+double measure_time_diff(ros::Time timer_a, ros::Time timer_b)
+{
+	ros::Duration etime = timer_a - timer_b;
+	return etime.toSec();
+}
 void PPS_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
 	//logger->log_info("Got pps");
 	received_pps = true;
 }
-
 void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg)
 {
 	icarus_rover_v2::device newdevice;
@@ -670,10 +721,8 @@ void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg)
 		device_initialized = true;
 	}
 }
-double measure_time_diff(ros::Time timer_a, ros::Time timer_b)
+void signalinterrupt_handler(int sig)
 {
-	ros::Duration etime = timer_a - timer_b;
-	return etime.toSec();
+	kill_node = 1;
 }
-
 //End Template Code: Functions

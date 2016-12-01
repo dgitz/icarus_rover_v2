@@ -2,8 +2,8 @@
 //Start Template Code: Firmware Definition
 #define VISIONNODE_MAJOR_RELEASE 1
 #define VISIONNODE_MINOR_RELEASE 1
-#define VISIONNODE_BUILD_NUMBER 1
-//End Template Code: Firmware Definition
+#define VISIONNODE_BUILD_NUMBER 2
+//End User Code: Firmware Definition
 //Start User Code: Functions
 void image_Callback(const sensor_msgs::ImageConstPtr& msg)
 {
@@ -18,7 +18,7 @@ bool run_mediumrate_code()
 {
 	beat.stamp = ros::Time::now();
 	heartbeat_pub.publish(beat);
-	//logger->log_debug("Running medium rate code.");
+
 	diagnostic_status.Diagnostic_Type = SOFTWARE;
 	diagnostic_status.Level = INFO;
 	diagnostic_status.Diagnostic_Message = NOERROR;
@@ -64,7 +64,7 @@ bool run_veryslowrate_code()
 	icarus_rover_v2::firmware fw;
 	fw.Generic_Node_Name = "vision_node";
 	fw.Node_Name = node_name;
-	fw.Description = "Latest Rev: 8-Sep-2016";
+	fw.Description = "Latest Rev: 30-Nov-2016";
 	fw.Major_Release = VISIONNODE_MAJOR_RELEASE;
 	fw.Minor_Release = VISIONNODE_MINOR_RELEASE;
 	fw.Build_Number = VISIONNODE_BUILD_NUMBER;
@@ -72,93 +72,68 @@ bool run_veryslowrate_code()
 	return true;
 }
 
-//End User Code: Functions
-
-//Start Initialize Function
-bool initialize(ros::NodeHandle nh)
+std::vector<icarus_rover_v2::diagnostic> check_program_variables()
 {
-    //Start Template Code: Initialization, Parameters and Topics
-    printf("Node name: %s\r\n",node_name.c_str());
-    myDevice.DeviceName = "";
-    myDevice.Architecture = "";
-    device_initialized = false;
-    std::string diagnostic_topic = "/" + node_name + "/diagnostic";
-	diagnostic_pub =  nh.advertise<icarus_rover_v2::diagnostic>(diagnostic_topic,1000);
-	std::string resource_topic = "/" + node_name + "/resource";
-	resource_pub = nh.advertise<icarus_rover_v2::resource>(resource_topic,1000);
+	std::vector<icarus_rover_v2::diagnostic> diaglist;
+	bool status = true;
+	logger->log_notice("checking program variables.");
 
-	std::string param_verbosity_level = node_name +"/verbosity_level";
-	if(nh.getParam(param_verbosity_level,verbosity_level) == false)
+	if(status == true)
 	{
-		logger = new Logger("FATAL",ros::this_node::getName());
-		logger->log_fatal("Missing Parameter: verbosity_level. Exiting");
-		return false;
+		icarus_rover_v2::diagnostic diag=diagnostic_status;
+		diag.Diagnostic_Type = SOFTWARE;
+		diag.Level = NOTICE;
+		diag.Diagnostic_Message = DIAGNOSTIC_PASSED;
+		diag.Description = "Checked Program Variables -> PASSED";
+		diaglist.push_back(diag);
 	}
 	else
 	{
-		logger = new Logger(verbosity_level,ros::this_node::getName());
+		icarus_rover_v2::diagnostic diag=diagnostic_status;
+		diag.Diagnostic_Type = SOFTWARE;
+		diag.Level = WARN;
+		diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
+		diag.Description = "Checked Program Variables -> FAILED";
+		diaglist.push_back(diag);
 	}
-	std::string param_loop_rate = node_name +"/loop_rate";
-	if(nh.getParam(param_loop_rate,rate) == false)
-	{
-		logger->log_fatal("Missing Parameter: loop_rate.  Exiting.");
-		return false;
-	}
-	hostname[1023] = '\0';
-	gethostname(hostname,1023);
-	std::string heartbeat_topic = "/" + node_name + "/heartbeat";
-	heartbeat_pub = nh.advertise<icarus_rover_v2::heartbeat>(heartbeat_topic,1000);
-	beat.Node_Name = node_name;
-	std::string device_topic = "/" + std::string(hostname) +"_master_node/device";
-	device_sub = nh.subscribe<icarus_rover_v2::device>(device_topic,1000,Device_Callback);
-	pps_sub = nh.subscribe<std_msgs::Bool>("/pps",1000,PPS_Callback);  //This is a pps consumer.
-	std::string param_require_pps_to_start = node_name +"/require_pps_to_start";
-	if(nh.getParam(param_require_pps_to_start,require_pps_to_start) == false)
-	{
-		logger->log_fatal("Missing Parameter: require_pps_to_start.  Exiting.");
-		return false;
-	}
- 	std::string firmware_topic = "/" + node_name + "/firmware";
-    firmware_pub =  nh.advertise<icarus_rover_v2::firmware>(firmware_topic,1000);
-	//End Template Code: Initialization, Parameters and Topics
-
-	//Start User Code: Initialization, Parameters and Topics
-    diagnostic_status.DeviceName = hostname;
-	diagnostic_status.Node_Name = node_name;
-	diagnostic_status.System = ROVER;
-	diagnostic_status.SubSystem = ROBOT_CONTROLLER;
-	diagnostic_status.Component = VISION_NODE;
-
-	diagnostic_status.Diagnostic_Type = NOERROR;
-	diagnostic_status.Level = INFO;
-	diagnostic_status.Diagnostic_Message = INITIALIZING;
-	diagnostic_status.Description = "Node Initializing";
-	diagnostic_pub.publish(diagnostic_status);
-
-
-	//std::string image_topic = node_name + "/image_raw";
-	std::string image_topic = "/" + std::string(hostname) +"_usb_cam/image_raw";
-	//printf("Subscribing to: %s\r\n",image_topic.c_str());
-	//device_sub = nh.subscribe<icarus_rover_v2::device>(device_topic,1000,Device_Callback);
-	image_sub = nh.subscribe<sensor_msgs::Image>(image_topic, 1, image_Callback);
-	printf("Subscribing to: %s\r\n",image_sub.getTopic().c_str());
-	//image_transport::ImageTransport imagetransport(nh);;
-	//image_transport::Subscriber image_sub = imagetransport.subscribe(image_topic, 1, image_Callback);
-
-	//image_sub = it.subscribe("camera/image",1,image_Callback);
-	//End User Code: Initialization, Parameters and Topics
-    logger->log_info("Initialized!");
-    return true;
+	return diaglist;
 }
-//End Initialize Function
 
-//Start Main Loop
+void Command_Callback(const icarus_rover_v2::command::ConstPtr& msg)
+{
+	//logger->log_info("Got command");
+	if (msg->Command ==  DIAGNOSTIC_ID)
+	{
+		if(msg->Option1 == LEVEL1)
+		{
+			diagnostic_pub.publish(diagnostic_status);
+		}
+		else if(msg->Option1 == LEVEL2)
+		{
+			std::vector<icarus_rover_v2::diagnostic> diaglist = check_program_variables();
+			for(int i = 0; i < diaglist.size();i++) { diagnostic_pub.publish(diaglist.at(i)); }
+		}
+		else if(msg->Option1 == LEVEL3)
+		{
+		}
+		else if(msg->Option1 == LEVEL4)
+		{
+		}
+		else
+		{
+			logger->log_error("Shouldn't get here!!!");
+		}
+	}
+}
+//End User Code: Functions
+
 int main(int argc, char **argv)
 {
 	node_name = "vision_node";
     ros::init(argc, argv, node_name);
     node_name = ros::this_node::getName();
     ros::NodeHandle n;
+    
     if(initialize(n) == false)
     {
         logger->log_fatal("Unable to Initialize.  Exiting.");
@@ -167,15 +142,16 @@ int main(int argc, char **argv)
 		diagnostic_status.Diagnostic_Message = INITIALIZING_ERROR;
 		diagnostic_status.Description = "Node Initializing Error.";
 		diagnostic_pub.publish(diagnostic_status);
-        return 0; 
+		kill_node = 1;
     }
     ros::Rate loop_rate(rate);
+	boot_time = ros::Time::now();
     now = ros::Time::now();
     fast_timer = now;
     medium_timer = now;
     slow_timer = now;
     veryslow_timer = now;
-    while (ros::ok())
+    while (ros::ok() && (kill_node == 0))
     {
     	bool ok_to_start = false;
 		if(require_pps_to_start == false) { ok_to_start = true;}
@@ -218,9 +194,96 @@ int main(int argc, char **argv)
     logger->log_notice("Node Finished Safely.");
     return 0;
 }
-//End Main Loop
+
+bool initialize(ros::NodeHandle nh)
+{
+	//Start Template Code: Initialization, Parameters and Topics
+	kill_node = 0;
+	signal(SIGINT,signalinterrupt_handler);
+    myDevice.DeviceName = "";
+    myDevice.Architecture = "";
+    device_initialized = false;
+    hostname[1023] = '\0';
+    gethostname(hostname,1023);
+    std::string diagnostic_topic = "/" + node_name + "/diagnostic";
+	diagnostic_pub =  nh.advertise<icarus_rover_v2::diagnostic>(diagnostic_topic,1000);
+    diagnostic_status.DeviceName = hostname;
+	diagnostic_status.Node_Name = node_name;
+	diagnostic_status.System = ROVER;
+	diagnostic_status.SubSystem = ROBOT_CONTROLLER;
+	diagnostic_status.Component = VISION_NODE;
+
+	diagnostic_status.Diagnostic_Type = NOERROR;
+	diagnostic_status.Level = INFO;
+	diagnostic_status.Diagnostic_Message = INITIALIZING;
+	diagnostic_status.Description = "Node Initializing";
+	diagnostic_pub.publish(diagnostic_status);
+
+	std::string resource_topic = "/" + node_name + "/resource";
+	resource_pub = nh.advertise<icarus_rover_v2::resource>(resource_topic,1000);
+
+    std::string param_verbosity_level = node_name +"/verbosity_level";
+    if(nh.getParam(param_verbosity_level,verbosity_level) == false)
+    {
+        logger = new Logger("WARN",ros::this_node::getName());
+        logger->log_warn("Missing Parameter: verbosity_level");
+        return false;
+    }
+    else
+    {
+        logger = new Logger(verbosity_level,ros::this_node::getName());      
+    }
+    std::string param_loop_rate = node_name +"/loop_rate";
+    if(nh.getParam(param_loop_rate,rate) == false)
+    {
+        logger->log_warn("Missing Parameter: loop_rate.");
+        return false;
+    }
+    
+    std::string heartbeat_topic = "/" + node_name + "/heartbeat";
+    heartbeat_pub = nh.advertise<icarus_rover_v2::heartbeat>(heartbeat_topic,1000);
+    beat.Node_Name = node_name;
+    std::string device_topic = "/" + std::string(hostname) +"_master_node/device";
+    device_sub = nh.subscribe<icarus_rover_v2::device>(device_topic,1000,Device_Callback);
+
+    pps_sub = nh.subscribe<std_msgs::Bool>("/pps",1000,PPS_Callback);  //This is a pps consumer.
+    command_sub = nh.subscribe<icarus_rover_v2::command>("/command",1000,Command_Callback);
+    std::string param_require_pps_to_start = node_name +"/require_pps_to_start";
+    if(nh.getParam(param_require_pps_to_start,require_pps_to_start) == false)
+	{
+		logger->log_warn("Missing Parameter: require_pps_to_start.");
+		return false;
+	}
+    std::string firmware_topic = "/" + node_name + "/firmware";
+    firmware_pub =  nh.advertise<icarus_rover_v2::firmware>(firmware_topic,1000);
+    //End Template Code: Initialization and Parameters
+
+	//Start User Code: Initialization, Parameters and Topics
+  
+
+
+	//std::string image_topic = node_name + "/image_raw";
+	std::string image_topic = "/" + std::string(hostname) +"_usb_cam/image_raw";
+	//printf("Subscribing to: %s\r\n",image_topic.c_str());
+	//device_sub = nh.subscribe<icarus_rover_v2::device>(device_topic,1000,Device_Callback);
+	image_sub = nh.subscribe<sensor_msgs::Image>(image_topic, 1, image_Callback);
+	printf("Subscribing to: %s\r\n",image_sub.getTopic().c_str());
+	//image_transport::ImageTransport imagetransport(nh);;
+	//image_transport::Subscriber image_sub = imagetransport.subscribe(image_topic, 1, image_Callback);
+
+	//image_sub = it.subscribe("camera/image",1,image_Callback);
+	//End User Code: Initialization, Parameters and Topics
+    logger->log_info("Initialized!");
+    return true;
+    //End Template Code: Finish Initialization.
+}
 
 //Start Template Code: Functions
+double measure_time_diff(ros::Time timer_a, ros::Time timer_b)
+{
+	ros::Duration etime = timer_a - timer_b;
+	return etime.toSec();
+}
 void PPS_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
 	//logger->log_info("Got pps");
@@ -239,9 +302,8 @@ void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg)
 		device_initialized = true;
 	}
 }
-double measure_time_diff(ros::Time timer_a, ros::Time timer_b)
+void signalinterrupt_handler(int sig)
 {
-	ros::Duration etime = timer_a - timer_b;
-	return etime.toSec();
+	kill_node = 1;
 }
 //End Template Code: Functions

@@ -1,9 +1,9 @@
 #include "armcontroller_node.h"
-//Start Template Code: Firmware Definition
+//Start User Code: Firmware Definition
 #define ARMCONTROLLERNODE_MAJOR_RELEASE 1
 #define ARMCONTROLLERNODE_MINOR_RELEASE 1
-#define ARMCONTROLLERNODE_BUILD_NUMBER 0
-//End Template Code: Firmware Definition
+#define ARMCONTROLLERNODE_BUILD_NUMBER 1
+//End User Code: Firmware Definition
 //Start User Code: Functions
 bool run_fastrate_code()
 {
@@ -14,7 +14,7 @@ bool run_mediumrate_code()
 {
 	beat.stamp = ros::Time::now();
 	heartbeat_pub.publish(beat);
-	//logger->log_debug("Running medium rate code.");
+
 	diagnostic_status.Diagnostic_Type = SOFTWARE;
 	diagnostic_status.Level = INFO;
 	diagnostic_status.Diagnostic_Message = NOERROR;
@@ -98,13 +98,9 @@ bool run_veryslowrate_code()
 //Start Template Code: Functions
 int main(int argc, char **argv)
 {
- 
 	node_name = "armcontroller_node";
-
-
     ros::init(argc, argv, node_name);
     node_name = ros::this_node::getName();
-
     ros::NodeHandle n;
     
     if(initialize(n) == false)
@@ -115,16 +111,16 @@ int main(int argc, char **argv)
 		diagnostic_status.Diagnostic_Message = INITIALIZING_ERROR;
 		diagnostic_status.Description = "Node Initializing Error.";
 		diagnostic_pub.publish(diagnostic_status);
-        return 0; 
+		kill_node = 1;
     }
     ros::Rate loop_rate(rate);
+	boot_time = ros::Time::now();
     now = ros::Time::now();
     fast_timer = now;
     medium_timer = now;
     slow_timer = now;
     veryslow_timer = now;
-
-    while (ros::ok())
+    while (ros::ok() && (kill_node == 0))
     {
     	bool ok_to_start = false;
 		if(require_pps_to_start == false) { ok_to_start = true;}

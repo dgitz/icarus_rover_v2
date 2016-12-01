@@ -1,34 +1,10 @@
-#include "cameramanager_node.h"
+#include "sample_node.h"
 //Start User Code: Firmware Definition
-#define CAMERAMANAGERNODE_MAJOR_RELEASE 1
-#define CAMERAMANAGERNODE_MINOR_RELEASE 2
-#define CAMERAMANAGERNODE_BUILD_NUMBER 2
+#define SAMPLENODE_MAJOR_RELEASE 1
+#define SAMPLENODE_MINOR_RELEASE 1
+#define SAMPLENODE_BUILD_NUMBER 1
 //End User Code: Firmware Definition
 //Start User Code: Functions
-icarus_rover_v2::diagnostic publish_tf_frames(icarus_rover_v2::diagnostic diag)
-{
-	static tf::TransformBroadcaster br;
-
-	tf::Transform transform_mapodom;
-	transform_mapodom.setOrigin(tf::Vector3(0.0,0.0,0.0));
-	tf::Quaternion q_mapodom;
-	q_mapodom.setRPY(0,0,0);
-	transform_mapodom.setRotation(q_mapodom);
-	br.sendTransform(tf::StampedTransform(transform_mapodom, ros::Time::now(), "map", "odom"));
-
-
-	tf::Transform transform_cam1;
-	transform_cam1.setOrigin(tf::Vector3(0.0,0.0,0.0));
-	tf::Quaternion q_cam1;
-	q_cam1.setRPY(0,0,0);
-	transform_cam1.setRotation(q_cam1);
-	br.sendTransform(tf::StampedTransform(transform_cam1, ros::Time::now(), "base_link", "asusxtioncamera_link"));
-	diag.Diagnostic_Type = SOFTWARE;
-	diag.Diagnostic_Message = NOERROR;
-	diag.Level = INFO;
-	diag.Description = "Broadcasting tf frames.";
-	return diag;
-}
 bool run_fastrate_code()
 {
 	//logger->log_debug("Running fast rate code.");
@@ -36,75 +12,33 @@ bool run_fastrate_code()
 }
 bool run_mediumrate_code()
 {
-	//logger->log_debug("Running medium rate code.");
 	beat.stamp = ros::Time::now();
 	heartbeat_pub.publish(beat);
-	diagnostic_status = publish_tf_frames(diagnostic_status);
-	diagnostic_pub.publish(diagnostic_status);
+
 	diagnostic_status.Diagnostic_Type = SOFTWARE;
 	diagnostic_status.Level = INFO;
 	diagnostic_status.Diagnostic_Message = NOERROR;
 	diagnostic_status.Description = "Node Executing.";
 	diagnostic_pub.publish(diagnostic_status);
-	for(int i = 0; i < external_tasks.size();i++)
-	{
-		icarus_rover_v2::heartbeat newbeat;
-		newbeat.stamp = ros::Time::now();
-		external_tasks.at(i).heartbeat_pub.publish(newbeat);
-	}
-	//logger->log_debug("Running medium rate code.");
 	return true;
 }
 bool run_slowrate_code()
 {
 	if(device_initialized == true)
 	{
-		icarus_rover_v2::diagnostic resource_diagnostic;
-		resource_diagnostic = resourcemonitor->update();
-		if(resource_diagnostic.Diagnostic_Message == DEVICE_NOT_AVAILABLE)
+		bool status = resourcemonitor->update();
+		if(status == true)
 		{
-			diagnostic_pub.publish(resource_diagnostic);
+			resources_used = resourcemonitor->get_resourceused();
+			resource_pub.publish(resources_used);
+		}
+		else
+		{
 			logger->log_warn("Couldn't read resources used.");
 		}
-		else if(resource_diagnostic.Level >= WARN)
-		{
-			resources_used = resourcemonitor->get_resourceused();
-			resource_pub.publish(resources_used);
-			diagnostic_pub.publish(resource_diagnostic);
-		}
-		else if(resource_diagnostic.Level <= NOTICE)
-		{
-			resources_used = resourcemonitor->get_resourceused();
-			resource_pub.publish(resources_used);
-		}
-		for(int i = 0; i < external_tasks.size();i++)
-		{
-			external_tasks.at(i).diagnostic = external_tasks.at(i).resourcemonitor.update();
-			if(resource_diagnostic.Diagnostic_Message == DEVICE_NOT_AVAILABLE)
-			{
-				external_tasks.at(i).diagnostic_pub.publish(external_tasks.at(i).diagnostic);
-				//diagnostic_pub.publish(resource_diagnostic);
-				logger->log_warn(resource_diagnostic.Description.c_str());
-				char tempstr[255];
-				sprintf(tempstr,"Couldn't read resources used for external task: %s",external_tasks.at(i).TaskName.c_str());
-				logger->log_warn(tempstr);
-
-			}
-			else if(resource_diagnostic.Level >= WARN)
-			{
-				external_tasks.at(i).resources_used = external_tasks.at(i).resourcemonitor.get_resourceused();
-				external_tasks.at(i).resource_pub.publish(external_tasks.at(i).resources_used);
-				external_tasks.at(i).diagnostic_pub.publish(external_tasks.at(i).diagnostic);
-			}
-			else if(resource_diagnostic.Level <= NOTICE)
-			{
-
-				external_tasks.at(i).resources_used = external_tasks.at(i).resourcemonitor.get_resourceused();
-				external_tasks.at(i).resource_pub.publish(external_tasks.at(i).resources_used);
-				external_tasks.at(i).diagnostic_pub.publish(external_tasks.at(i).diagnostic);
-			}
-		}
 	}
+	//logger->log_debug("Running slow rate code.");
+
 	return true;
 }
 bool run_veryslowrate_code()
@@ -112,12 +46,12 @@ bool run_veryslowrate_code()
 	//logger->log_debug("Running very slow rate code.");
 	logger->log_info("Node Running.");
 	icarus_rover_v2::firmware fw;
-	fw.Generic_Node_Name = "cameramanager_node";
+	fw.Generic_Node_Name = "sample_node";
 	fw.Node_Name = node_name;
 	fw.Description = "Latest Rev: 30-Nov-2016";
-	fw.Major_Release = CAMERAMANAGERNODE_MAJOR_RELEASE;
-	fw.Minor_Release = CAMERAMANAGERNODE_MINOR_RELEASE;
-	fw.Build_Number = CAMERAMANAGERNODE_BUILD_NUMBER;
+	fw.Major_Release = SAMPLENODE_MAJOR_RELEASE;
+	fw.Minor_Release = SAMPLENODE_MINOR_RELEASE;
+	fw.Build_Number = SAMPLENODE_BUILD_NUMBER;
 	firmware_pub.publish(fw);
 	return true;
 }
@@ -179,7 +113,7 @@ void Command_Callback(const icarus_rover_v2::command::ConstPtr& msg)
 
 int main(int argc, char **argv)
 {
-	node_name = "cameracapture_node";
+	node_name = "sample_node";
     ros::init(argc, argv, node_name);
     node_name = ros::this_node::getName();
     ros::NodeHandle n;
@@ -261,7 +195,7 @@ bool initialize(ros::NodeHandle nh)
 	diagnostic_status.Node_Name = node_name;
 	diagnostic_status.System = ROVER;
 	diagnostic_status.SubSystem = ROBOT_CONTROLLER;
-	diagnostic_status.Component = VISION_NODE;
+	diagnostic_status.Component = TIMING_NODE;
 
 	diagnostic_status.Diagnostic_Type = NOERROR;
 	diagnostic_status.Level = INFO;
@@ -307,48 +241,8 @@ bool initialize(ros::NodeHandle nh)
     std::string firmware_topic = "/" + node_name + "/firmware";
     firmware_pub =  nh.advertise<icarus_rover_v2::firmware>(firmware_topic,1000);
     //End Template Code: Initialization and Parameters
-	
+
     //Start User Code: Initialization and Parameters
-	bool search_for_topics = true;
-	int topicindex = 1;
-	while(search_for_topics == true)
-	{
-		std::string taskname;
-		bool add_new_topic = false;
-		std::string param_task = node_name +"/task_monitor" + boost::lexical_cast<std::string>(topicindex);
-		if(nh.getParam(param_task,taskname) == false)
-		{
-			char tempstr[255];
-			sprintf(tempstr,"Didn't find %s Not adding anymore.",param_task.c_str());
-			logger->log_info(tempstr);
-			add_new_topic = false;
-			search_for_topics = false;
-		}
-		else
-		{
-			add_new_topic = true;
-			search_for_topics = true;
-		}
-		if(add_new_topic == true)
-		{
-			CameraTask newcameratask;
-			newcameratask.TaskName = taskname;
-			std::string topic_cameratask_resource = "/" + newcameratask.TaskName + "/resource";
-			ros::Publisher r_pub = nh.advertise<icarus_rover_v2::resource>(topic_cameratask_resource,1000);
-			newcameratask.resource_pub = r_pub;
-			std::string topic_cameratask_diagnostic = "/" + newcameratask.TaskName + "/diagnostic";
-			ros::Publisher d_pub = nh.advertise<icarus_rover_v2::diagnostic>(topic_cameratask_diagnostic,1000);
-			std::string topic_cameratask_heartbeat = "/" + newcameratask.TaskName + "/heartbeat";
-			ros::Publisher h_pub = nh.advertise<icarus_rover_v2::heartbeat>(topic_cameratask_heartbeat,1000);
-			newcameratask.diagnostic_pub = d_pub;
-			newcameratask.heartbeat_pub = h_pub;
-			newcameratask.diagnostic = diagnostic_status;
-			newcameratask.diagnostic.Node_Name = newcameratask.TaskName;
-			newcameratask.diagnostic.Description = "External Task Initializing";
-			external_tasks.push_back(newcameratask);
-			topicindex++;
-		}
-	}
     //Finish User Code: Initialization and Parameters
 
     //Start Template Code: Final Initialization.
@@ -382,10 +276,6 @@ void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg)
 	{
 		myDevice = newdevice;
 		resourcemonitor = new ResourceMonitor(diagnostic_status,myDevice.Architecture,myDevice.DeviceName,node_name);
-		for(int i = 0; i < external_tasks.size();i++)
-		{
-			external_tasks.at(i).resourcemonitor.init(external_tasks.at(i).diagnostic,myDevice.Architecture,myDevice.DeviceName,external_tasks.at(i).TaskName);
-		}
 		device_initialized = true;
 	}
 }

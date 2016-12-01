@@ -1,9 +1,9 @@
 #include "master_node.h"
-//Start Template Code: Firmware Definition
+//Start User Code: Firmware Definition
 #define MASTERNODE_MAJOR_RELEASE 1
 #define MASTERNODE_MINOR_RELEASE 2
-#define MASTERNODE_BUILD_NUMBER 2
-//End Template Code: Firmware Definition
+#define MASTERNODE_BUILD_NUMBER 3
+//End User Code: Firmware Definition
 //Start User Code: Functions
 double read_device_temperature()
 {
@@ -27,15 +27,15 @@ bool run_fastrate_code()
 }
 bool run_mediumrate_code()
 {
-	//logger->log_debug("Running medium rate code.");
+	beat.stamp = ros::Time::now();
+	heartbeat_pub.publish(beat);
+
 	diagnostic_status.Diagnostic_Type = SOFTWARE;
 	diagnostic_status.Level = INFO;
 	diagnostic_status.Diagnostic_Message = NOERROR;
 	diagnostic_status.Description = "Node Executing.";
 	diagnostic_pub.publish(diagnostic_status);
 
-	beat.stamp = ros::Time::now();
-	heartbeat_pub.publish(beat);
 	return true;
 }
 bool run_slowrate_code()
@@ -130,10 +130,48 @@ void PPS_Callback(const std_msgs::Bool::ConstPtr& msg)
 	logger->log_info("Got pps");
 	received_pps = true;
 }
-//End User Code: Functions
-//Start Template Code: Functions
+
+std::vector<icarus_rover_v2::diagnostic> check_program_variables()
+{
+	std::vector<icarus_rover_v2::diagnostic> diaglist;
+	bool status = true;
+	logger->log_notice("checking program variables.");
+
+	if(otherDevices.size() < 0)
+	{
+		status = false;
+		icarus_rover_v2::diagnostic diag=diagnostic_status;
+		diag.Diagnostic_Type = SOFTWARE;
+		diag.Level = WARN;
+		diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
+		diag.Description = "Checked Program Variables: otherDevices.size() <= 0";
+		diaglist.push_back(diag);
+	}
+
+	if(status == true)
+	{
+		icarus_rover_v2::diagnostic diag=diagnostic_status;
+		diag.Diagnostic_Type = SOFTWARE;
+		diag.Level = NOTICE;
+		diag.Diagnostic_Message = DIAGNOSTIC_PASSED;
+		diag.Description = "Checked Program Variables -> PASSED";
+		diaglist.push_back(diag);
+	}
+	else
+	{
+		icarus_rover_v2::diagnostic diag=diagnostic_status;
+		diag.Diagnostic_Type = SOFTWARE;
+		diag.Level = WARN;
+		diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
+		diag.Description = "Checked Program Variables -> FAILED";
+		diaglist.push_back(diag);
+	}
+	return diaglist;
+}
+
 void Command_Callback(const icarus_rover_v2::command::ConstPtr& msg)
 {
+	//logger->log_info("Got command");
 	if (msg->Command ==  DIAGNOSTIC_ID)
 	{
 		if(msg->Option1 == LEVEL1)
@@ -144,15 +182,12 @@ void Command_Callback(const icarus_rover_v2::command::ConstPtr& msg)
 		{
 			std::vector<icarus_rover_v2::diagnostic> diaglist = check_program_variables();
 			for(int i = 0; i < diaglist.size();i++) { diagnostic_pub.publish(diaglist.at(i)); }
-
 		}
 		else if(msg->Option1 == LEVEL3)
 		{
-
 		}
 		else if(msg->Option1 == LEVEL4)
 		{
-
 		}
 		else
 		{
@@ -160,12 +195,15 @@ void Command_Callback(const icarus_rover_v2::command::ConstPtr& msg)
 		}
 	}
 }
+//End User Code: Functions
+
 int main(int argc, char **argv)
 {
 	node_name = "master_node";
     ros::init(argc, argv, node_name);
     node_name = ros::this_node::getName();
     ros::NodeHandle n;
+    
     if(initialize(n) == false)
     {
         logger->log_fatal("Unable to Initialize.  Exiting.");
@@ -175,9 +213,9 @@ int main(int argc, char **argv)
 		diagnostic_status.Description = "Node Initializing Error.";
 		diagnostic_pub.publish(diagnostic_status);
 		kill_node = 1;
-        return 0; 
     }
     ros::Rate loop_rate(rate);
+	boot_time = ros::Time::now();
     now = ros::Time::now();
     fast_timer = now;
     medium_timer = now;
@@ -223,29 +261,20 @@ int main(int argc, char **argv)
 		ros::spinOnce();
 		loop_rate.sleep();
     }
-    printf("Finished\n");
     logger->log_notice("Node Finished Safely.");
     return 0;
 }
 
 bool initialize(ros::NodeHandle nh)
 {
-	//Start Template Code: Initialization and Parameters
+    //Start Template Code: Initialization, Parameters and Topics
 	kill_node = 0;
 	signal(SIGINT,signalinterrupt_handler);
-	rate = 1;
-	verbosity_level = "";
-	require_pps_to_start = false;
-	received_pps = false;
-	char hostname[1024];
-	hostname[1023] = '\0';
-	gethostname(hostname,1023);
-	myDevice.DeviceName = hostname;
-    //Start Template Code: Initialization and Parameters
-	std::string heartbeat_topic = "/" + node_name + "/heartbeat";
-	heartbeat_pub = nh.advertise<icarus_rover_v2::heartbeat>(heartbeat_topic,1000);
-	beat.Node_Name = node_name;
-
+    myDevice.DeviceName = "";
+    myDevice.Architecture = "";
+    device_initialized = false;
+    hostname[1023] = '\0';
+    gethostname(hostname,1023);
     std::string diagnostic_topic = "/" + node_name + "/diagnostic";
 	diagnostic_pub =  nh.advertise<icarus_rover_v2::diagnostic>(diagnostic_topic,1000);
     diagnostic_status.DeviceName = hostname;
@@ -259,15 +288,15 @@ bool initialize(ros::NodeHandle nh)
 	diagnostic_status.Diagnostic_Message = INITIALIZING;
 	diagnostic_status.Description = "Node Initializing";
 	diagnostic_pub.publish(diagnostic_status);
-    std::string param_verbosity_level = node_name +"/verbosity_level";
-
-    std::string device_topic = "/" + node_name + "/device";
-    device_pub = nh.advertise<icarus_rover_v2::device>(device_topic,1000);
 
 	std::string resource_topic = "/" + node_name + "/resource";
 	resource_pub = nh.advertise<icarus_rover_v2::resource>(resource_topic,1000);
 	std::string device_resourceavail_topic = "/" + myDevice.DeviceName + "/resource_available";
 	device_resourceavail_pub = nh.advertise<icarus_rover_v2::resource>(device_resourceavail_topic,1000);
+
+    std::string param_verbosity_level = node_name +"/verbosity_level";
+	std::string device_topic = "/" + node_name + "/device";
+    device_pub = nh.advertise<icarus_rover_v2::device>(device_topic,1000);
     if(nh.getParam(param_verbosity_level,verbosity_level) == false)
     {
         logger = new Logger("WARN",ros::this_node::getName());
@@ -284,6 +313,11 @@ bool initialize(ros::NodeHandle nh)
         logger->log_warn("Missing Parameter: loop_rate.");
         return false;
     }
+    
+    std::string heartbeat_topic = "/" + node_name + "/heartbeat";
+    heartbeat_pub = nh.advertise<icarus_rover_v2::heartbeat>(heartbeat_topic,1000);
+    beat.Node_Name = node_name;
+
     pps_sub = nh.subscribe<std_msgs::Bool>("/pps",1000,PPS_Callback);  //This is a pps consumer.
     command_sub = nh.subscribe<icarus_rover_v2::command>("/command",1000,Command_Callback);
     std::string param_require_pps_to_start = node_name +"/require_pps_to_start";
@@ -297,7 +331,7 @@ bool initialize(ros::NodeHandle nh)
     //End Template Code: Initialization and Parameters
 
     //Start User Code: Initialization and Parameters
-
+	myDevice.DeviceName = hostname;
     TiXmlDocument device_doc("/home/robot/config/DeviceFile.xml");
     bool devicefile_loaded = device_doc.LoadFile();
     if(devicefile_loaded == true)
@@ -368,6 +402,7 @@ bool initialize(ros::NodeHandle nh)
     return true;
     //End Template Code: Finish Initialization.
 }
+//Start Template Code: Functions
 double measure_time_diff(ros::Time timer_a, ros::Time timer_b)
 {
 	ros::Duration etime = timer_a - timer_b;
@@ -517,45 +552,8 @@ void print_otherDevices()
 
 	printf("----------------------\r\n");
 }
-std::vector<icarus_rover_v2::diagnostic> check_program_variables()
-{
-	std::vector<icarus_rover_v2::diagnostic> diaglist;
-	bool status = true;
-	logger->log_notice("checking program variables.");
-
-	if(otherDevices.size() < 0)
-	{
-		status = false;
-		icarus_rover_v2::diagnostic diag=diagnostic_status;
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Level = WARN;
-		diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
-		diag.Description = "Checked Program Variables: otherDevices.size() <= 0";
-		diaglist.push_back(diag);
-	}
-
-	if(status == true)
-	{
-		icarus_rover_v2::diagnostic diag=diagnostic_status;
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Level = NOTICE;
-		diag.Diagnostic_Message = DIAGNOSTIC_PASSED;
-		diag.Description = "Checked Program Variables -> PASSED";
-		diaglist.push_back(diag);
-	}
-	else
-	{
-		icarus_rover_v2::diagnostic diag=diagnostic_status;
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Level = WARN;
-		diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
-		diag.Description = "Checked Program Variables -> FAILED";
-		diaglist.push_back(diag);
-	}
-	return diaglist;
-}
 void signalinterrupt_handler(int sig)
 {
 	kill_node = 1;
 }
-//End Template Code: Function Definitions
+//End Template Code: Functions
