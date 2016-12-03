@@ -268,15 +268,7 @@ bool initialize(ros::NodeHandle nh)
     std::string command_topic = "/command";
     command_pub =  nh.advertise<icarus_rover_v2::command>(command_topic,1000);
 
-    std::string param_ready_to_arm = node_name +"/ready_to_arm_topics";
-    std::string ready_to_arm_strings;
-    if(nh.getParam(param_ready_to_arm,ready_to_arm_strings) == false)
-    {
-        logger->log_error("Missing parameter: ready_to_arm_topics. Exiting.");
-        return false;
-    }
     std::vector<std::string> ready_to_arm_topics;
-
     bool search_for_topics = true;
     int topicindex = 1;
     while(search_for_topics == true)
@@ -301,6 +293,11 @@ bool initialize(ros::NodeHandle nh)
     		search_for_topics = true;
     		topicindex++;
     	}
+    }
+    if(ready_to_arm_topics.size() == 0)
+    {
+    	logger->log_error("Did not ready any ready_to_arm_topic<x>.  Requires at least 1.");
+    	return false;
     }
     for(int i = 0; i < ready_to_arm_topics.size();i++)
     {
