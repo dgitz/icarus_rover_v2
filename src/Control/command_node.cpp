@@ -276,11 +276,34 @@ bool initialize(ros::NodeHandle nh)
         return false;
     }
     std::vector<std::string> ready_to_arm_topics;
-    boost::split(ready_to_arm_topics,ready_to_arm_strings,boost::is_any_of(","));
+
+    bool search_for_topics = true;
+    int topicindex = 1;
+    while(search_for_topics == true)
+    {
+    	std::string topic;
+    	bool add_new_topic = false;
+    	std::string param_topic = node_name +"/ready_to_arm_topic" + boost::lexical_cast<std::string>(topicindex);
+    	if(nh.getParam(param_topic,topic) == false)
+    	{
+    		char tempstr[255];
+    		sprintf(tempstr,"Didn't find %s Not adding anymore.",param_topic.c_str());
+    		logger->log_info(tempstr);
+    		add_new_topic = false;
+    		search_for_topics = false;
+    	}
+    	else
+    	{
+    		char tempstr[255];
+    		sprintf(tempstr,"Adding Ready to Arm Topic: %s",topic.c_str());
+    		logger->log_info(tempstr);
+    		ready_to_arm_topics.push_back(topic);
+    		search_for_topics = true;
+    		topicindex++;
+    	}
+    }
     for(int i = 0; i < ready_to_arm_topics.size();i++)
     {
-        //printf("Subscribing to ready to arm topic: %s\n",ready_to_arm_topics.at(i).c_str());
-        //joy_sub = nh.subscribe<sensor_msgs::Joy>(TopicMaps.at(i).input_topic_name,1000,boost::bind(Joystick_Callback,_1,TopicMaps.at(i).input_topic_name));
         ros::Subscriber sub = nh.subscribe<std_msgs::Bool>(ready_to_arm_topics.at(i),1000,boost::bind(ReadyToArm_Callback,_1,ready_to_arm_topics.at(i)));
         ready_to_arm_subs.push_back(sub);
     } 
