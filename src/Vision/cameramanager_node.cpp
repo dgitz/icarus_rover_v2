@@ -326,6 +326,7 @@ bool initialize(ros::NodeHandle nh)
 		}
 		else
 		{
+			printf("Found: %s\n",taskname.c_str());
 			add_new_topic = true;
 			search_for_topics = true;
 		}
@@ -348,6 +349,10 @@ bool initialize(ros::NodeHandle nh)
 			external_tasks.push_back(newcameratask);
 			topicindex++;
 		}
+	}
+	for(int i = 0; i < external_tasks.size();i++)
+	{
+		printf("Task: %s\n",external_tasks.at(i).TaskName.c_str());
 	}
     //Finish User Code: Initialization and Parameters
 

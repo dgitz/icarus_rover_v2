@@ -50,7 +50,8 @@ icarus_rover_v2::diagnostic IONodeProcess::enable_actuators(bool state)
 			if(GPIO_Port.Available[i] == true)
 			{
 				if((GPIO_Port.Mode[i] == PINMODE_DIGITAL_OUTPUT) or
-				   (GPIO_Port.Mode[i] == PINMODE_PWM_OUTPUT))
+				   (GPIO_Port.Mode[i] == PINMODE_PWM_OUTPUT) or
+				   (GPIO_Port.Mode[i] == PINMODE_ARMCOMMAND_OUTPUT))
 				{
 					ofstream setdirection_file;
 					std::string setdirection_str = "/sys/class/gpio/gpio" + boost::lexical_cast<std::string>((int)GPIO_Port.Number[i]) + "/direction";
