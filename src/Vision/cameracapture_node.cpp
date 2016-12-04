@@ -65,15 +65,23 @@ bool capture_image(cv::VideoCapture cap)
     cv_bridge::CvImage cv_image;
     cv::Mat frame;
     cap >> frame;
-    cv_image.encoding = "bgr8";
+    /*cv_image.encoding = "bgr8";
     cv_image.header.stamp = ros::Time::now();
     cv_image.header.frame_id = "/world";
     cv_image.image = frame;
+    */
     int bytes = frame.total() * frame.elemSize();
-    if(bytes > 0)
-    {
+    //if(bytes > 0)
+    //{
+    	//cv::Mat emptyframe(image_width,image_height,CV_8UC3,cv::Scalar(0,0,0));
+
+    	cv_image.encoding = "bgr8";
+    	cv_image.header.stamp = ros::Time::now();
+    	cv_image.header.frame_id = "/world";
+    	cv_image.image = frame;
 		raw_image_pub.publish(cv_image.toImageMsg());
-    }
+    //}
+
     /*
     cv::Mat src_gray;
     cv::cvtColor(frame,src_gray,cv::COLOR_BGR2GRAY);
@@ -106,6 +114,12 @@ bool Edge_Detection(cv::Mat gray_image,int,void*)
 bool run_fastrate_code()
 {
 	//logger->log_debug("Running fast rate code.");
+	if(operation_mode == "capture")
+	{
+		ros::Time time_a = ros::Time::now();
+		capture_image(capture);
+		printf("Capture time: %f\n",measure_time_diff(ros::Time::now(),time_a));
+	}
 	return true;
 }
 bool run_mediumrate_code()
@@ -119,10 +133,7 @@ bool run_mediumrate_code()
 	diagnostic_status.Description = "Node Executing.";
 	diagnostic_pub.publish(diagnostic_status);
 	//logger->log_debug("Running medium rate code.");
-	if(operation_mode == "capture")
-	{
-		capture_image(capture);
-	}
+
 	return true;
 }
 bool run_slowrate_code()
@@ -226,7 +237,6 @@ int main(int argc, char **argv)
     ros::init(argc, argv, node_name);
     node_name = ros::this_node::getName();
     ros::NodeHandle n;
-    
     if(initialize(n) == false)
     {
         logger->log_fatal("Unable to Initialize.  Exiting.");
@@ -371,18 +381,18 @@ bool initialize(ros::NodeHandle nh)
 			return false;
 		}
 		std::string rawimage_topic = "/" + node_name + "/raw_image";
-		raw_image_pub = nh.advertise<sensor_msgs::Image>(rawimage_topic,1000);
-		std::string procimage_topic = "/" + node_name + "/proc_image";
-		proc_image_pub = nh.advertise<sensor_msgs::Image>(procimage_topic,1000);
-		counter = 0;
-		edge_detect_threshold = 100;
-		std::string edge_detect_topic = "/" + node_name +"/edge_detect_threshold";
-		edge_threshold_sub = nh.subscribe<std_msgs::UInt8>(edge_detect_topic,1000,Edge_Detect_Threshold_Callback);
+		raw_image_pub = nh.advertise<sensor_msgs::Image>(rawimage_topic,1);
+		//std::string procimage_topic = "/" + node_name + "/proc_image";
+		//proc_image_pub = nh.advertise<sensor_msgs::Image>(procimage_topic,1000);
+		//counter = 0;
+		//edge_detect_threshold = 100;
+		//std::string edge_detect_topic = "/" + node_name +"/edge_detect_threshold";
+		//edge_threshold_sub = nh.subscribe<std_msgs::UInt8>(edge_detect_topic,1000,Edge_Detect_Threshold_Callback);
 		capture.open(video_device);
 		capture.set(CV_CAP_PROP_FRAME_WIDTH, image_width);
 		capture.set(CV_CAP_PROP_FRAME_HEIGHT, image_height);
 		compression_params.push_back(CV_IMWRITE_PNG_COMPRESSION); //CV_IMWRITE_PNG_COMPRESSION
-		compression_params.push_back(3);  //3
+		compression_params.push_back(9);  //3
 		if(!capture.isOpened())  // check if we succeeded
 		{
 			logger->log_fatal("Can't initialize camera. Exiting.");

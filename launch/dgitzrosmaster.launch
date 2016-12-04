@@ -29,7 +29,7 @@
         <param name="loop_rate"             value="500"/>
 	    <param name="verbosity_level"       value="DEBUG"/>
         <param name="require_pps_to_start"  value="false"/>    
-        <!-- <param name="task_monitor1"         value="rgbdslam"/> -->
+        <!--<param name="task_monitor1"         value="rgbdslam"/>-->
     </node>
     <node name="$(env ROS_HOSTNAME)_diagnostic_node" pkg="icarus_rover_v2" type="diagnostic_node"  output="screen" clear_params="true">
         <param name="loop_rate"             value="500"/>
@@ -39,6 +39,7 @@
         <param name="CPU_usage_threshold_percent"    value="30"/> 
         <param name="Log_Resources_Used"        value="1"/>  
     </node>
+    <!--
     <node name="$(env ROS_HOSTNAME)_imageresampler_node" pkg="icarus_rover_v2" type="cameracapture_node"  output="screen" clear_params="true">
         <param name="loop_rate"             value="500"/>
         <param name="verbosity_level"       value="DEBUG"/>
@@ -58,7 +59,6 @@
         <arg name="depth_registration" value="true" />
         <arg name="color_depth_synchronization" value="true"/>
     </include>
-    <!--
     <include file="$(find icarus_rover_v2)/launch/SensorLaunch/rgbdslam.launch" /> 
     -->
 </launch>
