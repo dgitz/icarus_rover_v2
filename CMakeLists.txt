@@ -240,6 +240,8 @@ add_executable(cameramanager_node src/Vision/cameramanager_node.cpp)
 target_link_libraries(cameramanager_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} logger resourcemonitor)
 add_executable(topicremapper_node src/Communication/topicremapper_node.cpp)
 target_link_libraries(topicremapper_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} logger resourcemonitor)
+install(PROGRAMS src/Vision/imageclassifier_node.py
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 
 add_executable(gpio_node src/Board/gpio_node.cpp)
 target_link_libraries(gpio_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} gpio_node_process logger serialmessage resourcemonitor)
