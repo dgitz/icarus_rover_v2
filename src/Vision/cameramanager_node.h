@@ -25,7 +25,8 @@
 //End User Code: Defines
 
 //Start User Code: Includes
-#include <tf/transform_broadcaster.h>
+//#include <tf/transform_broadcaster.h>
+#include <boost/algorithm/string/replace.hpp>
 #include "visionhelper.h"
 #include "opencv2/opencv.hpp"
 #include "sensor_msgs/Image.h"

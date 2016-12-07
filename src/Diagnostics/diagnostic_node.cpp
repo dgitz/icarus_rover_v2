@@ -1,7 +1,7 @@
 #include "diagnostic_node.h"
 //Start User Code: Firmware Definition
 #define DIAGNOSTICNODE_MAJOR_RELEASE 2
-#define DIAGNOSTICNODE_MINOR_RELEASE 1
+#define DIAGNOSTICNODE_MINOR_RELEASE 2
 #define DIAGNOSTICNODE_BUILD_NUMBER 1
 //End User Code: Firmware Definition
 //Start User Code: Functions
@@ -33,8 +33,7 @@ icarus_rover_v2::diagnostic rescan_topics(icarus_rover_v2::diagnostic diag)
 	}
 	for(int i = 0; i < topics_to_add.size(); i++)
 	{
-		std::string taskname = topics_to_add.at(i).substr(1,topics_to_add.at(i).find("/diagnostic")-1);
-		printf("Adding Task: %s\n",taskname.c_str());
+		std::string taskname = topics_to_add.at(i).substr(1,topics_to_add.at(i).find("/diagnostic")-1);;
 		Task newTask;
 		newTask.Task_Name = taskname;
 		newTask.diagnostic_topic = topics_to_add.at(i);
@@ -61,7 +60,7 @@ icarus_rover_v2::diagnostic rescan_topics(icarus_rover_v2::diagnostic diag)
 	diag.Level = INFO;
 	diag.Diagnostic_Message = NOERROR;
 
-	char tempstr[255];
+	char tempstr[512];
 	if(topics_to_add.size() > 0)
 	{
 		sprintf(tempstr,"Rescanned and found %d new topics.",topics_to_add.size());
@@ -237,7 +236,7 @@ bool check_tasks()
 		if(newTask.CPU_Perc > CPU_usage_threshold_percent)
 		{
 			task_ok = false;
-			char tempstr[255];
+			char tempstr[512];
 			sprintf(tempstr,"Task: %s is using high CPU resource: %d/%d %",
 					newTask.Task_Name.c_str(),newTask.CPU_Perc,CPU_usage_threshold_percent);
 			logger->log_warn(tempstr);
@@ -249,7 +248,7 @@ bool check_tasks()
 		if(newTask.RAM_MB > RAM_usage_threshold_MB)
 		{
 			task_ok = false;
-			char tempstr[255];
+			char tempstr[512];
 			sprintf(tempstr,"Task: %s is using high RAM resource: %ld/%ld (MB)",
 					newTask.Task_Name.c_str(),newTask.RAM_MB,RAM_usage_threshold_MB);
 			logger->log_warn(tempstr);
@@ -261,7 +260,7 @@ bool check_tasks()
 		if(newTask.PID <= 0)
 		{
 			task_ok = false;
-			char tempstr[250];
+			char tempstr[512];
 			sprintf(tempstr,"Task: %s does not have a valid PID.",newTask.Task_Name.c_str());
 			logger->log_warn(tempstr);
 			diagnostic_status.Diagnostic_Message = HIGH_RESOURCE_USAGE;
@@ -274,7 +273,7 @@ bool check_tasks()
 		if( resource_time_duration > 5.0)
 		{
 			task_ok = false;
-			char tempstr[255];
+			char tempstr[512];
 			sprintf(tempstr,"Task: %s has not reported resources used in %.1f seconds",newTask.Task_Name.c_str(),resource_time_duration);
 			logger->log_warn(tempstr);
 			diagnostic_status.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
@@ -286,7 +285,7 @@ bool check_tasks()
 		if( resource_time_duration > 5.0)
 		{
 			task_ok = false;
-			char tempstr[250];
+			char tempstr[512];
 			sprintf(tempstr,"Task: %s has not reported diagnostics in %.1f seconds",newTask.Task_Name.c_str(),diagnostic_time_duration);
 			logger->log_warn(tempstr);
 			diagnostic_status.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
@@ -298,7 +297,7 @@ bool check_tasks()
 		if(heartbeat_time_duration > 2.0)
 		{
 			task_ok = false;
-			char tempstr[250];
+			char tempstr[512];
 			sprintf(tempstr,"Task: %s has not reported heartbeats in %.1f seconds",newTask.Task_Name.c_str(),heartbeat_time_duration);
 			logger->log_fatal(tempstr);
 			diagnostic_status.Diagnostic_Message = MISSING_HEARTBEATS;
@@ -405,7 +404,7 @@ bool run_veryslowrate_code()
 	icarus_rover_v2::firmware fw;
 	fw.Generic_Node_Name = "diagnostic_node";
 	fw.Node_Name = node_name;
-	fw.Description = "Latest Rev: 7-Nov-2016";
+	fw.Description = "Latest Rev: 4-Dec-2016";
 	fw.Major_Release = DIAGNOSTICNODE_MAJOR_RELEASE;
 	fw.Minor_Release = DIAGNOSTICNODE_MINOR_RELEASE;
 	fw.Build_Number = DIAGNOSTICNODE_BUILD_NUMBER;
@@ -462,7 +461,7 @@ void diagnostic_Callback(const icarus_rover_v2::diagnostic::ConstPtr& msg,const 
 	}
 	//sprintf(tempstr,"TaskList size: %d",TaskList.size());
 	//logger->log_debug(tempstr);
-	char tempstr[150];
+	char tempstr[512];
 	sprintf(tempstr,"Node: %s: %s",msg->Node_Name.c_str(),msg->Description.c_str());
 
 	switch(msg->Level)
