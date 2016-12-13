@@ -1,50 +1,59 @@
-#include "command_node.h"
+#include "teleop_node.h"
 //Start User Code: Firmware Definition
-#define COMMANDNODE_MAJOR_RELEASE 2
-#define COMMANDNODE_MINOR_RELEASE 2
-#define COMMANDNODE_BUILD_NUMBER 3
+#define TELEOPNODE_MAJOR_RELEASE 1
+#define TELEOPNODE_MINOR_RELEASE 1
+#define TELEOPNODE_BUILD_NUMBER 1
 //End User Code: Firmware Definition
 //Start User Code: Functions
-void ReadyToArm_Callback(const std_msgs::Bool::ConstPtr& msg,const std::string &topic)
-{
-    diagnostic_status = process->new_readytoarmmsg(topic,msg->data);
-    if(diagnostic_status.Level > INFO)
-    {
-    	diagnostic_pub.publish(diagnostic_status);
-    }
-}
-void User_ArmCommand_Callback(const std_msgs::UInt8::ConstPtr& msg)
-{
-    diagnostic_status = process->new_user_armcommandmsg(msg->data);
-    diagnostic_pub.publish(diagnostic_status);
-}
 bool run_fastrate_code()
 {
 	//logger->log_debug("Running fast rate code.");
-	diagnostic_status = process->update(20);
-	std_msgs::UInt8 state;
-	state.data = process->get_armeddisarmed_state();
-	armeddisarmed_state_pub.publish(state);
+	if((armed_state == ARMEDSTATUS_ARMED) && (arm_command == ARMEDCOMMAND_ARM))
+	{
+		rc_pub.publish(rc_command);
+	}
+	else
+	{
+		rc_pub.publish(defaultrc_command);
+	}
 	return true;
 }
 bool run_mediumrate_code()
 {
-
-
-	icarus_rover_v2::command newcommand;
-	newcommand.Command=ARM_COMMAND_ID;
-	newcommand.Option1 = process->get_armcommand();
-	command_pub.publish(newcommand);
-
 	beat.stamp = ros::Time::now();
 	heartbeat_pub.publish(beat);
-	//logger->log_debug("Running medium rate code.");
+
 	diagnostic_status.Diagnostic_Type = SOFTWARE;
 	diagnostic_status.Level = INFO;
 	diagnostic_status.Diagnostic_Message = NOERROR;
 	diagnostic_status.Description = "Node Executing.";
 	diagnostic_pub.publish(diagnostic_status);
 	return true;
+}
+int map_input_to_output(double x, double deadband,int min, int neutral, int max)
+{
+	if(fabs(x) <= deadband)
+	{
+		return neutral;
+	}
+	else if(x < 0)
+	{
+		double m = ((double)(neutral-min))/(-deadband-(-1.0));
+		return (int)(m*(x-(-1.0))+min);
+	}
+	else if(x > 0)
+	{
+		double m = ((double)(max-neutral))/(1.0-deadband);
+		return (int)(m*(x-1.0)+max);
+	}
+	else
+	{
+		return neutral;
+	}
+}
+void ArmedState_Callback(const std_msgs::UInt8::ConstPtr& msg)
+{
+	armed_state = msg->data;
 }
 bool run_slowrate_code()
 {
@@ -77,32 +86,34 @@ bool run_veryslowrate_code()
 {
 	//logger->log_debug("Running very slow rate code.");
 	logger->log_info("Node Running.");
-	{
-		icarus_rover_v2::command newcommand;
-		newcommand.Command=DIAGNOSTIC_ID;
-		newcommand.Option1 = LEVEL2;
-		command_pub.publish(newcommand);
-	}
-
-	{
-		icarus_rover_v2::command newcommand;
-		newcommand.Command=ARM_COMMAND_ID;
-		newcommand.Option1 = ARMEDCOMMAND_DISARM;
-		command_pub.publish(newcommand);
-	}
-
-
 	icarus_rover_v2::firmware fw;
-	fw.Generic_Node_Name = "command_node";
+	fw.Generic_Node_Name = "teleop_node";
 	fw.Node_Name = node_name;
-	fw.Description = "Latest Rev: 30-Nov-2016";
-	fw.Major_Release = COMMANDNODE_MAJOR_RELEASE;
-	fw.Minor_Release = COMMANDNODE_MINOR_RELEASE;
-	fw.Build_Number = COMMANDNODE_BUILD_NUMBER;
+	fw.Description = "Latest Rev: 11-Dec-2016";
+	fw.Major_Release = TELEOPNODE_MAJOR_RELEASE;
+	fw.Minor_Release = TELEOPNODE_MINOR_RELEASE;
+	fw.Build_Number = TELEOPNODE_BUILD_NUMBER;
 	firmware_pub.publish(fw);
 	return true;
 }
+void Joystick_Callback(const sensor_msgs::Joy::ConstPtr& joy)
+{
+	for(int j = 0; j < joy->axes.size();j++)
+	{
+		for(int c = 0; c < Channels.size();c++)
+		{
+			if(Channels.at(c).input_channel == j)
+			{
+				double v_in = joy->axes[j];
+				if(Channels.at(c).inverted == 1){ v_in = -1.0*v_in; }
 
+				int v = map_input_to_output(v_in,Channels.at(c).deadband,Channels.at(c).min_value,Channels.at(c).neutral_value,Channels.at(c).max_value);
+				rc_command.channel[Channels.at(c).output_channel] = v;
+				//printf("j: %d v: %f output: %d %d\n",j,v_in,Channels.at(c).output_channel,v);
+			}
+		}
+	}
+}
 std::vector<icarus_rover_v2::diagnostic> check_program_variables()
 {
 	std::vector<icarus_rover_v2::diagnostic> diaglist;
@@ -129,11 +140,42 @@ std::vector<icarus_rover_v2::diagnostic> check_program_variables()
 	}
 	return diaglist;
 }
+
+void Command_Callback(const icarus_rover_v2::command::ConstPtr& msg)
+{
+	//logger->log_info("Got command");
+	if (msg->Command ==  DIAGNOSTIC_ID)
+	{
+		if(msg->Option1 == LEVEL1)
+		{
+			diagnostic_pub.publish(diagnostic_status);
+		}
+		else if(msg->Option1 == LEVEL2)
+		{
+			std::vector<icarus_rover_v2::diagnostic> diaglist = check_program_variables();
+			for(int i = 0; i < diaglist.size();i++) { diagnostic_pub.publish(diaglist.at(i)); }
+		}
+		else if(msg->Option1 == LEVEL3)
+		{
+		}
+		else if(msg->Option1 == LEVEL4)
+		{
+		}
+		else
+		{
+			logger->log_error("Shouldn't get here!!!");
+		}
+	}
+	else if(msg->Command == ARM_COMMAND_ID)
+	{
+		arm_command = msg->Option1;
+	}
+}
 //End User Code: Functions
 
 int main(int argc, char **argv)
 {
-	node_name = "command_node";
+	node_name = "sample_node";
     ros::init(argc, argv, node_name);
     node_name = ros::this_node::getName();
     ros::NodeHandle n;
@@ -215,7 +257,7 @@ bool initialize(ros::NodeHandle nh)
 	diagnostic_status.Node_Name = node_name;
 	diagnostic_status.System = ROVER;
 	diagnostic_status.SubSystem = ROBOT_CONTROLLER;
-	diagnostic_status.Component = CONTROLLER_NODE;
+	diagnostic_status.Component = TIMING_NODE;
 
 	diagnostic_status.Diagnostic_Type = NOERROR;
 	diagnostic_status.Level = INFO;
@@ -251,6 +293,7 @@ bool initialize(ros::NodeHandle nh)
     device_sub = nh.subscribe<icarus_rover_v2::device>(device_topic,1000,Device_Callback);
 
     pps_sub = nh.subscribe<std_msgs::Bool>("/pps",1000,PPS_Callback);  //This is a pps consumer.
+    command_sub = nh.subscribe<icarus_rover_v2::command>("/command",1000,Command_Callback);
     std::string param_require_pps_to_start = node_name +"/require_pps_to_start";
     if(nh.getParam(param_require_pps_to_start,require_pps_to_start) == false)
 	{
@@ -262,63 +305,114 @@ bool initialize(ros::NodeHandle nh)
     //End Template Code: Initialization and Parameters
 
     //Start User Code: Initialization and Parameters
-	process = new CommandNodeProcess;
-    robot_armdisarmed_state = ARMEDSTATUS_DISARMED_CANNOTARM;
-    diagnostic_status = process->init(diagnostic_status,logger,std::string(hostname));
-    std::string command_topic = "/command";
-    command_pub =  nh.advertise<icarus_rover_v2::command>(command_topic,1000);
-
-    std::vector<std::string> ready_to_arm_topics;
-
-    bool search_for_topics = true;
-    int topicindex = 1;
-    while(search_for_topics == true)
+    for(int i = 0; i < 8; i++)
     {
-    	std::string topic;
-    	bool add_new_topic = false;
-    	std::string param_topic = node_name +"/ready_to_arm_topic" + boost::lexical_cast<std::string>(topicindex);
-    	if(nh.getParam(param_topic,topic) == false)
+    	rc_command.channel[i] = 1500;
+    	defaultrc_command.channel[i] = 1500;
+    }
+    std::string armed_state_topic = "/armed_state";
+    armed_state_sub = nh.subscribe<std_msgs::UInt8>(armed_state_topic,1000,ArmedState_Callback);
+    std::string joy_topic;
+    std::string param_joy_topic = node_name +"/joystick_topic";
+    if(nh.getParam(param_joy_topic,joy_topic) == false)
+    {
+    	logger->log_warn("Missing Parameter: joystick_topic.");
+    	return false;
+    }
+    joy_sub = nh.subscribe<sensor_msgs::Joy>(joy_topic,1000,Joystick_Callback);
+    rc_pub = nh.advertise<icarus_rover_v2::remotecontrol>("/remote_control",1000);
+    for(int i = 0; i < 8; i++)
+    {
+    	std::string param_channelid = node_name +"/Channel" + boost::lexical_cast<std::string>(i) + "_Name";
+    	std::string channel_name;
+    	if(nh.getParam(param_channelid,channel_name) == true)
     	{
-    		char tempstr[255];
-    		sprintf(tempstr,"Didn't find %s Not adding anymore.",param_topic.c_str());
-    		logger->log_info(tempstr);
-    		add_new_topic = false;
-    		search_for_topics = false;
+    		Channel newch;
+    		newch.Name = channel_name;
+    		newch.input_channel = i;
+    		int inverted,minv,maxv,neutralv,outputchannel;
+    		double deadband;
+    		std::string param_channel_inverted = node_name +"/" + newch.Name + "_Inverted";
+    		std::string param_channel_minvalue = node_name +"/" + newch.Name + "_MinValue";
+    		std::string param_channel_neutralvalue = node_name +"/" + newch.Name + "_NeutralValue";
+    		std::string param_channel_manvalue = node_name +"/" + newch.Name + "_MaxValue";
+    		std::string param_channel_output = node_name + "/" + newch.Name + "_OutputChannel";
+    		std::string param_channel_deadband = node_name + "/" + newch.Name + "_Deadband";
+    		if(nh.getParam(param_channel_inverted,inverted) == false)
+			{
+    			char tempstr[1024];
+    			sprintf(tempstr,"Missing Parameter: %s.  Exiting.",param_channel_inverted.c_str());
+    			logger->log_error(tempstr);
+    			return false;
+			}
+    		if(nh.getParam(param_channel_minvalue,minv) == false)
+    		{
+    			char tempstr[1024];
+    			sprintf(tempstr,"Missing Parameter: %s.  Exiting.",param_channel_minvalue.c_str());
+    			logger->log_error(tempstr);
+    			return false;
+    		}
+    		if(nh.getParam(param_channel_neutralvalue,neutralv) == false)
+    		{
+    			char tempstr[1024];
+    			sprintf(tempstr,"Missing Parameter: %s.  Exiting.",param_channel_neutralvalue.c_str());
+    			logger->log_error(tempstr);
+    			return false;
+    		}
+    		if(nh.getParam(param_channel_manvalue,maxv) == false)
+    		{
+    			char tempstr[1024];
+    			sprintf(tempstr,"Missing Parameter: %s.  Exiting.",param_channel_manvalue.c_str());
+    			logger->log_error(tempstr);
+    			return false;
+    		}
+    		if(nh.getParam(param_channel_output,outputchannel) == false)
+    		{
+    			char tempstr[1024];
+    			sprintf(tempstr,"Missing Parameter: %s.  Exiting.",param_channel_output.c_str());
+    			logger->log_error(tempstr);
+    			return false;
+    		}
+    		if(nh.getParam(param_channel_deadband,deadband) == false)
+    		{
+    			char tempstr[1024];
+    			sprintf(tempstr,"Missing Parameter: %s.  Exiting.",param_channel_deadband.c_str());
+    			logger->log_error(tempstr);
+    			return false;
+    		}
+    		newch.inverted = inverted;
+    		newch.min_value = minv;
+    		newch.neutral_value = neutralv;
+    		newch.max_value = maxv;
+    		newch.output_channel = outputchannel;
+    		newch.deadband = deadband;
+    		Channels.push_back(newch);
     	}
-    	else
+    }
+    for(int c = 0; c < Channels.size(); c++)
+    {
+    	defaultrc_command.channel[Channels.at(c).input_channel] = Channels.at(c).neutral_value;
+
+    	printf("Input Channel: %d Name: %s Deadband: %f Inverted: %d Min: %d Neutral: %d Max: %d Output: %d\n",
+    			Channels.at(c).input_channel,
+				Channels.at(c).Name.c_str(),
+				Channels.at(c).deadband,
+				Channels.at(c).inverted,
+				Channels.at(c).min_value,
+				Channels.at(c).neutral_value,
+				Channels.at(c).max_value,
+				Channels.at(c).output_channel);
+    }
+    for(int j = 0; j < 8;j++)
+    {
+    	for(int c = 0; c < Channels.size();c++)
     	{
-    		char tempstr[255];
-    		sprintf(tempstr,"Adding Ready to Arm Topic: %s",topic.c_str());
-    		logger->log_info(tempstr);
-    		ready_to_arm_topics.push_back(topic);
-    		search_for_topics = true;
-    		topicindex++;
+    		if(Channels.at(c).input_channel == j)
+    		{
+    			rc_command.channel[Channels.at(c).output_channel] = Channels.at(c).neutral_value;
+    		}
     	}
     }
-    for(int i = 0; i < ready_to_arm_topics.size();i++)
-    {
-        ros::Subscriber sub = nh.subscribe<std_msgs::Bool>(ready_to_arm_topics.at(i),1000,boost::bind(ReadyToArm_Callback,_1,ready_to_arm_topics.at(i)));
-        ready_to_arm_subs.push_back(sub);
-    } 
-    diagnostic_status = process->init_readytoarm_list(ready_to_arm_topics);
-    if(diagnostic_status.Level >= WARN)
-    {
-        logger->log_warn("Unable to initialize Ready To Arm List.  Exiting.");
-        return false;
-    }
-
-    std::string param_user_armcommand_topic = node_name +"/user_armcommand_topic";
-    std::string armcommand_topic;
-    if(nh.getParam(param_user_armcommand_topic,armcommand_topic) == false)
-    {
-        logger->log_error("Missing parameter: user_armcommand_topic. Exiting.");
-        return false;
-    }
-    armcommand_sub = nh.subscribe<std_msgs::UInt8>(armcommand_topic,1000,User_ArmCommand_Callback);
-    
-    std::string armeddisarmed_state_topic = "/armed_state";
-    armeddisarmed_state_pub = nh.advertise<std_msgs::UInt8>(armeddisarmed_state_topic,1000);
-
     //Finish User Code: Initialization and Parameters
 
     //Start Template Code: Final Initialization.
@@ -346,22 +440,13 @@ void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg)
 {
 	icarus_rover_v2::device newdevice;
 	newdevice.DeviceName = msg->DeviceName;
-	newdevice.DeviceParent = msg->DeviceParent;
-	newdevice.DeviceType = msg->DeviceType;
 	newdevice.Architecture = msg->Architecture;
-	process->new_devicemsg(newdevice);
-	if(diagnostic_status.Level == FATAL)
+
+	if((newdevice.DeviceName == hostname) && (device_initialized == false))
 	{
-		logger->log_fatal(diagnostic_status.Description);
-		logger->log_fatal("This is a Safety Issue!  Killing Node.");
-		kill_node = 1;
-	}
-	if((device_initialized == false) && (process->is_finished_initializing()))
-	{
-		myDevice = process->get_mydevice();
+		myDevice = newdevice;
 		resourcemonitor = new ResourceMonitor(diagnostic_status,myDevice.Architecture,myDevice.DeviceName,node_name);
 		device_initialized = true;
-
 	}
 }
 void signalinterrupt_handler(int sig)
