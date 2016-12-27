@@ -70,6 +70,7 @@ add_message_files(
   firmware.msg
   heartbeat.msg
   remotecontrol.msg
+  imu.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -218,34 +219,14 @@ add_library(udpmessage util/udpmessage.cpp)
 add_library(serialmessage util/serialmessage.cpp)
 add_library(resourcemonitor util/resourcemonitor.cpp)
 add_library(visionhelper util/visionhelper.cpp)
-add_library(gpio_node_process src/Board/gpio_node_process.cpp)
+add_library(boardcontroller_node_process src/Board/boardcontroller_node_process.cpp)
 add_library(command_node_process src/Control/command_node_process.cpp)
 
-add_executable(command_node src/Control/command_node.cpp)
-target_link_libraries(command_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor command_node_process)
-add_executable(cameracapture_node src/Vision/cameracapture_node.cpp)
-target_link_libraries(cameracapture_node ${OpenCV_LIBRARIES} ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor visionhelper)
 add_executable(master_node src/Control/master_node.cpp)
 target_link_libraries(master_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor)
-add_executable(diagnostic_node src/Diagnostics/diagnostic_node.cpp)
-target_link_libraries(diagnostic_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} logger resourcemonitor)
-add_executable(network_transceiver_node src/Communication/network_transceiver_node.cpp)
-target_link_libraries(network_transceiver_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} logger udpmessage resourcemonitor)
-add_executable(speaker_node src/Communication/speaker_node.cpp)
-target_link_libraries(speaker_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} logger resourcemonitor)
-add_executable(tracking_node src/Vision/tracking_node.cpp)
-target_link_libraries(tracking_node ${OpenCV_LIBRARIES} ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor visionhelper)
-add_executable(tfhelper_node src/Dynamics/tfhelper_node.cpp)
-target_link_libraries(tfhelper_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} logger resourcemonitor)
-add_executable(cameramanager_node src/Vision/cameramanager_node.cpp)
-target_link_libraries(cameramanager_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} logger resourcemonitor)
-add_executable(topicremapper_node src/Communication/topicremapper_node.cpp)
-target_link_libraries(topicremapper_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} logger resourcemonitor)
-install(PROGRAMS src/Vision/imageclassifier_node.py
-  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 
-add_executable(gpio_node src/Board/gpio_node.cpp)
-target_link_libraries(gpio_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} gpio_node_process logger serialmessage resourcemonitor)
+add_executable(boardcontroller_node src/Board/boardcontroller_node.cpp)
+target_link_libraries(boardcontroller_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} boardcontroller_node_process logger serialmessage resourcemonitor)
+catkin_add_gtest(test_boardcontroller_node_process src/Board/unit_tests/test_boardcontroller_node_process.cpp)
+target_link_libraries(test_boardcontroller_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} boardcontroller_node_process logger serialmessage)
 
-add_executable(teleop_node src/User_Control/teleop_node.cpp)
-target_link_libraries(teleop_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} logger resourcemonitor)

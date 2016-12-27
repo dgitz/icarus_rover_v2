@@ -30,7 +30,13 @@ bool check_remoteHeartbeats()
 	}
 	if(remote_devices.size() == 0)
 	{
+		diagnostic_status.Diagnostic_Type = COMMUNICATIONS;
+		diagnostic_status.Level = WARN;
+		diagnostic_status.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
+		diagnostic_status.Description = "No Remote UI Devices Found Yet.";
+		diagnostic_pub.publish(diagnostic_status);
 		heartbeat_pass = false;
+
 	}
 	return heartbeat_pass;
 }
@@ -214,6 +220,7 @@ void process_udp_receive()
 		uint64_t t,t2;
 		switch (id)
 		{
+			printf("Got ID: %d\n",id);
 			case UDPMessageHandler::UDP_Arm_Command_ID:
 				success = udpmessagehandler->decode_Arm_CommandUDP(items,&armcommand);
 				if(success == 1)

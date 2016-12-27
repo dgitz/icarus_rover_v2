@@ -5,25 +5,16 @@
 	    <param name="verbosity_level"       value="DEBUG"/>
         <param name="require_pps_to_start"  value="false"/>    
     </node>
-    <node name="$(env ROS_HOSTNAME)_teleop_node" pkg="icarus_rover_v2" type="teleop_node"  output="screen" clear_params="true">
+
+    <node name="$(env ROS_HOSTNAME)_gpio_node" pkg="icarus_rover_v2" type="gpio_node" output="screen" >  
         <param name="loop_rate"             value="500"/>
 	    <param name="verbosity_level"       value="DEBUG"/>
-        <param name="require_pps_to_start"  value="false"/>    
-        <param name="joystick_topic"         value="Diagnostics_GUI/joystick"/>
-        <param name="Channel0_Name"         value="Steer"/>
-        <param name="Steer_Inverted"        value="1" />
-        <param name="Steer_MinValue" value="1300" />
-        <param name="Steer_NeutralValue" value="1620" />
-        <param name="Steer_MaxValue" value="1850" />
-        <param name="Steer_OutputChannel"   value="0"/>
-        <param name="Steer_Deadband"         value="0.1"/>
-        <param name="Channel3_Name" value="Drive"/>
-        <param name="Drive_Inverted"        value="0" />
-        <param name="Drive_MinValue" value="1350" />
-        <param name="Drive_NeutralValue" value="1500" />
-        <param name="Drive_MaxValue" value="1650" />
-        <param name="Drive_OutputChannel"   value="2"/>
-        <param name="Drive_Deadband"         value="0.1"/>
-        
+        <param name="require_pps_to_start"  value="false"/>
+        <param name="serial_device"         value="/dev/ttyUSB0"/>
+        <param name="sensor_spec_path" value="/home/robot/config/sensors"/>
+        <param name="extrapolate_sensor_values" value="false" />
+        <param name="manual_pin_definition" value="false"/>
     </node>
+
+
 </launch>

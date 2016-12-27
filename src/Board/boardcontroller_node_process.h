@@ -1,10 +1,7 @@
-#ifndef GPIONODEPROCESS_H
-#define GPIONODEPROCESS_H
+#ifndef BOARDCONTROLLERNODEPROCESS_H
+#define BOARDCONTROLLERNODEPROCESS_H
 
-#include "ros/ros.h"
-#include "ros/time.h"
 #include "Definitions.h"
-#include "ros/time.h"
 #include <sys/time.h>
 #include <stdio.h>
 #include <iostream>
@@ -21,6 +18,7 @@
 #include <serialmessage.h>
 #include <math.h>
 #define INITIAL_TIMEOUT_VALUE_MS 1000
+#define PORT_SIZE 8 //Number of pins in 1 port
 using std::string;
 using namespace std;
 struct Sensor {
@@ -37,12 +35,14 @@ struct Sensor {
 	double intercept;
 };
 struct Port_Info{
-		std::string PortName;
-		bool Available[8];
-		int Value[8];
-		int Mode[8];
-		int Number[8];
-		int DefaultValue[8];
+		int ShieldID;
+		int PortID;
+		bool Updated;
+		std::vector<int> Available;
+		std::vector<int> Value;
+		std::vector<int> Mode;
+		std::vector<int> Number;
+		std::vector<int> DefaultValue;
 		std::vector<std::string> ConnectingDevice;
 	};
 struct state_ack
@@ -63,52 +63,69 @@ struct message_info
 {
 	int id;
 	std::string protocol;
-	ros::Time last_time_received;
-	ros::Time last_time_transmitted;
+	struct timeval last_time_received;
+	struct timeval last_time_transmitted;
 	long received_counter;
 	long sent_counter;
 	double received_rate;
 	double transmitted_rate;
 
 };
-class GPIONodeProcess
+class BoardControllerNodeProcess
 {
 public:
 
 
-	GPIONodeProcess();
-	~GPIONodeProcess();
-
+	BoardControllerNodeProcess();
+	~BoardControllerNodeProcess();
+	BoardControllerNodeProcess(std::string loc, int v);
 	icarus_rover_v2::diagnostic init(icarus_rover_v2::diagnostic indiag,Logger *log,std::string hostname,std::string sensorspecpath,bool extrapolate);
-	icarus_rover_v2::diagnostic update(long dt);
+	icarus_rover_v2::diagnostic init(icarus_rover_v2::diagnostic indiag,Logger *log,std::string hostname,int v_id);
+	icarus_rover_v2::diagnostic update(double dt);
 	icarus_rover_v2::diagnostic new_devicemsg(icarus_rover_v2::device devicemsg);
 	icarus_rover_v2::diagnostic new_commandmsg(uint16_t command,uint8_t option1,uint8_t option2,uint8_t option3,
 			std::string commandtext,std::string description);
 	icarus_rover_v2::diagnostic new_pinmsg(icarus_rover_v2::pin pinmsg);
 	icarus_rover_v2::device get_mydevice() { return mydevice; }
-	std::vector<icarus_rover_v2::device> get_myboards() { return myboards; }
+	std::vector<icarus_rover_v2::device> get_myshields() { return myshields; }
+	std::vector<int> get_portlist(int ShieldID);
 	bool is_finished_initializing(){ return all_device_info_received; }
 	bool initialize_Ports();
-	Port_Info get_PortInfo(std::string BoardName,std::string PortName);
+	std::vector<Port_Info> get_allports() { return myports; }
+	Port_Info get_PortInfo(int ShieldID,int PortID)
+	{
+		for(int i = 0; i < myports.size();i++)
+		{
+			if((myports.at(i).ShieldID == ShieldID) && (myports.at(i).PortID == PortID))
+			{
+				return myports.at(i);
+			}
+		}
+		Port_Info emptyport;
+		emptyport.PortID = 0;
+		emptyport.ShieldID = 0;
+		return emptyport;
+	}
+	//Port_Info get_PortInfo(std::string BoardName,std::string PortName);
 	std::string map_PinFunction_ToString(int function);
 	int map_PinFunction_ToInt(std::string Function);
+	int map_DeviceType_ToInt(std::string devicetype);
 	int get_nodestate() { return node_state; }
 	void set_nodestate(int mode) { node_state = mode; }
 	int get_boardstate() { return board_state; }
+	void set_boardstate(int mode) { board_state = mode; } //Only for unit_testing
 	bool set_timeout_ms(long timeout){ timeout_value_ms = timeout; return true; }
 	int get_timeout_ms() { return timeout_value_ms; }
 	long get_timer_ms() { return ms_timer; }
 	bool reset_timer() { ms_timer = 0; timer_timeout = false; return true;}
 	bool checkTriggers(std::vector<std::vector<unsigned char > > &tx_buffers);
-	std::vector<icarus_rover_v2::device> get_boards() { return myboards; }
 	icarus_rover_v2::diagnostic new_serialmessage_TestMessageCounter(int packet_type,unsigned char* inpacket);
 	icarus_rover_v2::diagnostic new_serialmessage_FirmwareVersion(int packet_type,unsigned char* inpacket);
 	icarus_rover_v2::diagnostic new_serialmessage_Diagnostic(int packet_type,unsigned char* inpacket);
-	icarus_rover_v2::diagnostic new_serialmessage_Get_ANA_PortA(int packet_type,unsigned char* inpacket);
-	icarus_rover_v2::diagnostic new_serialmessage_Get_ANA_PortB(int packet_type,unsigned char* inpacket);
-	icarus_rover_v2::diagnostic new_serialmessage_Get_DIO_PortA(int packet_type,unsigned char* inpacket);
-	icarus_rover_v2::diagnostic new_serialmessage_Get_DIO_PortB(int packet_type,unsigned char* inpacket);
+	icarus_rover_v2::diagnostic new_serialmessage_Get_ANA_Port(int packet_type,unsigned char* inpacket);
+	icarus_rover_v2::diagnostic new_serialmessage_Get_DIO_Port(int packet_type,unsigned char* inpacket);
 	icarus_rover_v2::diagnostic new_serialmessage_Get_Mode(int packet_type,unsigned char* inpacket);
+	icarus_rover_v2::diagnostic new_serialmessage_UserMessage(int packet_type,unsigned char* inpacket);
 	void transmit_armedstate();
 	icarus_rover_v2::diagnostic new_armedstatemsg(uint8_t v);
 	std::vector<message_info> get_allmessage_info() { return messages; }
@@ -118,54 +135,60 @@ public:
 	uint8_t get_armedstate() { return armed_state; }
 	uint8_t get_armedcommand() { return armed_command; }
 	void set_manualpin_definition(bool v) { manual_pin_definition = v; }
+	uint8_t get_boardid() { return id; }
+	int get_usbdevice_id() { return UsbDevice_id; }
+	std::string get_boardname() { return my_boardname; }
+	double get_runtime() { return run_time; }
 protected:
-	state_ack send_configure_DIO_PortA;
-	state_ack send_configure_DIO_PortB;
-	state_ack send_defaultvalue_DIO_PortA;
-	state_ack send_defaultvalue_DIO_PortB;
+	state_ack send_configure_DIO_Ports;
+	state_ack send_defaultvalue_DIO_Port;
+	state_ack send_configure_shields;
 	state_ack send_testmessage_command;
 	state_ack send_nodemode;
-	state_ack send_set_DIO_PortA;
-	state_ack send_set_DIO_PortB;
+	state_ack send_set_DIO_Port;
 	state_ack send_armedcommand;
 	state_ack send_armedstate;
 private:
 
+	std::string location;
+	int id;
+	std::string my_boardname;
+	int UsbDevice_id;
 	int board_state;
 	int node_state;
 	int prev_node_state;
 	SerialMessageHandler *serialmessagehandler;
-	bool configure_pin(std::string BoardName,std::string Port, uint8_t Number, std::string Function,std::string ConnectedDevice,uint8_t defaultvalue);
+	bool configure_port(int ShieldID,std::vector<icarus_rover_v2::pin> pins);
+	//bool configure_pin(std::string ShieldName,int PortID, uint8_t Number, std::string Function,std::string ConnectedDevice,uint8_t defaultvalue);
 	int transducer_model(int mode,std::string SensorName,double input);
 	void initialize_stateack_messages();
 	void initialize_message_info();
 	bool gather_message_info(int id, std::string mode);
 	std::string myhostname;
 	std::string sensor_spec_path;
-	bool all_board_info_received;
+	bool all_shield_info_received;
 	bool all_sensor_info_received;
 	bool all_device_info_received;
 	icarus_rover_v2::device mydevice;
 	icarus_rover_v2::diagnostic diagnostic;
-	std::vector<icarus_rover_v2::device> myboards;
+	std::vector<icarus_rover_v2::device> myshields;
+	int shield_count;
 	std::vector<icarus_rover_v2::device> mysensors;
 	std::vector<Sensor> SensorSpecs;
 	bool manual_pin_definition;
 	Logger *mylogger;
-	Port_Info DIO_PortA;
-	Port_Info DIO_PortB;
-	Port_Info ANA_PortA;
-	Port_Info ANA_PortB;
+	std::vector<Port_Info> myports;
 	bool extrapolate_values;
 	long ms_timer;
 	long timeout_value_ms;
-    ros::Time init_time;
+	struct timeval init_time;
 	bool timer_timeout;
 	uint8_t armed_state;
 	uint8_t armed_command;
 	bool enable_actuators;
 	bool last_enable_actuators;
-	double time_diff(ros::Time timer_a, ros::Time timer_b);
+	double time_diff(struct timeval timea,struct timeval timeb);
+	double run_time;
 	double find_slope(std::vector<double> x,std::vector<double> y);
 	double find_intercept(double slope,std::vector<double> x,std::vector<double> y);
 

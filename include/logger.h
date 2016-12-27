@@ -16,6 +16,7 @@ class Logger
 public:
     Logger();
     Logger(std::string level, std::string name);
+    Logger(std::string level,std::string modpath,std::string name);
     ~Logger();
     void log_debug(std::string tempstr);
     void log_info(std::string tempstr);

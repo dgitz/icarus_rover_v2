@@ -361,14 +361,17 @@ bool GPIONodeProcess::checkTriggers(std::vector<std::vector<unsigned char > > &t
 	if(send_configure_DIO_PortB.trigger == true)
 	{
 		nothing_triggered = false;
-		//printf("send_configure_DIO_PortB Triggered.\n");
+		printf("send_configure_DIO_PortB Triggered.\n");
 		std::string BoardName = myboards.at(send_configure_DIO_PortB.flag1).DeviceName;
 		Port_Info Port = get_PortInfo(BoardName,"DIO_PortB");
+		printf("got port: %s\n",Port.PortName.c_str());
 		char buffer[12];
 		int length;
 		int tx_status = serialmessagehandler->encode_Configure_DIO_PortBSerial(buffer,&length,
 				Port.Mode[0],Port.Mode[1],Port.Mode[2],Port.Mode[3],Port.Mode[4],Port.Mode[5],Port.Mode[6],Port.Mode[7]);
+
 		bool status = gather_message_info(SERIAL_Configure_DIO_PortB_ID, "transmit");
+		printf("status: %d\n",status);
 		tx_buffers.push_back(std::vector<unsigned char>(buffer,buffer+sizeof(buffer)/sizeof(buffer[0])));
 
 		send_configure_DIO_PortB.state = true;
@@ -496,7 +499,7 @@ icarus_rover_v2::diagnostic GPIONodeProcess::new_commandmsg(uint16_t command,
 		}
 		else if(option2 == LEVEL2)
 		{
-			if((board_state == GPIO_MODE_RUNNING) && (node_state == GPIO_MODE_RUNNING))
+			if((board_state == BOARDMODE_RUNNING) && (node_state == BOARDMODE_RUNNING))
 			{
 				send_testmessage_command.trigger = true;
 			}
@@ -517,7 +520,9 @@ icarus_rover_v2::diagnostic GPIONodeProcess::new_commandmsg(uint16_t command,
 		}
 		else
 		{
-			mylogger->log_error("Shouldn't get here!!!");
+			char tempstr[255];
+			sprintf(tempstr,"Got: Diagnostic ID w/ Option: %d but not implemented yet.",option1);
+			mylogger->log_warn(tempstr);
 		}
 	}
 	else if(command == ARM_COMMAND_ID)
@@ -786,31 +791,39 @@ icarus_rover_v2::diagnostic GPIONodeProcess::new_serialmessage_Get_Mode(int pack
 			diagnostic.Level = NOERROR;
 			diagnostic.Description = "GPIO Board Mode Decoded successfully.";
 			diagnostic.Diagnostic_Message = NOERROR;
-			if(board_state == GPIO_MODE_BOOT)
+			if(manual_pin_definition == true)
+			{
+				node_state = BOARDMODE_RUNNING;
+				send_configure_DIO_PortA.trigger = false;
+				send_configure_DIO_PortB.trigger = false;
+				send_defaultvalue_DIO_PortA.trigger = false;
+				send_defaultvalue_DIO_PortB.trigger = false;
+			}
+			else if(board_state == BOARDMODE_BOOT)
 			{
 				send_configure_DIO_PortA.trigger = false;
 				send_configure_DIO_PortB.trigger = false;
 			}
-			else if(node_state == GPIO_MODE_INITIALIZING)
+			else if(node_state == BOARDMODE_INITIALIZING)
 			{
 				send_configure_DIO_PortA.trigger = true;
 				send_configure_DIO_PortB.trigger = true;
 				send_defaultvalue_DIO_PortA.trigger = true;
 				send_defaultvalue_DIO_PortB.trigger = true;
 				prev_node_state = node_state;
-				node_state = GPIO_MODE_INITIALIZED;
+				node_state = BOARDMODE_INITIALIZED;
 			}
-			else if(board_state == GPIO_MODE_RUNNING)
+			else if(board_state == BOARDMODE_RUNNING)
 			{
-				if(node_state == GPIO_MODE_INITIALIZED)
+				if(node_state == BOARDMODE_INITIALIZED)
 				{
 					node_state = prev_node_state;
-					node_state = GPIO_MODE_RUNNING;
+					node_state = BOARDMODE_RUNNING;
 				}
 			}
-			else if((board_state == GPIO_MODE_INITIALIZING) && (node_state == GPIO_MODE_RUNNING))
+			else if((board_state == BOARDMODE_INITIALIZING) && (node_state == BOARDMODE_RUNNING))
 			{
-				node_state = GPIO_MODE_INITIALIZING;
+				node_state = BOARDMODE_INITIALIZING;
 			}
 			/*	else if((board_state == GPIO_MODE_INITIALIZING) && (node_state == GPIO_MODE_INITIALIZED))
 		{
@@ -855,6 +868,11 @@ double GPIONodeProcess::find_intercept(double slope,std::vector<double> x,std::v
 }
 icarus_rover_v2::diagnostic GPIONodeProcess::new_devicemsg(icarus_rover_v2::device newdevice)
 {
+	printf("Board info recvd: %d sensor info recvd: %d all info recvd: %d\n",
+			all_board_info_received,
+			all_sensor_info_received,
+			all_device_info_received);
+
 	if( (all_board_info_received == true) &&
 		(all_sensor_info_received == true) &&
 		(all_device_info_received == false))
@@ -865,9 +883,14 @@ icarus_rover_v2::diagnostic GPIONodeProcess::new_devicemsg(icarus_rover_v2::devi
 	else if((newdevice.DeviceParent == "None") && (newdevice.DeviceName == myhostname))// && (all_device_info_received == false))
 	{
 		mydevice = newdevice;
+		if(mydevice.SensorCount == 0)
+		{
+			all_sensor_info_received = true;
+		}
 	}
 
-	else if((newdevice.DeviceType == "GPIOBoard") && (newdevice.DeviceParent == mydevice.DeviceName) && (mydevice.DeviceName != "") && (all_board_info_received == false))
+	else if(((newdevice.DeviceType == "GPIOBoard") || (newdevice.DeviceType == "QSP"))
+			&& (newdevice.DeviceParent == mydevice.DeviceName) && (mydevice.DeviceName != "") && (all_board_info_received == false))
 	{
 		icarus_rover_v2::device board;
 		board.DeviceName = newdevice.DeviceName;
@@ -1122,6 +1145,7 @@ icarus_rover_v2::diagnostic GPIONodeProcess::new_devicemsg(icarus_rover_v2::devi
 			mylogger->log_fatal(tempstr2);
 			return diagnostic;
 		}
+
 		if((mydevice.SensorCount == mysensors.size()) && (mydevice.SensorCount > 0) && (all_sensor_info_received == false))
 		{
 			diagnostic.Diagnostic_Type = NOERROR;

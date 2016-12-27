@@ -1,5 +1,5 @@
-#ifndef GPIONODE_H
-#define GPIONODE_H
+#ifndef BOARDCONTROLLERNODE_H
+#define BOARDCONTROLLERNODE_H
 //Start Template Code: Includes
 #include "ros/ros.h"
 #include "std_msgs/String.h"
@@ -22,12 +22,12 @@
 //End Template Code: Includes
 
 //Start User Code: Defines
-#define USE_UART 1
+#define USE_UART 0
 #define WARN_ON_SOFTWARE_NOT_IMPLEMENTED 0
 //End User Code: Defines
 
 //Start User Code: Includes
-#include "gpio_node_process.h"
+#include "boardcontroller_node_process.h"
 #include <stdio.h>
 #include <string.h>
 #include <serialmessage.h>
@@ -35,9 +35,22 @@
 #include <fcntl.h>			//Used for UART
 #include <termios.h>		//Used for UART
 #include <boost/thread.hpp>
+#include <dirent.h>
+#include <sys/types.h>
 //End User Code: Includes
 
 //Start User Code: Data Structures
+struct UsbDevice
+{
+	int device_fid;
+	std::string location;
+	int valid; //0 is no, 1 is yes, 2 is unknown
+	int boardcontrollernode_id;
+	long long bytesreceived;
+	int index;
+	long long good_checksum_counter;
+	long long bad_checksum_counter;
+};
 //End User Code: Data Structures
 
 //Start Template Code: Function Prototypes
@@ -52,6 +65,7 @@ void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg);
 void Command_Callback(const icarus_rover_v2::command& msg);
 std::vector<icarus_rover_v2::diagnostic> check_program_variables();
 void signalinterrupt_handler(int sig);
+int checkmessage();
 //End Template Code: Function Prototypes
 
 //Start User Code: Function Prototypes
@@ -93,7 +107,7 @@ volatile sig_atomic_t kill_node;
 
 //Start User Code: Define Global Variables
 ros::Time last_message_received_time;
-GPIONodeProcess *process;
+std::vector<BoardControllerNodeProcess> boardprocesses;
 ros::Publisher digitalinput_pub;
 ros::Subscriber pwmoutput_sub;
 ros::Subscriber digitaloutput_sub;
@@ -102,16 +116,15 @@ ros::Publisher forcesensorinput_pub;
 ros::Time gpio_comm_test_start;
 bool checking_gpio_comm;
 int message_receive_counter;
-int device_fid;
+std::vector<UsbDevice> UsbDevices;
+std::vector<boost::thread> threads;
 
 int current_num;
 int last_num;
 int missed_counter;
-int bad_checksum_counter;
-int good_checksum_counter;
 bool new_message;
-int packet_type;
-unsigned char packet[8];
+//int packet_type;
+//unsigned char packet[8];
 bool message_started;
 bool message_completed;
 int message_buffer_index;

@@ -4,14 +4,14 @@ import rospy
 from std_msgs.msg import String, Header
 from std_srvs.srv import *
 from sensor_msgs.msg import NavSatFix, NavSatStatus, Imu
-import icarus_rover_rc.msg
+import icarus_rover_v2.msg
 import sys,struct,time,os
 
 #sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), '../mavlink/pymavlink'))
 sys.path.append("/usr/local/lib/python2.7/dist-packages/pymavlink")
 
 from optparse import OptionParser
-parser = OptionParser("Mavlink_Node.py [options]")
+parser = OptionParser("mavlink_node.py [options]")
 
 parser.add_option("--baudrate", dest="baudrate", type='int',
                   help="master port baud rate", default=115200)
@@ -71,17 +71,17 @@ def set_disarm(req):
     master.arducopter_disarm()
     return True
 
-pub_gps = rospy.Publisher('Mavlink_Node/gps', NavSatFix)
-pub_gps_state = rospy.Publisher('Mavlink_Node/gps_state',icarus_rover_rc.msg.GPS_State)
+#pub_gps = rospy.Publisher('mavlink_mode/gps', NavSatFix)
+#pub_gps_state = rospy.Publisher('mavlink_mode/gps_state',icarus_rover_rc.msg.GPS_State)
 #pub_imu = rospy.Publisher('imu', Imu)
-pub_rc = rospy.Publisher('Mavlink_Node/rc', icarus_rover_rc.msg.RC)
-pub_state = rospy.Publisher('Mavlink_Node/state', icarus_rover_rc.msg.State)
-pub_vfr_hud = rospy.Publisher('Mavlink_Node/vfr_hud', icarus_rover_rc.msg.VFR_HUD)
+#pub_rc = rospy.Publisher('mavlink_mode/rc', icarus_rover_v2.msg.RC)
+#pub_state = rospy.Publisher('Mavlink_Node/state', icarus_rover_rc.msg.State)
+#pub_vfr_hud = rospy.Publisher('Mavlink_Node/vfr_hud', icarus_rover_rc.msg.VFR_HUD)
 #pub_attitude = rospy.Publisher('Mavlink_Node/attitude', icarus_rover_rc.msg.Attitude)
-#pub_raw_imu =  rospy.Publisher('raw_imu', icarus_rover_rc.msg.Mavlink_RAW_IMU)
-if opts.enable_control:
-    #rospy.Subscriber("control", icarus_rover_rc.msg.Control , mav_control)
-    rospy.Subscriber("Motion_Controller_Node/send_rc", icarus_rover_rc.msg.RC , send_rc)
+pub_raw_imu =  rospy.Publisher('raw_imu', icarus_rover_v2.msg.imu)
+#if opts.enable_control:
+#rospy.Subscriber("control", icarus_rover_rc.msg.Control , mav_control)
+#rospy.Subscriber("Motion_Controller_Node/send_rc", icarus_rover_rc.msg.RC , send_rc)
 
 #define service callbacks
 arm_service = rospy.Service('arm',Empty,set_arm)
@@ -94,7 +94,7 @@ gps_msg = NavSatFix()
 
 
 def mainloop():
-    rospy.init_node('Mavlink_Node')
+    rospy.init_node('mavlink_mode')
     while not rospy.is_shutdown():
         rospy.sleep(0.001)
         msg = master.recv_match(blocking=False)
@@ -107,35 +107,36 @@ def mainloop():
                 sys.stdout.flush()
         else: 
             msg_type = msg.get_type()
-            if msg_type == "RC_CHANNELS_RAW" :
-                pub_rc.publish([msg.chan1_raw, msg.chan2_raw, msg.chan3_raw, msg.chan4_raw, msg.chan5_raw, msg.chan6_raw, msg.chan7_raw, msg.chan8_raw]) 
-            if msg_type == "HEARTBEAT":
-                pub_state.publish(msg.base_mode & mavutil.mavlink.MAV_MODE_FLAG_SAFETY_ARMED, 
-                                  msg.base_mode & mavutil.mavlink.MAV_MODE_FLAG_GUIDED_ENABLED, 
-                                  mavutil.mode_string_v10(msg))
-            if msg_type == "VFR_HUD":
-                pub_vfr_hud.publish(msg.airspeed, msg.groundspeed, msg.heading, msg.throttle, msg.alt, msg.climb)
+            #if msg_type == "RC_CHANNELS_RAW" :
+            #    pub_rc.publish([msg.chan1_raw, msg.chan2_raw, msg.chan3_raw, msg.chan4_raw, msg.chan5_raw, msg.chan6_raw, msg.chan7_raw, msg.chan8_raw]) 
+            #if msg_type == "HEARTBEAT":
+            #    pub_state.publish(msg.base_mode & mavutil.mavlink.MAV_MODE_FLAG_SAFETY_ARMED, 
+            #                      msg.base_mode & mavutil.mavlink.MAV_MODE_FLAG_GUIDED_ENABLED, 
+            #                      mavutil.mode_string_v10(msg))
+            #if msg_type == "VFR_HUD":
+            #    pub_vfr_hud.publish(msg.airspeed, msg.groundspeed, msg.heading, msg.throttle, msg.alt, msg.climb)
 
-            if msg_type == "GPS_RAW_INT":
+            #if msg_type == "GPS_RAW_INT":
                 #print "Got GPS Message. SV: %d eph: %d epv: %d" %(msg.satellites_visible,msg.eph,msg.epv)
-                pub_gps_state.publish(msg.satellites_visible,msg.eph,msg.epv,msg.lat/1e07,msg.lon/1e07,msg.alt/1e03,msg.fix_type)
-                fix = NavSatStatus.STATUS_NO_FIX
-                if msg.fix_type >=3:
-                    fix=NavSatStatus.STATUS_FIX
-                pub_gps.publish(NavSatFix(latitude = msg.lat/1e07,
-                                          longitude = msg.lon/1e07,
-                                          altitude = msg.alt/1e03,
-                                          status = NavSatStatus(status=fix, service = NavSatStatus.SERVICE_GPS) 
-                                          ))
+            #    pub_gps_state.publish(msg.satellites_visible,msg.eph,msg.epv,msg.lat/1e07,msg.lon/1e07,msg.alt/1e03,msg.fix_type)
+            #    fix = NavSatStatus.STATUS_NO_FIX
+            #    if msg.fix_type >=3:
+            #        fix=NavSatStatus.STATUS_FIX
+            #    pub_gps.publish(NavSatFix(latitude = msg.lat/1e07,
+            #                              longitude = msg.lon/1e07,
+            #                              altitude = msg.alt/1e03,
+            #                              status = NavSatStatus(status=fix, service = NavSatStatus.SERVICE_GPS) 
+            #                              ))
             #pub.publish(String("MSG: %s"%msg))
             #if msg_type == "ATTITUDE" :
             #pub_attitude.publish(msg.roll, msg.pitch, msg.yaw, msg.rollspeed, msg.pitchspeed, msg.yawspeed)
 
 
-            if msg_type == "LOCAL_POSITION_NED" :
-                print "Local Pos: (%f %f %f) , (%f %f %f)" %(msg.x, msg.y, msg.z, msg.vx, msg.vy, msg.vz)
+            #if msg_type == "LOCAL_POSITION_NED" :
+            #    print "Local Pos: (%f %f %f) , (%f %f %f)" %(msg.x, msg.y, msg.z, msg.vx, msg.vy, msg.vz)
 
-            #if msg_type == "RAW_IMU" :
+            if msg_type == "RAW_IMU" :
+                print "IMU: Acc: (%f %f %f) Rate: (%f %f %f)" %(msg.xacc,msg.yacc,msg.zacc,msg.xgyro,msg.ygyro,msg.zgyro)
             #    pub_raw_imu.publish (Header(), msg.time_usec, 
             #                         msg.xacc, msg.yacc, msg.zacc, 
             #                         msg.xgyro, msg.ygyro, msg.zgyro,
