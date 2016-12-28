@@ -216,7 +216,6 @@ state_ack BoardControllerNodeProcess::get_stateack(std::string name)
 }
 bool BoardControllerNodeProcess::set_stateack(state_ack stateack)
 {
-	printf("name: %s\n",stateack.name.c_str());
 	if(stateack.name == "Send Configure DIO Ports")
 	{
 		send_configure_DIO_Ports = stateack;
@@ -274,6 +273,7 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_pinmsg(icarus_rover_
 							pinmsg.Number,
 							map_PinFunction_ToString(myports.at(s).Mode.at(pinnumber)).c_str(),
 							pinmsg.Value);
+					mylogger->log_debug(tempstr);
 					diagnostic.Description = tempstr;
 				}
 				else
@@ -989,7 +989,7 @@ std::vector<int> BoardControllerNodeProcess::get_portlist(int ShieldID)
 }
 icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_devicemsg(icarus_rover_v2::device newdevice)
 {
-	printf("Got device msg: %s: %d\n",newdevice.DeviceName.c_str(),newdevice.ID);
+	printf("Got device msg: %s: %d\n",newdevice.DeviceName.c_str(),(int)newdevice.ID);
 	std::size_t board_message = newdevice.DeviceType.find("Board");
 	std::size_t shield_message = newdevice.DeviceType.find("Shield");
 	if(board_message != std::string::npos)
@@ -1000,6 +1000,7 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_devicemsg(icarus_rov
 			shield_count = newdevice.ShieldCount;
 		}
 	}
+
 	else if ((shield_message!=std::string::npos) && (my_boardname != ""))
 	{
 		if(my_boardname == newdevice.DeviceParent)
@@ -1007,8 +1008,10 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_devicemsg(icarus_rov
 			bool add_me = true;
 			for(int i = 0; i < myshields.size();i++)
 			{
+				printf("3\n");
 				if(myshields.at(i).ID == newdevice.ID)
 				{
+
 					add_me = false;
 				}
 			}
@@ -1018,9 +1021,9 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_devicemsg(icarus_rov
 				char tempstr[255];
 				sprintf(tempstr,"Adding Shield: %s:%d to Board: %s:%d",
 						newdevice.DeviceName.c_str(),
-						newdevice.ID,
+						(int)newdevice.ID,
 						my_boardname.c_str(),
-						get_boardid());
+						(int)get_boardid());
 				mylogger->log_info(tempstr);
 				bool status =  configure_port(newdevice.ID,newdevice.pins);
 				if(status == false)
@@ -1029,7 +1032,7 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_devicemsg(icarus_rov
 					diagnostic.Level = FATAL;
 					diagnostic.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
 					char tempstr[1024];
-					sprintf(tempstr,"Unable to configure Port/Pin Combination for: %s:%d",newdevice.DeviceName.c_str(),newdevice.ID);
+					sprintf(tempstr,"Unable to configure Port/Pin Combination for: %s:%d",newdevice.DeviceName.c_str(),(int)newdevice.ID);
 					diagnostic.Description = tempstr;
 					mylogger->log_fatal(tempstr);
 					return diagnostic;

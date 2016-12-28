@@ -37,7 +37,6 @@ void process_message_thread(UsbDevice* dev)
 				dev->valid = 0;
 				run_thread = false;
 			}
-
 			else if(rx_length >= 4)
 			{
 				if((rx_buffer[0] == 0xAB) &&
@@ -50,6 +49,7 @@ void process_message_thread(UsbDevice* dev)
 					{
 						break;
 					}
+
 					dev->valid = 1;
 					BoardControllerNodeProcess newprocess(dev->location,rx_buffer[4]);
 					char tempstr[255];
@@ -59,11 +59,12 @@ void process_message_thread(UsbDevice* dev)
 					boardprocesses.push_back(newprocess);
 					dev->boardcontrollernode_id = boardprocesses.size()-1;
 
+
 				}
 			}
 
 		}
-		//if(rx_length > 0) {	printf("Read %d bytes\n",rx_length); }
+		//if(rx_length > 0) {	printf("From device: %s Read %d bytes\n",dev->location.c_str(),rx_length); }
 		for(int i = 0; i < rx_length;i++)
 		{
 			//printf(" i: %d b: %d ",i,rx_buffer[i]);
@@ -122,6 +123,7 @@ void process_message_thread(UsbDevice* dev)
 			{
 				if(packet_type == SERIAL_Mode_ID)
 				{
+
 					boardprocesses.at(dev->boardcontrollernode_id).new_serialmessage_Get_Mode(packet_type,packet);
 				}
 				else if(packet_type == SERIAL_UserMessage_ID)
@@ -163,7 +165,6 @@ bool run_fastrate_code()
 		}
 		//printf("diag: %s\n",diagnostic_status.Description.c_str());
 		std::vector<std::vector<unsigned char> > tx_buffers;
-		//logger->log_debug("Checking message output triggers.");
 		bool send = boardprocesses.at(i).checkTriggers(tx_buffers);
 		if(send == true)
 		{
@@ -175,12 +176,12 @@ bool run_fastrate_code()
 				//		UsbDevices.at(boardprocesses.at(i).get_usbdevice_id()).device_fid,boardprocesses.at(i).get_boardid());
 				int count = write(UsbDevices.at(boardprocesses.at(i).get_usbdevice_id()).device_fid,
 						reinterpret_cast<char*> (&tempstr[0]),16);
-				/*for(int i = 0; i < 16; i++)
+				for(int i = 0; i < 16; i++)
 				{
 					printf("%0x ",tempstr[i]);
 				}
 				printf("\n");
-				*/
+
 
 				if(count < 0)
 				{

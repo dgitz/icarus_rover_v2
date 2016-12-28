@@ -126,6 +126,7 @@ TEST(DeviceInitialization,DeviceInitialization_2Boards_3Shields)
     EXPECT_TRUE(processes.at(0).get_nodestate() == BOARDMODE_BOOT);
     for(int s = 0; s < board1.ShieldCount;s++)
     {
+
     	icarus_rover_v2::device shield;
     	shield.DeviceName = "ServoShield" + boost::lexical_cast<std::string>(ShieldID++);
     	shield.DeviceType = "ServoShield";
@@ -144,11 +145,11 @@ TEST(DeviceInitialization,DeviceInitialization_2Boards_3Shields)
     	diagnostic = processes.at(0).new_devicemsg(shield);
     	EXPECT_TRUE(diagnostic.Level <= NOTICE);
     	diagnostic = processes.at(0).update(0.02);
+
     	EXPECT_TRUE(diagnostic.Level <= NOTICE);
     }
     EXPECT_TRUE(processes.at(0).get_nodestate() == BOARDMODE_INITIALIZING);
     EXPECT_TRUE(check_if_initialized(processes));
-
     for(int s = 0; s < board1.ShieldCount;s++)
     {
     	EXPECT_EQ(processes.at(0).get_portlist(s+1).size(), 3);
