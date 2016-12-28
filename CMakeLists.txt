@@ -222,6 +222,12 @@ add_library(visionhelper util/visionhelper.cpp)
 add_library(boardcontroller_node_process src/Board/boardcontroller_node_process.cpp)
 add_library(command_node_process src/Control/command_node_process.cpp)
 
+add_executable(network_transceiver_node src/Communication/network_transceiver_node.cpp)
+target_link_libraries(network_transceiver_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} logger udpmessage resourcemonitor)
+
+add_executable(command_node src/Control/command_node.cpp)
+target_link_libraries(command_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor command_node_process)
+
 add_executable(master_node src/Control/master_node.cpp)
 target_link_libraries(master_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor)
 
@@ -229,4 +235,7 @@ add_executable(boardcontroller_node src/Board/boardcontroller_node.cpp)
 target_link_libraries(boardcontroller_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} boardcontroller_node_process logger serialmessage resourcemonitor)
 catkin_add_gtest(test_boardcontroller_node_process src/Board/unit_tests/test_boardcontroller_node_process.cpp)
 target_link_libraries(test_boardcontroller_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} boardcontroller_node_process logger serialmessage)
+
+add_executable(topicremapper_node src/Communication/topicremapper_node.cpp)
+target_link_libraries(topicremapper_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} logger resourcemonitor)
 

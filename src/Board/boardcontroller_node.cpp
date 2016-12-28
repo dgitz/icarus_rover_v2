@@ -1,8 +1,8 @@
 #include "boardcontroller_node.h"
 //Start User Code: Firmware Definition
 #define BOARDCONTROLLERNODE_MAJOR_RELEASE 0
-#define BOARDCONTROLLERNODE_MINOR_RELEASE 0
-#define BOARDCONTROLLERNODE_BUILD_NUMBER 1
+#define BOARDCONTROLLERNODE_MINOR_RELEASE 1
+#define BOARDCONTROLLERNODE_BUILD_NUMBER 0
 //End User Code: Firmware Definition
 //Start User Code: Functions
 
@@ -149,6 +149,65 @@ void ArmedState_Callback(const std_msgs::UInt8::ConstPtr& msg)
 }
 bool run_fastrate_code()
 {
+	bool ready = true;
+	for(int i = 0; i < boardprocesses.size();i++)
+	{
+		//printf("Running process update.\n");
+		diagnostic_status = boardprocesses.at(i).update(0.1);  //Need to change 20 to the actual dt!!!
+		ready = boardprocesses.at(i).get_ready_to_arm() and ready;
+
+		if(diagnostic_status.Level > NOTICE)
+		{
+			logger->log_warn(diagnostic_status.Description);
+			diagnostic_pub.publish(diagnostic_status);
+		}
+		//printf("diag: %s\n",diagnostic_status.Description.c_str());
+		std::vector<std::vector<unsigned char> > tx_buffers;
+		//logger->log_debug("Checking message output triggers.");
+		bool send = boardprocesses.at(i).checkTriggers(tx_buffers);
+		if(send == true)
+		{
+			for(int j = 0; j < tx_buffers.size();j++)
+			{
+				unsigned char tx_buffer[16];
+				std::vector<unsigned char> tempstr = tx_buffers.at(j);
+				//printf("usbdevice: %d board id: %d\n",
+				//		UsbDevices.at(boardprocesses.at(i).get_usbdevice_id()).device_fid,boardprocesses.at(i).get_boardid());
+				int count = write(UsbDevices.at(boardprocesses.at(i).get_usbdevice_id()).device_fid,
+						reinterpret_cast<char*> (&tempstr[0]),16);
+				/*for(int i = 0; i < 16; i++)
+				{
+					printf("%0x ",tempstr[i]);
+				}
+				printf("\n");
+				*/
+
+				if(count < 0)
+				{
+					logger->log_error("UART TX error\n");
+					icarus_rover_v2::diagnostic diag=diagnostic_status;
+					diag.Diagnostic_Type = COMMUNICATIONS;
+					diag.Level = ERROR;
+					diag.Diagnostic_Message = DROPPING_PACKETS;
+					diag.Description = "Cannot write to UART.";
+					diagnostic_pub.publish(diag);
+				}
+				ros::Duration(.02).sleep();
+			}
+		}
+	}
+	if((ready == true) && (boardprocesses.size() > 0))
+	{
+		std_msgs::Bool bool_ready_to_arm;
+		bool_ready_to_arm.data = ready;
+		ready_to_arm_pub.publish(bool_ready_to_arm);
+	}
+	else
+	{
+		std_msgs::Bool bool_ready_to_arm;
+		bool_ready_to_arm.data = false;
+		ready_to_arm_pub.publish(bool_ready_to_arm);
+	}
 	/*
 	uint8_t armed_command = process->get_armedcommand();
 	uint8_t armed_state = process->get_armedcommand();
@@ -368,49 +427,7 @@ bool run_fastrate_code()
 }
 bool run_mediumrate_code()
 {
-	for(int i = 0; i < boardprocesses.size();i++)
-	{
-		//printf("Running process update.\n");
-		diagnostic_status = boardprocesses.at(i).update(0.1);  //Need to change 20 to the actual dt!!!
-		if(diagnostic_status.Level > NOTICE)
-		{
-			logger->log_warn(diagnostic_status.Description);
-			diagnostic_pub.publish(diagnostic_status);
-		}
-		//printf("diag: %s\n",diagnostic_status.Description.c_str());
-		std::vector<std::vector<unsigned char> > tx_buffers;
-		//logger->log_debug("Checking message output triggers.");
-		bool send = boardprocesses.at(i).checkTriggers(tx_buffers);
-		if(send == true)
-		{
-			for(int j = 0; j < tx_buffers.size();j++)
-			{
-				unsigned char tx_buffer[16];
-				std::vector<unsigned char> tempstr = tx_buffers.at(j);
-				//printf("usbdevice: %d board id: %d\n",
-				//		UsbDevices.at(boardprocesses.at(i).get_usbdevice_id()).device_fid,boardprocesses.at(i).get_boardid());
-				int count = write(UsbDevices.at(boardprocesses.at(i).get_usbdevice_id()).device_fid,
-						reinterpret_cast<char*> (&tempstr[0]),16);
-				for(int i = 0; i < 16; i++)
-				{
-					printf("%0x ",tempstr[i]);
-				}
-				printf("\n");
 
-				if(count < 0)
-				{
-					logger->log_error("UART TX error\n");
-					icarus_rover_v2::diagnostic diag=diagnostic_status;
-					diag.Diagnostic_Type = COMMUNICATIONS;
-					diag.Level = ERROR;
-					diag.Diagnostic_Message = DROPPING_PACKETS;
-					diag.Description = "Cannot write to UART.";
-					diagnostic_pub.publish(diag);
-				}
-				ros::Duration(.01).sleep();
-			}
-		}
-	}
 	/*
 	process->transmit_armedstate();
 	double time_since_last_message = measure_time_diff(ros::Time::now(),last_message_received_time);
@@ -501,7 +518,7 @@ bool run_veryslowrate_code()
 	icarus_rover_v2::firmware fw;
 	fw.Generic_Node_Name = "boardcontroller_node";
 	fw.Node_Name = node_name;
-	fw.Description = "Latest Rev: 17-Dec-2016";
+	fw.Description = "Latest Rev: 28-Dec-2016";
 	fw.Major_Release = BOARDCONTROLLERNODE_MAJOR_RELEASE;
 	fw.Minor_Release = BOARDCONTROLLERNODE_MINOR_RELEASE;
 	fw.Build_Number = BOARDCONTROLLERNODE_BUILD_NUMBER;
@@ -600,7 +617,7 @@ void PwmOutput_Callback(const icarus_rover_v2::pin::ConstPtr& msg)
 						pinmsg.Function.c_str(),
 						pinmsg.Number,
 						pinmsg.Value);
-				logger->log_debug(tempstr);
+				//logger->log_debug(tempstr);
 			}
 		}
 		if(found == false)
@@ -660,6 +677,17 @@ std::vector<icarus_rover_v2::diagnostic> check_program_variables()
 
 void Command_Callback(const icarus_rover_v2::command::ConstPtr& msg)
 {
+	icarus_rover_v2::command newcommand;
+	newcommand.Command = msg->Command;
+	newcommand.Option1 = msg->Option1;
+	newcommand.Option2 = msg->Option2;
+	newcommand.Option3 = msg->Option3;
+	newcommand.CommandText = msg->CommandText;
+	newcommand.Description = msg->Description;
+	for(int i = 0; i < boardprocesses.size();i++)
+	{
+		diagnostic_status = boardprocesses.at(i).new_commandmsg(newcommand);
+	}
 	//diagnostic_status = process->new_commandmsg(
 	//		msg->Command,msg->Option1,msg->Option2,msg->Option3,msg->CommandText,msg->CommandText);
 	//if(diagnostic_status.Level > NOTICE)

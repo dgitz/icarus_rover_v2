@@ -107,6 +107,8 @@ TEST(DeviceInitialization,DeviceInitialization_2Boards_3Shields)
     board1.ShieldCount = 3;
     board1.SensorCount = 0;
     BoardControllerNodeProcess boardprocess1("/dev/dummy1",1);
+    EXPECT_EQ(boardprocess1.get_armedstate(),ARMEDSTATUS_DISARMED_CANNOTARM);
+    EXPECT_EQ(boardprocess1.get_ready_to_arm(),false);
     processes.push_back(boardprocess1);
     diagnostic = processes.at(0).init(diagnostic,logger,Host_Name,1);
     EXPECT_TRUE(processes.at(0).get_nodestate() == BOARDMODE_BOOT);
@@ -174,6 +176,8 @@ TEST(DeviceInitialization,DeviceInitialization_2Boards_3Shields)
     board2.ShieldCount = 3;
     board2.SensorCount = 0;
     BoardControllerNodeProcess boardprocess2("/dev/dummy2",2);
+    EXPECT_EQ(boardprocess2.get_armedstate(),ARMEDSTATUS_DISARMED_CANNOTARM);
+    EXPECT_EQ(boardprocess2.get_ready_to_arm(),false);
     processes.push_back(boardprocess2);
     diagnostic = processes.at(1).init(diagnostic,logger,Host_Name,1);
     EXPECT_TRUE(processes.at(1).get_nodestate() == BOARDMODE_BOOT);
@@ -252,6 +256,8 @@ TEST(DeviceConfiguration,ConfigureAllShields)
 	}
 	for(int i = 0; i < processes.size();i++)
 	{
+        EXPECT_EQ(processes.at(i).get_armedstate(),ARMEDSTATUS_DISARMED_CANNOTARM);
+        EXPECT_EQ(processes.at(i).get_ready_to_arm(),false);
 		processes.at(i).set_boardstate(BOARDMODE_INITIALIZING);
 		diagnostic = processes.at(i).update(0.02);
 		EXPECT_TRUE(diagnostic.Level <= NOTICE);
@@ -279,7 +285,7 @@ TEST(DeviceConfiguration,ConfigureAllShields)
 				   (tempstr.at(1) == SERIAL_Configure_Shield_ID))
 				{
 					shield_configuration_messages++;
-					printf("Sending from Board: %s:%d Shield Config (0xAB%0x): ",
+					/*printf("Sending from Board: %s:%d Shield Config (0xAB%0x): ",
 							processes.at(i).get_boardname().c_str(),
 							processes.at(i).get_boardid(),
 							SERIAL_Configure_Shield_ID);
@@ -288,6 +294,7 @@ TEST(DeviceConfiguration,ConfigureAllShields)
 						printf(" %0x ",tempstr.at(k));
 					}
 					printf("\n");
+                    */
 				}
 			}
 		}
@@ -297,6 +304,8 @@ TEST(DeviceConfiguration,ConfigureAllShields)
 		diagnostic = processes.at(i).update(0.2);
 		EXPECT_TRUE(diagnostic.Level <= NOTICE);
 		EXPECT_TRUE(processes.at(i).get_nodestate() == BOARDMODE_SHIELDS_CONFIGURED);
+        EXPECT_EQ(processes.at(i).get_armedstate(),ARMEDSTATUS_DISARMED_CANNOTARM);
+        EXPECT_EQ(processes.at(i).get_ready_to_arm(),false);
 
 		state_ack send_dio_configure = processes.at(i).get_stateack("Send Configure DIO Ports");
 		EXPECT_TRUE(send_dio_configure.name == "Send Configure DIO Ports");
@@ -315,15 +324,17 @@ TEST(DeviceConfiguration,ConfigureAllShields)
 						(tempstr.at(1) == SERIAL_Configure_DIO_Port_ID))
 				{
 					dio_configuration_messages++;
-					printf("Sending from Board: %s:%d DIO Config (0xAB%0x): ",
+					/*printf("Sending from Board: %s:%d DIO Config (0xAB%0x): ",
 							processes.at(i).get_boardname().c_str(),
 							processes.at(i).get_boardid(),
 							SERIAL_Configure_DIO_Port_ID);
-					for(int k = 0; k < tempstr.size();k++)
+                    */
+					/*for(int k = 0; k < tempstr.size();k++)
 					{
 						printf(" %0x ",tempstr.at(k));
 					}
 					printf("\n");
+                    */
 				}
 			}
 		}
@@ -334,56 +345,131 @@ TEST(DeviceConfiguration,ConfigureAllShields)
 		diagnostic = processes.at(i).update(0.2);
 		EXPECT_TRUE(diagnostic.Level <= NOTICE);
 		EXPECT_TRUE(processes.at(i).get_nodestate() == BOARDMODE_INITIALIZED);
+        EXPECT_EQ(processes.at(i).get_armedstate(),ARMEDSTATUS_DISARMED_CANNOTARM);
+        EXPECT_EQ(processes.at(i).get_ready_to_arm(),false);
+        state_ack send_defaultvalue_DIO_Port = processes.at(i).get_stateack("Send DefaultValue DIO Port");
+		EXPECT_TRUE(send_defaultvalue_DIO_Port.name == "Send DefaultValue DIO Port");
+		EXPECT_TRUE(send_defaultvalue_DIO_Port.trigger == true);
+        tx_buffers.clear();
+		send = processes.at(i).checkTriggers(tx_buffers);
+		EXPECT_TRUE(send);
+		int dio_defaultvalue_messages = 0;
+		if(send == true)
+		{
+			for(int j = 0; j < tx_buffers.size();j++)
+			{
+				std::vector<unsigned char> tempstr = tx_buffers.at(j);
+				if((tempstr.at(0) == 0xAB) &&
+						(tempstr.at(1) == SERIAL_Set_DIO_Port_DefaultValue_ID))
+				{
+                    
+					dio_defaultvalue_messages++;
+				}
+			}
+		}
+        EXPECT_EQ(dio_defaultvalue_messages,9); //# Shields w/ 3 Ports Each
+                
 		processes.at(i).set_boardstate(BOARDMODE_RUNNING);
 		diagnostic = processes.at(i).update(0.2);
 		EXPECT_TRUE(diagnostic.Level <= NOTICE);
 		EXPECT_TRUE(processes.at(i).get_nodestate() == BOARDMODE_RUNNING);
+        EXPECT_EQ(processes.at(i).get_armedstate(),ARMEDSTATUS_DISARMED);
+        EXPECT_EQ(processes.at(i).get_ready_to_arm(),true);
 
 
 	}
 
 	configured_processes = processes;
 }
+TEST(Arming,ArmDisarm)
+{
+    std::vector<std::vector<unsigned char> > tx_buffers;
+	bool send;
+	std::vector<BoardControllerNodeProcess> processes = configured_processes;
+	//print_processinfo(processes);
+	icarus_rover_v2::diagnostic diagnostic;
+    for(int i = 0; i < processes.size(); i++)
+    {
+        EXPECT_TRUE(processes.at(i).get_nodestate() == BOARDMODE_RUNNING);
+        EXPECT_EQ(processes.at(i).get_armedstate(),ARMEDSTATUS_DISARMED);
+        EXPECT_EQ(processes.at(i).get_ready_to_arm(),true);
+        icarus_rover_v2::command newcommand;
+        newcommand.Command = ARM_COMMAND_ID;
+        newcommand.Option1 = ARMEDCOMMAND_DISARM;
 
+        diagnostic = processes.at(i).new_commandmsg(newcommand);
+        diagnostic = processes.at(i).update(0.2);
+		EXPECT_TRUE(diagnostic.Level <= NOTICE);
+        EXPECT_TRUE(processes.at(i).get_nodestate() == BOARDMODE_RUNNING);
+        EXPECT_EQ(processes.at(i).get_armedstate(),ARMEDSTATUS_DISARMED);
+        EXPECT_EQ(processes.at(i).get_ready_to_arm(),true);
+        
+        state_ack send_armed_command = processes.at(i).get_stateack("Send Arm Command");
+		EXPECT_TRUE(send_armed_command.name == "Send Arm Command");
+		EXPECT_TRUE(send_armed_command.trigger == true);
+
+        tx_buffers.clear();
+		send = processes.at(i).checkTriggers(tx_buffers);
+		EXPECT_TRUE(send);
+		int send_armcommand = 0;
+		if(send == true)
+		{
+			for(int j = 0; j < tx_buffers.size();j++)
+			{
+				std::vector<unsigned char> tempstr = tx_buffers.at(j);
+				if((tempstr.at(0) == 0xAB) &&
+						(tempstr.at(1) == SERIAL_Arm_Command_ID))
+				{
+                    
+					send_armcommand++;
+				}
+			}
+		}
+		printf("Arm count: %d\n",send_armcommand);
+        //EXPECT_EQ(dio_defaultvalue_messages,9); //# Shields w/ 3 Ports Each
+        
+
+    }
+}
 TEST(DeviceUsage,PWMOutput)
 {
 	std::vector<std::vector<unsigned char> > tx_buffers;
 	bool send;
 	std::vector<BoardControllerNodeProcess> processes = configured_processes;
-	print_processinfo(processes);
 	icarus_rover_v2::diagnostic diagnostic;
-	for(int i = 0; i < processes.size(); i++)
-	{
-		for(int p = 0; p < 9; p++)
-		{
-			icarus_rover_v2::pin pinmsg;
-			pinmsg.BoardID = 1;
-			pinmsg.ShieldID = 1;
-			pinmsg.Number = p;
-			pinmsg.Function = "PWMOutput";
-			pinmsg.Value = 200;
-			if(processes.at(i).get_boardid() == pinmsg.BoardID)
-			{
-				bool found = true;
-				diagnostic = processes.at(i).new_pinmsg(pinmsg);
-				if(p % 2 == 0)
-				{
-					EXPECT_TRUE(diagnostic.Level <= NOTICE);
-					diagnostic = processes.at(i).update(0.2);
-					EXPECT_TRUE(diagnostic.Level <= NOTICE);
-					tx_buffers.clear();
-					send = processes.at(i).checkTriggers(tx_buffers);
-					bool sending_set_dio_message = false;
-					EXPECT_TRUE(send);
-				}
-				else
-				{
-					EXPECT_FALSE(diagnostic.Level <= NOTICE);
-				}
-			}
-		}
-		//printf("Board ID: %d ")
-	}
+    for(int i = 0; i < processes.size(); i++)
+    {
+        //processes.at(i).new_commandmsg(ARM_COMMAND_ID,)
+        for(int p = 0; p < 9; p++)
+        {
+            icarus_rover_v2::pin pinmsg;
+            pinmsg.BoardID = 1;
+            pinmsg.ShieldID = 1;
+            pinmsg.Number = p;
+            pinmsg.Function = "PWMOutput";
+            pinmsg.Value = 200;
+            if(processes.at(i).get_boardid() == pinmsg.BoardID)
+            {
+                bool found = true;
+                diagnostic = processes.at(i).new_pinmsg(pinmsg);
+                if(p % 2 == 0)
+                {
+                    EXPECT_TRUE(diagnostic.Level <= NOTICE);
+                    diagnostic = processes.at(i).update(0.2);
+                    EXPECT_TRUE(diagnostic.Level <= NOTICE);
+                    tx_buffers.clear();
+                    send = processes.at(i).checkTriggers(tx_buffers);
+                    bool sending_set_dio_message = false;
+                    EXPECT_TRUE(send);
+                }
+                else
+                {
+                    EXPECT_FALSE(diagnostic.Level <= NOTICE);
+                }
+            }
+        }
+        //printf("Board ID: %d ")
+    }
 }
 
 /*

@@ -58,6 +58,7 @@ struct state_ack
 	bool retry_mode;
 	bool failed;
 	int flag1;  //Various Purposes
+	double stream_rate;
 };
 struct message_info
 {
@@ -83,14 +84,14 @@ public:
 	icarus_rover_v2::diagnostic init(icarus_rover_v2::diagnostic indiag,Logger *log,std::string hostname,int v_id);
 	icarus_rover_v2::diagnostic update(double dt);
 	icarus_rover_v2::diagnostic new_devicemsg(icarus_rover_v2::device devicemsg);
-	icarus_rover_v2::diagnostic new_commandmsg(uint16_t command,uint8_t option1,uint8_t option2,uint8_t option3,
-			std::string commandtext,std::string description);
+	icarus_rover_v2::diagnostic new_commandmsg(icarus_rover_v2::command commandmsg);
 	icarus_rover_v2::diagnostic new_pinmsg(icarus_rover_v2::pin pinmsg);
 	icarus_rover_v2::device get_mydevice() { return mydevice; }
 	std::vector<icarus_rover_v2::device> get_myshields() { return myshields; }
 	std::vector<int> get_portlist(int ShieldID);
 	bool is_finished_initializing(){ return all_device_info_received; }
 	bool initialize_Ports();
+    bool get_ready_to_arm() { return ready_to_arm; }
 	std::vector<Port_Info> get_allports() { return myports; }
 	Port_Info get_PortInfo(int ShieldID,int PortID)
 	{
@@ -183,6 +184,7 @@ private:
 	long timeout_value_ms;
 	struct timeval init_time;
 	bool timer_timeout;
+    bool ready_to_arm;
 	uint8_t armed_state;
 	uint8_t armed_command;
 	bool enable_actuators;

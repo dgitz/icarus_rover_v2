@@ -13,10 +13,11 @@ BoardControllerNodeProcess::BoardControllerNodeProcess(std::string loc, int v)
 	initialize_Ports();
 	ms_timer = 0;
 	timeout_value_ms = 0;
-	armed_state = ARMEDSTATUS_DISARMED;
-	armed_command = ARMEDCOMMAND_DISARM;
+	armed_state = ARMEDSTATUS_DISARMED_CANNOTARM;
+	armed_command = ARMEDSTATUS_DISARMED_CANNOTARM;
 	shield_count = -1;
 	run_time = 0.0;
+    ready_to_arm = false;
 	gettimeofday(&init_time,NULL);
 	//init_time = ros::Time::now();
 }
@@ -121,25 +122,6 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::update(double dt)
 		timer_timeout = false;
 
 	}
-	if((armed_state == ARMEDSTATUS_ARMED) and (armed_command == ARMEDCOMMAND_ARM))
-	{
-		enable_actuators = true;
-	}
-	else
-	{
-		enable_actuators = false;
-	}
-	if(enable_actuators != last_enable_actuators)
-	{
-		if(enable_actuators == true)
-		{
-			send_armedcommand.trigger = true;
-		}
-	}
-	if(enable_actuators == false)
-	{
-		send_armedcommand.trigger = true;
-	}
 	if(prev_node_state != node_state)
 	{
 		send_nodemode.trigger = true;
@@ -158,21 +140,32 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::update(double dt)
 	if((board_state == BOARDMODE_INITIALIZED) && (node_state == BOARDMODE_SHIELDS_CONFIGURED))
 	{
 		node_state = BOARDMODE_INITIALIZED;
+        send_defaultvalue_DIO_Port.trigger = true;
 		send_configure_DIO_Ports.trigger = false;
 	}
 	if((board_state == BOARDMODE_RUNNING) && (node_state == BOARDMODE_INITIALIZED))
 	{
+        armed_state = ARMEDSTATUS_DISARMED;
 		node_state = BOARDMODE_RUNNING;
 	}
 
 	if((board_state == BOARDMODE_RUNNING) && (node_state == BOARDMODE_RUNNING))
 	{
 		send_set_DIO_Port.trigger = true;
+        
 	}
 	if((board_state == BOARDMODE_BOOT) and (node_state > BOARDMODE_INITIALIZING))
 	{
 		node_state = BOARDMODE_INITIALIZING;
 	}
+    if((board_state == BOARDMODE_RUNNING) && (node_state == BOARDMODE_RUNNING))
+    {
+        ready_to_arm = true;
+    }
+    else
+    {
+        ready_to_arm = false;
+    }
 	diagnostic.Level = INFO;
 	diagnostic.Diagnostic_Message = NOERROR;
 	diagnostic.Description = "Node Executing.";
@@ -210,6 +203,10 @@ state_ack BoardControllerNodeProcess::get_stateack(std::string name)
 	{
 		return send_defaultvalue_DIO_Port;
 	}
+    else if(name == send_armedcommand.name)
+    {
+        return send_armedcommand;
+    }
 	else
 	{
 		state_ack emptystateack;
@@ -235,8 +232,11 @@ bool BoardControllerNodeProcess::set_stateack(state_ack stateack)
 	else if(stateack.name == "Send Set DIO Port")
 	{
 		send_set_DIO_Port = stateack;
-
 	}
+    else if(stateack.name == "Send Arm Command")
+    {
+        send_armedcommand = stateack;
+    }
 	else if(stateack.name == "Send DefaultValue DIO Port")
 	{
 		send_defaultvalue_DIO_Port = stateack;
@@ -321,37 +321,67 @@ bool BoardControllerNodeProcess::checkTriggers(std::vector<std::vector<unsigned 
 	//send_nodemode.trigger = true;
 	if(send_nodemode.trigger == true)
 	{
-		nothing_triggered = false;
-		//printf("send_nodemode Triggered.\n");
-		char buffer[16];
-		int length;
-		int computed_checksum;
-		int tx_status = serialmessagehandler->encode_ModeSerial(buffer,&length,0,0,node_state);
-		bool status = gather_message_info(SERIAL_Mode_ID, "transmit");
-		tx_buffers.push_back(std::vector<unsigned char>(buffer,buffer+sizeof(buffer)/sizeof(buffer[0])));
-		send_nodemode.state = true;
-		if (send_nodemode.retrying == false)
+		bool send_me = false;
+		if(send_nodemode.stream_rate < 0) //Normal operation, should send
 		{
-			gettimeofday(&send_nodemode.orig_send_time,NULL);
-			send_nodemode.retries = 0;
+			send_me = true;
+			send_nodemode.trigger = false;
 		}
-		send_nodemode.trigger = false;
-	}
-	if(send_configure_shields.trigger == true)
-	{
-		nothing_triggered = false;
-		for(int i = 0; i < myshields.size();i++)
+		else
 		{
+			struct timeval now;
+			gettimeofday(&now,NULL);
+			double etime = time_diff(send_nodemode.orig_send_time,now);
+			double delay = 1.0/(send_nodemode.stream_rate);
+			if(etime > delay){ send_me = true; }
+			else{ send_me = false; }
+		}
+		if(send_me == true)
+		{
+			nothing_triggered = false;
+			//printf("send_nodemode Triggered.\n");
+			char buffer[16];
+			int length;
+			int computed_checksum;
+			int tx_status = serialmessagehandler->encode_ModeSerial(buffer,&length,0,0,node_state);
+			bool status = gather_message_info(SERIAL_Mode_ID, "transmit");
+			tx_buffers.push_back(std::vector<unsigned char>(buffer,buffer+sizeof(buffer)/sizeof(buffer[0])));
+			send_nodemode.state = true;
+			if (send_nodemode.retrying == false)
+			{
+				gettimeofday(&send_nodemode.orig_send_time,NULL);
+				send_nodemode.retries = 0;
+			}
+		}
+
+	}
+	if(send_armedcommand.trigger == true)
+	{
+		bool send_me = false;
+		if(send_armedcommand.stream_rate < 0) //Normal operation, should send
+		{
+			send_me = true;
+			send_armedcommand.trigger = false;
+		}
+		else
+		{
+			struct timeval now;
+			gettimeofday(&now,NULL);
+			double etime = time_diff(send_armedcommand.orig_send_time,now);
+			double delay = 1.0/(send_armedcommand.stream_rate);
+			if(etime > delay){ send_me = true; }
+			else{ send_me = false; }
+		}
+		if(send_me == true)
+		{
+			nothing_triggered = false;
 			char buffer[16];
 			int length;
 			int computed_checksum;
 			int index=0;
-			int tx_status = serialmessagehandler->encode_Configure_ShieldSerial(buffer,&length,
-					myshields.size(),
-					map_DeviceType_ToInt(myshields.at(i).DeviceType),
-					myshields.at(i).ID,
-					get_portlist(myshields.at(i).ID).size());
-			bool status = gather_message_info(SERIAL_Configure_Shield_ID, "transmit");
+			int tx_status = serialmessagehandler->encode_Arm_CommandSerial(buffer,&length,
+					armed_command);
+			bool status = gather_message_info(SERIAL_Arm_Command_ID, "transmit");
 			//printf("%d Sending shield config for shield: %d\n",get_boardid(),myshields.at(i).ID);
 			tx_buffers.push_back(std::vector<unsigned char>(buffer,buffer+sizeof(buffer)/sizeof(buffer[0])));
 			/*for(int i = 0; i < 16; i++)
@@ -360,90 +390,231 @@ bool BoardControllerNodeProcess::checkTriggers(std::vector<std::vector<unsigned 
 			}
 			printf("\n");
 			*/
-		}
-		send_configure_shields.state = true;
-		if (send_configure_shields.retrying == false)
-		{
-			gettimeofday(&send_configure_shields.orig_send_time,NULL);
-			send_configure_shields.retries = 0;
-		}
-		send_configure_shields.trigger = false;
-	}
-	if(send_configure_DIO_Ports.trigger == true)
-	{
-		nothing_triggered = false;
-		for(int i = 0; i < myports.size();i++)
-		{
-			char buffer[16];
-			int length;
-			int computed_checksum;
-			int index=0;
-			int tx_status = serialmessagehandler->encode_Configure_DIO_PortSerial(buffer,&length,
-					myports.at(i).ShieldID,
-					myports.at(i).PortID,
-					myports.at(i).Mode.at(0),
-					myports.at(i).Mode.at(1),
-					myports.at(i).Mode.at(2),
-					myports.at(i).Mode.at(3),
-					myports.at(i).Mode.at(4),
-					myports.at(i).Mode.at(5),
-					myports.at(i).Mode.at(6),
-					myports.at(i).Mode.at(7));
 
-			bool status = gather_message_info(SERIAL_Configure_DIO_Port_ID, "transmit");
-			tx_buffers.push_back(std::vector<unsigned char>(buffer,buffer+sizeof(buffer)/sizeof(buffer[0])));
-		}
-		send_nodemode.state = true;
-		if (send_nodemode.retrying == false)
-		{
-			gettimeofday(&send_nodemode.orig_send_time,NULL);
-			send_nodemode.retries = 0;
-		}
-		send_nodemode.trigger = false;
-
-	}
-	else if(send_set_DIO_Port.trigger == true)
-	{
-		nothing_triggered = false;
-		for(int i = 0; i < myports.size();i++)
-		{
-			if(myports.at(i).Updated == true)
+			send_armedcommand.state = true;
+			if (send_armedcommand.retrying == false)
 			{
-				printf("port: %d Updated\n",myports.at(i).PortID);
-				myports.at(i).Updated = false;
+				gettimeofday(&send_armedcommand.orig_send_time,NULL);
+				send_armedcommand.retries = 0;
+			}
+			send_armedcommand.trigger = false;
+		}
+	}
+	if(send_configure_shields.trigger == true)
+	{
+		bool send_me = false;
+		if(send_configure_shields.stream_rate < 0) //Normal operation, should send
+		{
+			send_me = true;
+			send_configure_shields.trigger = false;
+		}
+		else
+		{
+			struct timeval now;
+			gettimeofday(&now,NULL);
+			double etime = time_diff(send_configure_shields.orig_send_time,now);
+			double delay = 1.0/(send_configure_shields.stream_rate);
+			if(etime > delay){ send_me = true; }
+			else{ send_me = false; }
+		}
+		if(send_me == true)
+		{
+			nothing_triggered = false;
+			for(int i = 0; i < myshields.size();i++)
+			{
 				char buffer[16];
 				int length;
 				int computed_checksum;
 				int index=0;
-				int tx_status = serialmessagehandler->encode_Set_DIO_PortSerial(buffer,&length,
-						myports.at(i).ShieldID,
-						myports.at(i).PortID,
-						myports.at(i).Value.at(0),
-						myports.at(i).Value.at(1),
-						myports.at(i).Value.at(2),
-						myports.at(i).Value.at(3),
-						myports.at(i).Value.at(4),
-						myports.at(i).Value.at(5),
-						myports.at(i).Value.at(6),
-						myports.at(i).Value.at(7));
-
-				bool status = gather_message_info(SERIAL_Set_DIO_Port_ID, "transmit");
-				for(int i = 0; i < 16; i++)
+				int tx_status = serialmessagehandler->encode_Configure_ShieldSerial(buffer,&length,
+						myshields.size(),
+						map_DeviceType_ToInt(myshields.at(i).DeviceType),
+						myshields.at(i).ID,
+						get_portlist(myshields.at(i).ID).size());
+				bool status = gather_message_info(SERIAL_Configure_Shield_ID, "transmit");
+				//printf("%d Sending shield config for shield: %d\n",get_boardid(),myshields.at(i).ID);
+				tx_buffers.push_back(std::vector<unsigned char>(buffer,buffer+sizeof(buffer)/sizeof(buffer[0])));
+				/*for(int i = 0; i < 16; i++)
 				{
-					printf("%02x ",buffer[i]);
+					printf("%0x ",buffer[i]);
 				}
 				printf("\n");
-
-				tx_buffers.push_back(std::vector<unsigned char>(buffer,buffer+sizeof(buffer)/sizeof(buffer[0])));
+				*/
+			}
+			send_configure_shields.state = true;
+			if (send_configure_shields.retrying == false)
+			{
+				gettimeofday(&send_configure_shields.orig_send_time,NULL);
+				send_configure_shields.retries = 0;
 			}
 		}
-		send_set_DIO_Port.state = true;
-		if (send_set_DIO_Port.retrying == false)
+	}
+	if(send_configure_DIO_Ports.trigger == true)
+	{
+		bool send_me = false;
+		if(send_configure_DIO_Ports.stream_rate < 0) //Normal operation, should send
 		{
-			gettimeofday(&send_set_DIO_Port.orig_send_time,NULL);
-			send_set_DIO_Port.retries = 0;
+			send_me = true;
+			send_configure_DIO_Ports.trigger = false;
 		}
-		send_set_DIO_Port.trigger = false;
+		else
+		{
+			struct timeval now;
+			gettimeofday(&now,NULL);
+			double etime = time_diff(send_configure_DIO_Ports.orig_send_time,now);
+			double delay = 1.0/(send_configure_DIO_Ports.stream_rate);
+			if(etime > delay){ send_me = true; }
+			else{ send_me = false; }
+		}
+		if(send_me == true)
+		{
+			nothing_triggered = false;
+			for(int i = 0; i < myports.size();i++)
+			{
+				char buffer[16];
+				int length;
+				int computed_checksum;
+				int index=0;
+				int tx_status = serialmessagehandler->encode_Configure_DIO_PortSerial(buffer,&length,
+						myports.at(i).ShieldID,
+						myports.at(i).PortID,
+						myports.at(i).Mode.at(0),
+						myports.at(i).Mode.at(1),
+						myports.at(i).Mode.at(2),
+						myports.at(i).Mode.at(3),
+						myports.at(i).Mode.at(4),
+						myports.at(i).Mode.at(5),
+						myports.at(i).Mode.at(6),
+						myports.at(i).Mode.at(7));
+
+				bool status = gather_message_info(SERIAL_Configure_DIO_Port_ID, "transmit");
+				tx_buffers.push_back(std::vector<unsigned char>(buffer,buffer+sizeof(buffer)/sizeof(buffer[0])));
+			}
+			send_configure_DIO_Ports.state = true;
+			if (send_configure_DIO_Ports.retrying == false)
+			{
+				gettimeofday(&send_configure_DIO_Ports.orig_send_time,NULL);
+				send_configure_DIO_Ports.retries = 0;
+			}
+		}
+
+	}
+    if(send_defaultvalue_DIO_Port.trigger == true)
+	{
+    	bool send_me = false;
+		if(send_defaultvalue_DIO_Port.stream_rate < 0) //Normal operation, should send
+		{
+			send_me = true;
+			send_defaultvalue_DIO_Port.trigger = false;
+		}
+		else
+		{
+			struct timeval now;
+			gettimeofday(&now,NULL);
+			double etime = time_diff(send_defaultvalue_DIO_Port.orig_send_time,now);
+			double delay = 1.0/(send_defaultvalue_DIO_Port.stream_rate);
+			if(etime > delay){ send_me = true; }
+			else{ send_me = false; }
+		}
+		if(send_me == true)
+		{
+			nothing_triggered = false;
+			for(int i = 0; i < myports.size();i++)
+			{
+				char buffer[16];
+				int length;
+				int computed_checksum;
+				int index=0;
+				int tx_status = serialmessagehandler->encode_Set_DIO_Port_DefaultValueSerial(buffer,&length,
+						myports.at(i).ShieldID,
+						myports.at(i).PortID,
+						myports.at(i).DefaultValue.at(0),
+						myports.at(i).DefaultValue.at(1),
+						myports.at(i).DefaultValue.at(2),
+						myports.at(i).DefaultValue.at(3),
+						myports.at(i).DefaultValue.at(4),
+						myports.at(i).DefaultValue.at(5),
+						myports.at(i).DefaultValue.at(6),
+						myports.at(i).DefaultValue.at(7));
+
+				bool status = gather_message_info(SERIAL_Set_DIO_Port_DefaultValue_ID, "transmit");
+				/*for(int i = 0; i < 16; i++)
+				{
+					printf("%0x ",buffer[i]);
+				}
+				printf("\n");
+				*/
+				tx_buffers.push_back(std::vector<unsigned char>(buffer,buffer+sizeof(buffer)/sizeof(buffer[0])));
+			}
+			send_defaultvalue_DIO_Port.state = true;
+			if (send_defaultvalue_DIO_Port.retrying == false)
+			{
+				gettimeofday(&send_defaultvalue_DIO_Port.orig_send_time,NULL);
+				send_defaultvalue_DIO_Port.retries = 0;
+			}
+		}
+
+	}
+	if(send_set_DIO_Port.trigger == true)
+	{
+		bool send_me = false;
+		if(send_set_DIO_Port.stream_rate < 0) //Normal operation, should send
+		{
+			send_me = true;
+			send_set_DIO_Port.trigger = false;
+		}
+		else
+		{
+			struct timeval now;
+			gettimeofday(&now,NULL);
+			double etime = time_diff(send_set_DIO_Port.orig_send_time,now);
+			double delay = 1.0/(send_set_DIO_Port.stream_rate);
+			if(etime > delay){ send_me = true; }
+			else{ send_me = false; }
+		}
+		if(send_me == true)
+		{
+			nothing_triggered = false;
+			for(int i = 0; i < myports.size();i++)
+			{
+				if(myports.at(i).Updated == true)
+				{
+					//printf("port: %d Updated\n",myports.at(i).PortID);
+					myports.at(i).Updated = false;
+					char buffer[16];
+					int length;
+					int computed_checksum;
+					int index=0;
+					int tx_status = serialmessagehandler->encode_Set_DIO_PortSerial(buffer,&length,
+							myports.at(i).ShieldID,
+							myports.at(i).PortID,
+							myports.at(i).Value.at(0),
+							myports.at(i).Value.at(1),
+							myports.at(i).Value.at(2),
+							myports.at(i).Value.at(3),
+							myports.at(i).Value.at(4),
+							myports.at(i).Value.at(5),
+							myports.at(i).Value.at(6),
+							myports.at(i).Value.at(7));
+
+					bool status = gather_message_info(SERIAL_Set_DIO_Port_ID, "transmit");
+					/*
+					for(int i = 0; i < 16; i++)
+					{
+						printf("%02x ",buffer[i]);
+					}
+					printf("\n");
+					*/
+					tx_buffers.push_back(std::vector<unsigned char>(buffer,buffer+sizeof(buffer)/sizeof(buffer[0])));
+				}
+			}
+			send_set_DIO_Port.state = true;
+			if (send_set_DIO_Port.retrying == false)
+			{
+				gettimeofday(&send_set_DIO_Port.orig_send_time,NULL);
+				send_set_DIO_Port.retries = 0;
+			}
+		}
 	}
 	if(nothing_triggered == true)
 	{
@@ -455,19 +626,14 @@ bool BoardControllerNodeProcess::checkTriggers(std::vector<std::vector<unsigned 
 		return true;
 	}
 }
-icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_commandmsg(uint16_t command,
-															uint8_t option1,
-															uint8_t option2,
-															uint8_t option3,
-															std::string commandtext,
-															std::string description)
+icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_commandmsg(icarus_rover_v2::command newcommand)
 {
-	if (command ==  DIAGNOSTIC_ID)
+	if (newcommand.Command ==  DIAGNOSTIC_ID)
 	{
-		if(option1 == LEVEL1)
+		if(newcommand.Option1 == LEVEL1)
 		{
 		}
-		else if(option2 == LEVEL2)
+		else if(newcommand.Option2 == LEVEL2)
 		{
 			if((board_state == BOARDMODE_RUNNING) && (node_state == BOARDMODE_RUNNING))
 			{
@@ -480,24 +646,25 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_commandmsg(uint16_t 
 				diagnostic.Description = "Diagnostic not run.";
 			}
 		}
-		else if(option1 == LEVEL3)
+		else if(newcommand.Option1 == LEVEL3)
 		{
 
 		}
-		else if(option1 == LEVEL4)
+		else if(newcommand.Option1 == LEVEL4)
 		{
 
 		}
 		else
 		{
 			char tempstr[255];
-			sprintf(tempstr,"Got: Diagnostic ID w/ Option: %d but not implemented yet.",option1);
+			sprintf(tempstr,"Got: Diagnostic ID w/ Option: %d but not implemented yet.",newcommand.Option1);
 			mylogger->log_warn(tempstr);
 		}
 	}
-	else if(command == ARM_COMMAND_ID)
+	else if(newcommand.Command == ARM_COMMAND_ID)
 	{
-		armed_command = option1;
+		armed_command = newcommand.Option1;
+		send_armedcommand.trigger = true;
 	}
 	return diagnostic;
 }
@@ -556,7 +723,7 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_serialmessage_Diagno
 		else
 		{
 			mylogger->log_debug("Got Diagnostic from GPIO Board.");
-			char gpio_board_system,gpio_board_subsystem,gpio_board_component,gpio_board_diagtype,gpio_board_level,gpio_board_message;
+			unsigned char gpio_board_system,gpio_board_subsystem,gpio_board_component,gpio_board_diagtype,gpio_board_level,gpio_board_message;
 			serialmessagehandler->decode_DiagnosticSerial(inpacket,&gpio_board_system,&gpio_board_subsystem,&gpio_board_component,&gpio_board_diagtype,&gpio_board_level,&gpio_board_message);
 			if(gpio_board_level > INFO)
 			{
@@ -662,7 +829,7 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_serialmessage_UserMe
 {
 	if(packet_type ==SERIAL_UserMessage_ID)
 	{
-		char value1,value2,value3,value4,value5,value6,value7,value8,value9,value10,value11,value12;
+		unsigned char value1,value2,value3,value4,value5,value6,value7,value8,value9,value10,value11,value12;
 		serialmessagehandler->decode_UserMessageSerial(inpacket,&value1,
 																&value2,
 																&value3,
@@ -694,7 +861,7 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_serialmessage_Get_Mo
 		if(packet_type ==SERIAL_Mode_ID)
 		{
 			char tempstr[255];
-			char value1,value2,value3;
+			unsigned char value1,value2,value3;
 			serialmessagehandler->decode_ModeSerial(inpacket,&value1,&value2,&value3);
 			board_state = value3;
 			sprintf(tempstr,"Got Board Mode: %s from Board: %s:%d.  Node Mode is: %s",
@@ -1295,6 +1462,7 @@ void BoardControllerNodeProcess::initialize_stateack_messages()
 	send_configure_DIO_Ports.retry_mode = false;
 	send_configure_DIO_Ports.failed = false;
 	send_configure_DIO_Ports.flag1 = 0; //This flag represents the Board Index
+	send_configure_DIO_Ports.stream_rate = -1.0;  //Don't stream this
 
 	send_configure_shields.name = "Send Configure Shields";
 	send_configure_shields.trigger = false;
@@ -1305,8 +1473,7 @@ void BoardControllerNodeProcess::initialize_stateack_messages()
 	send_configure_shields.retry_mode = false;
 	send_configure_shields.failed = false;
 	send_configure_shields.flag1 = 0;
-
-
+	send_configure_shields.stream_rate = -1.0;  //Don't stream this
 
 	send_testmessage_command.name = "Send Test Message Command";
 	send_testmessage_command.trigger = false;
@@ -1316,6 +1483,7 @@ void BoardControllerNodeProcess::initialize_stateack_messages()
 	send_testmessage_command.timeout_counter = 0;
 	send_testmessage_command.retry_mode = false;
 	send_testmessage_command.failed = false;
+	send_testmessage_command.stream_rate = -1.0;  //Don't stream this
 
 	send_nodemode.name = "Send Node Mode";
 	send_nodemode.trigger = false;
@@ -1325,6 +1493,7 @@ void BoardControllerNodeProcess::initialize_stateack_messages()
 	send_nodemode.timeout_counter = 0;
 	send_nodemode.retry_mode = false;
 	send_nodemode.failed = false;
+	send_nodemode.stream_rate = 2.0;
 
 	send_set_DIO_Port.name = "Send Set DIO Port";
 	send_set_DIO_Port.trigger = false;
@@ -1334,7 +1503,7 @@ void BoardControllerNodeProcess::initialize_stateack_messages()
 	send_set_DIO_Port.timeout_counter = 0;
 	send_set_DIO_Port.retry_mode = false;
 	send_set_DIO_Port.failed = false;
-
+	send_set_DIO_Port.stream_rate = -1.0; //Don't stream this, only send on Callback
 
 	send_armedcommand.name = "Send Arm Command";
 	send_armedcommand.trigger = false;
@@ -1344,6 +1513,7 @@ void BoardControllerNodeProcess::initialize_stateack_messages()
 	send_armedcommand.timeout_counter = 0;
 	send_armedcommand.retry_mode = false;
 	send_armedcommand.failed = false;
+	send_armedcommand.stream_rate = 10.0;
 
 	send_armedstate.name = "Send Armed State";
 	send_armedstate.trigger = false;
@@ -1353,7 +1523,7 @@ void BoardControllerNodeProcess::initialize_stateack_messages()
 	send_armedstate.timeout_counter = 0;
 	send_armedstate.retry_mode = false;
 	send_armedstate.failed = false;
-
+	send_armedstate.stream_rate = 2.0;
 
 	send_defaultvalue_DIO_Port.name = "Send DefaultValue DIO Port";
 	send_defaultvalue_DIO_Port.trigger = false;
@@ -1364,6 +1534,7 @@ void BoardControllerNodeProcess::initialize_stateack_messages()
 	send_defaultvalue_DIO_Port.retry_mode = false;
 	send_defaultvalue_DIO_Port.failed = false;
 	send_defaultvalue_DIO_Port.flag1 = 0; //This flag represents the Board Index
+	send_defaultvalue_DIO_Port.stream_rate = -1.0;
 
 }
 bool BoardControllerNodeProcess::gather_message_info(int id, std::string mode)
@@ -1378,7 +1549,7 @@ bool BoardControllerNodeProcess::gather_message_info(int id, std::string mode)
 			{
 				struct timeval now;
 				gettimeofday(&now,NULL);
-				double run_time = time_diff(messages.at(i).last_time_transmitted,now);
+				double run_time = time_diff(init_time,now);
 				messages.at(i).sent_counter++;
                 messages.at(i).transmitted_rate = (double)(messages.at(i)).sent_counter/run_time;
 				gettimeofday(&messages.at(i).last_time_transmitted,NULL);
@@ -1387,7 +1558,7 @@ bool BoardControllerNodeProcess::gather_message_info(int id, std::string mode)
 			{
 				struct timeval now;
 				gettimeofday(&now,NULL);
-                double run_time = time_diff(messages.at(i).last_time_received,now);
+				double run_time = time_diff(init_time,now);
 				messages.at(i).received_counter++;
                 messages.at(i).received_rate = (double)(messages.at(i)).received_counter/run_time;
 				gettimeofday(&messages.at(i).last_time_received,NULL);

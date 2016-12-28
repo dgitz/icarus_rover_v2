@@ -83,14 +83,16 @@ void Joystick_Callback(const sensor_msgs::Joy::ConstPtr& msg,const std::string &
 					icarus_rover_v2::pin output;
 					std::vector<std::string> output_strs;
 					boost::split(output_strs,TopicMaps.at(i).output_topic_channel,boost::is_any_of(","));
-					std::string port = output_strs.at(0);
-					int pinnumber = std::atoi(output_strs.at(1).c_str());
-					std::string pinmode = output_strs.at(2);
+					int board_id = std::atoi(output_strs.at(0).c_str());
+					int shield_id = std::atoi(output_strs.at(1).c_str());
+					int pinnumber = std::atoi(output_strs.at(2).c_str());
+					std::string pinmode = output_strs.at(3);
 					if(pinmode == "PWMOutput")
 					{
 						output.Function = pinmode;
 						output.Number = pinnumber;
-						output.Port = port;
+						output.BoardID = board_id;
+						output.ShieldID = shield_id;
 						output.Value = ((255/2.0)*value+127.5);
 						TopicMaps.at(i).pub.publish(output);
 					}
@@ -112,14 +114,16 @@ void Joystick_Callback(const sensor_msgs::Joy::ConstPtr& msg,const std::string &
 					icarus_rover_v2::pin output;
 					std::vector<std::string> output_strs;
 					boost::split(output_strs,TopicMaps.at(i).output_topic_channel,boost::is_any_of(","));
-					std::string port = output_strs.at(0);
-					int pinnumber = std::atoi(output_strs.at(1).c_str());
-					std::string pinmode = output_strs.at(2);
+					int board_id = std::atoi(output_strs.at(0).c_str());
+					int shield_id = std::atoi(output_strs.at(1).c_str());
+					int pinnumber = std::atoi(output_strs.at(2).c_str());
+					std::string pinmode = output_strs.at(3);
 					if((pinmode == "DigitalOutput") || (pinmode == "DigitalOutput-NonActuator"))
 					{
 						output.Function = pinmode;
 						output.Number = pinnumber;
-						output.Port = port;
+						output.BoardID = board_id;
+						output.ShieldID = shield_id;
 						output.Value = value;
 						TopicMaps.at(i).pub.publish(output);
 					}
