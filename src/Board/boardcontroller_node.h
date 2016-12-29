@@ -34,6 +34,7 @@
 #include <unistd.h>			//Used for UART
 #include <fcntl.h>			//Used for UART
 #include <termios.h>		//Used for UART
+#include <sys/ioctl.h>
 #include <boost/thread.hpp>
 #include <dirent.h>
 #include <sys/types.h>

@@ -9,130 +9,144 @@
 void process_message_thread(UsbDevice* dev)
 {
 	bool run_thread = true;
-	while((kill_node == 0) && run_thread == true)
+	while((kill_node == 0) && (run_thread == true))
 	{
-		if(dev->valid == 0)
+		try
 		{
-			run_thread = false;
-		}
-		//tcflush(device_fid, TCIFLUSH);
-		unsigned char rx_buffer[64];
-		
-		memset(rx_buffer, 0, sizeof(rx_buffer));
-		//memset(packet,0,sizeof(packet));
-		//ros::Time start_time = ros::Time::now();
-		int rx_length = read(dev->device_fid, rx_buffer, sizeof(rx_buffer));
-		if(rx_length > 0)
-		{
-			dev->bytesreceived = dev->bytesreceived + rx_length;
-			//printf("Read %d bytes from: %s\n",rx_length,dev->location.c_str());
-		}
-		if(dev->valid == 2)
-		{
-
-			now = ros::Time::now();
-			mtime = measure_time_diff(now,boot_time);
-			if(mtime > 500.0) //Shouldn't take longer than 2 seconds to identify
+			if(dev->valid == 0)
 			{
-				dev->valid = 0;
+				logger->log_debug("Device is invalid.");
 				run_thread = false;
 			}
-			else if(rx_length >= 4)
+			//tcflush(device_fid, TCIFLUSH);
+			unsigned char rx_buffer[64];
+			
+			memset(rx_buffer, 0, sizeof(rx_buffer));
+			//memset(packet,0,sizeof(packet));
+			//ros::Time start_time = ros::Time::now();
+			int rx_length = read(dev->device_fid, rx_buffer, sizeof(rx_buffer));
+			if(rx_length > 0)
 			{
-				if((rx_buffer[0] == 0xAB) &&
-				   (rx_buffer[1] == SERIAL_Mode_ID) &&
-				   (rx_buffer[2] == 12) &&
-				   ((rx_buffer[3] == BOARDTYPE_ARDUINOUNO) || (rx_buffer[3] == BOARDTYPE_ARDUINOMEGA)))
+				dev->bytesreceived = dev->bytesreceived + rx_length;
+			}
+			
+			if(dev->valid == 2)
+			{
+
+				now = ros::Time::now();
+				mtime = measure_time_diff(now,boot_time);
+				if(mtime > 5.0) //Shouldn't take longer than 2 seconds to identify
 				{
-					int id = rx_buffer[4];
-					if(id <= 0)
+					dev->valid = 0;
+					run_thread = false;
+				}
+				else if(rx_length >= 5)
+				{
+					if((rx_buffer[0] == 0xAB) &&
+					   (rx_buffer[1] == SERIAL_Mode_ID) &&
+					   (rx_buffer[2] == 12) &&
+					   ((rx_buffer[3] == BOARDTYPE_ARDUINOUNO) || (rx_buffer[3] == BOARDTYPE_ARDUINOMEGA)))
 					{
-						break;
+						int id = rx_buffer[4];
+						if(id <= 0)
+						{
+							break;
+						}
+						
+						dev->valid = 1;
+						BoardControllerNodeProcess newprocess(dev->location,id);
+						char tempstr[255];
+						sprintf(tempstr,"Creating Board Process for board id: %d usb device index: %d",rx_buffer[4],dev->index);
+						logger->log_info(tempstr);
+						diagnostic_status = newprocess.init(diagnostic_status,logger,std::string(hostname),dev->index);
+						boardprocesses.push_back(newprocess);
+						dev->boardcontrollernode_id = boardprocesses.size()-1;
+						
+
+
 					}
+				}
 
-					dev->valid = 1;
-					BoardControllerNodeProcess newprocess(dev->location,rx_buffer[4]);
-					char tempstr[255];
-					sprintf(tempstr,"Creating Board Process for board id: %d usb device index: %d",rx_buffer[4],dev->index);
-					logger->log_info(tempstr);
-					diagnostic_status = newprocess.init(diagnostic_status,logger,std::string(hostname),dev->index);
-					boardprocesses.push_back(newprocess);
-					dev->boardcontrollernode_id = boardprocesses.size()-1;
-
-
+			}
+			/*if(rx_length > 0)
+			{	char tempstr[255];
+				sprintf(tempstr,"From device: %s Read %d bytes\n",dev->location.c_str(),rx_length);
+				logger->log_debug(tempstr);
+			}
+			*/
+			for(int i = 0; i < rx_length;i++)
+			{
+				//printf(" i: %d b: %d ",i,rx_buffer[i]);
+			}
+			if(rx_length > 0) {
+				//printf("\n");
+			}
+			if(rx_length > 0)
+			{
+				last_message_received_time = ros::Time::now();
+			}
+			for(int i = 0; i < rx_length; i++)
+			{
+				if((rx_buffer[i] == 0xAB) and (message_started == false))
+				{
+					memset(message_buffer, 0, sizeof(message_buffer));
+					message_started = true;
+					message_completed = false;
+					message_buffer_index = 0;
+					message_buffer[message_buffer_index++] = rx_buffer[i];	
+				}
+				else if(message_started == true)
+				{
+					message_buffer[message_buffer_index++] = rx_buffer[i];	
+					if(message_buffer_index == 16)
+					{
+						message_completed = true;
+						
+						message_started = false;
+					}
 				}
 			}
-
-		}
-		//if(rx_length > 0) {	printf("From device: %s Read %d bytes\n",dev->location.c_str(),rx_length); }
-		for(int i = 0; i < rx_length;i++)
-		{
-			//printf(" i: %d b: %d ",i,rx_buffer[i]);
-		}
-		if(rx_length > 0) {
-			//printf("\n");
-		}
-		if(rx_length > 0)
-		{
-			last_message_received_time = ros::Time::now();
-		}
-		for(int i = 0; i < rx_length; i++)
-		{
-			if((rx_buffer[i] == 0xAB) and (message_started == false))
+			if(message_completed == true)
 			{
-				memset(message_buffer, 0, sizeof(message_buffer));
-				message_started = true;
+				int packet_type;
+				unsigned char packet[12];
+				packet_length = message_buffer[2];
+				int checksum = 0;
+				for(int i = 3; i < 3+packet_length;i++)
+				{
+					packet[i-3] = message_buffer[i];
+					checksum ^= packet[i-3];
+				}
+				int recv_checksum = message_buffer[15];
+				if(recv_checksum == checksum)
+				{
+					dev->good_checksum_counter++;
+					packet_type = message_buffer[1];
+					new_message = true;
+				}
+				else
+				{
+					dev->bad_checksum_counter++;
+				}
+				if(dev->valid == 1)
+				{
+					if(packet_type == SERIAL_Mode_ID)
+					{
+
+						boardprocesses.at(dev->boardcontrollernode_id).new_serialmessage_Get_Mode(packet_type,packet);
+					}
+					else if(packet_type == SERIAL_UserMessage_ID)
+					{
+						boardprocesses.at(dev->boardcontrollernode_id).new_serialmessage_UserMessage(packet_type,packet);
+					}
+				}
+				message_started = false;
 				message_completed = false;
-				message_buffer_index = 0;
-				message_buffer[message_buffer_index++] = rx_buffer[i];	
-			}
-			else if(message_started == true)
-			{
-				message_buffer[message_buffer_index++] = rx_buffer[i];	
-				if(message_buffer_index == 16)
-				{
-					message_completed = true;
-					
-					message_started = false;
-				}
 			}
 		}
-		if(message_completed == true)
+		catch (int e)
 		{
-			int packet_type;
-			unsigned char packet[12];
-			packet_length = message_buffer[2];
-			int checksum = 0;
-			for(int i = 3; i < 3+packet_length;i++)
-			{
-				packet[i-3] = message_buffer[i];
-				checksum ^= packet[i-3];
-			}
-			int recv_checksum = message_buffer[15];
-			if(recv_checksum == checksum)
-			{
-				dev->good_checksum_counter++;
-				packet_type = message_buffer[1];
-				new_message = true;
-			}
-			else
-			{
-				dev->bad_checksum_counter++;
-			}
-			if(dev->valid == 1)
-			{
-				if(packet_type == SERIAL_Mode_ID)
-				{
-
-					boardprocesses.at(dev->boardcontrollernode_id).new_serialmessage_Get_Mode(packet_type,packet);
-				}
-				else if(packet_type == SERIAL_UserMessage_ID)
-				{
-					boardprocesses.at(dev->boardcontrollernode_id).new_serialmessage_UserMessage(packet_type,packet);
-				}
-			}
-			message_started = false;
-			message_completed = false;
+			printf("Exception: %d\n",e);
 		}
 
 	}
@@ -155,7 +169,7 @@ bool run_fastrate_code()
 	for(int i = 0; i < boardprocesses.size();i++)
 	{
 		//printf("Running process update.\n");
-		diagnostic_status = boardprocesses.at(i).update(0.1);  //Need to change 20 to the actual dt!!!
+		diagnostic_status = boardprocesses.at(i).update(0.01);  //Need to change 20 to the actual dt!!!
 		ready = boardprocesses.at(i).get_ready_to_arm() and ready;
 
 		if(diagnostic_status.Level > NOTICE)
@@ -176,11 +190,14 @@ bool run_fastrate_code()
 				//		UsbDevices.at(boardprocesses.at(i).get_usbdevice_id()).device_fid,boardprocesses.at(i).get_boardid());
 				int count = write(UsbDevices.at(boardprocesses.at(i).get_usbdevice_id()).device_fid,
 						reinterpret_cast<char*> (&tempstr[0]),16);
+				/*
+				char tempstr2[255];
 				for(int i = 0; i < 16; i++)
 				{
-					printf("%0x ",tempstr[i]);
+					sprintf(tempstr2,"%s %0x ",tempstr2,tempstr[i]);
 				}
-				printf("\n");
+				logger->log_debug(tempstr2);
+				*/
 
 
 				if(count < 0)
@@ -448,11 +465,11 @@ bool run_mediumrate_code()
 		sprintf(tempstr,"No Message received from GPIO Board in %f seconds",time_since_last_message);
 		diagnostic_status.Description = tempstr;
 	}
+    */
 
 	beat.stamp = ros::Time::now();
 	heartbeat_pub.publish(beat);
 	diagnostic_pub.publish(diagnostic_status);
-	*/
 	return true;
 }
 bool run_slowrate_code()
@@ -534,7 +551,7 @@ bool run_veryslowrate_code()
 		{
 			char tempstr2[255];
 			message_info message = allmessage_info.at(j);
-			sprintf(tempstr2,"Message: AB%0X Received Counter: %d Received Rate: %.02f (Hz) Transmitted Counter: %.02d Transmitted Rate: %f (Hz)",
+			sprintf(tempstr2,"Message: AB%0X Received Counter: %ld Received Rate: %.02f (Hz) Transmitted Counter: %ld Transmitted Rate: %f (Hz)",
 					message.id,
 					message.received_counter,
 					message.received_rate,
@@ -553,7 +570,7 @@ bool run_veryslowrate_code()
 			double rate = (double)(UsbDevices.at(i).bytesreceived)/mtime;
 			{
 				char tempstr[512];
-				sprintf(tempstr,"Loc: %s Received %d bytes from device at a rate of %.02f (Bps)",
+				sprintf(tempstr,"Loc: %s Received %lld bytes from device at a rate of %.02f (Bps)",
 						UsbDevices.at(i).location.c_str(),
 						UsbDevices.at(i).bytesreceived,
 						rate);
@@ -563,7 +580,7 @@ bool run_veryslowrate_code()
 		}
 		{
 			char tempstr[255];
-			sprintf(tempstr,"Loc: %s Valid: %d Received Good Checksum: %d Bad Checksum: %d",
+			sprintf(tempstr,"Loc: %s Valid: %d Received Good Checksum: %lld Bad Checksum: %lld",
 					UsbDevices.at(i).location.c_str(),
 					UsbDevices.at(i).valid,
 					UsbDevices.at(i).good_checksum_counter,
@@ -619,6 +636,10 @@ void PwmOutput_Callback(const icarus_rover_v2::pin::ConstPtr& msg)
 						pinmsg.Number,
 						pinmsg.Value);
 				//logger->log_debug(tempstr);
+                if(diagnostic_status.Level > NOTICE)
+                {
+                    diagnostic_pub.publish(diagnostic_status);
+                }
 			}
 		}
 		if(found == false)
@@ -797,7 +818,13 @@ int main(int argc, char **argv)
 		ros::spinOnce();
 		loop_rate.sleep();
     }
-    for(int i = 0; i < UsbDevices.size(); i++) { close(UsbDevices.at(i).device_fid); }
+    for(int i = 0; i < UsbDevices.size(); i++) 
+	{ 
+		close(UsbDevices.at(i).device_fid); 
+		char tempstr[255];
+		sprintf(tempstr,"Closed Device: %s",UsbDevices.at(i).location.c_str());
+		logger->log_notice(tempstr);
+	}
 
 
 
@@ -808,8 +835,7 @@ int main(int argc, char **argv)
     //	boost::thread processmessage_thread(&process_message_thread(UsbDevices.at(i)));
     //}
 	#if(USE_UART == 1)
-
-   // processmessage_thread.join();
+		
 	#endif
     logger->log_notice("Node Finished Safely.");
     return 0;
@@ -940,6 +966,7 @@ bool initialize(ros::NodeHandle nh)
 			newdev.bytesreceived = 0;
 			newdev.good_checksum_counter = 0;
 			newdev.bad_checksum_counter = 0;
+			newdev.bytesreceived = 0;
 			newdev.index = UsbDevices.size();
 			UsbDevices.push_back(newdev);
 		}
@@ -973,13 +1000,31 @@ bool initialize(ros::NodeHandle nh)
 		tcgetattr(device_fid, &options);
 		options.c_cflag = B115200 | CS8 | CLOCAL | CREAD;		//<Set baud rate
 		options.c_iflag = IGNPAR;
+		
 		options.c_oflag = 0;
 		options.c_lflag = 0;
 		options.c_cc[VMIN] = 1;
-		options.c_cc[VTIME] = 5;
+		options.c_cc[VTIME] = 50;
 		cfmakeraw(&options);
 		tcflush(device_fid, TCIFLUSH);
 		tcsetattr(device_fid, TCSANOW, &options);
+		
+		int iFlags;
+		iFlags = TIOCM_RTS;
+		ioctl(device_fid, TIOCMBIS, &iFlags);
+		sleep(1.0);
+		// turn off RTS
+		iFlags = TIOCM_RTS;
+		ioctl(device_fid, TIOCMBIC, &iFlags);
+
+		// turn on DTR
+		iFlags = TIOCM_DTR;
+		ioctl(device_fid, TIOCMBIS, &iFlags);
+		sleep(1.0);
+		// turn off DTR
+		iFlags = TIOCM_DTR;
+		ioctl(device_fid, TIOCMBIC, &iFlags);
+		
 		UsbDevices.at(i).device_fid = device_fid;
 	}
 	#if(USE_UART == 1)

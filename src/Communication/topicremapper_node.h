@@ -30,6 +30,35 @@
 //End User Code: Includes
 
 //Start User Code: Data Structures
+struct InputChannel
+{
+    std::string type;
+    std::string topic;
+    std::string name;
+    int index; 
+    double minvalue;
+    double maxvalue;
+};
+struct OutputChannel
+{
+    std::string type;
+    std::string topic;
+    int boardID;
+    int shieldID;
+    int pinnumber;
+    std::string function;
+    double maxvalue;
+    double minvalue;
+    double neutralvalue;
+    double deadband;
+};
+struct TopicMap
+{
+    InputChannel in;
+    OutputChannel out;
+    ros::Subscriber sub;
+    ros::Publisher pub;
+};
 //End User Code: Data Structures
 
 //Start Template Code: Function Prototypes
@@ -49,6 +78,7 @@ void signalinterrupt_handler(int sig);
 //Start User Code: Function Prototypes
 int parse_topicmapfile(TiXmlDocument doc);
 void Joystick_Callback(const sensor_msgs::Joy::ConstPtr& msg,const std::string &topic);
+double scale_value(double in_value,double neutral_value,double in_min,double in_max,double out_min,double out_max, double deadband);
 //End User Code: Function Prototypes
 
 //Start Template Code: Define Global variables
@@ -83,16 +113,7 @@ volatile sig_atomic_t kill_node;
 //End Template Code: Define Global Variables
 
 //Start User Code: Define Global Variables
-struct TopicMap
-{
-	std::string input_topic_type;
-	std::string input_topic_name;
-	std::string input_topic_channel;
-	std::string output_topic_type;
-	std::string output_topic_name;
-	std::string output_topic_channel;
-	ros::Publisher pub;
-};
+
 std::vector<TopicMap> TopicMaps;
 ros::Subscriber joy_sub;
 //End User Code: Define Global Variables

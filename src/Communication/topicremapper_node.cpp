@@ -1,8 +1,8 @@
 #include "topicremapper_node.h"
 //Start User Code: Firmware Definition
 #define TOPICREMAPPERNODE_MAJOR_RELEASE 2
-#define TOPICREMAPPERNODE_MINOR_RELEASE 1
-#define TOPICREMAPPERNODE_BUILD_NUMBER 3
+#define TOPICREMAPPERNODE_MINOR_RELEASE 2
+#define TOPICREMAPPERNODE_BUILD_NUMBER 0
 //End User Code: Firmware Definition
 //Start User Code: Functions
 bool run_fastrate_code()
@@ -56,7 +56,7 @@ bool run_veryslowrate_code()
 	icarus_rover_v2::firmware fw;
 	fw.Generic_Node_Name = "topicremapper_node";
 	fw.Node_Name = node_name;
-	fw.Description = "Latest Rev: 30-Nov-2016";
+	fw.Description = "Latest Rev: 28-Dec-2016";
 	fw.Major_Release = TOPICREMAPPERNODE_MAJOR_RELEASE;
 	fw.Minor_Release = TOPICREMAPPERNODE_MINOR_RELEASE;
 	fw.Build_Number = TOPICREMAPPERNODE_BUILD_NUMBER;
@@ -67,77 +67,24 @@ void Joystick_Callback(const sensor_msgs::Joy::ConstPtr& msg,const std::string &
 {
 	for(int i = 0; i < TopicMaps.size();i++)
 	{
-		if(TopicMaps.at(i).input_topic_name == topic)
+        TopicMap map = TopicMaps.at(i);
+		if(map.in.topic == topic)
 		{
 			char tempstr[128];
-			sprintf(tempstr,"Got joy from topic: %s",topic.c_str());
 			logger->log_debug(tempstr);
-			std::vector<std::string> input_strs;
-			boost::split(input_strs,TopicMaps.at(i).input_topic_channel,boost::is_any_of(","));
-			if(input_strs.at(0) == "axis")
-			{
-				int index = std::atoi(input_strs.at(1).c_str());
-				float value = msg->axes[index];
-				if(TopicMaps.at(i).output_topic_type == "icarus_rover_v2/pin")
-				{
-					icarus_rover_v2::pin output;
-					std::vector<std::string> output_strs;
-					boost::split(output_strs,TopicMaps.at(i).output_topic_channel,boost::is_any_of(","));
-					int board_id = std::atoi(output_strs.at(0).c_str());
-					int shield_id = std::atoi(output_strs.at(1).c_str());
-					int pinnumber = std::atoi(output_strs.at(2).c_str());
-					std::string pinmode = output_strs.at(3);
-					if(pinmode == "PWMOutput")
-					{
-						output.Function = pinmode;
-						output.Number = pinnumber;
-						output.BoardID = board_id;
-						output.ShieldID = shield_id;
-						output.Value = ((255/2.0)*value+127.5);
-						TopicMaps.at(i).pub.publish(output);
-					}
-					else
-					{
-						char tempstr[128];
-						sprintf("Input: %s and Pinmode: %s not currently supported.",input_strs.at(0).c_str(),pinmode.c_str());
-						logger->log_warn(tempstr);
-					}
-				}
-			}
-			else if(input_strs.at(0) == "button")
-			{
-
-				int index = std::atoi(input_strs.at(1).c_str());
-				int value = msg->buttons[index];
-				if(TopicMaps.at(i).output_topic_type == "icarus_rover_v2/pin")
-				{
-					icarus_rover_v2::pin output;
-					std::vector<std::string> output_strs;
-					boost::split(output_strs,TopicMaps.at(i).output_topic_channel,boost::is_any_of(","));
-					int board_id = std::atoi(output_strs.at(0).c_str());
-					int shield_id = std::atoi(output_strs.at(1).c_str());
-					int pinnumber = std::atoi(output_strs.at(2).c_str());
-					std::string pinmode = output_strs.at(3);
-					if((pinmode == "DigitalOutput") || (pinmode == "DigitalOutput-NonActuator"))
-					{
-						output.Function = pinmode;
-						output.Number = pinnumber;
-						output.BoardID = board_id;
-						output.ShieldID = shield_id;
-						output.Value = value;
-						TopicMaps.at(i).pub.publish(output);
-					}
-					else
-					{
-						char tempstr[255];
-						sprintf(tempstr,"Input: %s Button: %d and Pinmode: %s not currently supported.",
-								input_strs.at(0).c_str(),
-								pinnumber,
-								pinmode.c_str());
-						logger->log_warn(tempstr);
-					}
-				}
-			}
+            if(map.in.name == "axis")
+            {
+                double in_value = msg->axes[map.in.index];
+                double out = scale_value(in_value,map.out.neutralvalue,map.in.minvalue,map.in.maxvalue,map.out.minvalue,map.out.maxvalue,map.out.deadband);
+                icarus_rover_v2::pin newpin;
+                newpin.BoardID = map.out.boardID;
+                newpin.ShieldID = map.out.shieldID;
+                newpin.DefaultValue = (int)map.out.neutralvalue;
+                newpin.Function = map.out.function;
+                newpin.Number = map.out.pinnumber;
+                newpin.Value = (int)out;
+                map.pub.publish(newpin);
+            }
 		}
 	}
 
@@ -158,28 +105,50 @@ int parse_topicmapfile(TiXmlDocument doc)
 			while( l_pTopicMap )
 			{
 				TopicMap newtopicmap;
+                InputChannel in;
+                OutputChannel out;
 				//Input
-				TiXmlElement *l_pInput = l_pTopicMap->FirstChildElement( "InputTopic" );
+				TiXmlElement *l_pInput = l_pTopicMap->FirstChildElement( "InputChannel" );
 				if(NULL != l_pInput)
 				{
 					TiXmlElement *l_pInputType = l_pInput->FirstChildElement( "Type" );
 					if(NULL != l_pInputType)
 					{
 						std::string input_type = l_pInputType->GetText();
-						//printf("input: %s\n",input_type.c_str());
 						if(input_type == "sensor_msgs/Joy")
 						{
-							newtopicmap.input_topic_type = input_type;
+							in.type = input_type;
+							TiXmlElement *l_pTopic = l_pInput->FirstChildElement( "Topic" );
+							if(NULL != l_pTopic)
+							{
+								in.topic = l_pTopic->GetText();
+							}
+                            else { return -1; }
 							TiXmlElement *l_pName = l_pInput->FirstChildElement( "Name" );
 							if(NULL != l_pName)
 							{
-								newtopicmap.input_topic_name = l_pName->GetText();
+								in.name = l_pName->GetText();
 							}
-							TiXmlElement *l_pChannel = l_pInput->FirstChildElement( "Channel" );
-							if(NULL != l_pChannel)
-							{
-								newtopicmap.input_topic_channel = l_pChannel->GetText();
-							}
+                            else { return -1; }
+                            
+                            TiXmlElement *l_pIndex = l_pInput->FirstChildElement("Index");
+                            if(NULL != l_pIndex)
+                            {
+                                in.index = std::atoi(l_pIndex->GetText());
+                            }
+                            
+                            TiXmlElement *l_pMinValue = l_pInput->FirstChildElement("MinValue");
+                            if(NULL != l_pMinValue)
+                            {
+                                in.minvalue = std::atof(l_pMinValue->GetText());
+                            }
+                            
+                            TiXmlElement *l_pMaxValue = l_pInput->FirstChildElement("MaxValue");
+                            if(NULL != l_pMaxValue)
+                            {
+                                in.maxvalue = std::atof(l_pMaxValue->GetText());
+                            }
+                            else { return -1; }
 						}
 						else
 						{
@@ -190,9 +159,10 @@ int parse_topicmapfile(TiXmlDocument doc)
 					}
 				}
 
-
+ 
+        
 				//Output
-				TiXmlElement *l_pOutput = l_pTopicMap->FirstChildElement( "OutputTopic" );
+				TiXmlElement *l_pOutput = l_pTopicMap->FirstChildElement( "OutputChannel" );
 				if(NULL != l_pOutput)
 				{
 					TiXmlElement *l_pOutputType = l_pOutput->FirstChildElement( "Type" );
@@ -201,17 +171,69 @@ int parse_topicmapfile(TiXmlDocument doc)
 						std::string output_type = l_pOutputType->GetText();
 						if(output_type == "icarus_rover_v2/pin")
 						{
-							newtopicmap.output_topic_type = output_type;
-							TiXmlElement *l_pName = l_pOutput->FirstChildElement( "Name" );
-							if(NULL != l_pName)
+							out.type = output_type;
+							TiXmlElement *l_pTopic = l_pOutput->FirstChildElement( "Topic" );
+							if(NULL != l_pTopic)
 							{
-								newtopicmap.output_topic_name = l_pName->GetText();
+								out.topic = l_pTopic->GetText();
 							}
-							TiXmlElement *l_pChannel = l_pOutput->FirstChildElement( "Channel" );
-							if(NULL != l_pChannel)
+                            else { return -1; }
+                            
+							TiXmlElement *l_pBoardID = l_pOutput->FirstChildElement( "BoardID" );
+							if(NULL != l_pBoardID)
 							{
-								newtopicmap.output_topic_channel = l_pChannel->GetText();
+								out.boardID = std::atoi(l_pBoardID->GetText());
 							}
+                            else { return -1; }
+                            
+                            TiXmlElement *l_pShieldID = l_pOutput->FirstChildElement( "ShieldID" );
+							if(NULL != l_pShieldID)
+							{
+								out.shieldID = std::atoi(l_pShieldID->GetText());
+							}
+                            else { return -1; }
+                            
+                            TiXmlElement *l_pPinNumber = l_pOutput->FirstChildElement( "PinNumber" );
+							if(NULL != l_pPinNumber)
+							{
+								out.pinnumber = std::atoi(l_pPinNumber->GetText());
+							}
+                            else { return -1; }
+                            
+                            TiXmlElement *l_pFunction = l_pOutput->FirstChildElement( "Function" );
+							if(NULL != l_pFunction)
+							{
+								out.function = l_pFunction->GetText();
+							}
+                            else { return -1; }
+                            
+                            TiXmlElement *l_pMaxValue = l_pOutput->FirstChildElement( "MaxValue" );
+							if(NULL != l_pMaxValue)
+							{
+								out.maxvalue = std::atof(l_pMaxValue->GetText());
+							}
+                            else { return -1; }
+                            
+                            TiXmlElement *l_pMinValue = l_pOutput->FirstChildElement( "MinValue" );
+							if(NULL != l_pMinValue)
+							{
+								out.minvalue = std::atof(l_pMinValue->GetText());
+							}
+                            else { return -1; }
+                            
+                            TiXmlElement *l_pNeutralValue = l_pOutput->FirstChildElement( "NeutralValue" );
+							if(NULL != l_pNeutralValue)
+							{
+								out.neutralvalue = std::atof(l_pNeutralValue->GetText());
+							}
+                            else { return -1; }
+                            
+                            TiXmlElement *l_pDeadband = l_pOutput->FirstChildElement( "Deadband" );
+							if(NULL != l_pDeadband)
+							{
+								out.deadband = std::atof(l_pDeadband->GetText());
+							}
+                            else { return -1; }
 						}
 						else
 						{
@@ -221,43 +243,15 @@ int parse_topicmapfile(TiXmlDocument doc)
 						}
 					}
 				}
+                newtopicmap.in = in;
+                newtopicmap.out = out;
 				TopicMaps.push_back(newtopicmap);
+                
 				l_pTopicMap = l_pTopicMap->NextSiblingElement( "TopicMap" );
 			}
 		}
 	}
 	return TopicMaps.size();
-/*
- TiXmlElement *l_pTopicMap = l_pDevice->FirstChildElement("TopicMap");
-				while(l_pTopicMap)
-				{
-					std::string input_topic;
-					std::string output_topic;
-					std::string topic_mode;
-					TiXmlElement *l_pInputTopic = l_pTopicMap->FirstChildElement( "InputTopic" );
-					if ( NULL != l_pInputTopic )
-					{
-						input_topic = l_pInputTopic->GetText();
-					}
-					TiXmlElement *l_pOutputTopic = l_pTopicMap->FirstChildElement( "OutputTopic" );
-					if ( NULL != l_pOutputTopic )
-					{
-						output_topic = l_pOutputTopic->GetText();
-					}
-					TiXmlElement *l_pTopicMode = l_pTopicMap->FirstChildElement( "Mode" );
-					if ( NULL != l_pTopicMode )
-					{
-						topic_mode = l_pTopicMode->GetText();
-					}
-					input_topics.push_back(input_topic);
-					output_topics.push_back(output_topic);
-					topic_modes.push_back(topic_mode);
-					l_pTopicMap = l_pTopicMap->NextSiblingElement("TopicMap");
-				}
-				newDevice.InputTopics = input_topics;
-				newDevice.OutputTopics = output_topics;
-				newDevice.TopicModes = topic_modes;
- */
 }
 std::vector<icarus_rover_v2::diagnostic> check_program_variables()
 {
@@ -311,6 +305,25 @@ void Command_Callback(const icarus_rover_v2::command::ConstPtr& msg)
 			logger->log_error("Shouldn't get here!!!");
 		}
 	}
+}
+double scale_value(double x,double neutral,double x1,double x2,double y1,double y2, double deadband)
+{
+    double out = 0.0;
+    if(x < (-1.0*deadband))
+    {
+        double m = (y1-neutral)/(x1-(-1.0*deadband));
+        out = m*(x-x1)+y1;    
+    }
+    else if(x > deadband)
+    {
+    	double m = (y2-neutral)/(x2-(deadband));
+    	out = m*(x-x2)+y2;
+    }
+    else
+    {
+        out = neutral;
+    }
+    return out;
 }
 //End User Code: Functions
 int main(int argc, char **argv)
@@ -448,10 +461,10 @@ bool initialize(ros::NodeHandle nh)
     TiXmlDocument topicmap_doc("/home/robot/config/TopicMap.xml");
 
 
-
 	bool topicmapfile_loaded = topicmap_doc.LoadFile();
 	if(topicmapfile_loaded == true)
 	{
+        
 		if(parse_topicmapfile(topicmap_doc) <= 0)
 		{
 			logger->log_fatal("Unable to parse TopicMap.xml.  Exiting.");
@@ -459,29 +472,53 @@ bool initialize(ros::NodeHandle nh)
 		}
 		for(int i = 0; i < TopicMaps.size();i++)
 		{
-			char tempstr[256];
-			sprintf(tempstr,"i: %d in: %s\n%s\n%s out: %s\n%s\n%s",i,
-					TopicMaps.at(i).input_topic_type.c_str(),TopicMaps.at(i).input_topic_name.c_str(),TopicMaps.at(i).input_topic_channel.c_str(),
-					TopicMaps.at(i).output_topic_type.c_str(),TopicMaps.at(i).output_topic_name.c_str(),TopicMaps.at(i).output_topic_channel.c_str());
-			logger->log_debug(tempstr);
+            {
+                char tempstr[512];
+                sprintf(tempstr,"i: %d Input Channel: Type: %s topic: %s name: %s index: %d Min: %f Max: %f",
+                    i,
+                    TopicMaps.at(i).in.type.c_str(),
+                    TopicMaps.at(i).in.topic.c_str(),
+                    TopicMaps.at(i).in.name.c_str(),
+                    TopicMaps.at(i).in.index,
+                    TopicMaps.at(i).in.minvalue,
+                    TopicMaps.at(i).in.maxvalue);
+                logger->log_debug(tempstr);
+            }
+            {
+                char tempstr[512];
+                sprintf(tempstr,"i: %d Output Channel: Type: %s topic: %s BoardID: %d ShieldID: %d Pin: %d Function: %s Max Value: %f Neutral: %f Min Value: %f Deadband: %f",
+                    i,
+                    TopicMaps.at(i).out.type.c_str(),
+                    TopicMaps.at(i).out.topic.c_str(),
+                    TopicMaps.at(i).out.boardID,
+                    TopicMaps.at(i).out.shieldID,
+                    TopicMaps.at(i).out.pinnumber,
+                    TopicMaps.at(i).out.function.c_str(),
+                    TopicMaps.at(i).out.maxvalue,
+                    TopicMaps.at(i).out.neutralvalue,
+                    TopicMaps.at(i).out.minvalue,
+                    TopicMaps.at(i).out.deadband);
+                logger->log_debug(tempstr);
+            }
 		}
+        
 		for(int i = 0; i < TopicMaps.size();i++)
 		{
-			if(TopicMaps.at(i).input_topic_type == "sensor_msgs/Joy")
+			if(TopicMaps.at(i).in.type == "sensor_msgs/Joy")
 			{
-				char tempstr[256];
-				sprintf(tempstr,"Subscribing to: %s\n%s\n%s\n out: %s\n%s\n%s\n",
-						TopicMaps.at(i).input_topic_type.c_str(),TopicMaps.at(i).input_topic_name.c_str(),TopicMaps.at(i).input_topic_channel.c_str(),
-						TopicMaps.at(i).output_topic_type.c_str(),TopicMaps.at(i).output_topic_name.c_str(),TopicMaps.at(i).output_topic_channel.c_str());
-				logger->log_debug(tempstr);
-				//ros::Subscriber joy_sub;
-				joy_sub = nh.subscribe<sensor_msgs::Joy>(TopicMaps.at(i).input_topic_name,1000,boost::bind(Joystick_Callback,_1,TopicMaps.at(i).input_topic_name));
-			}
-			if(TopicMaps.at(i).output_topic_type == "icarus_rover_v2/pin")
+				ros::Subscriber sub = nh.subscribe<sensor_msgs::Joy>(TopicMaps.at(i).in.topic,1000,boost::bind(Joystick_Callback,_1,TopicMaps.at(i).in.topic));
+                char tempstr[255];
+                sprintf(tempstr,"Subscribing to: %s",TopicMaps.at(i).in.topic.c_str());
+                logger->log_info(tempstr);
+				TopicMaps.at(i).sub = sub;
+            }
+			if(TopicMaps.at(i).out.type == "icarus_rover_v2/pin")
 			{
-				TopicMaps.at(i).pub = nh.advertise<icarus_rover_v2::pin>(TopicMaps.at(i).output_topic_name,1000);
+				ros::Publisher pub = nh.advertise<icarus_rover_v2::pin>(TopicMaps.at(i).out.topic,1000);
+                TopicMaps.at(i).pub = pub;
 			}
 		}
+       
 		resourcemonitor = new ResourceMonitor(diagnostic_status,myDevice.Architecture,myDevice.DeviceName,node_name);
 	}
 	else
