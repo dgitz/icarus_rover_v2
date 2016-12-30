@@ -2,7 +2,7 @@
 //Start User Code: Firmware Definition
 #define BOARDCONTROLLERNODE_MAJOR_RELEASE 0
 #define BOARDCONTROLLERNODE_MINOR_RELEASE 1
-#define BOARDCONTROLLERNODE_BUILD_NUMBER 0
+#define BOARDCONTROLLERNODE_BUILD_NUMBER 1
 //End User Code: Firmware Definition
 //Start User Code: Functions
 
@@ -15,15 +15,14 @@ void process_message_thread(UsbDevice* dev)
 		{
 			if(dev->valid == 0)
 			{
-				logger->log_debug("Device is invalid.");
+                char tempstr[512];
+                sprintf(tempstr,"Usb/serial device: %s is not an ArduinoBoard.",dev->location.c_str());
+				logger->log_notice(tempstr);
 				run_thread = false;
 			}
-			//tcflush(device_fid, TCIFLUSH);
 			unsigned char rx_buffer[64];
 			
 			memset(rx_buffer, 0, sizeof(rx_buffer));
-			//memset(packet,0,sizeof(packet));
-			//ros::Time start_time = ros::Time::now();
 			int rx_length = read(dev->device_fid, rx_buffer, sizeof(rx_buffer));
 			if(rx_length > 0)
 			{
@@ -35,7 +34,7 @@ void process_message_thread(UsbDevice* dev)
 
 				now = ros::Time::now();
 				mtime = measure_time_diff(now,boot_time);
-				if(mtime > 5.0) //Shouldn't take longer than 2 seconds to identify
+				if(mtime > 5.0) //Shouldn't take longer than 5 seconds to identify
 				{
 					dev->valid = 0;
 					run_thread = false;
@@ -56,7 +55,7 @@ void process_message_thread(UsbDevice* dev)
 						dev->valid = 1;
 						BoardControllerNodeProcess newprocess(dev->location,id);
 						char tempstr[255];
-						sprintf(tempstr,"Creating Board Process for board id: %d usb device index: %d",rx_buffer[4],dev->index);
+						sprintf(tempstr,"Creating Board Process for board id: %d usb/serial device index: %d",rx_buffer[4],dev->index);
 						logger->log_info(tempstr);
 						diagnostic_status = newprocess.init(diagnostic_status,logger,std::string(hostname),dev->index);
 						boardprocesses.push_back(newprocess);
@@ -132,13 +131,43 @@ void process_message_thread(UsbDevice* dev)
 				{
 					if(packet_type == SERIAL_Mode_ID)
 					{
-
-						boardprocesses.at(dev->boardcontrollernode_id).new_serialmessage_Get_Mode(packet_type,packet);
+						diagnostic_status = boardprocesses.at(dev->boardcontrollernode_id).new_serialmessage_Get_Mode(packet_type,packet);
+                        if(diagnostic_status.Level > NOTICE)
+                        {
+                            diagnostic_pub.publish(diagnostic_status);
+                        }
 					}
 					else if(packet_type == SERIAL_UserMessage_ID)
 					{
-						boardprocesses.at(dev->boardcontrollernode_id).new_serialmessage_UserMessage(packet_type,packet);
+						diagnostic_status = boardprocesses.at(dev->boardcontrollernode_id).new_serialmessage_UserMessage(packet_type,packet);
+                        if(diagnostic_status.Level > NOTICE)
+                        {
+                            diagnostic_pub.publish(diagnostic_status);
+                        }
 					}
+                    else if(packet_type == SERIAL_Diagnostic_ID)
+                    {
+                        diagnostic_status = boardprocesses.at(dev->boardcontrollernode_id).new_serialmessage_Diagnostic(packet_type,packet);
+                        if(diagnostic_status.Level > NOTICE)
+                        {
+                            diagnostic_pub.publish(diagnostic_status);
+                        }
+                    }
+                    else if(packet_type == SERIAL_FirmwareVersion_ID)
+                    {
+                        diagnostic_status = boardprocesses.at(dev->boardcontrollernode_id).new_serialmessage_FirmwareVersion(packet_type,packet);
+                        if(diagnostic_status.Level > NOTICE)
+                        {
+                            diagnostic_pub.publish(diagnostic_status);
+                        }
+                    }
+                    else
+                    {
+                        char tempstr[256];
+                        sprintf(tempstr,"Received Message: AB%0x from usb/serial device: %s but not currently supported",packet_type,dev->location.c_str());
+                        logger->log_notice(tempstr);
+                    }
+             
 				}
 				message_started = false;
 				message_completed = false;
@@ -151,7 +180,7 @@ void process_message_thread(UsbDevice* dev)
 
 	}
 	char tempstr[255];
-	sprintf(tempstr,"Ending process message thread for device: %s",dev->location.c_str());
+	sprintf(tempstr,"Ending process message thread for usb/serial device: %s",dev->location.c_str());
 	logger->log_info(tempstr);
 
 }
@@ -536,13 +565,17 @@ bool run_veryslowrate_code()
 	icarus_rover_v2::firmware fw;
 	fw.Generic_Node_Name = "boardcontroller_node";
 	fw.Node_Name = node_name;
-	fw.Description = "Latest Rev: 28-Dec-2016";
+	fw.Description = "Latest Rev: 31-Dec-2016";
 	fw.Major_Release = BOARDCONTROLLERNODE_MAJOR_RELEASE;
 	fw.Minor_Release = BOARDCONTROLLERNODE_MINOR_RELEASE;
 	fw.Build_Number = BOARDCONTROLLERNODE_BUILD_NUMBER;
 	firmware_pub.publish(fw);
 	for(int i = 0; i < boardprocesses.size(); i++)
 	{
+        if(boardprocesses.at(i).get_firmwarereceived() == true)
+        {
+            firmware_pub.publish(boardprocesses.at(i).get_boardfirmware());
+        }
 		std::vector<message_info> allmessage_info = boardprocesses.at(i).get_allmessage_info();
 		char tempstr[255];
 		sprintf(tempstr,"--- Message Info for Board: %d ---",boardprocesses.at(i).get_boardid());

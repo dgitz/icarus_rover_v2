@@ -700,14 +700,19 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_serialmessage_Firmwa
 	}
 	else
 	{
-		diagnostic.Level = WARN;
-		diagnostic.Diagnostic_Type = COMMUNICATIONS;
-		diagnostic.Diagnostic_Message = DROPPING_PACKETS;
-		diagnostic.Description = "FirmwareVersion Message Not Implemented Yet.";
+		mylogger->log_debug("Got Firmware from ArduinoBoard.");
+        unsigned char major_version,minor_version,build_number;
+        serialmessagehandler->decode_FirmwareVersionSerial(inpacket,&major_version,&minor_version,&build_number);
+        board_firmware.Generic_Node_Name = node_firmware.Generic_Node_Name;
+        board_firmware.Node_Name = node_firmware.Node_Name + ":" + my_boardname;
+        board_firmware.Major_Release = major_version;
+        board_firmware.Minor_Release = minor_version;
+        board_firmware.Build_Number = build_number;
+        board_firmware.Description = "";
+        firmware_received = true;
 	}
 	return diagnostic;
 }
-
 icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_serialmessage_Diagnostic(int packet_type,unsigned char* inpacket)
 {
 	if(packet_type ==SERIAL_Diagnostic_ID)
@@ -729,8 +734,12 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_serialmessage_Diagno
 			{
 				diagnostic.Level = gpio_board_level;
 				diagnostic.Diagnostic_Message = gpio_board_level;
-				diagnostic.Description = "GPIO Board Empty Message.";
+				diagnostic.Description = "";
 			}
+            if(gpio_board_level > NOTICE)
+            {
+                ready_to_arm = false;
+            }
 		}
 	}
 	else

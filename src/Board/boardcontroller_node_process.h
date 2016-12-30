@@ -13,6 +13,7 @@
 #include "icarus_rover_v2/device.h"
 #include "icarus_rover_v2/command.h"
 #include "icarus_rover_v2/pin.h"
+#include "icarus_rover_v2/firmware.h"
 #include <std_msgs/UInt8.h>
 #include "logger.h"
 #include <serialmessage.h>
@@ -119,6 +120,7 @@ public:
 	int get_timeout_ms() { return timeout_value_ms; }
 	long get_timer_ms() { return ms_timer; }
 	bool reset_timer() { ms_timer = 0; timer_timeout = false; return true;}
+    void set_nodefirmware(icarus_rover_v2::firmware fw) { node_firmware = fw; }
 	bool checkTriggers(std::vector<std::vector<unsigned char > > &tx_buffers);
 	icarus_rover_v2::diagnostic new_serialmessage_TestMessageCounter(int packet_type,unsigned char* inpacket);
 	icarus_rover_v2::diagnostic new_serialmessage_FirmwareVersion(int packet_type,unsigned char* inpacket);
@@ -127,6 +129,8 @@ public:
 	icarus_rover_v2::diagnostic new_serialmessage_Get_DIO_Port(int packet_type,unsigned char* inpacket);
 	icarus_rover_v2::diagnostic new_serialmessage_Get_Mode(int packet_type,unsigned char* inpacket);
 	icarus_rover_v2::diagnostic new_serialmessage_UserMessage(int packet_type,unsigned char* inpacket);
+    icarus_rover_v2::firmware get_boardfirmware() { return board_firmware; }
+    bool get_firmwarereceived() { return firmware_received; }
 	void transmit_armedstate();
 	icarus_rover_v2::diagnostic new_armedstatemsg(uint8_t v);
 	std::vector<message_info> get_allmessage_info() { return messages; }
@@ -159,6 +163,9 @@ private:
 	int node_state;
 	int prev_node_state;
 	SerialMessageHandler *serialmessagehandler;
+    icarus_rover_v2::firmware node_firmware;
+    icarus_rover_v2::firmware board_firmware;
+    bool firmware_received;
 	bool configure_port(int ShieldID,std::vector<icarus_rover_v2::pin> pins);
 	//bool configure_pin(std::string ShieldName,int PortID, uint8_t Number, std::string Function,std::string ConnectedDevice,uint8_t defaultvalue);
 	int transducer_model(int mode,std::string SensorName,double input);
