@@ -4,8 +4,5 @@
         <param name="loop_rate"             value="500"/>
 	    <param name="verbosity_level"       value="DEBUG"/>
         <param name="require_pps_to_start"  value="false"/>
-        <param name="sensor_spec_path" value="/home/robot/config/sensors"/>
-        <param name="extrapolate_sensor_values" value="false" />
-        <param name="manual_pin_definition" value="false"/>
     </node>
 </launch>
