@@ -2,7 +2,7 @@
 //Start User Code: Firmware Definition
 #define BOARDCONTROLLERNODE_MAJOR_RELEASE 0
 #define BOARDCONTROLLERNODE_MINOR_RELEASE 1
-#define BOARDCONTROLLERNODE_BUILD_NUMBER 1
+#define BOARDCONTROLLERNODE_BUILD_NUMBER 3
 //End User Code: Firmware Definition
 //Start User Code: Functions
 
@@ -129,6 +129,7 @@ void process_message_thread(UsbDevice* dev)
 				}
 				if(dev->valid == 1)
 				{
+
 					if(packet_type == SERIAL_Mode_ID)
 					{
 						diagnostic_status = boardprocesses.at(dev->boardcontrollernode_id).new_serialmessage_Get_Mode(packet_type,packet);
@@ -199,12 +200,12 @@ bool run_fastrate_code()
 	{
 		//printf("Running process update.\n");
 		diagnostic_status = boardprocesses.at(i).update(0.01);  //Need to change 20 to the actual dt!!!
+		diagnostic_pub.publish(diagnostic_status);
 		ready = boardprocesses.at(i).get_ready_to_arm() and ready;
 
 		if(diagnostic_status.Level > NOTICE)
 		{
 			logger->log_warn(diagnostic_status.Description);
-			diagnostic_pub.publish(diagnostic_status);
 		}
 		//printf("diag: %s\n",diagnostic_status.Description.c_str());
 		std::vector<std::vector<unsigned char> > tx_buffers;
@@ -565,7 +566,7 @@ bool run_veryslowrate_code()
 	icarus_rover_v2::firmware fw;
 	fw.Generic_Node_Name = "boardcontroller_node";
 	fw.Node_Name = node_name;
-	fw.Description = "Latest Rev: 31-Dec-2016";
+	fw.Description = "Latest Rev: 6-Jan-2017";
 	fw.Major_Release = BOARDCONTROLLERNODE_MAJOR_RELEASE;
 	fw.Minor_Release = BOARDCONTROLLERNODE_MINOR_RELEASE;
 	fw.Build_Number = BOARDCONTROLLERNODE_BUILD_NUMBER;
@@ -626,6 +627,51 @@ bool run_veryslowrate_code()
 }
 void DigitalOutput_Callback(const icarus_rover_v2::pin::ConstPtr& msg)
 {
+	ros::Time now = ros::Time::now();
+
+	double dt = measure_time_diff(now,last_digitaloutput_time);
+	if(dt < .05) { return; } //Only update at 20 Hz
+	last_digitaloutput_time = ros::Time::now();
+	icarus_rover_v2::pin pinmsg;
+	pinmsg.BoardID = msg->BoardID;
+	pinmsg.ShieldID = msg->ShieldID;
+	pinmsg.PortID = msg->PortID;
+	pinmsg.Number = msg->Number;
+	pinmsg.Function = msg->Function;
+	pinmsg.DefaultValue = msg->DefaultValue;
+	pinmsg.ConnectedDevice = msg->ConnectedDevice;
+	pinmsg.Value = msg->Value;
+	if(pinmsg.Function == "DigitalOutput-NonActuator")
+	{
+		bool found = false;
+		for(int i = 0; i < boardprocesses.size();i++)
+		{
+			if(boardprocesses.at(i).get_boardid() == pinmsg.BoardID)
+			{
+				found = true;
+				diagnostic_status = boardprocesses.at(i).new_pinmsg(pinmsg);
+				char tempstr[255];
+				sprintf(tempstr,"Pin Msg: Board ID: %d Shield ID: %d Function: %s Number: %d Value: %d",
+						pinmsg.BoardID,
+						pinmsg.ShieldID,
+						pinmsg.Function.c_str(),
+						pinmsg.Number,
+						pinmsg.Value);
+				//logger->log_debug(tempstr);
+				if(diagnostic_status.Level > NOTICE)
+				{
+					diagnostic_pub.publish(diagnostic_status);
+				}
+			}
+		}
+		if(found == false)
+		{
+			char tempstr[255];
+			sprintf(tempstr,"Pin Msg: Board ID: %d Shield ID: %d Number: %d Not available",
+					pinmsg.BoardID,pinmsg.ShieldID,pinmsg.Number);
+			logger->log_fatal(tempstr);
+		}
+	}
 	/*
 	icarus_rover_v2::pin pinmsg;
 	pinmsg.Port = msg->Port;
@@ -643,6 +689,12 @@ void DigitalOutput_Callback(const icarus_rover_v2::pin::ConstPtr& msg)
 }
 void PwmOutput_Callback(const icarus_rover_v2::pin::ConstPtr& msg)
 {
+	ros::Time now = ros::Time::now();
+
+	double dt = measure_time_diff(now,last_pwmoutput_sub_time);
+	if(dt < .05) { return; } //Only update at 20 Hz
+	last_pwmoutput_sub_time = ros::Time::now();
+
 	icarus_rover_v2::pin pinmsg;
 	pinmsg.BoardID = msg->BoardID;
 	pinmsg.ShieldID = msg->ShieldID;
@@ -966,9 +1018,11 @@ bool initialize(ros::NodeHandle nh)
 	std::string forcesensorinput_topic = "/" + node_name + "/ForceSensorInput";
 	forcesensorinput_pub = nh.advertise<icarus_rover_v2::pin>(forcesensorinput_topic,1000);
 	std::string digitaloutput_topic = "/" + node_name + "/DigitalOutput";
-	digitaloutput_sub = nh.subscribe<icarus_rover_v2::pin>(digitaloutput_topic,1000,DigitalOutput_Callback);
+	digitaloutput_sub = nh.subscribe<icarus_rover_v2::pin>(digitaloutput_topic,5,DigitalOutput_Callback);
+	last_digitaloutput_time = ros::Time::now();
 	std::string pwmoutput_topic = "/" + node_name + "/PWMOutput";
-	pwmoutput_sub = nh.subscribe<icarus_rover_v2::pin>(pwmoutput_topic,1000,PwmOutput_Callback);
+	pwmoutput_sub = nh.subscribe<icarus_rover_v2::pin>(pwmoutput_topic,5,PwmOutput_Callback);
+	last_pwmoutput_sub_time = ros::Time::now();
 
 	current_num = -1;
 	last_num = -1;

@@ -258,6 +258,7 @@ bool check_tasks()
 			diagnostic_status.Description = tempstr;
 			diagnostic_pub.publish(diagnostic_status);
 		}
+		/*
 		if(newTask.PID <= 0)
 		{
 			task_ok = false;
@@ -282,6 +283,7 @@ bool check_tasks()
 			diagnostic_status.Description = tempstr;
 			diagnostic_pub.publish(diagnostic_status);
 		}
+
 		double diagnostic_time_duration = measure_time_diff(ros::Time::now(),newTask.last_diagnostic_received);
 		if( resource_time_duration > 5.0)
 		{
@@ -294,6 +296,7 @@ bool check_tasks()
 			diagnostic_status.Description = tempstr;
 			diagnostic_pub.publish(diagnostic_status);
 		}
+		*/
 		double heartbeat_time_duration = measure_time_diff(ros::Time::now(),newTask.last_heartbeat_received);
 		if(heartbeat_time_duration > 2.0)
 		{

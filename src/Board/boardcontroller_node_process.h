@@ -129,6 +129,7 @@ public:
 	icarus_rover_v2::diagnostic new_serialmessage_Get_DIO_Port(int packet_type,unsigned char* inpacket);
 	icarus_rover_v2::diagnostic new_serialmessage_Get_Mode(int packet_type,unsigned char* inpacket);
 	icarus_rover_v2::diagnostic new_serialmessage_UserMessage(int packet_type,unsigned char* inpacket);
+	icarus_rover_v2::diagnostic get_diagnostic() { return diagnostic; }
     icarus_rover_v2::firmware get_boardfirmware() { return board_firmware; }
     bool get_firmwarereceived() { return firmware_received; }
 	void transmit_armedstate();

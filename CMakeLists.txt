@@ -222,6 +222,9 @@ add_library(visionhelper util/visionhelper.cpp)
 add_library(boardcontroller_node_process src/Board/boardcontroller_node_process.cpp)
 add_library(command_node_process src/Control/command_node_process.cpp)
 
+add_executable(diagnostic_node src/Diagnostics/diagnostic_node.cpp)
+target_link_libraries(diagnostic_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} logger resourcemonitor)
+
 add_executable(network_transceiver_node src/Communication/network_transceiver_node.cpp)
 target_link_libraries(network_transceiver_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} logger udpmessage resourcemonitor)
 

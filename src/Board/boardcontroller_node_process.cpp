@@ -434,12 +434,14 @@ bool BoardControllerNodeProcess::checkTriggers(std::vector<std::vector<unsigned 
 				bool status = gather_message_info(SERIAL_Configure_Shield_ID, "transmit");
 				//printf("%d Sending shield config for shield: %d\n",get_boardid(),myshields.at(i).ID);
 				tx_buffers.push_back(std::vector<unsigned char>(buffer,buffer+sizeof(buffer)/sizeof(buffer[0])));
-				/*for(int i = 0; i < 16; i++)
+				/*
+				for(int i = 0; i < 16; i++)
 				{
 					printf("%0x ",buffer[i]);
 				}
 				printf("\n");
 				*/
+				
 			}
 			send_configure_shields.state = true;
 			if (send_configure_shields.retrying == false)
@@ -488,6 +490,13 @@ bool BoardControllerNodeProcess::checkTriggers(std::vector<std::vector<unsigned 
 						myports.at(i).Mode.at(7));
 
 				bool status = gather_message_info(SERIAL_Configure_DIO_Port_ID, "transmit");
+				/*
+				for(int i = 0; i < 16; i++)
+				{
+					printf("%0x ",buffer[i]);
+				}
+				printf("\n");
+				*/
 				tx_buffers.push_back(std::vector<unsigned char>(buffer,buffer+sizeof(buffer)/sizeof(buffer[0])));
 			}
 			send_configure_DIO_Ports.state = true;
@@ -1406,6 +1415,7 @@ std::string BoardControllerNodeProcess::map_mode_ToString(int mode)
 int BoardControllerNodeProcess::map_DeviceType_ToInt(std::string devicetype)
 {
 	if(devicetype == "ServoShield")						{	return SHIELDTYPE_SERVOSHIELD; 				}
+	else if(devicetype == "RelayShield")				{ 	return SHIELDTYPE_RELAYSHIELD;				}
 	else												{	return SHIELDTYPE_UNDEFINED;				}
 
 
