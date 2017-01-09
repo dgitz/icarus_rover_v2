@@ -242,3 +242,6 @@ target_link_libraries(test_boardcontroller_node_process ${catkin_LIBRARIES} ${Bo
 add_executable(topicremapper_node src/Communication/topicremapper_node.cpp)
 target_link_libraries(topicremapper_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} logger resourcemonitor)
 
+add_executable(cameracapture_node src/Vision/cameracapture_node.cpp)
+target_link_libraries(cameracapture_node ${OpenCV_LIBRARIES} ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor visionhelper)
+

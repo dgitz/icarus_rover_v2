@@ -1,8 +1,8 @@
 #include "cameracapture_node.h"
 //Start User Code: Firmware Definition
 #define CAMERACAPTURENODE_MAJOR_RELEASE 2
-#define CAMERACAPTURENODE_MINOR_RELEASE 2
-#define CAMERACAPTURENODE_BUILD_NUMBER 4
+#define CAMERACAPTURENODE_MINOR_RELEASE 3
+#define CAMERACAPTURENODE_BUILD_NUMBER 1
 //End User Code: Firmware Definition
 //Start User Code: Functions
 void Edge_Detect_Threshold_Callback(const std_msgs::UInt8::ConstPtr& msg)
@@ -81,7 +81,21 @@ bool capture_image(cv::VideoCapture cap)
     	cv_image.image = frame;
 		raw_image_pub.publish(cv_image.toImageMsg());
     //}
+	if(save_images == true)
+	{
+		time_t rawtime;
+		struct tm * timeinfo;
+		char datebuffer[80];
 
+		time (&rawtime);
+		timeinfo = localtime(&rawtime);
+
+		strftime(datebuffer,80,"%Y_%m_%d_%I_%M_%S",timeinfo);
+		char tempstr[256];
+		sprintf(tempstr,"%s/%s.png",storage_location.c_str(),datebuffer);
+		cv::imwrite(tempstr,frame);
+		//printf("Saving to: %s\n",tempstr);
+	}
     /*
     cv::Mat src_gray;
     cv::cvtColor(frame,src_gray,cv::COLOR_BGR2GRAY);
@@ -118,7 +132,7 @@ bool run_fastrate_code()
 	{
 		ros::Time time_a = ros::Time::now();
 		capture_image(capture);
-		printf("Capture time: %f\n",measure_time_diff(ros::Time::now(),time_a));
+		//printf("Capture time: %f\n",measure_time_diff(ros::Time::now(),time_a));
 	}
 	return true;
 }
@@ -365,6 +379,8 @@ bool initialize(ros::NodeHandle nh)
     firmware_pub =  nh.advertise<icarus_rover_v2::firmware>(firmware_topic,1000);
     //End Template Code: Initialization and Parameters
 	//Start User Code: Initialization and Parameters
+    save_images = false;
+    storage_location = "";
     std::string param_operation_mode = node_name +"/operation_mode";
     if(nh.getParam(param_operation_mode,operation_mode) == false)
     {
@@ -373,6 +389,14 @@ bool initialize(ros::NodeHandle nh)
     }
 	if(operation_mode == "capture")
 	{
+		std::string param_storage_location = node_name +"/storage_location";
+		if(nh.getParam(param_storage_location,storage_location) == false)
+		{
+		}
+		else
+		{
+			save_images = true;
+		}
 		int video_device;
 		std::string param_video_device = node_name +"/video_device";
 		if(nh.getParam(param_video_device,video_device) == false)

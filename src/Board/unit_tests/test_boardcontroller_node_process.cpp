@@ -124,7 +124,7 @@ TEST(DeviceInitialization,DeviceInitialization_2Boards_3Shields)
     processes.at(0).set_boardstate(BOARDMODE_BOOT);
     EXPECT_FALSE(processes.at(0).is_finished_initializing());
     EXPECT_TRUE(processes.at(0).get_nodestate() == BOARDMODE_BOOT);
-    for(int s = 0; s < board1.ShieldCount;s++)
+    for(int s = 0; s < (board1.ShieldCount);s++)
     {
 
     	icarus_rover_v2::device shield;
@@ -148,6 +148,13 @@ TEST(DeviceInitialization,DeviceInitialization_2Boards_3Shields)
 
     	EXPECT_TRUE(diagnostic.Level <= NOTICE);
     }
+    /*
+    {
+    	icarus_rover_v2::device shield;
+    	shield.DeviceName = "RelayShield1";
+    	shield.Device
+    }
+    */
     EXPECT_TRUE(processes.at(0).get_nodestate() == BOARDMODE_INITIALIZING);
     EXPECT_TRUE(check_if_initialized(processes));
     for(int s = 0; s < board1.ShieldCount;s++)

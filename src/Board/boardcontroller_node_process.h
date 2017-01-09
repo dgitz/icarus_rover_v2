@@ -9,13 +9,13 @@
 #include <fstream>
 #include <string>
 #include <boost/algorithm/string.hpp>
+#include <boost/lexical_cast.hpp>
 #include "icarus_rover_v2/diagnostic.h"
 #include "icarus_rover_v2/device.h"
 #include "icarus_rover_v2/command.h"
 #include "icarus_rover_v2/pin.h"
 #include "icarus_rover_v2/firmware.h"
 #include <std_msgs/UInt8.h>
-#include "logger.h"
 #include <serialmessage.h>
 #include <math.h>
 #define INITIAL_TIMEOUT_VALUE_MS 1000
@@ -64,6 +64,7 @@ struct state_ack
 struct message_info
 {
 	int id;
+	std::string name;
 	std::string protocol;
 	struct timeval last_time_received;
 	struct timeval last_time_transmitted;
@@ -81,8 +82,8 @@ public:
 	BoardControllerNodeProcess();
 	~BoardControllerNodeProcess();
 	BoardControllerNodeProcess(std::string loc, int v);
-	icarus_rover_v2::diagnostic init(icarus_rover_v2::diagnostic indiag,Logger *log,std::string hostname,std::string sensorspecpath,bool extrapolate);
-	icarus_rover_v2::diagnostic init(icarus_rover_v2::diagnostic indiag,Logger *log,std::string hostname,int v_id);
+	icarus_rover_v2::diagnostic init(icarus_rover_v2::diagnostic indiag,std::string hostname,std::string sensorspecpath,bool extrapolate);
+	icarus_rover_v2::diagnostic init(icarus_rover_v2::diagnostic indiag,std::string hostname,int v_id);
 	icarus_rover_v2::diagnostic update(double dt);
 	icarus_rover_v2::diagnostic new_devicemsg(icarus_rover_v2::device devicemsg);
 	icarus_rover_v2::diagnostic new_commandmsg(icarus_rover_v2::command commandmsg);
@@ -185,7 +186,6 @@ private:
 	std::vector<icarus_rover_v2::device> mysensors;
 	std::vector<Sensor> SensorSpecs;
 	bool manual_pin_definition;
-	Logger *mylogger;
 	std::vector<Port_Info> myports;
 	bool extrapolate_values;
 	long ms_timer;

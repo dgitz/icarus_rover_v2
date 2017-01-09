@@ -85,6 +85,16 @@ void Joystick_Callback(const sensor_msgs::Joy::ConstPtr& msg,const std::string &
                 newpin.Value = (int)out;
                 map.pub.publish(newpin);
             }
+            if(map.in.name == "button")
+            {
+            	icarus_rover_v2::pin newpin;
+            	newpin.BoardID = map.out.boardID;
+            	newpin.ShieldID = map.out.shieldID;
+            	newpin.Function = map.out.function;
+            	newpin.Number = map.out.pinnumber;
+            	newpin.Value = msg->buttons[map.in.index];
+            	map.pub.publish(newpin);
+            }
 		}
 	}
 
@@ -142,13 +152,20 @@ int parse_topicmapfile(TiXmlDocument doc)
                             {
                                 in.minvalue = std::atof(l_pMinValue->GetText());
                             }
+                            else
+                            {
+                            	in.minvalue = 0.0;
+                            }
                             
                             TiXmlElement *l_pMaxValue = l_pInput->FirstChildElement("MaxValue");
                             if(NULL != l_pMaxValue)
                             {
                                 in.maxvalue = std::atof(l_pMaxValue->GetText());
                             }
-                            else { return -1; }
+                            else
+                            {
+                            	in.maxvalue = 0.0;
+                            }
 						}
 						else
 						{
@@ -212,28 +229,28 @@ int parse_topicmapfile(TiXmlDocument doc)
 							{
 								out.maxvalue = std::atof(l_pMaxValue->GetText());
 							}
-                            else { return -1; }
+                            else { out.maxvalue = 0.0; }
                             
                             TiXmlElement *l_pMinValue = l_pOutput->FirstChildElement( "MinValue" );
 							if(NULL != l_pMinValue)
 							{
 								out.minvalue = std::atof(l_pMinValue->GetText());
 							}
-                            else { return -1; }
+                            else { out.minvalue = 0.0; }
                             
                             TiXmlElement *l_pNeutralValue = l_pOutput->FirstChildElement( "NeutralValue" );
 							if(NULL != l_pNeutralValue)
 							{
 								out.neutralvalue = std::atof(l_pNeutralValue->GetText());
 							}
-                            else { return -1; }
+                            else { out.neutralvalue = 0.0; }
                             
                             TiXmlElement *l_pDeadband = l_pOutput->FirstChildElement( "Deadband" );
 							if(NULL != l_pDeadband)
 							{
 								out.deadband = std::atof(l_pDeadband->GetText());
 							}
-                            else { return -1; }
+                            else { out.deadband = 0.0; }
 						}
 						else
 						{

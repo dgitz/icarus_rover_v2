@@ -57,7 +57,7 @@ void process_message_thread(UsbDevice* dev)
 						char tempstr[255];
 						sprintf(tempstr,"Creating Board Process for board id: %d usb/serial device index: %d",rx_buffer[4],dev->index);
 						logger->log_info(tempstr);
-						diagnostic_status = newprocess.init(diagnostic_status,logger,std::string(hostname),dev->index);
+						diagnostic_status = newprocess.init(diagnostic_status,std::string(hostname),dev->index);
 						boardprocesses.push_back(newprocess);
 						dev->boardcontrollernode_id = boardprocesses.size()-1;
 						
@@ -132,35 +132,19 @@ void process_message_thread(UsbDevice* dev)
 
 					if(packet_type == SERIAL_Mode_ID)
 					{
-						diagnostic_status = boardprocesses.at(dev->boardcontrollernode_id).new_serialmessage_Get_Mode(packet_type,packet);
-                        if(diagnostic_status.Level > NOTICE)
-                        {
-                            diagnostic_pub.publish(diagnostic_status);
-                        }
+						boardprocesses.at(dev->boardcontrollernode_id).new_serialmessage_Get_Mode(packet_type,packet);
 					}
 					else if(packet_type == SERIAL_UserMessage_ID)
 					{
-						diagnostic_status = boardprocesses.at(dev->boardcontrollernode_id).new_serialmessage_UserMessage(packet_type,packet);
-                        if(diagnostic_status.Level > NOTICE)
-                        {
-                            diagnostic_pub.publish(diagnostic_status);
-                        }
+						boardprocesses.at(dev->boardcontrollernode_id).new_serialmessage_UserMessage(packet_type,packet);
 					}
                     else if(packet_type == SERIAL_Diagnostic_ID)
                     {
-                        diagnostic_status = boardprocesses.at(dev->boardcontrollernode_id).new_serialmessage_Diagnostic(packet_type,packet);
-                        if(diagnostic_status.Level > NOTICE)
-                        {
-                            diagnostic_pub.publish(diagnostic_status);
-                        }
+                        boardprocesses.at(dev->boardcontrollernode_id).new_serialmessage_Diagnostic(packet_type,packet);
                     }
                     else if(packet_type == SERIAL_FirmwareVersion_ID)
                     {
-                        diagnostic_status = boardprocesses.at(dev->boardcontrollernode_id).new_serialmessage_FirmwareVersion(packet_type,packet);
-                        if(diagnostic_status.Level > NOTICE)
-                        {
-                            diagnostic_pub.publish(diagnostic_status);
-                        }
+                        boardprocesses.at(dev->boardcontrollernode_id).new_serialmessage_FirmwareVersion(packet_type,packet);
                     }
                     else
                     {
@@ -556,6 +540,16 @@ bool run_slowrate_code()
 		logger->log_info(tempstr);
 	}
 	*/
+	for(int i = 0; i < boardprocesses.size(); i++)
+	{
+		char tempstr[512];
+		sprintf(tempstr,"Board: %s:%d Node State: %s",
+				boardprocesses.at(i).get_boardname().c_str(),
+				boardprocesses.at(i).get_boardid(),
+				boardprocesses.at(i).map_mode_ToString(boardprocesses.at(i).get_nodestate()).c_str(),
+				boardprocesses.at(i).map_mode_ToString(boardprocesses.at(i).get_boardstate()).c_str());
+		logger->log_info(tempstr);
+	}
 	return true;
 }
 
@@ -583,9 +577,10 @@ bool run_veryslowrate_code()
 		logger->log_info(tempstr);
 		for(int j = 0; j < allmessage_info.size(); j++)
 		{
-			char tempstr2[255];
+			char tempstr2[512];
 			message_info message = allmessage_info.at(j);
-			sprintf(tempstr2,"Message: AB%0X Received Counter: %ld Received Rate: %.02f (Hz) Transmitted Counter: %ld Transmitted Rate: %f (Hz)",
+			sprintf(tempstr2,"Message: %s (AB%0X) Received Counter: %ld Received Rate: %.02f (Hz) Transmitted Counter: %ld Transmitted Rate: %f (Hz)",
+					message.name.c_str(),
 					message.id,
 					message.received_counter,
 					message.received_rate,
@@ -646,21 +641,24 @@ void DigitalOutput_Callback(const icarus_rover_v2::pin::ConstPtr& msg)
 		bool found = false;
 		for(int i = 0; i < boardprocesses.size();i++)
 		{
-			if(boardprocesses.at(i).get_boardid() == pinmsg.BoardID)
+			if(boardprocesses.at(i).get_boardstate() == BOARDMODE_RUNNING)
 			{
-				found = true;
-				diagnostic_status = boardprocesses.at(i).new_pinmsg(pinmsg);
-				char tempstr[255];
-				sprintf(tempstr,"Pin Msg: Board ID: %d Shield ID: %d Function: %s Number: %d Value: %d",
-						pinmsg.BoardID,
-						pinmsg.ShieldID,
-						pinmsg.Function.c_str(),
-						pinmsg.Number,
-						pinmsg.Value);
-				//logger->log_debug(tempstr);
-				if(diagnostic_status.Level > NOTICE)
+				if(boardprocesses.at(i).get_boardid() == pinmsg.BoardID)
 				{
-					diagnostic_pub.publish(diagnostic_status);
+					found = true;
+					diagnostic_status = boardprocesses.at(i).new_pinmsg(pinmsg);
+					char tempstr[255];
+					sprintf(tempstr,"Pin Msg: Board ID: %d Shield ID: %d Function: %s Number: %d Value: %d",
+							pinmsg.BoardID,
+							pinmsg.ShieldID,
+							pinmsg.Function.c_str(),
+							pinmsg.Number,
+							pinmsg.Value);
+					//logger->log_debug(tempstr);
+					if(diagnostic_status.Level > NOTICE)
+					{
+						diagnostic_pub.publish(diagnostic_status);
+					}
 				}
 			}
 		}
@@ -669,7 +667,7 @@ void DigitalOutput_Callback(const icarus_rover_v2::pin::ConstPtr& msg)
 			char tempstr[255];
 			sprintf(tempstr,"Pin Msg: Board ID: %d Shield ID: %d Number: %d Not available",
 					pinmsg.BoardID,pinmsg.ShieldID,pinmsg.Number);
-			logger->log_fatal(tempstr);
+			logger->log_warn(tempstr);
 		}
 	}
 	/*
@@ -793,7 +791,10 @@ void Command_Callback(const icarus_rover_v2::command::ConstPtr& msg)
 	newcommand.Description = msg->Description;
 	for(int i = 0; i < boardprocesses.size();i++)
 	{
-		diagnostic_status = boardprocesses.at(i).new_commandmsg(newcommand);
+		if(boardprocesses.at(i).get_boardstate() == BOARDMODE_RUNNING)
+		{
+			diagnostic_status = boardprocesses.at(i).new_commandmsg(newcommand);
+		}
 	}
 	//diagnostic_status = process->new_commandmsg(
 	//		msg->Command,msg->Option1,msg->Option2,msg->Option3,msg->CommandText,msg->CommandText);

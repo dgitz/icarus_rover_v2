@@ -54,8 +54,8 @@ bool BoardControllerNodeProcess::initialize_Ports()
 	}
 	*/
 }
-icarus_rover_v2::diagnostic BoardControllerNodeProcess::init(icarus_rover_v2::diagnostic indiag,
-		Logger *log,std::string hostname,std::string sensorspecpath,bool extrapolate)
+icarus_rover_v2::diagnostic BoardControllerNodeProcess::init(icarus_rover_v2::diagnostic indiag
+		,std::string hostname,std::string sensorspecpath,bool extrapolate)
 {
 	initialize_stateack_messages();
 	initialize_message_info();
@@ -66,7 +66,6 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::init(icarus_rover_v2::di
 	prev_node_state = BOARDMODE_BOOT;
 	myhostname = hostname;
 	diagnostic = indiag;
-	mylogger = log;
 	mydevice.DeviceName = hostname;
 	timeout_value_ms = INITIAL_TIMEOUT_VALUE_MS;
 	sensor_spec_path = sensorspecpath;
@@ -74,7 +73,7 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::init(icarus_rover_v2::di
 	return diagnostic;
 }
 icarus_rover_v2::diagnostic BoardControllerNodeProcess::init(icarus_rover_v2::diagnostic indiag,
-		Logger *log,std::string hostname,int temp_id)
+		std::string hostname,int temp_id)
 {
 	UsbDevice_id = temp_id;
 	initialize_stateack_messages();
@@ -86,7 +85,6 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::init(icarus_rover_v2::di
 	prev_node_state = BOARDMODE_BOOT;
 	myhostname = hostname;
 	diagnostic = indiag;
-	mylogger = log;
 	mydevice.DeviceName = hostname;
 	timeout_value_ms = INITIAL_TIMEOUT_VALUE_MS;
 	sensor_spec_path = "";
@@ -104,11 +102,7 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::update(double dt)
 	if((all_shield_info_received == true) &&
 			(all_device_info_received == false))//Other checks?
 	{
-		char tempstr[255];
-		sprintf(tempstr,"Board: %s:%d received all info and is now initializing.",
-				my_boardname.c_str(),
-				get_boardid());
-		mylogger->log_info(tempstr);
+
 		node_state = BOARDMODE_INITIALIZING;
 		all_device_info_received = true;
 	}
@@ -273,8 +267,8 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_pinmsg(icarus_rover_
 							pinmsg.Number,
 							map_PinFunction_ToString(myports.at(s).Mode.at(pinnumber)).c_str(),
 							pinmsg.Value);
-					mylogger->log_debug(tempstr);
 					diagnostic.Description = tempstr;
+
 				}
 				else
 				{
@@ -286,7 +280,6 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_pinmsg(icarus_rover_
 							pinmsg.ShieldID,pinmsg.Number,map_PinFunction_ToString(myports.at(s).Mode.at(pinnumber)).c_str(),
 							pinmsg.Function.c_str());
 					diagnostic.Description = tempstr;
-					mylogger->log_fatal(tempstr);
 				}
 				found = true;
 			}
@@ -300,7 +293,6 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_pinmsg(icarus_rover_
 			sprintf(tempstr,"Pin Message for Shield: %d and Pin Number: %d Not Supported",
 					pinmsg.ShieldID,portID);
 			diagnostic.Description = tempstr;
-			mylogger->log_fatal(tempstr);
 		}
 	}
 	else
@@ -311,7 +303,6 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_pinmsg(icarus_rover_
 		char tempstr[512];
 		sprintf(tempstr,"Device is not RUNNING Yet.");
 		diagnostic.Description = tempstr;
-		mylogger->log_warn(tempstr);
 	}
 	return diagnostic;
 }
@@ -667,7 +658,6 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_commandmsg(icarus_ro
 		{
 			char tempstr[255];
 			sprintf(tempstr,"Got: Diagnostic ID w/ Option: %d but not implemented yet.",newcommand.Option1);
-			mylogger->log_warn(tempstr);
 		}
 	}
 	else if(newcommand.Command == ARM_COMMAND_ID)
@@ -709,7 +699,6 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_serialmessage_Firmwa
 	}
 	else
 	{
-		mylogger->log_debug("Got Firmware from ArduinoBoard.");
         unsigned char major_version,minor_version,build_number;
         serialmessagehandler->decode_FirmwareVersionSerial(inpacket,&major_version,&minor_version,&build_number);
         board_firmware.Generic_Node_Name = node_firmware.Generic_Node_Name;
@@ -736,7 +725,6 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_serialmessage_Diagno
 		}
 		else
 		{
-			mylogger->log_debug("Got Diagnostic from GPIO Board.");
 			unsigned char gpio_board_system,gpio_board_subsystem,gpio_board_component,gpio_board_diagtype,gpio_board_level,gpio_board_message;
 			serialmessagehandler->decode_DiagnosticSerial(inpacket,&gpio_board_system,&gpio_board_subsystem,&gpio_board_component,&gpio_board_diagtype,&gpio_board_level,&gpio_board_message);
 			if(gpio_board_level > INFO)
@@ -882,12 +870,18 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_serialmessage_Get_Mo
 			unsigned char value1,value2,value3;
 			serialmessagehandler->decode_ModeSerial(inpacket,&value1,&value2,&value3);
 			board_state = value3;
+			/*
+			printf("Board Mode: %s\n",map_mode_ToString(board_state).c_str());
+			printf("Name: %s\n",my_boardname.c_str());
+			printf("ID: %d\n",get_boardid());
+			printf("Node Mode: %s\n",map_mode_ToString(node_state).c_str());
 			sprintf(tempstr,"Got Board Mode: %s from Board: %s:%d.  Node Mode is: %s",
 					map_mode_ToString(board_state).c_str(),
 					my_boardname.c_str(),
 					get_boardid(),
 					map_mode_ToString(node_state).c_str());
-			mylogger->log_debug(tempstr);
+			printf("%s\n",tempstr);
+			*/
 			diagnostic.Level = NOERROR;
 			diagnostic.Description = "Board Mode Decoded successfully.";
 			diagnostic.Diagnostic_Message = NOERROR;
@@ -988,7 +982,6 @@ bool BoardControllerNodeProcess::configure_port(int ShieldID,std::vector<icarus_
 					myports.at(i).DefaultValue.at(j),
 					myports.at(i).ConnectingDevice.at(j).c_str(),
 					myports.at(i).Available.at(j));
-			mylogger->log_info(tempstr);
 		}
 	}
 	return status;
@@ -1026,7 +1019,6 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_devicemsg(icarus_rov
 			bool add_me = true;
 			for(int i = 0; i < myshields.size();i++)
 			{
-				printf("3\n");
 				if(myshields.at(i).ID == newdevice.ID)
 				{
 
@@ -1042,7 +1034,6 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_devicemsg(icarus_rov
 						(int)newdevice.ID,
 						my_boardname.c_str(),
 						(int)get_boardid());
-				mylogger->log_info(tempstr);
 				bool status =  configure_port(newdevice.ID,newdevice.pins);
 				if(status == false)
 				{
@@ -1052,7 +1043,6 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_devicemsg(icarus_rov
 					char tempstr[1024];
 					sprintf(tempstr,"Unable to configure Port/Pin Combination for: %s:%d",newdevice.DeviceName.c_str(),(int)newdevice.ID);
 					diagnostic.Description = tempstr;
-					mylogger->log_fatal(tempstr);
 					return diagnostic;
 				}
 
@@ -1065,7 +1055,6 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_devicemsg(icarus_rov
 	{
 		char tempstr[255];
 		sprintf(tempstr,"Device: %s not currently supported.",newdevice.DeviceName.c_str());
-		mylogger->log_warn(tempstr);
 	}
 
 
@@ -1605,78 +1594,91 @@ void BoardControllerNodeProcess::initialize_message_info()
 	{
 		message_info newmessage;
 		newmessage.id = SERIAL_Diagnostic_ID;
+		newmessage.name = "Diagnostic";
 		messages.push_back(newmessage);
 	}
 
 	{
 		message_info newmessage;
 		newmessage.id = SERIAL_TestMessageCounter_ID;
+		newmessage.name = "Test Message Counter";
 		messages.push_back(newmessage);
 	}
 
 	{
 		message_info newmessage;
 		newmessage.id = SERIAL_TestMessageCommand_ID;
+		newmessage.name = "Test Message Command";
 		messages.push_back(newmessage);
 	}
 
 	{
 		message_info newmessage;
 		newmessage.id = SERIAL_Configure_DIO_Port_ID;
+		newmessage.name = "Configure DIO Port";
 		messages.push_back(newmessage);
 	}
 
 	{
 		message_info newmessage;
 		newmessage.id = SERIAL_Mode_ID;
+		newmessage.name = "Mode";
 		messages.push_back(newmessage);
 	}
 
 	{
 		message_info newmessage;
 		newmessage.id = SERIAL_Set_DIO_Port_ID;
+		newmessage.name = "Set DIO Port";
 		messages.push_back(newmessage);
 	}
 
 	{
 		message_info newmessage;
 		newmessage.id = SERIAL_Get_ANA_Port_ID;
+		newmessage.name = "Get ANA Port";
 		messages.push_back(newmessage);
 	}
 
 	{
 		message_info newmessage;
 		newmessage.id = SERIAL_Get_DIO_Port_ID;
+		newmessage.name = "Get DIO Port";
 		messages.push_back(newmessage);
 	}
 
 	{
 		message_info newmessage;
 		newmessage.id = SERIAL_FirmwareVersion_ID;
+		newmessage.name = "Firmware";
 		messages.push_back(newmessage);
 	}
 
 	{
 		message_info newmessage;
 		newmessage.id = SERIAL_Arm_Command_ID;
+		newmessage.name = "Arm Command";
 		messages.push_back(newmessage);
 	}
 
 	{
 		message_info newmessage;
 		newmessage.id = SERIAL_Arm_Status_ID;
+		newmessage.name = "Arm Status";
 		messages.push_back(newmessage);
 	}
 
 	{
 		message_info newmessage;
 		newmessage.id = SERIAL_Set_DIO_Port_DefaultValue_ID;
+		newmessage.name = "Set DIO Port Default Value";
 		messages.push_back(newmessage);
 	}
 
 	{
 		message_info newmessage;
 		newmessage.id = SERIAL_Configure_Shield_ID;
+		newmessage.name = "Configure Shield";
 		messages.push_back(newmessage);
 	}
 
