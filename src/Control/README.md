@@ -30,3 +30,7 @@ Usage: This node should be run for each ControlModule.
 Purpose: 
 1. Controls the GPIO pins that are hooked directly to the ControlModule.
 2. Either drives Arm Pin or reads Arm Pin depending on Configuration.
+
+E. mavlink_node
+Purpose: Connects to APM to drive PWM Outputs and Read Sensor Data
+

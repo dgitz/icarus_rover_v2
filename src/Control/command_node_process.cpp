@@ -67,14 +67,24 @@ icarus_rover_v2::diagnostic CommandNodeProcess::new_readytoarmmsg(std::string to
     if((ReadyToArmList.size() > 0) and (ready_to_arm_check == true))
     {
     	readytoarm = true;
+        diagnostic.Diagnostic_Type = REMOTE_CONTROL;
+        diagnostic.Level = INFO;
+        diagnostic.Diagnostic_Message = NOERROR;
+        char tempstr[512];
+        sprintf(tempstr,"Topic: %s Reports is Ready To Arm",topic.c_str());
+        diagnostic.Description = std::string(tempstr);
     }
     else
     {
     	readytoarm = false;
+        diagnostic.Diagnostic_Type = REMOTE_CONTROL;
+        diagnostic.Level = INFO;
+        diagnostic.Diagnostic_Message = DIAGNOSTIC_FAILED;
+        char tempstr[512];
+        sprintf(tempstr,"Topic: %s Reports is Unable To Arm",topic.c_str());
+        diagnostic.Description = std::string(tempstr);
     }
-    diagnostic.Level = INFO;
-	diagnostic.Diagnostic_Message = NOERROR;
-	diagnostic.Description = "Processed ready_to_arm topic.";
+   
     return diagnostic;
 }
 icarus_rover_v2::diagnostic CommandNodeProcess::new_user_armcommandmsg(uint8_t value)

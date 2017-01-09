@@ -3,6 +3,20 @@
 Logger::Logger()
 {
 }
+Logger::Logger(std::string level,std::string modpath,std::string name)
+{
+	verbosity = get_verbosity_level(level);
+	line_counter = 0;
+	name.erase(name.begin());
+	replace(name.begin(),name.end(),'/','_');
+	char buffer[100];
+	sprintf(buffer,"%s.out",name.c_str());
+
+	sprintf(file_path,"/home/robot/logs/output/%s/%s",modpath.c_str(),buffer);
+	ofstream log_file;
+	log_file.open(file_path); //Overwrite file.
+	log_file.close();
+}
 Logger::Logger(std::string level,std::string name)
 {
     verbosity = get_verbosity_level(level);

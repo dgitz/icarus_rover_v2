@@ -113,6 +113,8 @@ int edge_detect_threshold;
 int image_width;
 int image_height;
 std::vector<imageresample_map> resample_maps;
+bool save_images;
+std::string storage_location;
 //CvCapture *capture;
 //End User Code: Define Global Variables
 #endif

@@ -10,12 +10,21 @@ void process_message_thread()
 {
 	while(kill_node == 0)
 	{
+		//tcflush(device_fid, TCIFLUSH);
 		unsigned char rx_buffer[64];
 		
 		memset(rx_buffer, 0, sizeof(rx_buffer));
 		//memset(packet,0,sizeof(packet));
 		//ros::Time start_time = ros::Time::now();
 		int rx_length = read(device_fid, rx_buffer, sizeof(rx_buffer));
+		//if(rx_length > 0) {	printf("Read %d bytes\n",rx_length); }
+		for(int i = 0; i < rx_length;i++)
+		{
+			printf(" i: %d b: %d ",i,rx_buffer[i]);
+		}
+		if(rx_length > 0) {
+			printf("\n");
+		}
 		if(rx_length > 0)
 		{
 			last_message_received_time = ros::Time::now();
@@ -63,6 +72,8 @@ void process_message_thread()
 			}
 		}
 	}
+	logger->log_info("Ending process message thread.");
+
 }
 void ArmedState_Callback(const std_msgs::UInt8::ConstPtr& msg)
 {
@@ -228,8 +239,8 @@ bool run_fastrate_code()
 	}
 	//logger->log_debug("Finished message output triggers.");
 
-	if((process->get_boardstate() == GPIO_MODE_RUNNING) &&
-	   (process->get_nodestate() == GPIO_MODE_RUNNING))
+	if((process->get_boardstate() == BOARDMODE_RUNNING) &&
+	   (process->get_nodestate() == BOARDMODE_RUNNING))
 	{
 		ready_to_arm = true;
 		std::vector<icarus_rover_v2::device> boards = process->get_boards();
@@ -336,8 +347,8 @@ bool run_slowrate_code()
 		sprintf(tempstr,"Board Mode: %s Node Mode: %s",
 			process->map_mode_ToString(process->get_boardstate()).c_str(),
 			process->map_mode_ToString(process->get_nodestate()).c_str());
-		if((process->get_boardstate() == GPIO_MODE_RUNNING) &&
-			   (process->get_nodestate() == GPIO_MODE_RUNNING))
+		if((process->get_boardstate() == BOARDMODE_RUNNING) &&
+			   (process->get_nodestate() == BOARDMODE_RUNNING))
 		{
 			logger->log_info(tempstr);
 			diag.Level = INFO;
@@ -434,7 +445,13 @@ void PwmOutput_Callback(const icarus_rover_v2::pin::ConstPtr& msg)
 	pinmsg.Value = msg->Value;
 	if(pinmsg.Function == "PWMOutput")
 	{
-
+		char tempstr[255];
+		sprintf(tempstr,"Port: %s Function: %d Number: %d Value: %d",
+				pinmsg.Port.c_str(),
+				pinmsg.Function.c_str(),
+				pinmsg.Number,
+				pinmsg.Value);
+		logger->log_debug(tempstr);
 		process->new_pinmsg(pinmsg);
 	}
 }
@@ -474,6 +491,7 @@ void Command_Callback(const icarus_rover_v2::command::ConstPtr& msg)
 	{
 		diagnostic_pub.publish(diagnostic_status);
 	}
+	/*
 	if (msg->Command ==  DIAGNOSTIC_ID)
 	{
 		if(msg->Option1 == LEVEL1)
@@ -493,9 +511,12 @@ void Command_Callback(const icarus_rover_v2::command::ConstPtr& msg)
 		}
 		else
 		{
-			logger->log_error("Shouldn't get here!!!");
+			char tempstr[255];
+			sprintf(tempstr,"Got: Diagnostic ID w/ Option: %d but not implemented yet.",msg->Option1);
+			logger->log_warn(tempstr);
 		}
 	}
+	*/
 }
 //End User Code: Functions
 
@@ -570,11 +591,13 @@ int main(int argc, char **argv)
     }
     close(device_fid);
 
+
+    kill_node = true;
+    sleep(2.0);
 	#if(USE_UART == 1)
 
-    	processmessage_thread.join();
+    processmessage_thread.join();
 	#endif
-    kill_node = true;
     logger->log_notice("Node Finished Safely.");
     return 0;
 }
@@ -644,7 +667,6 @@ bool initialize(ros::NodeHandle nh)
 
     //Start User Code: Initialization and Parameters
     ready_to_arm  = false;
-
     std::string sensor_spec_path;
     std::string armed_state_topic = "/armed_state";
     armed_state_sub = nh.subscribe<std_msgs::UInt8>(armed_state_topic,1000,ArmedState_Callback);
@@ -687,7 +709,14 @@ bool initialize(ros::NodeHandle nh)
 	checking_gpio_comm = false;
 	message_receive_counter = 0;
 	#if(USE_UART == 1)
-		device_fid = open("/dev/ttyAMA0", O_RDWR | O_NOCTTY /*| O_NDELAY*/);
+		std::string serial_device;
+		std::string param_serial_device = node_name +"/serial_device";
+		if(nh.getParam(param_serial_device,serial_device) == false)
+		{
+			logger->log_error("Missing Parameter: serial_device. Exiting");
+			return false;
+		}
+		device_fid = open(serial_device.c_str(), O_RDWR | O_NOCTTY /*| O_NDELAY*/);
 		if(device_fid < 0)
 		{
 			logger->log_fatal("Unable to setup UART.  Exiting.");
@@ -705,6 +734,18 @@ bool initialize(ros::NodeHandle nh)
 
 	std::string ready_to_arm_topic = node_name + "/ready_to_arm";
 	ready_to_arm_pub = nh.advertise<std_msgs::Bool>(ready_to_arm_topic,1000);
+	std::string param_manual_pin_definition = node_name +"/manual_pin_definition";
+	bool manual_pin_definition;
+	if(nh.getParam(param_manual_pin_definition,manual_pin_definition) == false)
+	{
+		logger->log_warn("Missing Parameter: manual_pin_definition.");
+		manual_pin_definition = false;
+	}
+	if(manual_pin_definition == true)
+	{
+		logger->log_warn("Using Manual Pin Definition option.");
+	}
+	process->set_manualpin_definition(manual_pin_definition);
     //Finish User Code: Initialization and Parameters
 
     //Start Template Code: Final Initialization.

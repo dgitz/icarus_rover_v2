@@ -13,7 +13,7 @@ bool check_remoteHeartbeats()
 		double last_beat_time_sec = remote_devices.at(i).current_beatepoch_sec + remote_devices.at(i).offset_sec;
 		double now_sec = ros::Time::now().sec + ros::Time::now().nsec/1000000000.0;
 		double time_since_last = now_sec - last_beat_time_sec;
-		if(time_since_last > 0.5)
+		if(time_since_last > 1.0)
 		{
 			heartbeat_pass = false;
 			char tempstr[255];
@@ -30,7 +30,13 @@ bool check_remoteHeartbeats()
 	}
 	if(remote_devices.size() == 0)
 	{
+		diagnostic_status.Diagnostic_Type = COMMUNICATIONS;
+		diagnostic_status.Level = WARN;
+		diagnostic_status.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
+		diagnostic_status.Description = "No Remote UI Devices Found Yet.";
+		diagnostic_pub.publish(diagnostic_status);
 		heartbeat_pass = false;
+
 	}
 	return heartbeat_pass;
 }
@@ -214,6 +220,7 @@ void process_udp_receive()
 		uint64_t t,t2;
 		switch (id)
 		{
+			printf("Got ID: %d\n",id);
 			case UDPMessageHandler::UDP_Arm_Command_ID:
 				success = udpmessagehandler->decode_Arm_CommandUDP(items,&armcommand);
 				if(success == 1)

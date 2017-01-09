@@ -120,6 +120,5 @@ int packet_length;
 ros::Subscriber armed_state_sub;
 bool ready_to_arm;
 ros::Publisher ready_to_arm_pub;
-
 //End User Code: Define Global Variables
 #endif

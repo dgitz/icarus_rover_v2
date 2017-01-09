@@ -115,10 +115,47 @@ bool run_veryslowrate_code()
 void publish_deviceinfo()
 {
 	device_pub.publish(myDevice);
+
 	for(int i = 0; i < otherDevices.size();i++)
 	{
+		int temp_counter = 0;
 		icarus_rover_v2::device other = otherDevices.at(i);
-		if(other.DeviceParent == myDevice.DeviceName)
+		bool is_local_parent = false;
+		bool search = true;
+		std::string local_parent = other.DeviceParent;
+		while((search == true) && (temp_counter < 25)) //Don't search more than 25 levels
+		{
+			temp_counter++;
+			if(temp_counter == 25)
+			{
+				logger->log_error("Searched more than 25 levels for Device parent, this is a problem!");
+			}
+			if((local_parent == "") || (local_parent == "None"))
+			{
+				search = false;
+			}
+			else if(local_parent == myDevice.DeviceName)
+			{
+				is_local_parent = true;
+			}
+			if(myDevice.DeviceName == local_parent)
+			{
+				local_parent = myDevice.DeviceParent;
+			}
+			else
+			{
+				for(int j = 0; j < otherDevices.size();j++)
+				{
+
+					if(otherDevices.at(j).DeviceName == local_parent)
+					{
+						local_parent = otherDevices.at(j).DeviceParent;
+						break;
+					}
+				}
+			}
+		}
+		if(is_local_parent == true)
 		{
 			device_pub.publish(other);
 		}
@@ -440,6 +477,12 @@ bool parse_devicefile(TiXmlDocument doc)
 	                newDevice.DeviceName = l_pDeviceName->GetText();
 	            }
 
+	            TiXmlElement *l_pID = l_pDevice->FirstChildElement( "ID" );
+	            if ( NULL != l_pID )
+	            {
+	            	newDevice.ID = atoi(l_pID->GetText());
+	            }
+
 	            TiXmlElement *l_pDeviceType = l_pDevice->FirstChildElement( "DeviceType" );
 	            if ( NULL != l_pDeviceType )
 	            {
@@ -464,6 +507,12 @@ bool parse_devicefile(TiXmlDocument doc)
 					newDevice.SensorCount = atoi(l_pSensorCount->GetText());
 				}
 
+				TiXmlElement *l_pShieldCount = l_pDevice->FirstChildElement( "ShieldCount" );
+				if ( NULL != l_pShieldCount )
+				{
+					newDevice.ShieldCount = atoi(l_pShieldCount->GetText());
+				}
+
 				TiXmlElement *l_pCapability = l_pDevice->FirstChildElement("Capability");
 				std::vector<std::string> capabilities;
 				while( l_pCapability )
@@ -477,10 +526,11 @@ bool parse_devicefile(TiXmlDocument doc)
 				while( l_pPin )
 				{
 					icarus_rover_v2::pin newpin;
-					TiXmlElement *l_pPinPort = l_pPin->FirstChildElement( "Port" );
-					if ( NULL != l_pPinPort )
+					newpin.ShieldID = newDevice.ID;
+					TiXmlElement *l_pPinPortID = l_pPin->FirstChildElement( "PortID" );
+					if ( NULL != l_pPinPortID )
 					{
-						newpin.Port = l_pPinPort->GetText();
+						newpin.PortID = atoi(l_pPinPortID->GetText());
 					}
 					TiXmlElement *l_pPinNumber = l_pPin->FirstChildElement( "Number" );
 					if ( NULL != l_pPinNumber )

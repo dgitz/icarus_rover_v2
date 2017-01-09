@@ -117,6 +117,7 @@ public:
 	std::string map_mode_ToString(int mode);
 	uint8_t get_armedstate() { return armed_state; }
 	uint8_t get_armedcommand() { return armed_command; }
+	void set_manualpin_definition(bool v) { manual_pin_definition = v; }
 protected:
 	state_ack send_configure_DIO_PortA;
 	state_ack send_configure_DIO_PortB;
@@ -149,6 +150,7 @@ private:
 	std::vector<icarus_rover_v2::device> myboards;
 	std::vector<icarus_rover_v2::device> mysensors;
 	std::vector<Sensor> SensorSpecs;
+	bool manual_pin_definition;
 	Logger *mylogger;
 	Port_Info DIO_PortA;
 	Port_Info DIO_PortB;

@@ -1,0 +1,8 @@
+<!--xml-->
+<launch>
+    <node name="$(env ROS_HOSTNAME)_master_node" pkg="icarus_rover_v2" type="master_node"  output="screen" clear_params="true">
+        <param name="loop_rate"             value="500"/>
+	    <param name="verbosity_level"       value="DEBUG"/>
+        <param name="require_pps_to_start"  value="false"/>    
+    </node>
+</launch>
