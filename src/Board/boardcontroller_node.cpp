@@ -8,6 +8,7 @@
 
 void process_message_thread(UsbDevice* dev)
 {
+    icarus_rover_v2::diagnostic process_diagnostic = diagnostic_status;
 	bool run_thread = true;
 	while((kill_node == 0) && (run_thread == true))
 	{
@@ -57,7 +58,7 @@ void process_message_thread(UsbDevice* dev)
 						char tempstr[255];
 						sprintf(tempstr,"Creating Board Process for board id: %d usb/serial device index: %d",rx_buffer[4],dev->index);
 						logger->log_info(tempstr);
-						diagnostic_status = newprocess.init(diagnostic_status,std::string(hostname),dev->index);
+						process_diagnostic = newprocess.init(process_diagnostic,std::string(hostname),dev->index);
 						boardprocesses.push_back(newprocess);
 						dev->boardcontrollernode_id = boardprocesses.size()-1;
 						
@@ -132,19 +133,35 @@ void process_message_thread(UsbDevice* dev)
 
 					if(packet_type == SERIAL_Mode_ID)
 					{
-						boardprocesses.at(dev->boardcontrollernode_id).new_serialmessage_Get_Mode(packet_type,packet);
+						process_diagnostic = boardprocesses.at(dev->boardcontrollernode_id).new_serialmessage_Get_Mode(packet_type,packet);
+                        if(process_diagnostic.Level > INFO)
+                        {
+                            diagnostic_pub.publish(process_diagnostic);
+                        }
 					}
 					else if(packet_type == SERIAL_UserMessage_ID)
 					{
-						boardprocesses.at(dev->boardcontrollernode_id).new_serialmessage_UserMessage(packet_type,packet);
+						process_diagnostic = boardprocesses.at(dev->boardcontrollernode_id).new_serialmessage_UserMessage(packet_type,packet);
+                        if(process_diagnostic.Level > INFO)
+                        {
+                            diagnostic_pub.publish(process_diagnostic);
+                        }
 					}
                     else if(packet_type == SERIAL_Diagnostic_ID)
                     {
-                        boardprocesses.at(dev->boardcontrollernode_id).new_serialmessage_Diagnostic(packet_type,packet);
+                        process_diagnostic = boardprocesses.at(dev->boardcontrollernode_id).new_serialmessage_Diagnostic(packet_type,packet);
+                        if(process_diagnostic.Level > INFO)
+                        {
+                            diagnostic_pub.publish(process_diagnostic);
+                        }
                     }
                     else if(packet_type == SERIAL_FirmwareVersion_ID)
                     {
-                        boardprocesses.at(dev->boardcontrollernode_id).new_serialmessage_FirmwareVersion(packet_type,packet);
+                        process_diagnostic = boardprocesses.at(dev->boardcontrollernode_id).new_serialmessage_FirmwareVersion(packet_type,packet);
+                        if(process_diagnostic.Level > INFO)
+                        {
+                            diagnostic_pub.publish(process_diagnostic);
+                        }
                     }
                     else
                     {
