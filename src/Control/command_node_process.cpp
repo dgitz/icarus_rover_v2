@@ -78,7 +78,7 @@ icarus_rover_v2::diagnostic CommandNodeProcess::new_readytoarmmsg(std::string to
     {
     	readytoarm = false;
         diagnostic.Diagnostic_Type = REMOTE_CONTROL;
-        diagnostic.Level = INFO;
+        diagnostic.Level = WARN;
         diagnostic.Diagnostic_Message = DIAGNOSTIC_FAILED;
         char tempstr[512];
         sprintf(tempstr,"Topic: %s Reports is Unable To Arm",topic.c_str());

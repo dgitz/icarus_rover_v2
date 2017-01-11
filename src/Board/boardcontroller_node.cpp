@@ -204,6 +204,7 @@ bool run_fastrate_code()
 				//		UsbDevices.at(boardprocesses.at(i).get_usbdevice_id()).device_fid,boardprocesses.at(i).get_boardid());
 				int count = write(UsbDevices.at(boardprocesses.at(i).get_usbdevice_id()).device_fid,
 						reinterpret_cast<char*> (&tempstr[0]),16);
+				UsbDevices.at(i).bytestransmitted += count;
 				/*
 				char tempstr2[255];
 				for(int i = 0; i < 16; i++)
@@ -543,7 +544,7 @@ bool run_slowrate_code()
 	for(int i = 0; i < boardprocesses.size(); i++)
 	{
 		char tempstr[512];
-		sprintf(tempstr,"Board: %s:%d Node State: %s",
+		sprintf(tempstr,"Board: %s:%d Node State: %s Board State: %s",
 				boardprocesses.at(i).get_boardname().c_str(),
 				boardprocesses.at(i).get_boardid(),
 				boardprocesses.at(i).map_mode_ToString(boardprocesses.at(i).get_nodestate()).c_str(),
@@ -596,13 +597,16 @@ bool run_veryslowrate_code()
 		{
 			now = ros::Time::now();
 			mtime = measure_time_diff(now,boot_time);
-			double rate = (double)(UsbDevices.at(i).bytesreceived)/mtime;
+			double rx_rate = (double)(UsbDevices.at(i).bytesreceived)/mtime;
+			double tx_rate = (double)(UsbDevices.at(i).bytestransmitted)/mtime;
 			{
 				char tempstr[512];
-				sprintf(tempstr,"Loc: %s Received %lld bytes from device at a rate of %.02f (Bps)",
+				sprintf(tempstr,"Loc: %s Received %lld bytes from device at a rate of %.02f (Bps) Transmitted %lld bytes at a rate of %02f (Bps)",
 						UsbDevices.at(i).location.c_str(),
 						UsbDevices.at(i).bytesreceived,
-						rate);
+						rx_rate,
+						UsbDevices.at(i).bytestransmitted,
+						tx_rate);
 				logger->log_info(tempstr);
 			}
 
@@ -1052,6 +1056,7 @@ bool initialize(ros::NodeHandle nh)
 			newdev.location = "/dev/" + std::string(entry->d_name);
 			newdev.boardcontrollernode_id = -1;
 			newdev.bytesreceived = 0;
+			newdev.bytestransmitted = 0;
 			newdev.good_checksum_counter = 0;
 			newdev.bad_checksum_counter = 0;
 			newdev.bytesreceived = 0;
@@ -1066,6 +1071,7 @@ bool initialize(ros::NodeHandle nh)
 			newdev.location = "/dev/" + std::string(entry->d_name);
 			newdev.boardcontrollernode_id = -1;
 			newdev.bytesreceived = 0;
+			newdev.bytestransmitted = 0;
 			newdev.good_checksum_counter = 0;
 			newdev.bad_checksum_counter = 0;
 			newdev.index = UsbDevices.size();

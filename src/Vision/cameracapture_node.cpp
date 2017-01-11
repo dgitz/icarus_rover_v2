@@ -2,7 +2,7 @@
 //Start User Code: Firmware Definition
 #define CAMERACAPTURENODE_MAJOR_RELEASE 2
 #define CAMERACAPTURENODE_MINOR_RELEASE 3
-#define CAMERACAPTURENODE_BUILD_NUMBER 1
+#define CAMERACAPTURENODE_BUILD_NUMBER 2
 //End User Code: Firmware Definition
 //Start User Code: Functions
 void Edge_Detect_Threshold_Callback(const std_msgs::UInt8::ConstPtr& msg)
@@ -92,7 +92,7 @@ bool capture_image(cv::VideoCapture cap)
 
 		strftime(datebuffer,80,"%Y_%m_%d_%I_%M_%S",timeinfo);
 		char tempstr[256];
-		sprintf(tempstr,"%s/%s.png",storage_location.c_str(),datebuffer);
+		sprintf(tempstr,"%s/%s.jpg",storage_location.c_str(),datebuffer);
 		cv::imwrite(tempstr,frame);
 		//printf("Saving to: %s\n",tempstr);
 	}
@@ -182,7 +182,7 @@ bool run_veryslowrate_code()
 	icarus_rover_v2::firmware fw;
 	fw.Generic_Node_Name = "cameracapture_node";
 	fw.Node_Name = node_name;
-	fw.Description = "Latest Rev: 30-Nov-2016";
+	fw.Description = "Latest Rev: 9-Jan-2017";
 	fw.Major_Release = CAMERACAPTURENODE_MAJOR_RELEASE;
 	fw.Minor_Release = CAMERACAPTURENODE_MINOR_RELEASE;
 	fw.Build_Number = CAMERACAPTURENODE_BUILD_NUMBER;

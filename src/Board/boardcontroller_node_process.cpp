@@ -155,14 +155,25 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::update(double dt)
     if((board_state == BOARDMODE_RUNNING) && (node_state == BOARDMODE_RUNNING))
     {
         ready_to_arm = true;
+		diagnostic.Level = INFO;
+		diagnostic.Diagnostic_Type = SOFTWARE;
+		diagnostic.Diagnostic_Message = NOERROR;
+		diagnostic.Description = "Node Executing.";
     }
     else
     {
+		diagnostic.Level = WARN;
+		diagnostic.Diagnostic_Type = SOFTWARE;
+		diagnostic.Diagnostic_Message = ROVER_DISARMED;
+		char tempstr[512];
+		sprintf(tempstr,"Node is Unable to Arm: Board: %s Board State: %s Node State: %s",
+			my_boardname.c_str(),
+			map_mode_ToString(board_state).c_str(),
+			map_mode_ToString(node_state).c_str());
+		diagnostic.Description = std::string(tempstr);
         ready_to_arm = false;
     }
-	diagnostic.Level = INFO;
-	diagnostic.Diagnostic_Message = NOERROR;
-	diagnostic.Description = "Node Executing.";
+	
 	return diagnostic;
 }
 icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_armedstatemsg(uint8_t v)
@@ -869,7 +880,10 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_serialmessage_Get_Mo
 			char tempstr[255];
 			unsigned char value1,value2,value3;
 			serialmessagehandler->decode_ModeSerial(inpacket,&value1,&value2,&value3);
-			board_state = value3;
+			if(value3 <= BOARDMODE_STOPPED)
+			{
+				board_state = value3;
+			}
 			/*
 			printf("Board Mode: %s\n",map_mode_ToString(board_state).c_str());
 			printf("Name: %s\n",my_boardname.c_str());

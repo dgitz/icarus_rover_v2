@@ -48,6 +48,7 @@ struct UsbDevice
 	int valid; //0 is no, 1 is yes, 2 is unknown
 	int boardcontrollernode_id;
 	long long bytesreceived;
+	long long bytestransmitted;
 	int index;
 	long long good_checksum_counter;
 	long long bad_checksum_counter;
