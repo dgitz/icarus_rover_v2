@@ -2,7 +2,7 @@
 //Start User Code: Firmware Definition
 #define COMMANDNODE_MAJOR_RELEASE 2
 #define COMMANDNODE_MINOR_RELEASE 2
-#define COMMANDNODE_BUILD_NUMBER 3
+#define COMMANDNODE_BUILD_NUMBER 4
 //End User Code: Firmware Definition
 //Start User Code: Functions
 void ReadyToArm_Callback(const std_msgs::Bool::ConstPtr& msg,const std::string &topic)
@@ -95,7 +95,7 @@ bool run_veryslowrate_code()
 	icarus_rover_v2::firmware fw;
 	fw.Generic_Node_Name = "command_node";
 	fw.Node_Name = node_name;
-	fw.Description = "Latest Rev: 30-Nov-2016";
+	fw.Description = "Latest Rev: 11-Jan-2017";
 	fw.Major_Release = COMMANDNODE_MAJOR_RELEASE;
 	fw.Minor_Release = COMMANDNODE_MINOR_RELEASE;
 	fw.Build_Number = COMMANDNODE_BUILD_NUMBER;

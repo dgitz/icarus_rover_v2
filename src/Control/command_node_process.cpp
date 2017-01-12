@@ -49,9 +49,6 @@ icarus_rover_v2::diagnostic CommandNodeProcess::new_readytoarmmsg(std::string to
             ReadyToArmList.at(i).ready_to_arm = value;
             if(value == false)
             {
-            	char tempstr[255];
-            	sprintf(tempstr,"Topic: %s Reports is unable to Arm.",topic.c_str());
-            	mylogger->log_warn(tempstr);
             	ready_to_arm_check = false;
             }
         }
@@ -78,8 +75,8 @@ icarus_rover_v2::diagnostic CommandNodeProcess::new_readytoarmmsg(std::string to
     {
     	readytoarm = false;
         diagnostic.Diagnostic_Type = REMOTE_CONTROL;
-        diagnostic.Level = WARN;
-        diagnostic.Diagnostic_Message = DIAGNOSTIC_FAILED;
+        diagnostic.Level = INFO; //WARN;
+        diagnostic.Diagnostic_Message = ROVER_DISARMED;
         char tempstr[512];
         sprintf(tempstr,"Topic: %s Reports is Unable To Arm",topic.c_str());
         diagnostic.Description = std::string(tempstr);
@@ -146,12 +143,12 @@ icarus_rover_v2::diagnostic CommandNodeProcess::update(long dt)
         if(ReadyToArmList.at(i).ready_to_arm == false)
         {
             temp = false;
-            diagnostic.Level = WARN;
-            diagnostic.Diagnostic_Message = DIAGNOSTIC_FAILED;
+           // diagnostic.Level = WARN;
+           // diagnostic.Diagnostic_Message = DIAGNOSTIC_FAILED;
             char tempstr[255];
             sprintf(tempstr,"Topic: %s Reports is Unable to Arm.",ReadyToArmList.at(i).topic.c_str());
             mylogger->log_warn(tempstr);
-            diagnostic.Description = std::string(tempstr);
+            //diagnostic.Description = std::string(tempstr);
         }
     }
     readytoarm = temp;

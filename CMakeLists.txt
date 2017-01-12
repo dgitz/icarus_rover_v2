@@ -245,3 +245,6 @@ target_link_libraries(topicremapper_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} 
 add_executable(cameracapture_node src/Vision/cameracapture_node.cpp)
 target_link_libraries(cameracapture_node ${OpenCV_LIBRARIES} ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor visionhelper)
 
+add_executable(speaker_node src/Communication/speaker_node.cpp)
+target_link_libraries(speaker_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor)
+

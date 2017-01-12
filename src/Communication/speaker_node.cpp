@@ -2,7 +2,7 @@
 //Start User Code: Firmware Definition
 #define SPEAKERNODE_MAJOR_RELEASE 1
 #define SPEAKERNODE_MINOR_RELEASE 2
-#define SPEAKERNODE_BUILD_NUMBER 3
+#define SPEAKERNODE_BUILD_NUMBER 4
 //End User Code: Firmware Definition
 //Start User Code: Functions
 bool speak(std::string s,bool mode)
@@ -127,7 +127,7 @@ bool run_veryslowrate_code()
 	icarus_rover_v2::firmware fw;
 	fw.Generic_Node_Name = "speaker_node";
 	fw.Node_Name = node_name;
-	fw.Description = "Latest Rev: 30-Nov-2016";
+	fw.Description = "Latest Rev: 11-Jan-2017";
 	fw.Major_Release = SPEAKERNODE_MAJOR_RELEASE;
 	fw.Minor_Release = SPEAKERNODE_MINOR_RELEASE;
 	fw.Build_Number = SPEAKERNODE_BUILD_NUMBER;
@@ -322,7 +322,7 @@ bool initialize(ros::NodeHandle nh)
     //End Template Code: Initialization and Parameters
 
     //Start User Code: Initialization and Parameters
-    //sleep(3.0);  //Have to wait for all other nodes to start before doing a mass subscribe
+    sleep(13.0);  //Have to wait for all other nodes to start before doing a mass subscribe
     std::string param_initial_speech_wait = node_name +"/initial_speech_wait";
     if(nh.getParam(param_initial_speech_wait,initial_speech_wait) == false)
     {
