@@ -89,7 +89,7 @@ TEST(DeviceInitialization,DeviceInitialization_2Boards_3Shields)
     diagnostic.Node_Name = Node_Name;
     diagnostic.System = ROVER;
     diagnostic.SubSystem = ROBOT_CONTROLLER;
-    diagnostic.Component = GPIO_NODE;
+    diagnostic.Component = COMMUNICATION_NODE;
 
     diagnostic.Diagnostic_Type = NOERROR;
     diagnostic.Level = INFO;

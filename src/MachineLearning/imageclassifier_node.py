@@ -18,6 +18,7 @@ sys.path.append(os.path.abspath("/home/robot/catkin_ws/src/icarus_rover_v2/inclu
 from Definitions import *
 from icarus_rover_v2.msg import diagnostic
 from icarus_rover_v2.msg import heartbeat
+from icarus_rover_v2.msg import usermessage
 
 #topic: /dgitzrosmaster_cameracapture_node/raw_image
 cv_image = []
@@ -51,6 +52,7 @@ def runnode():
     diagnostic_pub = rospy.Publisher(diag_topic,diagnostic,queue_size=10)
     heartbeat_topic = socket.gethostname() + '_imageclassifier_node/heartbeat'
     heartbeat_pub = rospy.Publisher(heartbeat_topic,heartbeat,queue_size=10)
+    usermessage_pub = rospy.Publisher('/usermessage',usermessage,queue_size=10)
     diag = diagnostic()
     diag.DeviceName = socket.gethostname()
     diag.Node_Name = rospy.get_name()
@@ -110,6 +112,10 @@ def runnode():
                     diag.Diagnostic_Message = NOERROR
                     diag.Description = "Found Target " + label_lines[top_k[0]]
                     diagnostic_pub.publish(diag)
+                    usermsg = usermessage()
+                    usermsg.Level = LEVEL1
+                    usermsg.message = "Found Target " + label_lines[top_k[0]]
+                    usermessage_pub.publish(usermsg)
                     #rospy.loginfo("Label: %s score: %.5f",label_lines[top_k[0]],predictions[0][top_k[0]])
                 
                 #label_lines[top_k[0]],predictions[0][top_k[0]])
