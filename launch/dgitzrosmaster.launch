@@ -35,8 +35,7 @@
         <param name="CPU_usage_threshold_percent"    value="30"/> 
         <param name="Log_Resources_Used"        value="1"/>  
     </node>
-    <node name="$(env ROS_HOSTNAME)_imageclassifier_node" pkg="icarus_rover_v2" type="imageclassifier_node.py" output="screen" clear_params="true">
-    </node>
+    
     <node name="$(env ROS_HOSTNAME)_cameracapture_node" pkg="icarus_rover_v2" type="cameracapture_node"  output="screen">
         <param name="loop_rate"             value="500"/>
         <param name="verbosity_level"       value="DEBUG"/>
@@ -44,5 +43,7 @@
         <param name="operation_mode"        value="capture"/>
         <param name="video_device"          value="0"/>
         <param name="storage_location"      value="/home/robot/Pictures"/>
+    </node>
+    <node name="$(env ROS_HOSTNAME)_imageclassifier_node" pkg="icarus_rover_v2" type="imageclassifier_node.py" output="screen" clear_params="true">
     </node>
 </launch>

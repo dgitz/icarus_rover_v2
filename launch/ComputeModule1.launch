@@ -19,7 +19,7 @@
         <param name="require_pps_to_start"  value="false"/> 
         <param name="operation_mode"        value="capture"/>
         <param name="video_device"          value="0"/>
-       <param name="storage_location"      value="/home/robot/external/Unsorted-Pictures"/>
+        <!--<param name="storage_location"      value="/home/robot/external/Unsorted-Pictures"/> -->
     </node>
 
 </launch>
