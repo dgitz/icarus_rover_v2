@@ -35,8 +35,6 @@
         <param name="CPU_usage_threshold_percent"    value="30"/> 
         <param name="Log_Resources_Used"        value="1"/>  
     </node>
-    <node name="$(env ROS_HOSTNAME)_imageclassifier_node" pkg="icarus_rover_v2" type="imageclassifier_node.py" output="screen" clear_params="true">
-    </node>
     <node name="$(env ROS_HOSTNAME)_cameracapture_node" pkg="icarus_rover_v2" type="cameracapture_node"  output="screen">
         <param name="loop_rate"             value="500"/>
         <param name="verbosity_level"       value="DEBUG"/>
@@ -44,5 +42,16 @@
         <param name="operation_mode"        value="capture"/>
         <param name="video_device"          value="0"/>
         <param name="storage_location"      value="/home/robot/Pictures"/>
+    </node>
+    <node name="$(env ROS_HOSTNAME)_speaker_node" pkg="icarus_rover_v2" type="speaker_node"  output="screen">
+        <param name="loop_rate"             value="500"/>
+        <param name="verbosity_level"       value="DEBUG"/>
+        <param name="require_pps_to_start"  value="false"/> 
+    </node>
+
+    <node name="$(env ROS_HOSTNAME)_imageclassifier_node" pkg="icarus_rover_v2" type="imageclassifier_node.py" output="screen" clear_params="true">
+        <param name="image_topic"   value="/ComputeModule1_cameracapture_node/raw_image"/>
+    </node>
+    <node name="$(env ROS_HOSTNAME)_soundplay_node" pkg="sound_play" type="soundplay_node.py">
     </node>
 </launch>

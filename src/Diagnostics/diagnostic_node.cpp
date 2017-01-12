@@ -2,7 +2,7 @@
 //Start User Code: Firmware Definition
 #define DIAGNOSTICNODE_MAJOR_RELEASE 2
 #define DIAGNOSTICNODE_MINOR_RELEASE 2
-#define DIAGNOSTICNODE_BUILD_NUMBER 1
+#define DIAGNOSTICNODE_BUILD_NUMBER 2
 //End User Code: Firmware Definition
 //Start User Code: Functions
 icarus_rover_v2::diagnostic rescan_topics(icarus_rover_v2::diagnostic diag)
@@ -407,7 +407,7 @@ bool run_veryslowrate_code()
 	icarus_rover_v2::firmware fw;
 	fw.Generic_Node_Name = "diagnostic_node";
 	fw.Node_Name = node_name;
-	fw.Description = "Latest Rev: 4-Dec-2016";
+	fw.Description = "Latest Rev: 11-Jan-2017";
 	fw.Major_Release = DIAGNOSTICNODE_MAJOR_RELEASE;
 	fw.Minor_Release = DIAGNOSTICNODE_MINOR_RELEASE;
 	fw.Build_Number = DIAGNOSTICNODE_BUILD_NUMBER;
