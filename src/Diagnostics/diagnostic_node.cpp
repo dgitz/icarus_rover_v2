@@ -297,7 +297,7 @@ bool check_tasks()
 		}
 		*/
 		double heartbeat_time_duration = measure_time_diff(ros::Time::now(),newTask.last_heartbeat_received);
-		if(heartbeat_time_duration > 2.0)
+		if(heartbeat_time_duration > 5.0)
 		{
 			task_ok = false;
 			char tempstr[512];

@@ -89,5 +89,7 @@ CommandNodeProcess *process;
 ros::Publisher command_pub;
 std::vector<ros::Subscriber> ready_to_arm_subs;
 ros::Subscriber armcommand_sub;
+
+uint8_t searchmode;
 //End User Code: Define Global Variables
 #endif

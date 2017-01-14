@@ -19,6 +19,7 @@ from Definitions import *
 from icarus_rover_v2.msg import diagnostic
 from icarus_rover_v2.msg import heartbeat
 from icarus_rover_v2.msg import usermessage
+from icarus_rover_v2.msg import command
 
 #topic: /dgitzrosmaster_cameracapture_node/raw_image
 cv_image = []
@@ -29,7 +30,13 @@ received_image = 0
 image_width = 0
 image_height = 0
 image_channels = 0
+last_target = ""
+search_for_target = 0
 import pdb
+def command_callback(data):
+    global search_for_target
+    if(data.Command == FINDTARGET_ID):
+        search_for_target = data.Option1
 def image_callback(data):
     try:
         global cv_image
@@ -53,6 +60,7 @@ def runnode():
     heartbeat_topic = socket.gethostname() + '_imageclassifier_node/heartbeat'
     heartbeat_pub = rospy.Publisher(heartbeat_topic,heartbeat,queue_size=10)
     usermessage_pub = rospy.Publisher('/usermessage',usermessage,queue_size=10)
+    command_sub = rospy.Subscriber('/command',command,command_callback)
     diag = diagnostic()
     diag.DeviceName = socket.gethostname()
     diag.Node_Name = rospy.get_name()
@@ -65,6 +73,7 @@ def runnode():
     global image_width
     global image_height
     global image_channels
+    global last_target
     received_image = 0
     bridge = CvBridge()
     image_topic = rospy.get_param('~image_topic')
@@ -98,24 +107,28 @@ def runnode():
             heartbeat_pub.publish(beat)
             if(received_image == 0):
                 a = 1 #print "Waiting on image"
-            if(received_image == 1):
-                start = time.time()
-                v = cv_image.reshape(image_height,image_width,image_channels)
-                predictions = sess.run(softmax_tensor,{'DecodeJpeg:0': v})
-                top_k = predictions[0].argsort()[-len(predictions[0]):][::-1]
-                end = time.time()
-                #rospy.loginfo("Duration: %.5f",end-start)
-                top_score  = predictions[0][top_k[0]]
-                if(top_score > 0.7):
-                    diag.Diagnostic_Type = SENSORS
-                    diag.Level = NOTICE
-                    diag.Diagnostic_Message = NOERROR
-                    diag.Description = "Found Target " + label_lines[top_k[0]]
-                    diagnostic_pub.publish(diag)
-                    usermsg = usermessage()
-                    usermsg.Level = LEVEL1
-                    usermsg.message = "Found Target " + label_lines[top_k[0]]
-                    usermessage_pub.publish(usermsg)
+            if(search_for_target == 1):
+                if(received_image == 1):
+                    start = time.time()
+                    v = cv_image.reshape(image_height,image_width,image_channels)
+                    predictions = sess.run(softmax_tensor,{'DecodeJpeg:0': v})
+                    top_k = predictions[0].argsort()[-len(predictions[0]):][::-1]
+                    end = time.time()
+                    #rospy.loginfo("Duration: %.5f",end-start)
+                    top_score  = predictions[0][top_k[0]]
+                    if(top_score > 0.7):
+                        diag.Diagnostic_Type = SENSORS
+                        diag.Level = NOTICE
+                        diag.Diagnostic_Message = NOERROR
+                        diag.Description = "Found Target " + label_lines[top_k[0]]
+                        diagnostic_pub.publish(diag)
+                        usermsg = usermessage()
+                        usermsg.Level = LEVEL1
+                        found_target = label_lines[top_k[0]]
+                        #if(found_target != last_target):
+                        usermsg.message = "Found Target " + target
+                        usermessage_pub.publish(usermsg)
+                        last_target = found_target
                     #rospy.loginfo("Label: %s score: %.5f",label_lines[top_k[0]],predictions[0][top_k[0]])
                 
                 #label_lines[top_k[0]],predictions[0][top_k[0]])

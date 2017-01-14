@@ -1,8 +1,8 @@
 #include "command_node.h"
 //Start User Code: Firmware Definition
 #define COMMANDNODE_MAJOR_RELEASE 2
-#define COMMANDNODE_MINOR_RELEASE 2
-#define COMMANDNODE_BUILD_NUMBER 4
+#define COMMANDNODE_MINOR_RELEASE 3
+#define COMMANDNODE_BUILD_NUMBER 1
 //End User Code: Firmware Definition
 //Start User Code: Functions
 void ReadyToArm_Callback(const std_msgs::Bool::ConstPtr& msg,const std::string &topic)
@@ -35,6 +35,11 @@ bool run_mediumrate_code()
 	newcommand.Command=ARM_COMMAND_ID;
 	newcommand.Option1 = process->get_armcommand();
 	command_pub.publish(newcommand);
+
+	icarus_rover_v2::command searchcommand;
+	searchcommand.Command= FINDTARGET_ID;
+	searchcommand.Option1 = searchmode;
+	command_pub.publish(searchcommand);
 
 	beat.stamp = ros::Time::now();
 	heartbeat_pub.publish(beat);
@@ -75,6 +80,14 @@ bool run_slowrate_code()
 }
 bool run_veryslowrate_code()
 {
+	if(searchmode == 0)
+	{
+		searchmode = 1;
+	}
+	else
+	{
+		searchmode = 0;
+	}
 	//logger->log_debug("Running very slow rate code.");
 	logger->log_info("Node Running.");
 	{
@@ -95,7 +108,7 @@ bool run_veryslowrate_code()
 	icarus_rover_v2::firmware fw;
 	fw.Generic_Node_Name = "command_node";
 	fw.Node_Name = node_name;
-	fw.Description = "Latest Rev: 11-Jan-2017";
+	fw.Description = "Latest Rev: 13-Jan-2017";
 	fw.Major_Release = COMMANDNODE_MAJOR_RELEASE;
 	fw.Minor_Release = COMMANDNODE_MINOR_RELEASE;
 	fw.Build_Number = COMMANDNODE_BUILD_NUMBER;
@@ -262,6 +275,7 @@ bool initialize(ros::NodeHandle nh)
     //End Template Code: Initialization and Parameters
 
     //Start User Code: Initialization and Parameters
+    searchmode = 0;
 	process = new CommandNodeProcess;
     robot_armdisarmed_state = ARMEDSTATUS_DISARMED_CANNOTARM;
     diagnostic_status = process->init(diagnostic_status,logger,std::string(hostname));
