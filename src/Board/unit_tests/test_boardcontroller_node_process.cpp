@@ -7,7 +7,7 @@
 
 std::string Node_Name = "/unittest_boardcontroller_node_process";
 std::string Host_Name = "unittest";
-std::string ros_DeviceName = Node_Name;
+std::string ros_DeviceName = Host_Name;
 std::string ros_ParentDevice = "";
 std::string ros_DeviceType = "ComputeModule";
 

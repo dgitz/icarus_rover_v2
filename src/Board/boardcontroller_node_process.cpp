@@ -1601,7 +1601,6 @@ double BoardControllerNodeProcess::time_diff(struct timeval timea, struct timeva
 
 	mtime = ((seconds) * 1000 + useconds/1000.0) + 0.5;
 	return (double)(mtime)/1000.0;
-
 }
 void BoardControllerNodeProcess::initialize_message_info()
 {
