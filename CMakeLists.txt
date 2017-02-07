@@ -72,6 +72,7 @@ add_message_files(
   remotecontrol.msg
   imu.msg
   usermessage.msg
+  battery.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -223,6 +224,7 @@ add_library(visionhelper util/visionhelper.cpp)
 add_library(speaker_node_process src/Communication/speaker_node_process.cpp)
 add_library(boardcontroller_node_process src/Board/boardcontroller_node_process.cpp)
 add_library(command_node_process src/Control/command_node_process.cpp)
+add_library(powermonitor_node_process src/Control/powermonitor_node_process.cpp)
 
 add_executable(diagnostic_node src/Diagnostics/diagnostic_node.cpp)
 target_link_libraries(diagnostic_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} logger resourcemonitor)
@@ -253,4 +255,11 @@ add_executable(speaker_node src/Communication/speaker_node.cpp)
 target_link_libraries(speaker_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} speaker_node_process logger resourcemonitor)
 catkin_add_gtest(test_speaker_node_process src/Communication/unit_tests/test_speaker_node_process.cpp)
 target_link_libraries(test_speaker_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} speaker_node_process logger)
+
+add_executable(powermonitor_node src/Control/powermonitor_node.cpp)
+target_link_libraries(powermonitor_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor powermonitor_node_process)
+catkin_add_gtest(test_powermonitor_node_process src/Control/unit_tests/test_powermonitor_node_process.cpp)
+target_link_libraries(test_powermonitor_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} powermonitor_node_process logger)
+
+
 
