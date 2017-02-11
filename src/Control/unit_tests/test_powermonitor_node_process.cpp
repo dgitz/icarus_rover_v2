@@ -28,14 +28,96 @@ TEST(DeviceInitialization,ReadPowerInfo)
     icarus_rover_v2::diagnostic diagnostic_status;
 	PowerMonitorNodeProcess process = initialize_process();
     int battery_count = process.get_batterycount();
-    for(int i = 0; i < battery_count; i++)
+    std::vector<Battery> batteries = process.get_batteries();
+
+    for(int i = 0; i < batteries.size(); i++)
     {
-        icarus_rover_v2::device battery;
-        battery.DeviceName = "Battery" + boost::lexical_cast<std::string>(i+1);
-        battery.DeviceType = "Battery";
-        diagnostic_status = process.new_devicemsg(battery);
+    	batteries.at(i).capacity_level_perc = 100.0;
+        diagnostic_status = process.new_batterymsg(batteries.at(i));
         EXPECT_TRUE(diagnostic_status.Level <= NOTICE);
     }
+
+    diagnostic_status = process.update(0.01);
+    EXPECT_TRUE(diagnostic_status.Level <= NOTICE);
+    EXPECT_EQ(process.get_powerstate(),POWERSTATE_NORMAL);
+    EXPECT_TRUE(process.get_activebattery().name != "");
+    EXPECT_TRUE(process.get_activebattery().active == true);
+}
+TEST(StateMachineLogic,TestA)
+{
+    icarus_rover_v2::diagnostic diagnostic_status;
+	PowerMonitorNodeProcess process = initialize_process();
+    int battery_count = process.get_batterycount();
+    std::vector<Battery> batteries = process.get_batteries();
+
+    for(int i = 0; i < batteries.size(); i++)
+    {
+    	batteries.at(i).capacity_level_perc = 100.0;
+        diagnostic_status = process.new_batterymsg(batteries.at(i));
+        EXPECT_TRUE(diagnostic_status.Level <= NOTICE);
+    }
+
+
+    diagnostic_status = process.update(0.01);
+    EXPECT_TRUE(diagnostic_status.Level <= NOTICE);
+    EXPECT_EQ(process.get_powerstate(),POWERSTATE_NORMAL);
+    EXPECT_TRUE(process.get_activebattery().name != "");
+    EXPECT_TRUE(process.get_activebattery().active == true);
+    double capacity;
+    Battery last_battery;
+    Battery current_battery;
+    Battery active_battery;
+    for(int i = 0; i < batteries.size(); i++)
+	{
+    	printf("Draining: %s\n",process.get_activebattery().name.c_str());
+    	diagnostic_status = process.update(0.01);
+    	EXPECT_TRUE(diagnostic_status.Level <= NOTICE);
+    	capacity = process.get_activebattery().capacity_level_perc;
+    	EXPECT_EQ(process.get_powerstate(),POWERSTATE_NORMAL);
+    	last_battery = process.get_activebattery();
+    	while(capacity > process.get_defined_batterylevel_toswitch())
+    	{
+    		capacity -= 5.0;
+    		active_battery= process.get_activebattery();
+    		active_battery.capacity_level_perc = capacity;
+    		diagnostic_status = process.new_batterymsg(active_battery);
+    		EXPECT_TRUE(diagnostic_status.Level <= NOTICE);
+    		diagnostic_status = process.update(0.01);
+    		EXPECT_TRUE(diagnostic_status.Level <= NOTICE);
+    		printf("Power State: %s\n",process.map_PowerState_ToString(process.get_powerstate()).c_str());
+    		if(i < (batteries.size()-1)) //Nothing to do here
+    		{
+
+    		}
+    		else
+    		{
+    			if(capacity < process.get_defined_batterylevel_recharge())
+    			{
+    				break;
+    			}
+    		}
+    	}
+    	if(i < (batteries.size()-1))
+    	{
+    		EXPECT_EQ(process.get_powerstate(),POWERSTATE_CHANGINGACTIVEBATTERY);
+    		current_battery = process.get_activebattery();
+    		printf("Changed Batteries: From: %s to %s\n",last_battery.name.c_str(),current_battery.name.c_str());
+    		EXPECT_NE(current_battery.name,last_battery.name);
+    		EXPECT_TRUE(current_battery.active == true);
+    	}
+    	else
+    	{
+    		EXPECT_EQ(process.get_powerstate(),POWERSTATE_REQUIRERECHARGE);
+    	}
+	}
+    active_battery= process.get_activebattery();
+    active_battery.capacity_level_perc = process.get_defined_batterylevel_toswitch()-1.0;
+    diagnostic_status = process.new_batterymsg(active_battery);
+    EXPECT_TRUE(diagnostic_status.Level <= NOTICE);
+    diagnostic_status = process.update(0.01);
+    EXPECT_TRUE(diagnostic_status.Level <= NOTICE);
+    printf("Power State: %s\n",process.map_PowerState_ToString(process.get_powerstate()).c_str());
+    EXPECT_EQ(process.get_powerstate(),POWERSTATE_EMERGENCY);
 }
 int main(int argc, char **argv){
 	testing::InitGoogleTest(&argc, argv);
@@ -60,13 +142,13 @@ PowerMonitorNodeProcess initialize_process()
 
 	PowerMonitorNodeProcess process;
 	diagnostic_status = process.init(diagnostic_status,logger,std::string(Host_Name));
-    if(diagnostic_status.Level > NOTICE)
-    {
-        printf("Initialize Error: %s\n",diagnostic_status.Description.c_str());
-    }
     EXPECT_TRUE(diagnostic_status.Level <= NOTICE);
     EXPECT_TRUE(process.get_batterycount() > 0);
     EXPECT_EQ(process.get_batterycount(),process.get_batteries().size());
-    
+    EXPECT_EQ(process.get_powerstate(), POWERSTATE_NORMAL);
+
+    diagnostic_status = process.update(0.01);
+    EXPECT_TRUE(diagnostic_status.Level <= NOTICE);
+    EXPECT_EQ(process.get_powerstate(),POWERSTATE_NORMAL);
 	return process;
 }

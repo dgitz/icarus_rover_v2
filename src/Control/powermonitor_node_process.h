@@ -21,6 +21,9 @@
 #include <serialmessage.h>
 #include <math.h>
 #include <tinyxml.h>
+#define BATTERYLEVEL_TO_SWITCH 20.0f
+#define BATTERYLEVEL_CHARGED 75.0f
+#define BATTERYLEVEL_RECHARGE 50.0f
 using std::string;
 using namespace std;
 struct Battery
@@ -33,6 +36,7 @@ struct Battery
     double actual_capacity_Ah;
     double capacity_level_perc;
     bool active;
+    bool recharging;
 };
 class PowerMonitorNodeProcess
 {
@@ -55,6 +59,16 @@ public:
     int get_batterycount() { return battery_count; }
     std::string get_connectionmethod() { return connection_method; }
     std::vector<Battery> get_batteries() { return batteries; }
+    uint8_t get_powerstate() { return power_state; }
+
+    icarus_rover_v2::diagnostic new_batterymsg(Battery battery);
+    Battery get_activebattery() { return active_battery; }
+    double get_defined_batterylevel_toswitch() { return BATTERYLEVEL_TO_SWITCH; }
+    double get_defined_batterylevel_charged() { return BATTERYLEVEL_CHARGED; }
+    double get_defined_batterylevel_recharge() { return BATTERYLEVEL_RECHARGE; }
+    void print_batteryinfo();
+    Battery get_bestbattery();
+    std::string map_PowerState_ToString(int v);
 protected:
 private:
 
@@ -73,6 +87,8 @@ private:
     int battery_count;
     std::string connection_method;
     std::vector<Battery> batteries;
+    Battery active_battery;
+    uint8_t power_state;
 };
 
 #endif
