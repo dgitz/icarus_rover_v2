@@ -225,6 +225,7 @@ add_library(speaker_node_process src/Communication/speaker_node_process.cpp)
 add_library(boardcontroller_node_process src/Board/boardcontroller_node_process.cpp)
 add_library(command_node_process src/Control/command_node_process.cpp)
 add_library(powermonitor_node_process src/Control/powermonitor_node_process.cpp)
+add_library(tf_broadcaster_node_process src/Pose/tf_broadcaster_node_process.cpp)
 
 add_executable(diagnostic_node src/Diagnostics/diagnostic_node.cpp)
 target_link_libraries(diagnostic_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} logger resourcemonitor)
@@ -261,5 +262,8 @@ target_link_libraries(powermonitor_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} $
 catkin_add_gtest(test_powermonitor_node_process src/Control/unit_tests/test_powermonitor_node_process.cpp)
 target_link_libraries(test_powermonitor_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} powermonitor_node_process logger)
 
-
+add_executable(tf_broadcaster_node src/Pose/tf_broadcaster_node.cpp)
+target_link_libraries(tf_broadcaster_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor tf_broadcaster_node_process)
+catkin_add_gtest(test_tf_broadcaster_node_process src/Pose/unit_tests/test_tf_broadcaster_node_process.cpp)
+target_link_libraries(test_tf_broadcaster_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} tf_broadcaster_node_process logger)
 
