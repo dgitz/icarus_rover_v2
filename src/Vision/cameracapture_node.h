@@ -31,6 +31,7 @@
 #include "sensor_msgs/Image.h"
 #include <cv_bridge/cv_bridge.h>
 #include "opencv2/imgproc/imgproc.hpp"
+#include "sensor_msgs/CameraInfo.h"
 //End User Code: Includes
 
 //Start User Code: Data Structures
@@ -105,6 +106,7 @@ VisionHelper *visionhelper;
 cv::VideoCapture capture;
 vector<int> compression_params;
 ros::Publisher raw_image_pub;
+ros::Publisher raw_imageinfo_pub;
 ros::Publisher proc_image_pub;
 ros::Subscriber edge_threshold_sub;
 int16_t counter;

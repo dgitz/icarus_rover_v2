@@ -26,12 +26,12 @@ cv_image = []
 image = []
 image_array = []
 bridge = []
-received_image = 0
+received_image_counter = 0
 image_width = 0
 image_height = 0
 image_channels = 0
 last_target = ""
-search_for_target = 0
+search_for_target = 1
 import pdb
 def command_callback(data):
     global search_for_target
@@ -41,8 +41,8 @@ def image_callback(data):
     try:
         global cv_image
         global bridge
-        global received_image
-        received_image = 1
+        global received_image_counter
+        received_image_counter = received_image_counter + 1
         cv_image = bridge.imgmsg_to_cv2(data, "bgr8")
         global image_width
         global image_height
@@ -69,7 +69,7 @@ def runnode():
     diag.Component = VISION_NODE
     global cv_image
     global bridge
-    global received_image
+    global received_image_counter
     global image_width
     global image_height
     global image_channels
@@ -105,30 +105,34 @@ def runnode():
             beat.Node_Name = socket.gethostname() + '_imageclassifier_node'
             beat.stamp = rospy.Time().now()
             heartbeat_pub.publish(beat)
-            if(received_image == 0):
-                a = 1 #print "Waiting on image"
+            #if(received_image == 0):
+            #    a = 1;#print "Waiting on image"
             if(search_for_target == 1):
-                if(received_image == 1):
+                if(received_image_counter == 10):
+                    received_image_counter = 0;
                     start = time.time()
                     v = cv_image.reshape(image_height,image_width,image_channels)
                     predictions = sess.run(softmax_tensor,{'DecodeJpeg:0': v})
                     top_k = predictions[0].argsort()[-len(predictions[0]):][::-1]
                     end = time.time()
+                    received_image = 0;
                     #rospy.loginfo("Duration: %.5f",end-start)
                     top_score  = predictions[0][top_k[0]]
+                    #print top_score
                     if(top_score > 0.7):
                         diag.Diagnostic_Type = SENSORS
                         diag.Level = NOTICE
                         diag.Diagnostic_Message = NOERROR
                         diag.Description = "Found Target " + label_lines[top_k[0]]
+                        print diag.Description
                         diagnostic_pub.publish(diag)
                         usermsg = usermessage()
                         usermsg.Level = LEVEL1
                         found_target = label_lines[top_k[0]]
-                        #if(found_target != last_target):
-                        usermsg.message = "Found Target " + target
-                        usermessage_pub.publish(usermsg)
-                        last_target = found_target
+                        if(found_target != last_target):
+                            usermsg.message = "Found Target " + found_target
+                            usermessage_pub.publish(usermsg)
+                            last_target = found_target
                     #rospy.loginfo("Label: %s score: %.5f",label_lines[top_k[0]],predictions[0][top_k[0]])
                 
                 #label_lines[top_k[0]],predictions[0][top_k[0]])

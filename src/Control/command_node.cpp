@@ -75,7 +75,7 @@ bool run_veryslowrate_code()
 	icarus_rover_v2::firmware fw;
 	fw.Generic_Node_Name = "command_node";
 	fw.Node_Name = node_name;
-	fw.Description = "Latest Rev: 3-March-2017;
+	fw.Description = "Latest Rev: 3-March-2017";
 	fw.Major_Release = COMMANDNODE_MAJOR_RELEASE;
 	fw.Minor_Release = COMMANDNODE_MINOR_RELEASE;
 	fw.Build_Number = COMMANDNODE_BUILD_NUMBER;

@@ -80,6 +80,13 @@ bool capture_image(cv::VideoCapture cap)
     	cv_image.header.frame_id = "/world";
     	cv_image.image = frame;
 		raw_image_pub.publish(cv_image.toImageMsg());
+
+		sensor_msgs::CameraInfo caminfo;
+		caminfo.header = cv_image.header;
+		caminfo.width = cv_image.image.cols;
+		caminfo.height = cv_image.image.rows;
+		raw_imageinfo_pub.publish(caminfo);
+		//printf("Delay: %f\n",measure_time_diff(ros::Time::now(),start));
     //}
 	if(save_images == true)
 	{
@@ -387,8 +394,25 @@ bool initialize(ros::NodeHandle nh)
     	logger->log_warn("Missing Parameter: operation_mode.");
     	return false;
     }
+
 	if(operation_mode == "capture")
 	{
+		std::string param_width = node_name + "/image_width";
+		if(nh.getParam(param_width,image_width) == false)
+		{
+			char tempstr[255];
+			sprintf(tempstr,"Didn't find %s Exiting.",param_width.c_str());
+			logger->log_error(tempstr);
+			return false;
+		}
+		std::string param_height = node_name + "/image_height";
+		if(nh.getParam(param_height,image_height) == false)
+		{
+			char tempstr[255];
+			sprintf(tempstr,"Didn't find %s Exiting.",param_height.c_str());
+			logger->log_error(tempstr);
+			return false;
+		}
 		std::string param_storage_location = node_name +"/storage_location";
 		if(nh.getParam(param_storage_location,storage_location) == false)
 		{
@@ -406,12 +430,15 @@ bool initialize(ros::NodeHandle nh)
 		}
 		std::string rawimage_topic = "/" + node_name + "/raw_image";
 		raw_image_pub = nh.advertise<sensor_msgs::Image>(rawimage_topic,1);
+		std::string rawimageinfo_topic = "/" + node_name + "/raw_image_info";
+		raw_imageinfo_pub = nh.advertise<sensor_msgs::CameraInfo>(rawimageinfo_topic,1);
 		//std::string procimage_topic = "/" + node_name + "/proc_image";
 		//proc_image_pub = nh.advertise<sensor_msgs::Image>(procimage_topic,1000);
 		//counter = 0;
 		//edge_detect_threshold = 100;
 		//std::string edge_detect_topic = "/" + node_name +"/edge_detect_threshold";
 		//edge_threshold_sub = nh.subscribe<std_msgs::UInt8>(edge_detect_topic,1000,Edge_Detect_Threshold_Callback);
+		printf("using width: %d height: %d\n",image_width,image_height);
 		capture.open(video_device);
 		capture.set(CV_CAP_PROP_FRAME_WIDTH, image_width);
 		capture.set(CV_CAP_PROP_FRAME_HEIGHT, image_height);
