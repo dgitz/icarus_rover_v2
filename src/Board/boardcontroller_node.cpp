@@ -2,7 +2,7 @@
 //Start User Code: Firmware Definition
 #define BOARDCONTROLLERNODE_MAJOR_RELEASE 0
 #define BOARDCONTROLLERNODE_MINOR_RELEASE 1
-#define BOARDCONTROLLERNODE_BUILD_NUMBER 3
+#define BOARDCONTROLLERNODE_BUILD_NUMBER 4
 //End User Code: Firmware Definition
 //Start User Code: Functions
 
@@ -561,7 +561,7 @@ bool run_veryslowrate_code()
 	icarus_rover_v2::firmware fw;
 	fw.Generic_Node_Name = "boardcontroller_node";
 	fw.Node_Name = node_name;
-	fw.Description = "Latest Rev: 6-Jan-2017";
+	fw.Description = "Latest Rev: 3-March-2017";
 	fw.Major_Release = BOARDCONTROLLERNODE_MAJOR_RELEASE;
 	fw.Minor_Release = BOARDCONTROLLERNODE_MINOR_RELEASE;
 	fw.Build_Number = BOARDCONTROLLERNODE_BUILD_NUMBER;

@@ -110,7 +110,7 @@ TEST(DeviceInitialization,DeviceInitialization_2Boards_3Shields)
     EXPECT_EQ(boardprocess1.get_armedstate(),ARMEDSTATUS_DISARMED_CANNOTARM);
     EXPECT_EQ(boardprocess1.get_ready_to_arm(),false);
     processes.push_back(boardprocess1);
-    diagnostic = processes.at(0).init(diagnostic,logger,Host_Name,1);
+    diagnostic = processes.at(0).init(diagnostic,Host_Name,1);
     EXPECT_TRUE(processes.at(0).get_nodestate() == BOARDMODE_BOOT);
     EXPECT_TRUE(diagnostic.Level <= NOTICE);
     diagnostic = processes.at(0).new_devicemsg(ros_device);
@@ -187,7 +187,7 @@ TEST(DeviceInitialization,DeviceInitialization_2Boards_3Shields)
     EXPECT_EQ(boardprocess2.get_armedstate(),ARMEDSTATUS_DISARMED_CANNOTARM);
     EXPECT_EQ(boardprocess2.get_ready_to_arm(),false);
     processes.push_back(boardprocess2);
-    diagnostic = processes.at(1).init(diagnostic,logger,Host_Name,1);
+    diagnostic = processes.at(1).init(diagnostic,Host_Name,1);
     EXPECT_TRUE(processes.at(1).get_nodestate() == BOARDMODE_BOOT);
     EXPECT_TRUE(diagnostic.Level <= NOTICE);
     diagnostic = processes.at(1).new_devicemsg(ros_device);
@@ -403,7 +403,7 @@ TEST(Arming,ArmDisarm)
         EXPECT_EQ(processes.at(i).get_ready_to_arm(),true);
         icarus_rover_v2::command newcommand;
         newcommand.Command = ARM_COMMAND_ID;
-        newcommand.Option1 = ARMEDCOMMAND_DISARM;
+        newcommand.Option1 = ROVERCOMMAND_DISARM;
 
         diagnostic = processes.at(i).new_commandmsg(newcommand);
         diagnostic = processes.at(i).update(0.2);

@@ -162,7 +162,7 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::update(double dt)
     }
     else
     {
-		diagnostic.Level = WARN;
+		diagnostic.Level = NOTICE;
 		diagnostic.Diagnostic_Type = SOFTWARE;
 		diagnostic.Diagnostic_Message = ROVER_DISARMED;
 		char tempstr[512];
