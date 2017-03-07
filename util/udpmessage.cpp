@@ -1,5 +1,5 @@
 /***************AUTO-GENERATED.  DO NOT EDIT********************/
-/***Created on:2016-11-25 20:57:01.875157***/
+/***Created on:2017-03-06 20:23:28.322849***/
 #include "udpmessage.h"
 UDPMessageHandler::UDPMessageHandler(){}
 UDPMessageHandler::~UDPMessageHandler(){}
@@ -129,4 +129,28 @@ int UDPMessageHandler::decode_HeartbeatUDP(std::vector<std::string> items,std::s
 	*Current_Timestamp=(uint64_t)strtoull(items.at(2).c_str(),NULL,10);
 	*Expected_Timestamp=(uint64_t)strtoull(items.at(3).c_str(),NULL,10);
 	return 1;
+}
+int UDPMessageHandler::decode_FindTargetUDP(std::vector<std::string> items,std::string* SearchDevice)
+{
+	char tempstr[8];
+	sprintf(tempstr,"0x%s",items.at(0).c_str());
+	int id = (int)strtol(tempstr,NULL,0);
+	if(id != UDP_FindTarget_ID){ return 0; }
+	if(items.size() != 2){ return 0; }
+	*SearchDevice=items.at(1);
+	return 1;
+}
+std::string UDPMessageHandler::encode_ImageUDP(std::string StreamName,uint32_t width,uint32_t height,cv::Mat Image)
+{
+	std::string tempstr = "";
+	tempstr.append(boost::lexical_cast<std::string>(UDP_Image_ID));
+	tempstr.append(",");
+	tempstr.append(StreamName);
+	tempstr.append(",");
+	tempstr.append(boost::lexical_cast<std::string>((int)width));
+	tempstr.append(",");
+	tempstr.append(boost::lexical_cast<std::string>((int)height));
+	tempstr.append(",");
+	tempstr.append(std::string((const char*)Image.data));
+	return tempstr;
 }

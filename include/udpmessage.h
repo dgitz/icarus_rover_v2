@@ -1,5 +1,5 @@
 /***************AUTO-GENERATED.  DO NOT EDIT********************/
-/***Created on:2016-11-25 20:57:01.875079***/
+/***Created on:2017-03-06 20:23:28.322768***/
 #ifndef UDPMESSAGE_H
 #define UDPMESSAGE_H
 #include "ros/ros.h"
@@ -10,6 +10,7 @@
 #include <ctime>
 #include <fstream>
 #include <iostream>
+#include <cv_bridge/cv_bridge.h>
 
 
 class UDPMessageHandler
@@ -25,6 +26,8 @@ public:
 		UDP_Arm_Command_ID = 0xAB27,
 		UDP_Arm_Status_ID = 0xAB30,
 		UDP_Heartbeat_ID = 0xAB31,
+		UDP_FindTarget_ID = 0xAB34,
+		UDP_Image_ID = 0xAB35,
 	};
 	UDPMessageHandler();
 	~UDPMessageHandler();
@@ -36,6 +39,8 @@ public:
 	int decode_Arm_CommandUDP(std::vector<std::string> items,uint8_t* Command);
 	std::string encode_Arm_StatusUDP(uint8_t Status);
 	int decode_HeartbeatUDP(std::vector<std::string> items,std::string* Device,uint64_t* Current_Timestamp,uint64_t* Expected_Timestamp);
+	int decode_FindTargetUDP(std::vector<std::string> items,std::string* SearchDevice);
+	std::string encode_ImageUDP(std::string StreamName,uint32_t width,uint32_t height,cv::Mat Image);
 private:
 };
 #endif

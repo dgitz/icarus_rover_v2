@@ -12,7 +12,8 @@
         <param name="Send_Multicast_Group"       value="239.255.43.21"/>
         <param name="Send_Multicast_Port"        value="45454"/>
         <param name="Recv_Unicast_Port"          value="5678"/>
-        <param name="Mode"                  value="Diagnostics_GUI"/> <!--Diagnostics_GUI-->
+        <param name="Mode"                  value="DriverStation"/> <!--Diagnostics_GUI, DriverStation-->
+        <param name="image1"                value="/dgitzrosmaster_cameracapture_node/raw_image"/>
     </node>
     <node name="$(env ROS_HOSTNAME)_command_node" pkg="icarus_rover_v2" type="command_node"  output="screen" clear_params="true">
         <param name="loop_rate"             value="500"/>

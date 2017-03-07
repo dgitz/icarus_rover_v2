@@ -133,10 +133,27 @@ icarus_rover_v2::diagnostic rescan_topics(icarus_rover_v2::diagnostic diag)
 	diag.Description = tempstr;
 	return diag;
 }
+void image_Callback(const sensor_msgs::Image::ConstPtr& msg)
+{
+	//put in encode
+	cv_bridge::CvImagePtr cv_ptr;
+	cv_ptr = cv_bridge::toCvCopy(msg,sensor_msgs::image_encodings::BGR8);
+	cv::resize(cv_ptr->image,cv_ptr->image,cv::Size(200,200),0,0,cv::INTER_LINEAR);
+	cv::Mat gray;
+	cv::cvtColor(cv_ptr->image,gray,CV_BGR2GRAY);
+	std::string send_string = udpmessagehandler->encode_ImageUDP("abcd",200,200,gray);
+//	int state = sendto(senddevice_sock, send_string.c_str(),send_string.length(), 0, (struct sockaddr *)&senddevice_addr,sizeof(senddevice_addr));
+	if(sendto(senddevice_sock, send_string.c_str(), send_string.size(), 0, (struct sockaddr *)&senddevice_addr, sizeof(senddevice_addr))!=send_string.size())
+	{
+		logger->log_warn("Mismatch in number of bytes sent");
+
+	}
+
+
+}
 void ArmedState_Callback(const std_msgs::UInt8::ConstPtr& msg)
 {
-	std::string send_string = udpmessagehandler->encode_Arm_StatusUDP(
-																		msg->data);
+	std::string send_string = udpmessagehandler->encode_Arm_StatusUDP(msg->data);
 	if(sendto(senddevice_sock, send_string.c_str(), send_string.size(), 0, (struct sockaddr *)&senddevice_addr, sizeof(senddevice_addr))!=send_string.size())
 	{
 		logger->log_warn("Mismatch in number of bytes sent");
@@ -697,9 +714,20 @@ bool initializenode()
 	}
 	std::string ready_to_arm_topic = node_name + "/ready_to_arm";
 	ready_to_arm_pub = n->advertise<std_msgs::Bool>(ready_to_arm_topic,1000);
-	udpmessagehandler = new UDPMessageHandler();
 
-
+	std::string image_topic;
+	std::string param_image = node_name +"/image1";
+	if(n->getParam(param_image,image_topic) == false)
+	{
+		logger->log_warn("Missing Parameter: image1.");
+	}
+	else
+	{
+		printf("image topic: %s\n",image_topic.c_str());
+	}
+	ros::Subscriber image_sub;
+	image_sub = n->subscribe<sensor_msgs::Image>(image_topic,1,image_Callback);
+	image_subs.push_back(image_sub);
     //Finish User Code: Initialization and Parameters
 
     //Start Template Code: Final Initialization.

@@ -37,6 +37,8 @@
 #include <iostream>
 #include <string>
 #include <boost/thread.hpp>
+#include <cv_bridge/cv_bridge.h>
+#include "sensor_msgs/Image.h"
 #define RECV_BUFFERSIZE 2048
 //End User Code: Includes
 
@@ -67,6 +69,7 @@ void device_Callback(const icarus_rover_v2::device::ConstPtr& msg);
 void resource_Callback(const icarus_rover_v2::resource::ConstPtr& msg);
 void ArmedState_Callback(const std_msgs::UInt8::ConstPtr& msg);
 bool check_remoteHeartbeats();
+void image_Callback(const sensor_msgs::Image::ConstPtr& msg);
 //End User Code: Function Prototypes
 
 
@@ -136,5 +139,7 @@ ros::Subscriber armed_disarmed_state_sub;
 ros::Publisher arm_command_pub;
 ros::Publisher ready_to_arm_pub;
 std::vector<RemoteDevice> remote_devices;
+std::vector<std::string> image_topics;
+std::vector<ros::Subscriber> image_subs;
 //End User Code: Define Global Variables
 #endif
