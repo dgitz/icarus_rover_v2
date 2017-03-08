@@ -61,8 +61,9 @@ void signalinterrupt_handler(int sig);
 
 //Start User Code: Function Prototypes
 icarus_rover_v2::diagnostic rescan_topics(icarus_rover_v2::diagnostic diag);
-bool initialize_sendsocket();
-bool initialize_recvsocket();
+bool initialize_udp_sendsocket();
+bool initialize_udp_recvsocket();
+bool initialize_tcp_socket();
 void process_udp_receive();
 void diagnostic_Callback(const icarus_rover_v2::diagnostic::ConstPtr& msg);
 void device_Callback(const icarus_rover_v2::device::ConstPtr& msg);
@@ -70,6 +71,7 @@ void resource_Callback(const icarus_rover_v2::resource::ConstPtr& msg);
 void ArmedState_Callback(const std_msgs::UInt8::ConstPtr& msg);
 bool check_remoteHeartbeats();
 void image_Callback(const sensor_msgs::Image::ConstPtr& msg);
+void tcpprocess(int);
 //End User Code: Function Prototypes
 
 
@@ -117,11 +119,14 @@ bool remote_heartbeat_pass;
 bool ready_to_arm;
 boost::shared_ptr<ros::NodeHandle> n;
 UDPMessageHandler *udpmessagehandler;
-struct sockaddr_in senddevice_addr;
-struct sockaddr_in my_addr;
-struct sockaddr_in remote_addr;
-int senddevice_sock;
-int recvdevice_sock;
+struct sockaddr_in udp_senddevice_addr;
+struct sockaddr_in udp_my_addr;
+struct sockaddr_in udp_remote_addr;
+int udp_senddevice_sock;
+int udp_recvdevice_sock;
+int tcp_device_sock;
+socklen_t clilen;
+struct sockaddr_in cli_addr;
 std::string send_multicast_group;
 int send_multicast_port;
 int recv_unicast_port;

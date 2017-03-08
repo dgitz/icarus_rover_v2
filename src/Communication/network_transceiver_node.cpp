@@ -142,8 +142,8 @@ void image_Callback(const sensor_msgs::Image::ConstPtr& msg)
 	cv::Mat gray;
 	cv::cvtColor(cv_ptr->image,gray,CV_BGR2GRAY);
 	std::string send_string = udpmessagehandler->encode_ImageUDP("abcd",200,200,gray);
-//	int state = sendto(senddevice_sock, send_string.c_str(),send_string.length(), 0, (struct sockaddr *)&senddevice_addr,sizeof(senddevice_addr));
-	if(sendto(senddevice_sock, send_string.c_str(), send_string.size(), 0, (struct sockaddr *)&senddevice_addr, sizeof(senddevice_addr))!=send_string.size())
+//	int state = sendto(udp_senddevice_sock, send_string.c_str(),send_string.length(), 0, (struct sockaddr *)&udp_senddevice_addr,sizeof(udp_senddevice_addr));
+	if(sendto(udp_senddevice_sock, send_string.c_str(), send_string.size(), 0, (struct sockaddr *)&udp_senddevice_addr, sizeof(udp_senddevice_addr))!=send_string.size())
 	{
 		logger->log_warn("Mismatch in number of bytes sent");
 
@@ -154,11 +154,17 @@ void image_Callback(const sensor_msgs::Image::ConstPtr& msg)
 void ArmedState_Callback(const std_msgs::UInt8::ConstPtr& msg)
 {
 	std::string send_string = udpmessagehandler->encode_Arm_StatusUDP(msg->data);
-	if(sendto(senddevice_sock, send_string.c_str(), send_string.size(), 0, (struct sockaddr *)&senddevice_addr, sizeof(senddevice_addr))!=send_string.size())
+	if(sendto(udp_senddevice_sock, send_string.c_str(), send_string.size(), 0, (struct sockaddr *)&udp_senddevice_addr, sizeof(udp_senddevice_addr))!=send_string.size())
 	{
 		logger->log_warn("Mismatch in number of bytes sent");
 
 	}
+}
+void tcpprocess(int v)
+{
+    char tempstr[256];
+    sprintf(tempstr,"Starting TCP Process with Socked ID: %d",v);
+    logger->log_info(std::string(tempstr));
 }
 void diagnostic_Callback(const icarus_rover_v2::diagnostic::ConstPtr& msg)
 {
@@ -175,7 +181,7 @@ void diagnostic_Callback(const icarus_rover_v2::diagnostic::ConstPtr& msg)
 																(uint8_t)msg->Level,
 																(uint8_t)msg->Diagnostic_Message,
 																msg->Description);
-	if(sendto(senddevice_sock, send_string.c_str(), send_string.size(), 0, (struct sockaddr *)&senddevice_addr, sizeof(senddevice_addr))!=send_string.size())
+	if(sendto(udp_senddevice_sock, send_string.c_str(), send_string.size(), 0, (struct sockaddr *)&udp_senddevice_addr, sizeof(udp_senddevice_addr))!=send_string.size())
 	{
 		  logger->log_warn("Mismatch in number of bytes sent");
 
@@ -189,7 +195,7 @@ void resource_Callback(const icarus_rover_v2::resource::ConstPtr& msg)
 	std::string send_string = udpmessagehandler->encode_ResourceUDP(msg->Node_Name,
 																	msg->RAM_MB,
 																	msg->CPU_Perc);
-	if(sendto(senddevice_sock, send_string.c_str(), send_string.size(), 0, (struct sockaddr *)&senddevice_addr, sizeof(senddevice_addr))!=send_string.size())
+	if(sendto(udp_senddevice_sock, send_string.c_str(), send_string.size(), 0, (struct sockaddr *)&udp_senddevice_addr, sizeof(udp_senddevice_addr))!=send_string.size())
 	{
 		  logger->log_warn("Mismatch in number of bytes sent");
 
@@ -204,7 +210,7 @@ void device_Callback(const icarus_rover_v2::device::ConstPtr& msg)
 																msg->DeviceName,
 																msg->DeviceType,
 																msg->Architecture);
-	if(sendto(senddevice_sock, send_string.c_str(), send_string.size(), 0, (struct sockaddr *)&senddevice_addr, sizeof(senddevice_addr))!=send_string.size())
+	if(sendto(udp_senddevice_sock, send_string.c_str(), send_string.size(), 0, (struct sockaddr *)&udp_senddevice_addr, sizeof(udp_senddevice_addr))!=send_string.size())
 	{
 		  logger->log_warn("Mismatch in number of bytes sent");
 
@@ -216,8 +222,8 @@ void process_udp_receive()
 	while(kill_node == 0)
 	{
 		char buf[RECV_BUFFERSIZE] = {0};
-		socklen_t addrlen = sizeof(remote_addr);
-		int recvlen = recvfrom(recvdevice_sock,buf,RECV_BUFFERSIZE,0,(struct sockaddr *)&remote_addr,&addrlen);
+		socklen_t addrlen = sizeof(udp_remote_addr);
+		int recvlen = recvfrom(udp_recvdevice_sock,buf,RECV_BUFFERSIZE,0,(struct sockaddr *)&udp_remote_addr,&addrlen);
 		if(recvlen < 0) { continue; }
 		buf[recvlen] = '\0';
 		std::string buffer(buf);
@@ -350,9 +356,9 @@ void process_udp_receive()
 	}
 
 }
-bool initialize_recvsocket()
+bool initialize_udp_recvsocket()
 {
-	if((recvdevice_sock = socket(AF_INET,SOCK_DGRAM,0)) < 0)
+	if((udp_recvdevice_sock = socket(AF_INET,SOCK_DGRAM,0)) < 0)
 	{
 		logger->log_error("Failed to create recv socket. Exiting.");
 		return false;
@@ -360,12 +366,12 @@ bool initialize_recvsocket()
 	struct timeval timeout;
 	timeout.tv_sec = 1;
 	timeout.tv_usec = 0;
-	setsockopt(recvdevice_sock,SOL_SOCKET,SO_RCVTIMEO,(char *)&timeout,sizeof(struct timeval));
-	memset((char*)&my_addr,0,sizeof(my_addr));
-	my_addr.sin_family = AF_INET;
-	my_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-	my_addr.sin_port = htons(recv_unicast_port);
-	if(bind(recvdevice_sock,(struct sockaddr *)&my_addr,sizeof(my_addr)) < 0)
+	setsockopt(udp_recvdevice_sock,SOL_SOCKET,SO_RCVTIMEO,(char *)&timeout,sizeof(struct timeval));
+	memset((char*)&udp_my_addr,0,sizeof(udp_my_addr));
+	udp_my_addr.sin_family = AF_INET;
+	udp_my_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+	udp_my_addr.sin_port = htons(recv_unicast_port);
+	if(bind(udp_recvdevice_sock,(struct sockaddr *)&udp_my_addr,sizeof(udp_my_addr)) < 0)
 	{
 		logger->log_error("Failed to bind recv socket. Exiting.");
 		return false;
@@ -373,25 +379,48 @@ bool initialize_recvsocket()
 
 	return true;
 }
-bool initialize_sendsocket()
+bool initialize_udp_sendsocket()
 {
-	memset(&senddevice_addr, 0, sizeof(senddevice_addr));
-	senddevice_addr.sin_family=AF_INET;
+	memset(&udp_senddevice_addr, 0, sizeof(udp_senddevice_addr));
+	udp_senddevice_addr.sin_family=AF_INET;
 	//Create the socket
-	if((senddevice_sock=socket(AF_INET, SOCK_DGRAM, 0))<0)
+	if((udp_senddevice_sock=socket(AF_INET, SOCK_DGRAM, 0))<0)
 	{
 		logger->log_error("Failed to create send socket. Exiting.");
 		return false;
 	}
 
-	if(bind(senddevice_sock,( struct sockaddr *) &senddevice_addr, sizeof(senddevice_addr))<0)
+	if(bind(udp_senddevice_sock,( struct sockaddr *) &udp_senddevice_addr, sizeof(udp_senddevice_addr))<0)
 	{
 		logger->log_error("Failed to bind send socket. Exiting.");
 		return false;
 	}
-	inet_pton(AF_INET,send_multicast_group.c_str(),&senddevice_addr.sin_addr.s_addr);
-	senddevice_addr.sin_port=htons(send_multicast_port);
+	inet_pton(AF_INET,send_multicast_group.c_str(),&udp_senddevice_addr.sin_addr.s_addr);
+	udp_senddevice_addr.sin_port=htons(send_multicast_port);
 	return true;
+}
+bool initialize_tcp_socket()
+{
+    struct sockaddr_in serv_addr;
+    tcp_device_sock = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0);
+    if (tcp_device_sock < 0) 
+    {
+        logger->log_error("Couldn't open TCP Socket.");
+        return false;
+    }
+    //fcntl(tcp_device_sock, F_SETFL, O_NONBLOCK)
+    bzero((char *) &serv_addr, sizeof(serv_addr));
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_addr.s_addr = INADDR_ANY;
+    serv_addr.sin_port = htons(45452);
+    if (bind(tcp_device_sock, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0)
+    {
+          logger->log_error("Couldn't bind TCP Socket.");
+          return false;
+    }
+    listen(tcp_device_sock,5);
+    clilen = sizeof(cli_addr);
+    return true;
 }
 bool run_fastrate_code()
 {
@@ -404,6 +433,26 @@ bool run_fastrate_code()
 	{
 		ready_to_arm = false;
 	}
+    int newsockfd,pid;
+    newsockfd = accept(tcp_device_sock,(struct sockaddr *) &cli_addr, &clilen);
+    if (newsockfd < 0) 
+    {
+        logger->log_error("Could not accept new TCP Connection.");
+    }
+    pid = fork();
+    if (pid < 0)
+    {
+        logger->log_error("Could not fork new TCP Process.");
+    }
+    if (pid == 0)  
+    {
+        close(tcp_device_sock);
+        tcpprocess(newsockfd);
+    }
+    else 
+    {
+        close(newsockfd);
+    }
 	std_msgs::Bool bool_ready_to_arm;
 	bool_ready_to_arm.data = ready_to_arm;
 	ready_to_arm_pub.publish(bool_ready_to_arm);
@@ -589,8 +638,8 @@ int main(int argc, char **argv)
 		loop_rate.sleep();
     }
     process_udpreceive_thread.join();
-    close(recvdevice_sock);
-    close(senddevice_sock);
+    close(udp_recvdevice_sock);
+    close(udp_senddevice_sock);
     logger->log_notice("Node Finished Safely.");
     return 0;
 }
@@ -680,16 +729,21 @@ bool initializenode()
 		logger->log_warn("Missing Parameter: Recv_Unicast_Port. Exiting.");
 		return false;
 	}
-   	if(initialize_sendsocket() == false)
+   	if(initialize_udp_sendsocket() == false)
    	{
-   		logger->log_error("Couldn't initialize send socket.  Exiting.");
+   		logger->log_error("Couldn't initialize UDP send socket.  Exiting.");
    		return false;
    	}
-   	if(initialize_recvsocket() == false)
+   	if(initialize_udp_recvsocket() == false)
 	{
-		logger->log_error("Couldn't initialize recv socket.  Exiting.");
+		logger->log_error("Couldn't initialize UDP recv socket.  Exiting.");
 		return false;
 	}
+    if(initialize_tcp_socket() == false)
+    {
+        logger->log_error("Couldn't initialize TCP socket.  Exiting.");
+        return false;
+    }
    	std::string param_Mode = node_name +"/Mode";
 	if(n->getParam(param_Mode,Mode) == false)
 	{
