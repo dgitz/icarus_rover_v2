@@ -27,7 +27,7 @@
 //Start User Code: Includes
 #include "sensor_msgs/Joy.h"
 #include "std_msgs/UInt8.h"
-#include "udpmessage.h"
+#include "ipmessage.h"
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -115,10 +115,19 @@ struct RemoteDevice
 	double offset_sec;
 
 };
+struct ImageInfo
+{
+    bool image_ready;
+    cv::Mat image;
+    uint32_t width;
+    uint32_t height;
+    std::string name;
+    uint8_t encoding;
+};
 bool remote_heartbeat_pass;
 bool ready_to_arm;
 boost::shared_ptr<ros::NodeHandle> n;
-UDPMessageHandler *udpmessagehandler;
+IPMessageHandler *ipmessagehandler;
 struct sockaddr_in udp_senddevice_addr;
 struct sockaddr_in udp_my_addr;
 struct sockaddr_in udp_remote_addr;
@@ -146,5 +155,9 @@ ros::Publisher ready_to_arm_pub;
 std::vector<RemoteDevice> remote_devices;
 std::vector<std::string> image_topics;
 std::vector<ros::Subscriber> image_subs;
+std::vector<int> tcpprocesses_to_close;
+cv::Mat image_to_send;
+bool image_ready;
+std::vector<ImageInfo> image_streams;
 //End User Code: Define Global Variables
 #endif

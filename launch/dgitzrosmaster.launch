@@ -14,6 +14,8 @@
         <param name="Recv_Unicast_Port"          value="5678"/>
         <param name="Mode"                  value="DriverStation"/> <!--Diagnostics_GUI, DriverStation-->
         <param name="image1"                value="/dgitzrosmaster_cameracapture_node/raw_image"/>
+        <param name="image1_width"          value="200" />
+        <param name="image1_height"         value="200" />
     </node>
     <node name="$(env ROS_HOSTNAME)_command_node" pkg="icarus_rover_v2" type="command_node"  output="screen" clear_params="true">
         <param name="loop_rate"             value="500"/>

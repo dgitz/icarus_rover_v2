@@ -1,8 +1,8 @@
 #include "network_transceiver_node.h"
 //Start User Code: Firmware Definition
 #define NETWORKTRANSCEIVERNODE_MAJOR_RELEASE 2
-#define NETWORKTRANSCEIVERNODE_MINOR_RELEASE 1
-#define NETWORKTRANSCEIVERNODE_BUILD_NUMBER 2
+#define NETWORKTRANSCEIVERNODE_MINOR_RELEASE 2
+#define NETWORKTRANSCEIVERNODE_BUILD_NUMBER 0
 //End User Code: Firmware Definition
 //Start User Code: Functions
 bool check_remoteHeartbeats()
@@ -139,21 +139,25 @@ void image_Callback(const sensor_msgs::Image::ConstPtr& msg)
 	cv_bridge::CvImagePtr cv_ptr;
 	cv_ptr = cv_bridge::toCvCopy(msg,sensor_msgs::image_encodings::BGR8);
 	cv::resize(cv_ptr->image,cv_ptr->image,cv::Size(200,200),0,0,cv::INTER_LINEAR);
-	cv::Mat gray;
-	cv::cvtColor(cv_ptr->image,gray,CV_BGR2GRAY);
-	std::string send_string = udpmessagehandler->encode_ImageUDP("abcd",200,200,gray);
-//	int state = sendto(udp_senddevice_sock, send_string.c_str(),send_string.length(), 0, (struct sockaddr *)&udp_senddevice_addr,sizeof(udp_senddevice_addr));
+	//image_ready = false;
+	image_ready = false;
+	cv::cvtColor(cv_ptr->image,image_to_send,CV_BGR2GRAY);
+	image_ready = true;
+	//image_ready = true;
+	/*
+	std::string send_string = ipmessagehandler->encode_ImageUDP("abcd",200,200,gray);
 	if(sendto(udp_senddevice_sock, send_string.c_str(), send_string.size(), 0, (struct sockaddr *)&udp_senddevice_addr, sizeof(udp_senddevice_addr))!=send_string.size())
 	{
 		logger->log_warn("Mismatch in number of bytes sent");
 
 	}
+	*/
 
 
 }
 void ArmedState_Callback(const std_msgs::UInt8::ConstPtr& msg)
 {
-	std::string send_string = udpmessagehandler->encode_Arm_StatusUDP(msg->data);
+	std::string send_string = ipmessagehandler->encode_Arm_StatusUDP(msg->data);
 	if(sendto(udp_senddevice_sock, send_string.c_str(), send_string.size(), 0, (struct sockaddr *)&udp_senddevice_addr, sizeof(udp_senddevice_addr))!=send_string.size())
 	{
 		logger->log_warn("Mismatch in number of bytes sent");
@@ -162,16 +166,49 @@ void ArmedState_Callback(const std_msgs::UInt8::ConstPtr& msg)
 }
 void tcpprocess(int v)
 {
-    char tempstr[256];
-    sprintf(tempstr,"Starting TCP Process with Socked ID: %d",v);
-    logger->log_info(std::string(tempstr));
+	{
+		char tempstr[256];
+		sprintf(tempstr,"Starting TCP Process with Socked ID: %d",v);
+		logger->log_info(std::string(tempstr));
+	}
+    bool socket_open = true;
+    while(socket_open)
+    {
+    	//printf("Sending data\n");
+    	if(image_ready == true)
+    	{
+            
+    		std::string send_string = ipmessagehandler->encode_ImageTCP("abcd",200,200,IMAGEENCODING_GRAY_8BIT,image_to_send);
+    		int n = write(v,send_string.c_str(),send_string.size());
+    		printf("Sent: %d bytes\n",n);
+    		if(n < 0)
+    		{
+    			socket_open = false;
+    		}
+            
+    		sleep(1);
+            
+    	}
+
+
+    	/*
+    	int n = write(v,"Hello",5);
+
+    	*/
+    }
+    {
+    	char tempstr[256];
+    	sprintf(tempstr,"Closing TCP Process with Socked ID: %d",v);
+    	logger->log_info(std::string(tempstr));
+    }
+    close(v);
 }
 void diagnostic_Callback(const icarus_rover_v2::diagnostic::ConstPtr& msg)
 {
 	char tempstr[255];
 	sprintf(tempstr,"Got Diagnostic from Task: %s with System: %d Level: %d",msg->Node_Name.c_str(),msg->Level,msg->System);
 	logger->log_info(tempstr);
-	std::string send_string = udpmessagehandler->encode_DiagnosticUDP(
+	std::string send_string = ipmessagehandler->encode_DiagnosticUDP(
 																		msg->DeviceName,
 																		msg->Node_Name,
 																(uint8_t)msg->System,
@@ -192,7 +229,7 @@ void resource_Callback(const icarus_rover_v2::resource::ConstPtr& msg)
 	char tempstr[240];
 	sprintf(tempstr,"Got Resource from Task: %s",msg->Node_Name.c_str());
 	logger->log_info(tempstr);
-	std::string send_string = udpmessagehandler->encode_ResourceUDP(msg->Node_Name,
+	std::string send_string = ipmessagehandler->encode_ResourceUDP(msg->Node_Name,
 																	msg->RAM_MB,
 																	msg->CPU_Perc);
 	if(sendto(udp_senddevice_sock, send_string.c_str(), send_string.size(), 0, (struct sockaddr *)&udp_senddevice_addr, sizeof(udp_senddevice_addr))!=send_string.size())
@@ -206,7 +243,7 @@ void device_Callback(const icarus_rover_v2::device::ConstPtr& msg)
 	char tempstr[240];
 	sprintf(tempstr,"Got Device from Task: %s",msg->DeviceName.c_str());
 	logger->log_info(tempstr);
-	std::string send_string = udpmessagehandler->encode_DeviceUDP(msg->DeviceParent,
+	std::string send_string = ipmessagehandler->encode_DeviceUDP(msg->DeviceParent,
 																msg->DeviceName,
 																msg->DeviceType,
 																msg->Architecture);
@@ -244,8 +281,8 @@ void process_udp_receive()
 		switch (id)
 		{
 			printf("Got ID: %d\n",id);
-			case UDPMessageHandler::UDP_Arm_Command_ID:
-				success = udpmessagehandler->decode_Arm_CommandUDP(items,&armcommand);
+			case IPMessageHandler::UDP_Arm_Command_ID:
+				success = ipmessagehandler->decode_Arm_CommandUDP(items,&armcommand);
 				if(success == 1)
 				{
 					std_msgs::UInt8 int_arm_command;
@@ -257,8 +294,8 @@ void process_udp_receive()
 					printf("Couldn't decode message.\n");
 				}
 				break;
-			case UDPMessageHandler::UDP_Heartbeat_ID:
-				success = udpmessagehandler->decode_HeartbeatUDP(items,&tempstr1,&t,&t2);
+			case IPMessageHandler::UDP_Heartbeat_ID:
+				success = ipmessagehandler->decode_HeartbeatUDP(items,&tempstr1,&t,&t2);
 				if(success == 1)
 				{
 					//printf("Dev: %s current t: %llu expected t: %llu\n",tempstr1.c_str(),t,t2);
@@ -289,9 +326,9 @@ void process_udp_receive()
 					printf("Couldn't decode message.\n");
 				}
 				break;
-			case UDPMessageHandler::UDP_RemoteControl_ID:
+			case IPMessageHandler::UDP_RemoteControl_ID:
 
-				success = udpmessagehandler->decode_RemoteControlUDP(items,&axis1,&axis2,&axis3,&axis4,&axis5,&axis6,&axis7,&axis8,
+				success = ipmessagehandler->decode_RemoteControlUDP(items,&axis1,&axis2,&axis3,&axis4,&axis5,&axis6,&axis7,&axis8,
 																	&button1,&button2,&button3,&button4,&button5,&button6,&button7,&button8);
 				if(success == 1)
 				{
@@ -321,8 +358,8 @@ void process_udp_receive()
 					printf("Couldn't decode message.\n");
 				}
 				break;
-			case UDPMessageHandler::UDP_ArmControl_ID:
-				success = udpmessagehandler->decode_ArmControlUDP(items,&device,&axis1,&axis2,&axis3,&axis4,&axis5,&axis6,
+			case IPMessageHandler::UDP_ArmControl_ID:
+				success = ipmessagehandler->decode_ArmControlUDP(items,&device,&axis1,&axis2,&axis3,&axis4,&axis5,&axis6,
 						&button1,&button2,&button3,&button4,&button5,&button6);
 				if(success == 1)
 				{
@@ -401,6 +438,7 @@ bool initialize_udp_sendsocket()
 }
 bool initialize_tcp_socket()
 {
+	signal(SIGCHLD,SIG_IGN);
     struct sockaddr_in serv_addr;
     tcp_device_sock = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0);
     if (tcp_device_sock < 0) 
@@ -433,26 +471,7 @@ bool run_fastrate_code()
 	{
 		ready_to_arm = false;
 	}
-    int newsockfd,pid;
-    newsockfd = accept(tcp_device_sock,(struct sockaddr *) &cli_addr, &clilen);
-    if (newsockfd < 0) 
-    {
-        logger->log_error("Could not accept new TCP Connection.");
-    }
-    pid = fork();
-    if (pid < 0)
-    {
-        logger->log_error("Could not fork new TCP Process.");
-    }
-    if (pid == 0)  
-    {
-        close(tcp_device_sock);
-        tcpprocess(newsockfd);
-    }
-    else 
-    {
-        close(newsockfd);
-    }
+
 	std_msgs::Bool bool_ready_to_arm;
 	bool_ready_to_arm.data = ready_to_arm;
 	ready_to_arm_pub.publish(bool_ready_to_arm);
@@ -474,6 +493,34 @@ bool run_mediumrate_code()
 }
 bool run_slowrate_code()
 {
+	int newsockfd,pid;
+	newsockfd = accept(tcp_device_sock,(struct sockaddr *) &cli_addr, &clilen);
+	if (newsockfd < 0)
+	{
+		//logger->log_warn("Could not accept new TCP Connection.");
+	}
+	else
+	{
+		logger->log_info("Created TCP Socket.");
+		pid = fork();
+		if(pid > 0)
+		{
+			tcpprocesses_to_close.push_back(pid);
+		}
+		if (pid < 0)
+		{
+			logger->log_error("Could not fork new TCP Process.");
+		}
+		if (pid == 0)
+		{
+			close(tcp_device_sock);
+			tcpprocess(newsockfd);
+		}
+		else
+		{
+			close(newsockfd);
+		}
+	}
 
 	if(device_initialized == true)
 	{
@@ -509,7 +556,7 @@ bool run_veryslowrate_code()
 	icarus_rover_v2::firmware fw;
 	fw.Generic_Node_Name = "network_transceiver_Node";
 	fw.Node_Name = node_name;
-	fw.Description = "Latest Rev: 30-Nov-2016";
+	fw.Description = "Latest Rev: 8-March-2017";
 	fw.Major_Release = NETWORKTRANSCEIVERNODE_MAJOR_RELEASE;
 	fw.Minor_Release = NETWORKTRANSCEIVERNODE_MINOR_RELEASE;
 	fw.Build_Number = NETWORKTRANSCEIVERNODE_BUILD_NUMBER;
@@ -640,6 +687,10 @@ int main(int argc, char **argv)
     process_udpreceive_thread.join();
     close(udp_recvdevice_sock);
     close(udp_senddevice_sock);
+    for(int i = 0; i < tcpprocesses_to_close.size(); i++)
+    {
+    	kill(tcpprocesses_to_close.at(i),SIGKILL);
+    }
     logger->log_notice("Node Finished Safely.");
     return 0;
 }
@@ -775,13 +826,32 @@ bool initializenode()
 	{
 		logger->log_warn("Missing Parameter: image1.");
 	}
-	else
+    std::string image_width;
+    std::string param_imagewidth = node_name +"/image1_width";
+	if(n->getParam(param_imagewidth,image_width) == false)
 	{
-		printf("image topic: %s\n",image_topic.c_str());
+		logger->log_warn("Missing Parameter: image1_width.");
 	}
+    std::string image_height;
+    std::string param_imageheight = node_name +"/image1_height";
+	if(n->getParam(param_imageheight,image_height) == false)
+	{
+		logger->log_warn("Missing Parameter: image1_height.");
+	}
+    ImageInfo image_stream;
+    image_stream.image_ready = false;
+    image_stream.width = atoi(image_width.c_str());
+    image_stream.height = atoi(image_height.c_str());
+    image_stream.name = image_topic;
+    image_stream.encoding = IMAGEENCODING_GRAY_8BIT;
+    cv::Mat1f m(image_stream.height,image_stream.width);
+    image_stream.image = m;
+    image_streams.push_back(image_stream);
+    
 	ros::Subscriber image_sub;
 	image_sub = n->subscribe<sensor_msgs::Image>(image_topic,1,image_Callback);
 	image_subs.push_back(image_sub);
+	image_ready = false;
     //Finish User Code: Initialization and Parameters
 
     //Start Template Code: Final Initialization.
