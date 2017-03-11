@@ -141,7 +141,8 @@ void image_Callback(const sensor_msgs::Image::ConstPtr& msg)
 	cv::resize(cv_ptr->image,cv_ptr->image,cv::Size(200,200),0,0,cv::INTER_LINEAR);
 	//image_ready = false;
 	image_ready = false;
-	cv::cvtColor(cv_ptr->image,image_to_send,CV_BGR2GRAY);
+	//cv::cvtColor(cv_ptr->image,image_to_send,CV_BGR2GRAY);
+	image_to_send = cv::imread("/home/robot/Desktop/checkerboard.png",CV_LOAD_IMAGE_GRAYSCALE);
 	image_ready = true;
 	//image_ready = true;
 	/*
@@ -177,8 +178,7 @@ void tcpprocess(int v)
     	//printf("Sending data\n");
     	if(image_ready == true)
     	{
-            
-    		std::string send_string = ipmessagehandler->encode_ImageTCP("abcd",200,200,IMAGEENCODING_GRAY_8BIT,image_to_send);
+    		std::string send_string = ipmessagehandler->encode_ImageTCP("abcd",1024,1024,IMAGEENCODING_GRAY_8BIT,image_to_send);
     		int n = write(v,send_string.c_str(),send_string.size());
     		printf("Sent: %d bytes\n",n);
     		if(n < 0)
@@ -186,7 +186,7 @@ void tcpprocess(int v)
     			socket_open = false;
     		}
             
-    		sleep(1);
+    		sleep(10);
             
     	}
 
