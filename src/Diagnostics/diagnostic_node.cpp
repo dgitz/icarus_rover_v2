@@ -326,6 +326,16 @@ bool check_tasks()
 		sprintf(tempstr,"%d/%d (All) Tasks Operational.",task_ok_counter,TasksToCheck.size());
         
 		logger->log_info(tempstr);
+		icarus_rover_v2::diagnostic system_diag;
+		system_diag.Node_Name = node_name;
+		system_diag.System = ROVER;
+		system_diag.SubSystem = ENTIRE_SUBSYSTEM;
+		system_diag.Component = DIAGNOSTIC_NODE;
+		system_diag.Diagnostic_Message = NOERROR;
+		system_diag.Diagnostic_Type = NOERROR;
+		system_diag.Level = NOTICE;
+		system_diag.Description = "System is Operational.";
+		diagnostic_pub.publish(system_diag);
 	}
 	else
 	{

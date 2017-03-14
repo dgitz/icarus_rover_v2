@@ -261,5 +261,8 @@ target_link_libraries(powermonitor_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} $
 catkin_add_gtest(test_powermonitor_node_process src/Control/unit_tests/test_powermonitor_node_process.cpp)
 target_link_libraries(test_powermonitor_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} powermonitor_node_process logger)
 
+add_executable(lcdmodule_node src/Diagnostics/lcdmodule_node.cpp)
+target_link_libraries(lcdmodule_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} logger resourcemonitor)
+
 
 
