@@ -1065,6 +1065,18 @@ bool BoardControllerNodeProcess::configure_port(int ShieldID,std::vector<icarus_
 	}
 	return status;
 }
+int BoardControllerNodeProcess::get_portcount(int ShieldID)
+{
+    int count = 0;
+    for(int i = 0; i < myports.size(); i++)
+    {
+        if(myports.at(i).ShieldID == ShieldID)
+        {
+            count++;
+        }
+    }
+    return count;
+}
 std::vector<int> BoardControllerNodeProcess::get_portlist(int ShieldID)
 {
 	std::vector<int> portlist;

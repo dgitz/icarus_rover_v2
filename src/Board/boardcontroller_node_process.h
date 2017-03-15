@@ -93,6 +93,7 @@ public:
 	icarus_rover_v2::device get_mydevice() { return mydevice; }
 	std::vector<icarus_rover_v2::device> get_myshields() { return myshields; }
 	std::vector<int> get_portlist(int ShieldID);
+    int get_portcount(int ShieldID);
 	bool is_finished_initializing(){ return all_device_info_received; }
 	bool initialize_Ports();
     bool get_ready_to_arm() { return ready_to_arm; }
