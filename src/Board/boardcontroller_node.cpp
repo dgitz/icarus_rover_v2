@@ -113,7 +113,7 @@ void process_message_thread(UsbDevice* dev)
 						BoardControllerNodeProcess newprocess(dev->location,id);
 						char tempstr[255];
 						sprintf(tempstr,"Creating Board Process for board id: %d usb/serial device index: %d",rx_buffer[4],dev->index);
-						logger->log_info(tempstr);
+						//logger->log_info(tempstr);
 						diagnostic_status = newprocess.init(diagnostic_status,std::string(hostname),dev->index);
 						boardprocesses.push_back(newprocess);
 						dev->boardcontrollernode_id = boardprocesses.size()-1;
