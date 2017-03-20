@@ -1,5 +1,5 @@
 #/***************AUTO-GENERATED.  DO NOT EDIT********************/
-#/***Created on:2017-01-27 18:09:31.157893***/
+#/***Created on:2017-03-16 08:37:14.610000***/
 from eROS_Definitions import *
 
 #Armed State Definitions
