@@ -12,6 +12,7 @@
 #include <icarus_rover_v2/resource.h>
 #include <icarus_rover_v2/diagnostic.h>
 #include <numeric>
+#include <boost/algorithm/string/replace.hpp>
 
 #define SHORTTERM_BUFFER_SIZE 10
 #define LONGTERM_BUFFER_MINSIZE 30

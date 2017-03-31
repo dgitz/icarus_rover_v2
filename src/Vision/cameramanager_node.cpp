@@ -2,12 +2,12 @@
 //Start User Code: Firmware Definition
 #define CAMERAMANAGERNODE_MAJOR_RELEASE 1
 #define CAMERAMANAGERNODE_MINOR_RELEASE 2
-#define CAMERAMANAGERNODE_BUILD_NUMBER 2
+#define CAMERAMANAGERNODE_BUILD_NUMBER 3
 //End User Code: Firmware Definition
 //Start User Code: Functions
 icarus_rover_v2::diagnostic publish_tf_frames(icarus_rover_v2::diagnostic diag)
 {
-	static tf::TransformBroadcaster br;
+	/*static tf::TransformBroadcaster br;
 
 	tf::Transform transform_mapodom;
 	transform_mapodom.setOrigin(tf::Vector3(0.0,0.0,0.0));
@@ -23,10 +23,11 @@ icarus_rover_v2::diagnostic publish_tf_frames(icarus_rover_v2::diagnostic diag)
 	q_cam1.setRPY(0,0,0);
 	transform_cam1.setRotation(q_cam1);
 	br.sendTransform(tf::StampedTransform(transform_cam1, ros::Time::now(), "base_link", "asusxtioncamera_link"));
+	*/
 	diag.Diagnostic_Type = SOFTWARE;
-	diag.Diagnostic_Message = NOERROR;
-	diag.Level = INFO;
-	diag.Description = "Broadcasting tf frames.";
+	diag.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
+	diag.Level = ERROR;
+	diag.Description = "Trying to broadcast tf frames but not enabled.";
 	return diag;
 }
 bool run_fastrate_code()
@@ -39,7 +40,7 @@ bool run_mediumrate_code()
 	//logger->log_debug("Running medium rate code.");
 	beat.stamp = ros::Time::now();
 	heartbeat_pub.publish(beat);
-	diagnostic_status = publish_tf_frames(diagnostic_status);
+	//diagnostic_status = publish_tf_frames(diagnostic_status);
 	diagnostic_pub.publish(diagnostic_status);
 	diagnostic_status.Diagnostic_Type = SOFTWARE;
 	diagnostic_status.Level = INFO;
@@ -50,6 +51,7 @@ bool run_mediumrate_code()
 	{
 		icarus_rover_v2::heartbeat newbeat;
 		newbeat.stamp = ros::Time::now();
+		newbeat.Node_Name = external_tasks.at(i).TaskName;
 		external_tasks.at(i).heartbeat_pub.publish(newbeat);
 	}
 	//logger->log_debug("Running medium rate code.");
@@ -114,7 +116,7 @@ bool run_veryslowrate_code()
 	icarus_rover_v2::firmware fw;
 	fw.Generic_Node_Name = "cameramanager_node";
 	fw.Node_Name = node_name;
-	fw.Description = "Latest Rev: 30-Nov-2016";
+	fw.Description = "Latest Rev: 4-Dec-2016";
 	fw.Major_Release = CAMERAMANAGERNODE_MAJOR_RELEASE;
 	fw.Minor_Release = CAMERAMANAGERNODE_MINOR_RELEASE;
 	fw.Build_Number = CAMERAMANAGERNODE_BUILD_NUMBER;
@@ -311,6 +313,8 @@ bool initialize(ros::NodeHandle nh)
     //Start User Code: Initialization and Parameters
 	bool search_for_topics = true;
 	int topicindex = 1;
+	ros::V_string nodelist;
+	ros::master::getNodes(nodelist);
 	while(search_for_topics == true)
 	{
 		std::string taskname;
@@ -326,33 +330,74 @@ bool initialize(ros::NodeHandle nh)
 		}
 		else
 		{
+			//boost::replace_all(taskname, "/", "-");
 			printf("Found: %s\n",taskname.c_str());
 			add_new_topic = true;
 			search_for_topics = true;
 		}
 		if(add_new_topic == true)
 		{
-			CameraTask newcameratask;
-			newcameratask.TaskName = taskname;
-			std::string topic_cameratask_resource = "/" + newcameratask.TaskName + "/resource";
-			ros::Publisher r_pub = nh.advertise<icarus_rover_v2::resource>(topic_cameratask_resource,1000);
-			newcameratask.resource_pub = r_pub;
-			std::string topic_cameratask_diagnostic = "/" + newcameratask.TaskName + "/diagnostic";
-			ros::Publisher d_pub = nh.advertise<icarus_rover_v2::diagnostic>(topic_cameratask_diagnostic,1000);
-			std::string topic_cameratask_heartbeat = "/" + newcameratask.TaskName + "/heartbeat";
-			ros::Publisher h_pub = nh.advertise<icarus_rover_v2::heartbeat>(topic_cameratask_heartbeat,1000);
-			newcameratask.diagnostic_pub = d_pub;
-			newcameratask.heartbeat_pub = h_pub;
-			newcameratask.diagnostic = diagnostic_status;
-			newcameratask.diagnostic.Node_Name = newcameratask.TaskName;
-			newcameratask.diagnostic.Description = "External Task Initializing";
-			external_tasks.push_back(newcameratask);
+			std::size_t asterick_found = taskname.find("*");
+			if (asterick_found==std::string::npos)
+			{
+				printf("Task: %s\n",taskname.c_str());
+
+				CameraTask newcameratask;
+				newcameratask.TaskName = taskname;
+				std::string topic_cameratask_resource = "/" + newcameratask.TaskName + "/resource";
+				ros::Publisher r_pub = nh.advertise<icarus_rover_v2::resource>(topic_cameratask_resource,1000);
+				newcameratask.resource_pub = r_pub;
+				std::string topic_cameratask_diagnostic = "/" + newcameratask.TaskName + "/diagnostic";
+				ros::Publisher d_pub = nh.advertise<icarus_rover_v2::diagnostic>(topic_cameratask_diagnostic,1000);
+				std::string topic_cameratask_heartbeat = "/" + newcameratask.TaskName + "/heartbeat";
+				ros::Publisher h_pub = nh.advertise<icarus_rover_v2::heartbeat>(topic_cameratask_heartbeat,1000);
+				newcameratask.diagnostic_pub = d_pub;
+				newcameratask.heartbeat_pub = h_pub;
+				newcameratask.diagnostic = diagnostic_status;
+				newcameratask.diagnostic.Node_Name = newcameratask.TaskName;
+				newcameratask.diagnostic.Description = "External Task Initializing";
+				external_tasks.push_back(newcameratask);
+			}
+			else
+			{
+
+				std::string start = taskname.substr(0,asterick_found);
+				std::string end = taskname.substr(asterick_found,taskname.length());
+
+				if(end.length() > 1) //This should only be an "*" for now
+				{
+					char tempstr[255];
+					sprintf(tempstr,"Task: %s with wildcard not supported.  Wildcard must be at end of name.  Exiting.",taskname.c_str());
+					logger->log_error(tempstr);
+					kill_node = 1;
+					return false;
+				}
+				std::vector<std::string> extratasks;
+				for(int i = 0; i < nodelist.size();i++)
+				{
+					std::size_t foundtask = nodelist.at(i).find(start);
+					if(foundtask != std::string::npos)
+					{
+						CameraTask newcameratask;
+						newcameratask.TaskName = nodelist.at(i);
+						std::string topic_cameratask_resource = "/" + newcameratask.TaskName + "/resource";
+						ros::Publisher r_pub = nh.advertise<icarus_rover_v2::resource>(topic_cameratask_resource,1000);
+						newcameratask.resource_pub = r_pub;
+						std::string topic_cameratask_diagnostic = "/" + newcameratask.TaskName + "/diagnostic";
+						ros::Publisher d_pub = nh.advertise<icarus_rover_v2::diagnostic>(topic_cameratask_diagnostic,1000);
+						std::string topic_cameratask_heartbeat = "/" + newcameratask.TaskName + "/heartbeat";
+						ros::Publisher h_pub = nh.advertise<icarus_rover_v2::heartbeat>(topic_cameratask_heartbeat,1000);
+						newcameratask.diagnostic_pub = d_pub;
+						newcameratask.heartbeat_pub = h_pub;
+						newcameratask.diagnostic = diagnostic_status;
+						newcameratask.diagnostic.Node_Name = newcameratask.TaskName;
+						newcameratask.diagnostic.Description = "External Task Initializing";
+						external_tasks.push_back(newcameratask);
+					}
+				}
+			}
 			topicindex++;
 		}
-	}
-	for(int i = 0; i < external_tasks.size();i++)
-	{
-		printf("Task: %s\n",external_tasks.at(i).TaskName.c_str());
 	}
     //Finish User Code: Initialization and Parameters
 

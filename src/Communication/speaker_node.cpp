@@ -1,10 +1,11 @@
 #include "speaker_node.h"
 //Start User Code: Firmware Definition
-#define SPEAKERNODE_MAJOR_RELEASE 1
-#define SPEAKERNODE_MINOR_RELEASE 2
-#define SPEAKERNODE_BUILD_NUMBER 3
+#define SPEAKERNODE_MAJOR_RELEASE 2
+#define SPEAKERNODE_MINOR_RELEASE 0
+#define SPEAKERNODE_BUILD_NUMBER 0
 //End User Code: Firmware Definition
 //Start User Code: Functions
+/*
 bool speak(std::string s,bool mode)
 {
 	double runtime = measure_time_diff(ros::Time::now(),boot_time);
@@ -36,6 +37,18 @@ bool speak(std::string s,bool mode)
 	}
 	return true;
 }
+*/
+void UserMessage_Callback(const icarus_rover_v2::usermessage::ConstPtr& msg)
+{
+	icarus_rover_v2::usermessage usermsg;
+	usermsg.Level = msg->Level;
+	usermsg.message = msg->message;
+	diagnostic_status = speakernodeprocess->new_usermessage(usermsg);
+	if(diagnostic_status.Level > NOTICE)
+	{
+		diagnostic_pub.publish(diagnostic_status);
+	}
+}
 void diagnostic_Callback(const icarus_rover_v2::diagnostic::ConstPtr& msg)
 {
 	if(msg->Level > NOTICE)
@@ -65,13 +78,26 @@ void diagnostic_Callback(const icarus_rover_v2::diagnostic::ConstPtr& msg)
 		tempstr += tempstr2;
 		tempstr += " is ";
 		tempstr += msg->Description;
-		speak(tempstr,true);
+		//speak(tempstr,true);
 
 	}
 }
 
 bool run_fastrate_code()
 {
+	diagnostic_status = speakernodeprocess->update(.02);
+	if(diagnostic_status.Level > NOTICE)
+	{
+		diagnostic_pub.publish(diagnostic_status);
+	}
+	if(speakernodeprocess->readytospeak() == true)
+	{
+		std::string speechout = speakernodeprocess->get_speechoutput();
+		sc->say(speechout);
+		char tempstr[512];
+		sprintf(tempstr,"Saying: %s",speechout.c_str());
+		logger->log_debug(tempstr);
+	}
 	//logger->log_debug("Running fast rate code.");
 	return true;
 }
@@ -80,7 +106,7 @@ bool run_mediumrate_code()
 	beat.stamp = ros::Time::now();
 	heartbeat_pub.publish(beat);
 
-	speak("",false);
+	//speak("",false);
 	diagnostic_status.Diagnostic_Type = SOFTWARE;
 	diagnostic_status.Level = INFO;
 	diagnostic_status.Diagnostic_Message = NOERROR;
@@ -91,9 +117,9 @@ bool run_mediumrate_code()
 bool run_slowrate_code()
 {
 
-	char tempstr[255];
-	sprintf(tempstr,"Speech Buffer Length: %d",speechbuffer.size());
-	logger->log_info(tempstr);
+	//char tempstr[255];
+	//sprintf(tempstr,"Speech Buffer Length: %d",speechbuffer.size());
+	//logger->log_info(tempstr);
 	if(device_initialized == true)
 	{
 		icarus_rover_v2::diagnostic resource_diagnostic;
@@ -127,7 +153,7 @@ bool run_veryslowrate_code()
 	icarus_rover_v2::firmware fw;
 	fw.Generic_Node_Name = "speaker_node";
 	fw.Node_Name = node_name;
-	fw.Description = "Latest Rev: 30-Nov-2016";
+	fw.Description = "Latest Rev: 11-Jan-2017";
 	fw.Major_Release = SPEAKERNODE_MAJOR_RELEASE;
 	fw.Minor_Release = SPEAKERNODE_MINOR_RELEASE;
 	fw.Build_Number = SPEAKERNODE_BUILD_NUMBER;
@@ -322,7 +348,11 @@ bool initialize(ros::NodeHandle nh)
     //End Template Code: Initialization and Parameters
 
     //Start User Code: Initialization and Parameters
-    //sleep(3.0);  //Have to wait for all other nodes to start before doing a mass subscribe
+    device_initialized = false;
+    speakernodeprocess = new SpeakerNodeProcess;
+    UserMessage_sub = nh.subscribe<icarus_rover_v2::usermessage>("/usermessage",10,UserMessage_Callback);
+/*
+    sleep(13.0);  //Have to wait for all other nodes to start before doing a mass subscribe
     std::string param_initial_speech_wait = node_name +"/initial_speech_wait";
     if(nh.getParam(param_initial_speech_wait,initial_speech_wait) == false)
     {
@@ -331,6 +361,7 @@ bool initialize(ros::NodeHandle nh)
     }
 
     last_time_speech_ended = ros::Time::now();
+    */
     sc.reset(new sound_play::SoundClient());
     std::vector<std::string> diagnostic_topics;
     ros::master::V_TopicInfo master_topics;
@@ -383,13 +414,19 @@ void PPS_Callback(const std_msgs::Bool::ConstPtr& msg)
 void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg)
 {
 	icarus_rover_v2::device newdevice;
+	newdevice.DeviceParent = msg->DeviceParent;
+	newdevice.DeviceType = msg->DeviceType;
+	newdevice.Capabilities = msg->Capabilities;
+	newdevice.ID = msg->ID;
 	newdevice.DeviceName = msg->DeviceName;
 	newdevice.Architecture = msg->Architecture;
-
-	if((newdevice.DeviceName == hostname) && (device_initialized == false))
+	diagnostic_status = speakernodeprocess->new_devicemsg(newdevice);
+	if((device_initialized == false) and (speakernodeprocess->is_finished_initializing() == true))
 	{
-		myDevice = newdevice;
-		resourcemonitor = new ResourceMonitor(diagnostic_status,myDevice.Architecture,myDevice.DeviceName,node_name);
+
+		resourcemonitor = new ResourceMonitor(diagnostic_status,speakernodeprocess->get_mydevice().Architecture,
+																speakernodeprocess->get_mydevice().DeviceName,
+																node_name);
 		device_initialized = true;
 	}
 }

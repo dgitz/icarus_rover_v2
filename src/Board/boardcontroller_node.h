@@ -41,6 +41,14 @@
 //End User Code: Includes
 
 //Start User Code: Data Structures
+struct Task
+{
+	std::string Task_Name;
+	ros::Time last_diagnostic_received;
+	uint8_t last_diagnostic_level;
+	std::string diagnostic_topic;
+	ros::Subscriber diagnostic_sub;
+};
 struct UsbDevice
 {
 	int device_fid;
@@ -48,6 +56,7 @@ struct UsbDevice
 	int valid; //0 is no, 1 is yes, 2 is unknown
 	int boardcontrollernode_id;
 	long long bytesreceived;
+	long long bytestransmitted;
 	int index;
 	long long good_checksum_counter;
 	long long bad_checksum_counter;
@@ -55,7 +64,7 @@ struct UsbDevice
 //End User Code: Data Structures
 
 //Start Template Code: Function Prototypes
-bool initialize(ros::NodeHandle nh);
+bool initializenode();
 bool run_fastrate_code();
 bool run_mediumrate_code();
 bool run_slowrate_code();
@@ -64,9 +73,12 @@ double measure_time_diff(ros::Time timer_a, ros::Time tiber_b);
 void PPS_Callback(const std_msgs::Bool::ConstPtr& msg);
 void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg);
 void Command_Callback(const icarus_rover_v2::command& msg);
+void diagnostic_Callback(const icarus_rover_v2::diagnostic::ConstPtr& msg,const std::string &topicname);
 std::vector<icarus_rover_v2::diagnostic> check_program_variables();
 void signalinterrupt_handler(int sig);
 int checkmessage();
+icarus_rover_v2::diagnostic rescan_topics(icarus_rover_v2::diagnostic diag);
+
 //End Template Code: Function Prototypes
 
 //Start User Code: Function Prototypes
@@ -107,11 +119,14 @@ volatile sig_atomic_t kill_node;
 //End Template Code: Define Global Variables
 
 //Start User Code: Define Global Variables
+boost::shared_ptr<ros::NodeHandle> n;
 ros::Time last_message_received_time;
 std::vector<BoardControllerNodeProcess> boardprocesses;
 ros::Publisher digitalinput_pub;
 ros::Subscriber pwmoutput_sub;
 ros::Time last_pwmoutput_sub_time;
+std::vector<ros::Subscriber> diagnostic_subs;
+ros::Time last_diagnostic_sub_time;
 ros::Subscriber digitaloutput_sub;
 ros::Time last_digitaloutput_time;
 ros::Publisher analoginput_pub;
@@ -136,5 +151,6 @@ int packet_length;
 ros::Subscriber armed_state_sub;
 bool ready_to_arm;
 ros::Publisher ready_to_arm_pub;
+std::vector<Task> TaskList;
 //End User Code: Define Global Variables
 #endif

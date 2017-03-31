@@ -69,7 +69,7 @@ int ResourceMonitor::get_CPUFree_perc()
 {
 	std::string resource_filename;
 	resource_filename = "/home/robot/logs/output/RESOURCE/top";
-	char tempstr[130];
+	char tempstr[512];
 	sprintf(tempstr,"top -bn1 > %s",resource_filename.c_str());
 	//printf("Command: %s\r\n",tempstr);
 	system(tempstr); //RAM used is column 6 (RES), in KB.  CPU used is column 8, in percentage.
@@ -184,9 +184,11 @@ icarus_rover_v2::diagnostic ResourceMonitor::update()
 		int id = -1;
 		std::string local_node_name;
 		local_node_name = Task_Name.substr(1,Task_Name.size());
+		boost::replace_all(local_node_name,"/","-");
+		std::string simplename = boost::replace_all_copy(Task_Name, "/", "_");
 		std::string pid_filename;
-		pid_filename = "/home/robot/logs/output/PID/" + Task_Name;
-		char tempstr1[130];
+		pid_filename = "/home/robot/logs/output/PID/" + simplename;
+		char tempstr1[512];
 		//sprintf(tempstr1,"ps aux | grep __name:=%s > %s",local_node_name.c_str(),pid_filename.c_str());
 		sprintf(tempstr1,"ps aux | grep \"%s\" > %s",local_node_name.c_str(),pid_filename.c_str());
 		system(tempstr1);
@@ -196,7 +198,7 @@ icarus_rover_v2::diagnostic ResourceMonitor::update()
 		{
 			std::string line;
 			getline(myfile1,line);
-			std::string find_string = generic_node_name;
+			std::string find_string = boost::replace_all_copy(generic_node_name,"/","-");
 			std::size_t found_node = line.find(find_string);
 			std::size_t bad_find1 = line.find("sh -c");
 			std::size_t bad_find2 = line.find("grep");
@@ -216,7 +218,7 @@ icarus_rover_v2::diagnostic ResourceMonitor::update()
 			id = -1;
 			diagnostic.Level = ERROR;
 			diagnostic.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
-			char tempstr[255];
+			char tempstr[512];
 			sprintf(tempstr,"Unable to open PID File, trying to use: %s",pid_filename.c_str());
 			diagnostic.Description = tempstr;
 			return diagnostic;
@@ -230,13 +232,12 @@ icarus_rover_v2::diagnostic ResourceMonitor::update()
 			{
 				std::string line;
 				getline(myfile1,line);
-				std::string find_string = generic_node_name;
+				std::string find_string = boost::replace_all_copy(generic_node_name,"/","-");
 				std::size_t found_node = line.find(find_string);
 				std::size_t bad_find1 = line.find("sh -c");
 				std::size_t bad_find2 = line.find("grep");
 				if((found_node != std::string::npos) && (bad_find1 == std::string::npos) && (bad_find2 == std::string::npos))
 				{
-					printf("Found line: %s\n",line.c_str());
 					std::vector <string> fields;
 					boost::split(fields,line,boost::is_any_of("\t "),boost::token_compress_on);
 					if(fields.size() >= 2)
@@ -246,17 +247,29 @@ icarus_rover_v2::diagnostic ResourceMonitor::update()
 				}
 
 			}
+			else
+			{
+				diagnostic.Level = ERROR;
+				diagnostic.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
+				char tempstr[512];
+				sprintf(tempstr,"Unable to open Node PID File, using: %s",pid_filename.c_str());
+				diagnostic.Description = tempstr;
+				return diagnostic;
+			}
 			myfile1.close();
 			diagnostic.Level = ERROR;
 			diagnostic.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
-			diagnostic.Description = "Unable to lookup Node PID";
+			char tempstr[512];
+			sprintf(tempstr,"Unable to lookup Node PID, using: %s",tempstr1);
+			diagnostic.Description = tempstr;
 
 			return diagnostic;
 		}
 	}
 	std::string resource_filename;
-	resource_filename = "/home/robot/logs/output/RESOURCE/" + Task_Name;
-	char tempstr2[130];
+	std::string simplename = boost::replace_all_copy(Task_Name, "/", "_");
+	resource_filename = "/home/robot/logs/output/RESOURCE/" + simplename;
+	char tempstr2[512];
 	sprintf(tempstr2,"top -bn1 | grep %d > %s",PID,resource_filename.c_str());
 	//printf("Command: %s\r\n",tempstr);
 	system(tempstr2); //RAM used is column 6 (RES), in KB.  CPU used is column 8, in percentage.
@@ -286,7 +299,7 @@ icarus_rover_v2::diagnostic ResourceMonitor::update()
 	{
 		diagnostic.Level = ERROR;
 		diagnostic.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
-		char tempstr[255];
+		char tempstr[512];
 		sprintf(tempstr,"Unable to open Resource File, trying to use: %s",resource_filename.c_str());
 		diagnostic.Description = tempstr;
 		return diagnostic;
@@ -296,7 +309,7 @@ icarus_rover_v2::diagnostic ResourceMonitor::update()
 	{
 		diagnostic.Level = ERROR;
 		diagnostic.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
-		char tempstr[128];
+		char tempstr[512];
 		sprintf(tempstr,"Unable to lookup Node Resources Used, Using PID: %d",PID);
 		diagnostic.Description = tempstr;
 		return diagnostic;
@@ -355,7 +368,7 @@ icarus_rover_v2::diagnostic ResourceMonitor::update()
 			{
 				diagnostic.Level = WARN;
 				diagnostic.Diagnostic_Message = RESOURCE_LEAK;
-				char tempstr[128];
+				char tempstr[512];
 				sprintf(tempstr,"Found RAM Leak: %f kB/s",(double)((double)d_ramused_kb/((double)SHORTTERM_BUFFER_SIZE*(double)longterm_buffer_RamUsed_kB.size())));
 				diagnostic.Description = tempstr;
 				return diagnostic;
@@ -364,7 +377,7 @@ icarus_rover_v2::diagnostic ResourceMonitor::update()
 			{
 				diagnostic.Level = ERROR;
 				diagnostic.Diagnostic_Message = RESOURCE_LEAK;
-				char tempstr[256];
+				char tempstr[512];
 				sprintf(tempstr,"Found RAM Leak: %f kiloBytes per second",(double)((double)d_ramused_kb/((double)SHORTTERM_BUFFER_SIZE*(double)longterm_buffer_RamUsed_kB.size())));
 				diagnostic.Description = tempstr;
 				return diagnostic;

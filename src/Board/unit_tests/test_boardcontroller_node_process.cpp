@@ -7,7 +7,7 @@
 
 std::string Node_Name = "/unittest_boardcontroller_node_process";
 std::string Host_Name = "unittest";
-std::string ros_DeviceName = Node_Name;
+std::string ros_DeviceName = Host_Name;
 std::string ros_ParentDevice = "";
 std::string ros_DeviceType = "ComputeModule";
 
@@ -75,13 +75,14 @@ TEST(DeviceInitialization,DeviceInitialization_0_4Boards_0Shields)
 */
 TEST(DeviceInitialization,DeviceInitialization_2Boards_3Shields)
 {
+    int processindex = 0;
 	int ShieldID = 1;
     std::vector<BoardControllerNodeProcess> processes;
     icarus_rover_v2::device ros_device;
     ros_device.DeviceName = ros_DeviceName;
     ros_device.DeviceParent = ros_ParentDevice;
     ros_device.DeviceType = ros_DeviceType;
-    ros_device.BoardCount = 2;
+    ros_device.BoardCount = 3;
 
 
     icarus_rover_v2::diagnostic diagnostic;
@@ -89,7 +90,7 @@ TEST(DeviceInitialization,DeviceInitialization_2Boards_3Shields)
     diagnostic.Node_Name = Node_Name;
     diagnostic.System = ROVER;
     diagnostic.SubSystem = ROBOT_CONTROLLER;
-    diagnostic.Component = GPIO_NODE;
+    diagnostic.Component = COMMUNICATION_NODE;
 
     diagnostic.Diagnostic_Type = NOERROR;
     diagnostic.Level = INFO;
@@ -106,24 +107,24 @@ TEST(DeviceInitialization,DeviceInitialization_2Boards_3Shields)
     board1.Architecture = "ArduinoUno";
     board1.ShieldCount = 3;
     board1.SensorCount = 0;
-    BoardControllerNodeProcess boardprocess1("/dev/dummy1",1);
+    BoardControllerNodeProcess boardprocess1("/dev/dummy1",board1.ID);
     EXPECT_EQ(boardprocess1.get_armedstate(),ARMEDSTATUS_DISARMED_CANNOTARM);
     EXPECT_EQ(boardprocess1.get_ready_to_arm(),false);
     processes.push_back(boardprocess1);
-    diagnostic = processes.at(0).init(diagnostic,logger,Host_Name,1);
-    EXPECT_TRUE(processes.at(0).get_nodestate() == BOARDMODE_BOOT);
+    diagnostic = processes.at(processindex).init(diagnostic,Host_Name,1);
+    EXPECT_TRUE(processes.at(processindex).get_nodestate() == BOARDMODE_BOOT);
     EXPECT_TRUE(diagnostic.Level <= NOTICE);
-    diagnostic = processes.at(0).new_devicemsg(ros_device);
+    diagnostic = processes.at(processindex).new_devicemsg(ros_device);
     EXPECT_TRUE(diagnostic.Level <= NOTICE);
-    diagnostic = processes.at(0).update(0.02);
+    diagnostic = processes.at(processindex).update(0.02);
     EXPECT_TRUE(diagnostic.Level <= NOTICE);
-    diagnostic = processes.at(0).new_devicemsg(board1);
+    diagnostic = processes.at(processindex).new_devicemsg(board1);
     EXPECT_TRUE(diagnostic.Level <= NOTICE);
-    diagnostic = processes.at(0).update(0.02);
+    diagnostic = processes.at(processindex).update(0.02);
     EXPECT_TRUE(diagnostic.Level <= NOTICE);
-    processes.at(0).set_boardstate(BOARDMODE_BOOT);
-    EXPECT_FALSE(processes.at(0).is_finished_initializing());
-    EXPECT_TRUE(processes.at(0).get_nodestate() == BOARDMODE_BOOT);
+    processes.at(processindex).set_boardstate(BOARDMODE_BOOT);
+    EXPECT_FALSE(processes.at(processindex).is_finished_initializing());
+    EXPECT_TRUE(processes.at(processindex).get_nodestate() == BOARDMODE_BOOT);
     for(int s = 0; s < (board1.ShieldCount);s++)
     {
 
@@ -141,10 +142,10 @@ TEST(DeviceInitialization,DeviceInitialization_2Boards_3Shields)
     		newpin.DefaultValue = 127;
     		shield.pins.push_back(newpin);
     	}
-    	EXPECT_EQ(processes.at(0).get_nodestate(),BOARDMODE_BOOT);
-    	diagnostic = processes.at(0).new_devicemsg(shield);
+    	EXPECT_EQ(processes.at(processindex).get_nodestate(),BOARDMODE_BOOT);
+    	diagnostic = processes.at(processindex).new_devicemsg(shield);
     	EXPECT_TRUE(diagnostic.Level <= NOTICE);
-    	diagnostic = processes.at(0).update(0.02);
+    	diagnostic = processes.at(processindex).update(0.02);
 
     	EXPECT_TRUE(diagnostic.Level <= NOTICE);
     }
@@ -155,16 +156,16 @@ TEST(DeviceInitialization,DeviceInitialization_2Boards_3Shields)
     	shield.Device
     }
     */
-    EXPECT_TRUE(processes.at(0).get_nodestate() == BOARDMODE_INITIALIZING);
+    EXPECT_TRUE(processes.at(processindex).get_nodestate() == BOARDMODE_INITIALIZING);
     EXPECT_TRUE(check_if_initialized(processes));
     for(int s = 0; s < board1.ShieldCount;s++)
     {
-    	EXPECT_EQ(processes.at(0).get_portlist(s+1).size(), 3);
-    	std::vector<int> portlist = processes.at(0).get_portlist(s+1);
+    	EXPECT_EQ(processes.at(processindex).get_portlist(s+1).size(), 3);
+    	std::vector<int> portlist = processes.at(processindex).get_portlist(s+1);
     	int availablecount = 0;
     	for(int p = 0; p < portlist.size();p++)
     	{
-    		Port_Info port = processes.at(0).get_PortInfo(s+1,p+1);
+    		Port_Info port = processes.at(processindex).get_PortInfo(s+1,p+1);
     		EXPECT_TRUE(port.ShieldID > 0);
     		EXPECT_TRUE(port.PortID > 0);
 
@@ -176,6 +177,7 @@ TEST(DeviceInitialization,DeviceInitialization_2Boards_3Shields)
     	EXPECT_EQ(availablecount,10);
     }
 
+    processindex++;
     icarus_rover_v2::device board2;
     board2.DeviceName = "ArduinoBoard2";
     board2.DeviceType = "ArduinoBoard";
@@ -183,25 +185,25 @@ TEST(DeviceInitialization,DeviceInitialization_2Boards_3Shields)
     board2.Architecture = "ArduinoMega";
     board2.ShieldCount = 3;
     board2.SensorCount = 0;
-    BoardControllerNodeProcess boardprocess2("/dev/dummy2",2);
+    BoardControllerNodeProcess boardprocess2("/dev/dummy2",board2.ID);
     EXPECT_EQ(boardprocess2.get_armedstate(),ARMEDSTATUS_DISARMED_CANNOTARM);
     EXPECT_EQ(boardprocess2.get_ready_to_arm(),false);
     processes.push_back(boardprocess2);
-    diagnostic = processes.at(1).init(diagnostic,logger,Host_Name,1);
-    EXPECT_TRUE(processes.at(1).get_nodestate() == BOARDMODE_BOOT);
+    diagnostic = processes.at(processindex).init(diagnostic,Host_Name,1);
+    EXPECT_TRUE(processes.at(processindex).get_nodestate() == BOARDMODE_BOOT);
     EXPECT_TRUE(diagnostic.Level <= NOTICE);
-    diagnostic = processes.at(1).new_devicemsg(ros_device);
+    diagnostic = processes.at(processindex).new_devicemsg(ros_device);
     EXPECT_TRUE(diagnostic.Level <= NOTICE);
-    diagnostic = processes.at(1).update(0.02);
+    diagnostic = processes.at(processindex).update(0.02);
     EXPECT_TRUE(diagnostic.Level <= NOTICE);
-    diagnostic = processes.at(1).new_devicemsg(board2);
+    diagnostic = processes.at(processindex).new_devicemsg(board2);
     EXPECT_TRUE(diagnostic.Level <= NOTICE);
-    diagnostic = processes.at(1).update(0.02);
+    diagnostic = processes.at(processindex).update(0.02);
     EXPECT_TRUE(diagnostic.Level <= NOTICE);
 
-    processes.at(1).set_boardstate(BOARDMODE_BOOT);
-    EXPECT_FALSE(processes.at(1).is_finished_initializing());
-    EXPECT_TRUE(processes.at(1).get_nodestate() == BOARDMODE_BOOT);
+    processes.at(processindex).set_boardstate(BOARDMODE_BOOT);
+    EXPECT_FALSE(processes.at(processindex).is_finished_initializing());
+    EXPECT_TRUE(processes.at(processindex).get_nodestate() == BOARDMODE_BOOT);
     for(int s = 0; s < board2.ShieldCount;s++)
     {
     	icarus_rover_v2::device shield;
@@ -218,23 +220,23 @@ TEST(DeviceInitialization,DeviceInitialization_2Boards_3Shields)
     		newpin.DefaultValue = 127;
     		shield.pins.push_back(newpin);
     	}
-    	EXPECT_TRUE(processes.at(1).get_nodestate() == BOARDMODE_BOOT);
-    	diagnostic = processes.at(1).new_devicemsg(shield);
+    	EXPECT_TRUE(processes.at(processindex).get_nodestate() == BOARDMODE_BOOT);
+    	diagnostic = processes.at(processindex).new_devicemsg(shield);
     	EXPECT_TRUE(diagnostic.Level <= NOTICE);
-    	diagnostic = processes.at(1).update(0.02);
+    	diagnostic = processes.at(processindex).update(0.02);
     	EXPECT_TRUE(diagnostic.Level <= NOTICE);
     }
-    EXPECT_TRUE(processes.at(1).get_nodestate() == BOARDMODE_INITIALIZING);
+    EXPECT_TRUE(processes.at(processindex).get_nodestate() == BOARDMODE_INITIALIZING);
     EXPECT_TRUE(check_if_initialized(processes));
 
     for(int s = 0; s < board2.ShieldCount;s++)
     {
-    	EXPECT_EQ(processes.at(1).get_portlist(s+1).size(), 3);
-    	std::vector<int> portlist = processes.at(1).get_portlist(s+1);
+    	EXPECT_EQ(processes.at(processindex).get_portlist(s+1).size(), 3);
+    	std::vector<int> portlist = processes.at(processindex).get_portlist(s+1);
     	int availablecount = 0;
     	for(int p = 0; p < portlist.size();p++)
     	{
-    		Port_Info port = processes.at(1).get_PortInfo(s+1,p+1);
+    		Port_Info port = processes.at(processindex).get_PortInfo(s+1,p+1);
     		EXPECT_TRUE(port.ShieldID > 0);
     		EXPECT_TRUE(port.PortID > 0);
 
@@ -245,6 +247,84 @@ TEST(DeviceInitialization,DeviceInitialization_2Boards_3Shields)
     	}
     	EXPECT_EQ(availablecount,10);
     }
+    
+    processindex++;
+    icarus_rover_v2::device board3;
+    board3.DeviceName = "ArduinoBoard3";
+    board3.DeviceType = "ArduinoBoard";
+    board3.ID = 3;
+    board3.Architecture = "ArduinoUno";
+    board3.ShieldCount = 1;
+    board3.SensorCount = 0;
+    BoardControllerNodeProcess boardprocess3("/dev/dummy3",board3.ID);
+    EXPECT_EQ(boardprocess3.get_armedstate(),ARMEDSTATUS_DISARMED_CANNOTARM);
+    EXPECT_EQ(boardprocess3.get_ready_to_arm(),false);
+    processes.push_back(boardprocess3);
+    diagnostic = processes.at(processindex).init(diagnostic,Host_Name,1);
+    EXPECT_TRUE(processes.at(processindex).get_nodestate() == BOARDMODE_BOOT);
+    EXPECT_TRUE(diagnostic.Level <= NOTICE);
+    diagnostic = processes.at(processindex).new_devicemsg(ros_device);
+    EXPECT_TRUE(diagnostic.Level <= NOTICE);
+    diagnostic = processes.at(processindex).update(0.02);
+    EXPECT_TRUE(diagnostic.Level <= NOTICE);
+    diagnostic = processes.at(processindex).new_devicemsg(board3);
+    EXPECT_TRUE(diagnostic.Level <= NOTICE);
+    diagnostic = processes.at(processindex).update(0.02);
+    EXPECT_TRUE(diagnostic.Level <= NOTICE);
+
+    processes.at(processindex).set_boardstate(BOARDMODE_BOOT);
+    EXPECT_FALSE(processes.at(processindex).is_finished_initializing());
+    EXPECT_TRUE(processes.at(processindex).get_nodestate() == BOARDMODE_BOOT);
+    for(int s = 0; s < board3.ShieldCount;s++)
+    {
+    	icarus_rover_v2::device shield;
+    	shield.DeviceName = "LCDShield" + boost::lexical_cast<std::string>(ShieldID++);
+    	shield.DeviceType = "LCDShield";
+    	shield.DeviceParent = board3.DeviceName;
+    	shield.ID = s+1;
+    	shield.pins.clear();
+        
+        for(int i = 0; i < 4;i++)
+    	{
+    		icarus_rover_v2::pin newpin;
+    		newpin.Number = i;
+    		newpin.Function = "DigitalInput";
+    		newpin.DefaultValue = 0;
+    		shield.pins.push_back(newpin);
+    	}
+
+    	
+    	EXPECT_TRUE(processes.at(processindex).get_nodestate() == BOARDMODE_BOOT);
+    	diagnostic = processes.at(processindex).new_devicemsg(shield);
+    	EXPECT_TRUE(diagnostic.Level <= NOTICE);
+    	diagnostic = processes.at(processindex).update(0.02);
+    	EXPECT_TRUE(diagnostic.Level <= NOTICE);
+        
+    }
+    EXPECT_TRUE(processes.at(processindex).get_nodestate() == BOARDMODE_INITIALIZING);
+    EXPECT_TRUE(check_if_initialized(processes));
+
+    for(int s = 0; s < board3.ShieldCount;s++)
+    {
+        /*
+    	EXPECT_EQ(processes.at(processindex).get_portlist(s+1).size(), 3);
+    	std::vector<int> portlist = processes.at(processindex).get_portlist(s+1);
+    	int availablecount = 0;
+    	for(int p = 0; p < portlist.size();p++)
+    	{
+    		Port_Info port = processes.at(processindex).get_PortInfo(s+1,p+1);
+    		EXPECT_TRUE(port.ShieldID > 0);
+    		EXPECT_TRUE(port.PortID > 0);
+
+    		for(int i = 0; i < port.Number.size();i++)
+    		{
+    			if(port.Available.at(i) > 0) {availablecount++;}
+    		}
+    	}
+    	EXPECT_EQ(availablecount,10);
+        */
+    }
+    
     initialized_processes = processes;
 }
 
@@ -277,7 +357,9 @@ TEST(DeviceConfiguration,ConfigureAllShields)
 		std::vector<icarus_rover_v2::device> shields = processes.at(i).get_myshields();
 		for(int j = 0; j < shields.size();j++)
 		{
-			EXPECT_EQ(processes.at(i).get_portlist(shields.at(j).ID).size(),3);
+            
+			EXPECT_EQ(processes.at(i).get_portlist(shields.at(j).ID).size(),
+                      processes.at(i).get_portcount(shields.at(j).ID));
 		}
 
 		tx_buffers.clear();
@@ -292,11 +374,13 @@ TEST(DeviceConfiguration,ConfigureAllShields)
 				if((tempstr.at(0) == 0xAB) &&
 				   (tempstr.at(1) == SERIAL_Configure_Shield_ID))
 				{
+                    
 					shield_configuration_messages++;
-					/*printf("Sending from Board: %s:%d Shield Config (0xAB%0x): ",
+					printf("Sending from Board: %s:%d Shield Config (0xAB%0x) \n",
 							processes.at(i).get_boardname().c_str(),
 							processes.at(i).get_boardid(),
 							SERIAL_Configure_Shield_ID);
+                    /*
 					for(int k = 0; k < tempstr.size();k++)
 					{
 						printf(" %0x ",tempstr.at(k));
@@ -306,7 +390,7 @@ TEST(DeviceConfiguration,ConfigureAllShields)
 				}
 			}
 		}
-		EXPECT_EQ(shield_configuration_messages,3);//3 Shields
+		EXPECT_EQ(shield_configuration_messages,processes.at(i).get_myshields().size());
 		EXPECT_TRUE(diagnostic.Level <= NOTICE);
 		processes.at(i).set_boardstate(BOARDMODE_SHIELDS_CONFIGURED);
 		diagnostic = processes.at(i).update(0.2);
@@ -346,8 +430,13 @@ TEST(DeviceConfiguration,ConfigureAllShields)
 				}
 			}
 		}
-
-		EXPECT_EQ(dio_configuration_messages,9);//3 Shields w/ 3 Ports each
+        int portcount = 0;
+        std::vector<icarus_rover_v2::device> myshields = processes.at(i).get_myshields();
+        for(int j = 0; j < myshields.size();j++)
+        {
+            portcount += processes.at(i).get_portcount(myshields.at(j).ID);
+        }
+		EXPECT_EQ(dio_configuration_messages,portcount);
 		EXPECT_TRUE(diagnostic.Level <= NOTICE);
 		processes.at(i).set_boardstate(BOARDMODE_INITIALIZED);
 		diagnostic = processes.at(i).update(0.2);
@@ -375,7 +464,7 @@ TEST(DeviceConfiguration,ConfigureAllShields)
 				}
 			}
 		}
-        EXPECT_EQ(dio_defaultvalue_messages,9); //# Shields w/ 3 Ports Each
+        EXPECT_EQ(dio_defaultvalue_messages,portcount); //# Shields w/ 3 Ports Each
                 
 		processes.at(i).set_boardstate(BOARDMODE_RUNNING);
 		diagnostic = processes.at(i).update(0.2);
@@ -403,7 +492,7 @@ TEST(Arming,ArmDisarm)
         EXPECT_EQ(processes.at(i).get_ready_to_arm(),true);
         icarus_rover_v2::command newcommand;
         newcommand.Command = ARM_COMMAND_ID;
-        newcommand.Option1 = ARMEDCOMMAND_DISARM;
+        newcommand.Option1 = ROVERCOMMAND_DISARM;
 
         diagnostic = processes.at(i).new_commandmsg(newcommand);
         diagnostic = processes.at(i).update(0.2);
@@ -438,6 +527,10 @@ TEST(Arming,ArmDisarm)
         
 
     }
+}
+TEST(DeviceUsage,Diagnostics)
+{
+    
 }
 TEST(DeviceUsage,PWMOutput)
 {

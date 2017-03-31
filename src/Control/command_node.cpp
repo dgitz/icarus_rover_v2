@@ -1,8 +1,8 @@
 #include "command_node.h"
 //Start User Code: Firmware Definition
-#define COMMANDNODE_MAJOR_RELEASE 2
-#define COMMANDNODE_MINOR_RELEASE 2
-#define COMMANDNODE_BUILD_NUMBER 3
+#define COMMANDNODE_MAJOR_RELEASE 3
+#define COMMANDNODE_MINOR_RELEASE 0
+#define COMMANDNODE_BUILD_NUMBER 1
 //End User Code: Firmware Definition
 //Start User Code: Functions
 void ReadyToArm_Callback(const std_msgs::Bool::ConstPtr& msg,const std::string &topic)
@@ -21,7 +21,11 @@ void User_ArmCommand_Callback(const std_msgs::UInt8::ConstPtr& msg)
 bool run_fastrate_code()
 {
 	//logger->log_debug("Running fast rate code.");
-	diagnostic_status = process->update(20);
+	diagnostic_status = process->update(.02);
+	if(process->get_currentcommand().Command != ROVERCOMMAND_NONE)
+	{
+		command_pub.publish(process->get_currentcommand());
+	}
 	std_msgs::UInt8 state;
 	state.data = process->get_armeddisarmed_state();
 	armeddisarmed_state_pub.publish(state);
@@ -29,13 +33,6 @@ bool run_fastrate_code()
 }
 bool run_mediumrate_code()
 {
-
-
-	icarus_rover_v2::command newcommand;
-	newcommand.Command=ARM_COMMAND_ID;
-	newcommand.Option1 = process->get_armcommand();
-	command_pub.publish(newcommand);
-
 	beat.stamp = ros::Time::now();
 	heartbeat_pub.publish(beat);
 	//logger->log_debug("Running medium rate code.");
@@ -75,27 +72,10 @@ bool run_slowrate_code()
 }
 bool run_veryslowrate_code()
 {
-	//logger->log_debug("Running very slow rate code.");
-	logger->log_info("Node Running.");
-	{
-		icarus_rover_v2::command newcommand;
-		newcommand.Command=DIAGNOSTIC_ID;
-		newcommand.Option1 = LEVEL2;
-		command_pub.publish(newcommand);
-	}
-
-	{
-		icarus_rover_v2::command newcommand;
-		newcommand.Command=ARM_COMMAND_ID;
-		newcommand.Option1 = ARMEDCOMMAND_DISARM;
-		command_pub.publish(newcommand);
-	}
-
-
 	icarus_rover_v2::firmware fw;
 	fw.Generic_Node_Name = "command_node";
 	fw.Node_Name = node_name;
-	fw.Description = "Latest Rev: 30-Nov-2016";
+	fw.Description = "Latest Rev: 3-March-2017";
 	fw.Major_Release = COMMANDNODE_MAJOR_RELEASE;
 	fw.Minor_Release = COMMANDNODE_MINOR_RELEASE;
 	fw.Build_Number = COMMANDNODE_BUILD_NUMBER;
@@ -262,6 +242,7 @@ bool initialize(ros::NodeHandle nh)
     //End Template Code: Initialization and Parameters
 
     //Start User Code: Initialization and Parameters
+    searchmode = 0;
 	process = new CommandNodeProcess;
     robot_armdisarmed_state = ARMEDSTATUS_DISARMED_CANNOTARM;
     diagnostic_status = process->init(diagnostic_status,logger,std::string(hostname));
@@ -319,6 +300,40 @@ bool initialize(ros::NodeHandle nh)
     std::string armeddisarmed_state_topic = "/armed_state";
     armeddisarmed_state_pub = nh.advertise<std_msgs::UInt8>(armeddisarmed_state_topic,1000);
 
+    //Initialize Periodic Commands
+    std::vector<PeriodicCommand> pcommands;
+    icarus_rover_v2::command command1;
+    command1.Command = ROVERCOMMAND_RUNDIAGNOSTIC;
+    command1.Option1 = LEVEL1;
+    command1.Description = "Low-Level Diagnostics";
+    PeriodicCommand pcommand1;
+    pcommand1.command = command1;
+    pcommand1.rate_hz = 10.0;
+    pcommands.push_back(pcommand1);
+
+    icarus_rover_v2::command command2;
+    command2.Command = ROVERCOMMAND_RUNDIAGNOSTIC;
+    command2.Option1 = LEVEL2;
+    command2.Description = "Mid-Level Diagnostics";
+    PeriodicCommand pcommand2;
+    pcommand2.command = command2;
+    pcommand2.rate_hz = 1.0;
+    pcommands.push_back(pcommand2);
+
+    icarus_rover_v2::command command3;
+    command3.Command = ROVERCOMMAND_RUNDIAGNOSTIC;
+    command3.Option1 = LEVEL3;
+    command3.Description = "High-Level Diagnostics";
+    PeriodicCommand pcommand3;
+    pcommand3.command = command3;
+    pcommand3.rate_hz = 0.1;
+    pcommands.push_back(pcommand3);
+    diagnostic_status = process->init_PeriodicCommands(pcommands);
+    if(diagnostic_status.Level > NOTICE)
+    {
+    	logger->log_error(diagnostic_status.Description);
+    	return false;
+    }
     //Finish User Code: Initialization and Parameters
 
     //Start Template Code: Final Initialization.

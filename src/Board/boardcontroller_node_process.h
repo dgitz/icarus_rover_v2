@@ -17,6 +17,7 @@
 #include "icarus_rover_v2/firmware.h"
 #include <std_msgs/UInt8.h>
 #include <serialmessage.h>
+#include "logger.h"
 #include <math.h>
 #define INITIAL_TIMEOUT_VALUE_MS 1000
 #define PORT_SIZE 8 //Number of pins in 1 port
@@ -88,9 +89,11 @@ public:
 	icarus_rover_v2::diagnostic new_devicemsg(icarus_rover_v2::device devicemsg);
 	icarus_rover_v2::diagnostic new_commandmsg(icarus_rover_v2::command commandmsg);
 	icarus_rover_v2::diagnostic new_pinmsg(icarus_rover_v2::pin pinmsg);
+    icarus_rover_v2::diagnostic new_diagnosticmsg(icarus_rover_v2::diagnostic diagnosticmsg);
 	icarus_rover_v2::device get_mydevice() { return mydevice; }
 	std::vector<icarus_rover_v2::device> get_myshields() { return myshields; }
 	std::vector<int> get_portlist(int ShieldID);
+    int get_portcount(int ShieldID);
 	bool is_finished_initializing(){ return all_device_info_received; }
 	bool initialize_Ports();
     bool get_ready_to_arm() { return ready_to_arm; }
@@ -155,6 +158,7 @@ protected:
 	state_ack send_set_DIO_Port;
 	state_ack send_armedcommand;
 	state_ack send_armedstate;
+    state_ack send_diagnostic;
 private:
 
 	std::string location;
@@ -201,7 +205,7 @@ private:
 	double run_time;
 	double find_slope(std::vector<double> x,std::vector<double> y);
 	double find_intercept(double slope,std::vector<double> x,std::vector<double> y);
-
+    std::vector<icarus_rover_v2::diagnostic> diagnostics_to_send;
 
 	std::vector<message_info> messages;
 };

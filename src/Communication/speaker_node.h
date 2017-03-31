@@ -22,12 +22,13 @@
 //End Template Code: Includes
 
 //Start User Code: Defines
-#define SPEECH_RATE 18 //Characters per Second
-#define MIN_TIME_BEFORE_SPEAK_AGAIN 2.5 //Seconds
-#define MAX_SPEECHBUFFER_SIZE 10
+//#define SPEECH_RATE 18 //Characters per Second
+//#define MIN_TIME_BEFORE_SPEAK_AGAIN 2.5 //Seconds
+//#define MAX_SPEECHBUFFER_SIZE 10
 //End User Code: Defines
 
 //Start User Code: Includes
+#include "speaker_node_process.h"
 #include <boost/algorithm/string/replace.hpp>
 #include <sound_play/sound_play.h>
 //End User Code: Includes
@@ -51,7 +52,8 @@ void signalinterrupt_handler(int sig);
 
 //Start User Code: Function Prototypes
 void diagnostic_Callback(const icarus_rover_v2::diagnostic::ConstPtr& msg);
-bool speak(std::string s,bool mode);
+void UserMessage_Callback(const icarus_rover_v2::usermessage::ConstPtr& msg);
+//bool speak(std::string s,bool mode);
 //End User Code: Function Prototypes
 
 //Start Template Code: Define Global variables
@@ -86,7 +88,10 @@ volatile sig_atomic_t kill_node;
 //End Template Code: Define Global Variables
 
 //Start User Code: Define Global Variables
+ros::Subscriber UserMessage_sub;
+SpeakerNodeProcess *speakernodeprocess;
 boost::shared_ptr<sound_play::SoundClient> sc;
+
 ros::Time last_time_speech_ended;
 std::vector<std::string> speechbuffer;
 double initial_speech_wait;

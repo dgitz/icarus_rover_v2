@@ -18,6 +18,7 @@ BoardControllerNodeProcess::BoardControllerNodeProcess(std::string loc, int v)
 	shield_count = -1;
 	run_time = 0.0;
     ready_to_arm = false;
+    diagnostics_to_send.clear();
 	gettimeofday(&init_time,NULL);
 	//init_time = ros::Time::now();
 }
@@ -137,7 +138,7 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::update(double dt)
         send_defaultvalue_DIO_Port.trigger = true;
 		send_configure_DIO_Ports.trigger = false;
 	}
-	if((board_state == BOARDMODE_RUNNING) && (node_state == BOARDMODE_INITIALIZED))
+	if((board_state == BOARDMODE_RUNNING) && ((node_state == BOARDMODE_INITIALIZED) || (node_state == BOARDMODE_SHIELDS_CONFIGURED)))
 	{
         armed_state = ARMEDSTATUS_DISARMED;
 		node_state = BOARDMODE_RUNNING;
@@ -155,20 +156,40 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::update(double dt)
     if((board_state == BOARDMODE_RUNNING) && (node_state == BOARDMODE_RUNNING))
     {
         ready_to_arm = true;
+		diagnostic.Level = INFO;
+		diagnostic.Diagnostic_Type = SOFTWARE;
+		diagnostic.Diagnostic_Message = NOERROR;
+		diagnostic.Description = "Node Executing.";
     }
     else
     {
+		diagnostic.Level = NOTICE;
+		diagnostic.Diagnostic_Type = SOFTWARE;
+		diagnostic.Diagnostic_Message = ROVER_DISARMED;
+		char tempstr[512];
+		sprintf(tempstr,"Node is Unable to Arm: Board: %s Board State: %s Node State: %s",
+			my_boardname.c_str(),
+			map_mode_ToString(board_state).c_str(),
+			map_mode_ToString(node_state).c_str());
+		diagnostic.Description = std::string(tempstr);
         ready_to_arm = false;
     }
-	diagnostic.Level = INFO;
-	diagnostic.Diagnostic_Message = NOERROR;
-	diagnostic.Description = "Node Executing.";
+	
 	return diagnostic;
 }
 icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_armedstatemsg(uint8_t v)
 {
 	armed_state = v;
 	return diagnostic;
+}
+icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_diagnosticmsg(icarus_rover_v2::diagnostic diagnosticmsg)
+{
+    if(diagnosticmsg.Level >= NOTICE)
+    {
+    	send_diagnostic.trigger = true;
+        diagnostics_to_send.push_back(diagnosticmsg);
+    }
+    return diagnostic;
 }
 state_ack BoardControllerNodeProcess::get_stateack(std::string name)
 {
@@ -200,6 +221,10 @@ state_ack BoardControllerNodeProcess::get_stateack(std::string name)
     else if(name == send_armedcommand.name)
     {
         return send_armedcommand;
+    }
+    else if(name == send_diagnostic.name)
+    {
+        return send_diagnostic;
     }
 	else
 	{
@@ -234,6 +259,10 @@ bool BoardControllerNodeProcess::set_stateack(state_ack stateack)
 	{
 		send_defaultvalue_DIO_Port = stateack;
 	}
+    else if(stateack.name == "Send Diagnostic")
+    {
+        send_diagnostic = stateack;
+    }
 	else
 	{
 		return false;
@@ -343,6 +372,53 @@ bool BoardControllerNodeProcess::checkTriggers(std::vector<std::vector<unsigned 
 				gettimeofday(&send_nodemode.orig_send_time,NULL);
 				send_nodemode.retries = 0;
 			}
+		}
+
+	}
+    if(send_diagnostic.trigger == true)
+	{
+		bool send_me = false;
+		if(send_diagnostic.stream_rate < 0) //Normal operation, should send
+		{
+			send_me = true;
+			send_diagnostic.trigger = false;
+		}
+		else
+		{
+			struct timeval now;
+			gettimeofday(&now,NULL);
+			double etime = time_diff(send_diagnostic.orig_send_time,now);
+			double delay = 1.0/(send_diagnostic.stream_rate);
+			if(etime > delay){ send_me = true; }
+			else{ send_me = false; }
+		}
+		if(send_me == true)
+		{
+			nothing_triggered = false;
+			char buffer[16];
+			int length;
+			int computed_checksum;
+			while(!diagnostics_to_send.empty())
+			{
+				icarus_rover_v2::diagnostic diag = diagnostics_to_send.back();
+				diagnostics_to_send.pop_back();
+
+                int tx_status = serialmessagehandler->encode_DiagnosticSerial(buffer,&length,
+                		(unsigned char)diag.System,
+						(unsigned char)diag.SubSystem,
+						(unsigned char)diag.Component,
+						(unsigned char)diag.Diagnostic_Type,
+						(unsigned char)diag.Level,
+						(unsigned char)diag.Diagnostic_Message);
+                bool status = gather_message_info(SERIAL_Diagnostic_ID, "transmit");
+                tx_buffers.push_back(std::vector<unsigned char>(buffer,buffer+sizeof(buffer)/sizeof(buffer[0])));
+                send_diagnostic.state = true;
+                if (send_diagnostic.retrying == false)
+                {
+                    gettimeofday(&send_diagnostic.orig_send_time,NULL);
+                    send_diagnostic.retries = 0;
+                }
+            }
 		}
 
 	}
@@ -869,7 +945,10 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_serialmessage_Get_Mo
 			char tempstr[255];
 			unsigned char value1,value2,value3;
 			serialmessagehandler->decode_ModeSerial(inpacket,&value1,&value2,&value3);
-			board_state = value3;
+			if(value3 <= BOARDMODE_STOPPED)
+			{
+				board_state = value3;
+			}
 			/*
 			printf("Board Mode: %s\n",map_mode_ToString(board_state).c_str());
 			printf("Name: %s\n",my_boardname.c_str());
@@ -985,6 +1064,18 @@ bool BoardControllerNodeProcess::configure_port(int ShieldID,std::vector<icarus_
 		}
 	}
 	return status;
+}
+int BoardControllerNodeProcess::get_portcount(int ShieldID)
+{
+    int count = 0;
+    for(int i = 0; i < myports.size(); i++)
+    {
+        if(myports.at(i).ShieldID == ShieldID)
+        {
+            count++;
+        }
+    }
+    return count;
 }
 std::vector<int> BoardControllerNodeProcess::get_portlist(int ShieldID)
 {
@@ -1546,6 +1637,17 @@ void BoardControllerNodeProcess::initialize_stateack_messages()
 	send_defaultvalue_DIO_Port.failed = false;
 	send_defaultvalue_DIO_Port.flag1 = 0; //This flag represents the Board Index
 	send_defaultvalue_DIO_Port.stream_rate = -1.0;
+    
+    send_diagnostic.name = "Send Diagnostic";
+	send_diagnostic.trigger = false;
+	send_diagnostic.state = false;
+	gettimeofday(&send_diagnostic.orig_send_time,NULL);
+	send_diagnostic.retries = 0;
+	send_diagnostic.timeout_counter = 0;
+	send_diagnostic.retry_mode = false;
+	send_diagnostic.failed = false;
+	send_diagnostic.flag1 = 0; //This flag represents the Board Index
+	send_diagnostic.stream_rate = -1.0;
 
 }
 bool BoardControllerNodeProcess::gather_message_info(int id, std::string mode)
@@ -1587,7 +1689,6 @@ double BoardControllerNodeProcess::time_diff(struct timeval timea, struct timeva
 
 	mtime = ((seconds) * 1000 + useconds/1000.0) + 0.5;
 	return (double)(mtime)/1000.0;
-
 }
 void BoardControllerNodeProcess::initialize_message_info()
 {

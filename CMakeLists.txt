@@ -71,6 +71,8 @@ add_message_files(
   heartbeat.msg
   remotecontrol.msg
   imu.msg
+  usermessage.msg
+  battery.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -219,8 +221,10 @@ add_library(udpmessage util/udpmessage.cpp)
 add_library(serialmessage util/serialmessage.cpp)
 add_library(resourcemonitor util/resourcemonitor.cpp)
 add_library(visionhelper util/visionhelper.cpp)
+add_library(speaker_node_process src/Communication/speaker_node_process.cpp)
 add_library(boardcontroller_node_process src/Board/boardcontroller_node_process.cpp)
 add_library(command_node_process src/Control/command_node_process.cpp)
+add_library(powermonitor_node_process src/Control/powermonitor_node_process.cpp)
 
 add_executable(diagnostic_node src/Diagnostics/diagnostic_node.cpp)
 target_link_libraries(diagnostic_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} logger resourcemonitor)
@@ -230,6 +234,8 @@ target_link_libraries(network_transceiver_node ${catkin_LIBRARIES} ${Boost_LIBRA
 
 add_executable(command_node src/Control/command_node.cpp)
 target_link_libraries(command_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor command_node_process)
+catkin_add_gtest(test_command_node_process src/Control/unit_tests/test_command_node_process.cpp)
+target_link_libraries(test_command_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} command_node_process logger serialmessage)
 
 add_executable(master_node src/Control/master_node.cpp)
 target_link_libraries(master_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor)
@@ -245,3 +251,12 @@ target_link_libraries(topicremapper_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} 
 add_executable(cameracapture_node src/Vision/cameracapture_node.cpp)
 target_link_libraries(cameracapture_node ${OpenCV_LIBRARIES} ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor visionhelper)
 
+add_executable(speaker_node src/Communication/speaker_node.cpp)
+target_link_libraries(speaker_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} speaker_node_process logger resourcemonitor)
+catkin_add_gtest(test_speaker_node_process src/Communication/unit_tests/test_speaker_node_process.cpp)
+target_link_libraries(test_speaker_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} speaker_node_process logger)
+
+add_executable(powermonitor_node src/Control/powermonitor_node.cpp)
+target_link_libraries(powermonitor_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor powermonitor_node_process)
+catkin_add_gtest(test_powermonitor_node_process src/Control/unit_tests/test_powermonitor_node_process.cpp)
+target_link_libraries(test_powermonitor_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} powermonitor_node_process logger)
