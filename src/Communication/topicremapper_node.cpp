@@ -71,7 +71,6 @@ void Joystick_Callback(const sensor_msgs::Joy::ConstPtr& msg,const std::string &
 		if(map.in.topic == topic)
 		{
 			char tempstr[128];
-			logger->log_debug(tempstr);
             if(map.in.name == "axis")
             {
                 double in_value = msg->axes[map.in.index];
