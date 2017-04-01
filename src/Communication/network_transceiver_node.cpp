@@ -695,6 +695,22 @@ bool initializenode()
 
 
 	}
+	else if(Mode=="DriverStation")
+	{
+		std::string joystick_topic = "/" + Mode + "/joystick";
+		joy_pub =  n->advertise<sensor_msgs::Joy>(joystick_topic,1000);
+
+		std::string arm1_joystick_topic = "/" + Mode + "/arm1_joystick";
+		arm1_joy_pub =  n->advertise<sensor_msgs::Joy>(arm1_joystick_topic,1000);
+
+		std::string arm2_joystick_topic = "/" + Mode + "/arm2_joystick";
+		arm2_joy_pub =  n->advertise<sensor_msgs::Joy>(arm2_joystick_topic,1000);
+
+		std::string arm_command_topic = "/" + Mode + "/user_armcommand";
+		arm_command_pub = n->advertise<std_msgs::UInt8>(arm_command_topic,1000);
+
+
+	}
 	std::string ready_to_arm_topic = node_name + "/ready_to_arm";
 	ready_to_arm_pub = n->advertise<std_msgs::Bool>(ready_to_arm_topic,1000);
 	udpmessagehandler = new UDPMessageHandler();
