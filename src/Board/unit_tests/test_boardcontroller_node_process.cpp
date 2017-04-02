@@ -478,6 +478,23 @@ TEST(DeviceConfiguration,ConfigureAllShields)
 
 	configured_processes = processes;
 }
+TEST(Timing)
+{
+    std::vector<std::vector<unsigned char> > tx_buffers;
+	std::vector<BoardControllerNodeProcess> processes = configured_processes;
+	icarus_rover_v2::diagnostic diagnostic;
+    for(int i = 0; i < processes.size(); i++)
+    {
+        EXPECT_TRUE(processes.at(i).get_nodestate() == BOARDMODE_RUNNING);
+        EXPECT_EQ(processes.at(i).get_armedstate(),ARMEDSTATUS_DISARMED);
+        EXPECT_EQ(processes.at(i).get_ready_to_arm(),true);
+        std_msgs::Bool pps;
+        diagnostic = processes.at(i).update(0.2);
+		EXPECT_TRUE(diagnostic.Level <= NOTICE);
+        EXPECT_TRUE(processes.at(i).get_nodestate() == BOARDMODE_RUNNING);
+        EXPECT_EQ(processes.at(i).get_armedstate(),ARMEDSTATUS_DISARMED);
+    }
+}
 TEST(Arming,ArmDisarm)
 {
     std::vector<std::vector<unsigned char> > tx_buffers;

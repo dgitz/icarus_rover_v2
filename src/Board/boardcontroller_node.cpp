@@ -1,7 +1,7 @@
 #include "boardcontroller_node.h"
 //Start User Code: Firmware Definition
 #define BOARDCONTROLLERNODE_MAJOR_RELEASE 0
-#define BOARDCONTROLLERNODE_MINOR_RELEASE 2
+#define BOARDCONTROLLERNODE_MINOR_RELEASE 3
 #define BOARDCONTROLLERNODE_BUILD_NUMBER 0
 //End User Code: Firmware Definition
 //Start User Code: Functions
@@ -69,6 +69,7 @@ void process_message_thread(UsbDevice* dev)
 	bool run_thread = true;
 	while((kill_node == 0) && (run_thread == true))
 	{
+		//printf("Running thread for dev: %s\n",dev->location.c_str());
 		try
 		{
 			if(dev->valid == 0)
@@ -219,6 +220,14 @@ void process_message_thread(UsbDevice* dev)
                         {
                             diagnostic_pub.publish(process_diagnostic);
                         }
+                    }
+                    else if(packet_type == SERIAL_PPS_ID)
+                    {
+                    	process_diagnostic = boardprocesses.at(dev->boardcontrollernode_id).new_serialmessage_PPS(packet_type,packet);
+                    	if(process_diagnostic.Level > INFO)
+                    	{
+                    		diagnostic_pub.publish(process_diagnostic);
+                    	}
                     }
                     else
                     {
@@ -618,11 +627,19 @@ bool run_slowrate_code()
 	for(int i = 0; i < boardprocesses.size(); i++)
 	{
 		char tempstr[512];
+		/*
 		sprintf(tempstr,"Board: %s:%d Node State: %s Board State: %s",
 				boardprocesses.at(i).get_boardname().c_str(),
 				boardprocesses.at(i).get_boardid(),
 				boardprocesses.at(i).map_mode_ToString(boardprocesses.at(i).get_nodestate()).c_str(),
 				boardprocesses.at(i).map_mode_ToString(boardprocesses.at(i).get_boardstate()).c_str());
+		*/
+		sprintf(tempstr,"Board: %s:%d Node State: %s Board State: %s Delay: %f (sec)",
+						boardprocesses.at(i).get_boardname().c_str(),
+						boardprocesses.at(i).get_boardid(),
+						boardprocesses.at(i).map_mode_ToString(boardprocesses.at(i).get_nodestate()).c_str(),
+						boardprocesses.at(i).map_mode_ToString(boardprocesses.at(i).get_boardstate()).c_str(),
+						boardprocesses.at(i).get_delay_sec());
 		logger->log_info(tempstr);
 	}
 	return true;
@@ -636,7 +653,7 @@ bool run_veryslowrate_code()
 	icarus_rover_v2::firmware fw;
 	fw.Generic_Node_Name = "boardcontroller_node";
 	fw.Node_Name = node_name;
-	fw.Description = "Latest Rev: 3-March-2017";
+	fw.Description = "Latest Rev: 2-April-2017";
 	fw.Major_Release = BOARDCONTROLLERNODE_MAJOR_RELEASE;
 	fw.Minor_Release = BOARDCONTROLLERNODE_MINOR_RELEASE;
 	fw.Build_Number = BOARDCONTROLLERNODE_BUILD_NUMBER;
@@ -920,7 +937,6 @@ void Command_Callback(const icarus_rover_v2::command::ConstPtr& msg)
 	*/
 }
 //End User Code: Functions
-
 int main(int argc, char **argv)
 {
 	node_name = "gpio_node";
@@ -1267,8 +1283,14 @@ double measure_time_diff(ros::Time timer_a, ros::Time timer_b)
 }
 void PPS_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
-	//logger->log_info("Got pps");
 	received_pps = true;
+    for(int i = 0; i < boardprocesses.size();i++)
+	{
+		if(boardprocesses.at(i).get_boardstate() == BOARDMODE_RUNNING)
+		{
+			diagnostic_status = boardprocesses.at(i).new_pps_transmit();
+		}
+	}
 }
 void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg)
 {
