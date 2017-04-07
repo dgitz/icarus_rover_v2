@@ -941,42 +941,43 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_serialmessage_Get_AN
 		if(packet_type ==SERIAL_Get_ANA_Port_ID)
 		{
 			char tempstr[128];
+			unsigned char ShieldID,PortID;
 			int value1,value2,value3,value4;
-			serialmessagehandler->decode_Get_ANA_PortSerial(inpacket,&value1,&value2,&value3,&value4);
+			serialmessagehandler->decode_Get_ANA_PortSerial(inpacket,&ShieldID,&PortID,&value1,&value2,&value3,&value4);
 			if(ANA_Port.Mode[0] == PINMODE_ANALOG_INPUT)
 			{
 				ANA_Port.Value[0] = value1;
 			}
 			else if(ANA_Port.Mode[0] == PINMODE_FORCESENSOR_INPUT)
 			{
-				ANA_Port.Value[0] = transducer_model(ANA_PORT.Mode[0],ANA_Port.ConnectingDevice.at(0),(double)(value1));
+				//ANA_Port.Value[0] = transducer_model(ANA_PORT.Mode[0],ANA_Port.ConnectingDevice.at(0),(double)(value1));
 			}
 
-			if(ANA_PORT.Mode[1] == PINMODE_ANALOG_INPUT)
+
+			if(ANA_Port.Mode[1] == PINMODE_ANALOG_INPUT)
 			{
-				ANA_PORT.Value[1] = value2;
+				ANA_Port.Value[1] = value2;
 			}
-			else if(ANA_PORT.Mode[1] == PINMODE_FORCESENSOR_INPUT)
+			else if(ANA_Port.Mode[1] == PINMODE_FORCESENSOR_INPUT)
 			{
-				ANA_PORT.Value[1] = transducer_model(ANA_PORT.Mode[1],ANA_PORT.ConnectingDevice.at(1),(double)(value2));
+				//ANA_PORT.Value[1] = transducer_model(ANA_PORT.Mode[1],ANA_PORT.ConnectingDevice.at(1),(double)(value2));
+			}
+			if(ANA_Port.Mode[2] == PINMODE_ANALOG_INPUT)
+			{
+				ANA_Port.Value[2] = value3;
+			}
+			else if(ANA_Port.Mode[2] == PINMODE_FORCESENSOR_INPUT)
+			{
+				//ANA_PORT.Value[2] = transducer_model(ANA_PORT.Mode[2],ANA_PORT.ConnectingDevice.at(2),(double)(value3));
 			}
 
-			if(ANA_PORT.Mode[2] == PINMODE_ANALOG_INPUT)
+			if(ANA_Port.Mode[3] == PINMODE_ANALOG_INPUT)
 			{
-				ANA_PORT.Value[2] = value3;
+				ANA_Port.Value[3] = value4;
 			}
-			else if(ANA_PORT.Mode[2] == PINMODE_FORCESENSOR_INPUT)
+			else if(ANA_Port.Mode[3] == PINMODE_FORCESENSOR_INPUT)
 			{
-				ANA_PORT.Value[2] = transducer_model(ANA_PORT.Mode[2],ANA_PORT.ConnectingDevice.at(2),(double)(value3));
-			}
-
-			if(ANA_PORT.Mode[3] == PINMODE_ANALOG_INPUT)
-			{
-				ANA_PORT.Value[3] = value4;
-			}
-			else if(ANA_PORT.Mode[3] == PINMODE_FORCESENSOR_INPUT)
-			{
-				ANA_PORT.Value[3] = transducer_model(ANA_PORT.Mode[3],ANA_PORT.ConnectingDevice.at(3),(double)(value4));
+				//ANA_Port.Value[3] = transducer_model(ANA_PORT.Mode[3],ANA_PORT.ConnectingDevice.at(3),(double)(value4));
 			}
 		}
 		else
@@ -1631,6 +1632,7 @@ int BoardControllerNodeProcess::map_PinFunction_ToInt(std::string Function)
 	else if(Function == "DigitalOutput-NonActuator")	{ 	return PINMODE_DIGITAL_OUTPUT_NON_ACTUATOR;	}
 	else 												{ 	return PINMODE_UNDEFINED; 					}
 }
+/*
 Port_Info BoardControllerNodeProcess::get_PortInfo(std::string BoardName,std::string PortName)
 {
 
@@ -1653,6 +1655,7 @@ Port_Info BoardControllerNodeProcess::get_PortInfo(std::string BoardName,std::st
 	return blank;
 
 }
+*/
 void BoardControllerNodeProcess::initialize_stateack_messages()
 {
 	send_configure_DIO_Ports.name = "Send Configure DIO Ports";

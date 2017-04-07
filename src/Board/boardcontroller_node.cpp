@@ -322,15 +322,16 @@ bool run_fastrate_code()
         if((boardprocesses.at(i).get_boardstate() == BOARDMODE_RUNNING) &&
            (boardprocesses.at(i).get_nodestate() == BOARDMODE_RUNNING))
         {
-            std::vector<icarus_rover_v2::device> boards = boardprocesses.at(i).get_boards();
-            for(int j = 0; j < boards.size(); j++)
+            std::vector<icarus_rover_v2::device> shields = boardprocesses.at(i).get_shields();
+            for(int j = 0; j < shields.size(); j++)
             {
-                std::string boardname = boards.at(j).DeviceName;
+                std::string shieldname = shields.at(j).DeviceName;
                 Port_Info ANA_Port;
-                switch (board.at(j).DeviceType)
+                /*
+                switch (shields.at(j).DeviceType)
                 {
                     case "TerminalShield":
-                        ANA_Port = process.get_PortInfo(boardname,"ANA_Port");
+                        ANA_Port = process.get_PortInfo(shieldname,"ANA_Port");
                         if(ANA_Port.PortName == "")
                         {
                         }
@@ -360,6 +361,7 @@ bool run_fastrate_code()
                     default:
                         break;
                 }
+                */
                 
             }
         }

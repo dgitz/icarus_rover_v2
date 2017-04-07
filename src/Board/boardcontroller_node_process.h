@@ -154,6 +154,7 @@ public:
     double compute_delay(uint8_t rx_id);
     double measure_time_diff(ros::Time timer_a, ros::Time timer_b);
     double get_delay_sec() { return current_delay_sec; }
+    std::vector<icarus_rover_v2::device> get_shields() { return myshields; }
     
 protected:
 	state_ack send_configure_DIO_Ports;
