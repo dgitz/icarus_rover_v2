@@ -13,7 +13,7 @@
         <param name="extrapolate_sensor_values" value="false" />
         <param name="manual_pin_definition" value="false"/>
     </node>
-     <node name="$(env ROS_HOSTNAME)_cameracapture_node" pkg="icarus_rover_v2" type="cameracapture_node"  output="screen">
+    <node name="$(env ROS_HOSTNAME)_cameracapture_node" pkg="icarus_rover_v2" type="cameracapture_node"  output="screen">
         <param name="loop_rate"             value="500"/>
         <param name="verbosity_level"       value="DEBUG"/>
         <param name="require_pps_to_start"  value="false"/> 
@@ -23,5 +23,4 @@
         <param name="image_height"          value="300"/>
         <!--<param name="storage_location"      value="/home/robot/external/Unsorted-Pictures"/> -->
     </node>
-
 </launch>

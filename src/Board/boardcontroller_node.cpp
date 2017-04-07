@@ -229,6 +229,14 @@ void process_message_thread(UsbDevice* dev)
                     		diagnostic_pub.publish(process_diagnostic);
                     	}
                     }
+                    else if(packet_type == SERIAL_Get_ANA_Port_ID)
+                    {
+                    	process_diagnostic = boardprocesses.at(dev->boardcontrollernode_id).new_serialmessage_Get_ANA_Port(packet_type,packet);
+                    	if(process_diagnostic.Level > INFO)
+                    	{
+                    		diagnostic_pub.publish(process_diagnostic);
+                    	}
+                    }
                     else
                     {
                         char tempstr[256];
@@ -311,6 +319,50 @@ bool run_fastrate_code()
 				ros::Duration(.02).sleep();
 			}
 		}
+        if((boardprocesses.at(i).get_boardstate() == BOARDMODE_RUNNING) &&
+           (boardprocesses.at(i).get_nodestate() == BOARDMODE_RUNNING))
+        {
+            std::vector<icarus_rover_v2::device> boards = boardprocesses.at(i).get_boards();
+            for(int j = 0; j < boards.size(); j++)
+            {
+                std::string boardname = boards.at(j).DeviceName;
+                Port_Info ANA_Port;
+                switch (board.at(j).DeviceType)
+                {
+                    case "TerminalShield":
+                        ANA_Port = process.get_PortInfo(boardname,"ANA_Port");
+                        if(ANA_Port.PortName == "")
+                        {
+                        }
+                        else
+                        {
+                            for(int k = 0; k < 4; k++)
+                            {
+                                icarus_rover_v2::pin newpin;
+                                newpin.Function = process->map_PinFunction_ToString(ANA_Port.Mode[k]);
+                                newpin.Number = ANA_Port.Number[k];
+                                newpin.Port = "ANA_Port";
+                                newpin.Value = ANA_Port.Value[k];
+                                newpin.ConnectedDevice = ANA_Port.ConnectingDevice.at(k);
+                                //printf("Port Name: %s Pin Number: %d Pin Function: %d Pin Value: %d\n",
+                                //		ANA_PortA.PortName.c_str(),ANA_PortA.Number[j],ANA_PortA.Mode[j],ANA_PortA.Value[j]);
+                                if(ANA_Port.Mode[k] == PINMODE_ANALOG_INPUT)
+                                {
+                                    analoginput_pub.publish(newpin);
+                                }
+                                else if(ANA_Port.Mode[k] == PINMODE_FORCESENSOR_INPUT)
+                                {
+                                    forcesensorinput_pub.publish(newpin);
+                                }
+                            }
+                        }
+                        break;
+                    default:
+                        break;
+                }
+                
+            }
+        }
 	}
 	if((ready == true) && (boardprocesses.size() > 0))
 	{
@@ -464,7 +516,7 @@ bool run_fastrate_code()
 		}
 	}
 	//logger->log_debug("Finished message output triggers.");
-
+    
 	if((process->get_boardstate() == BOARDMODE_RUNNING) &&
 	   (process->get_nodestate() == BOARDMODE_RUNNING))
 	{

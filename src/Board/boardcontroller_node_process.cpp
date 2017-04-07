@@ -927,7 +927,7 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_serialmessage_Diagno
 }
 icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_serialmessage_Get_ANA_Port(int packet_type,unsigned char* inpacket)
 {
-	/*
+	printf("Got ANA Port\n");
 	bool status = gather_message_info(SERIAL_Get_ANA_Port_ID, "receive");
 	if(status == false)
 	{
@@ -986,7 +986,6 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_serialmessage_Get_AN
 			diagnostic.Diagnostic_Message = DROPPING_PACKETS;
 		}
 	}
-	*/
 	return diagnostic;
 }
 
@@ -1227,6 +1226,7 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_devicemsg(icarus_rov
 						(int)newdevice.ID,
 						my_boardname.c_str(),
 						(int)get_boardid());
+				printf("%s\n",tempstr);
 				bool status =  configure_port(newdevice.ID,newdevice.pins);
 				if(status == false)
 				{
@@ -1631,7 +1631,6 @@ int BoardControllerNodeProcess::map_PinFunction_ToInt(std::string Function)
 	else if(Function == "DigitalOutput-NonActuator")	{ 	return PINMODE_DIGITAL_OUTPUT_NON_ACTUATOR;	}
 	else 												{ 	return PINMODE_UNDEFINED; 					}
 }
-/*
 Port_Info BoardControllerNodeProcess::get_PortInfo(std::string BoardName,std::string PortName)
 {
 
@@ -1654,7 +1653,6 @@ Port_Info BoardControllerNodeProcess::get_PortInfo(std::string BoardName,std::st
 	return blank;
 
 }
-*/
 void BoardControllerNodeProcess::initialize_stateack_messages()
 {
 	send_configure_DIO_Ports.name = "Send Configure DIO Ports";

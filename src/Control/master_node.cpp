@@ -562,6 +562,28 @@ bool parse_devicefile(TiXmlDocument doc)
 					{
 						newpin.DefaultValue = 0;
 					}
+
+					TiXmlElement *l_pPinAuxTopic = l_pPin->FirstChildElement( "AuxTopic" );
+					if ( NULL != l_pPinAuxTopic )
+					{
+						newpin.AuxTopic = l_pPinAuxTopic->GetText();
+					}
+					else
+					{
+						newpin.AuxTopic = "";
+					}
+
+					TiXmlElement *l_pPinScaleFactor = l_pPin->FirstChildElement( "ScaleFactor" );
+					if ( NULL != l_pPinScaleFactor )
+					{
+						newpin.ScaleFactor = atof(l_pPinScaleFactor->GetText());
+					}
+					else
+					{
+						newpin.ScaleFactor = 1.0;
+					}
+
+
 					l_pPin = l_pPin->NextSiblingElement( "Pin" );
 					pins.push_back(newpin);
 

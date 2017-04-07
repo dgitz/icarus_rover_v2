@@ -215,6 +215,7 @@ private:
     std::vector<icarus_rover_v2::diagnostic> diagnostics_to_send;
     uint8_t pps_counter;
     double current_delay_sec;
+    Port_Info ANA_Port;
 
 	std::vector<message_info> messages;
     std::vector<ros::Time> pps_history;
