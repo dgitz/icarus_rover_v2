@@ -19,6 +19,7 @@
 #include <serialmessage.h>
 #include "logger.h"
 #include <math.h>
+#include "ros/ros.h"
 #define INITIAL_TIMEOUT_VALUE_MS 1000
 #define PORT_SIZE 8 //Number of pins in 1 port
 using std::string;

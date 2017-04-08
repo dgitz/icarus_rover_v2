@@ -32,12 +32,12 @@
 
 //Start Template Code: Function Prototypes
 bool initialize(ros::NodeHandle nh);
-bool run_fastrate_code();
-bool run_mediumrate_code();
-bool run_slowrate_code();
-bool run_veryslowrate_code();
+void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg);
+void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg);
+void PPS10_Callback(const std_msgs::Bool::ConstPtr& msg);
+void PPS100_Callback(const std_msgs::Bool::ConstPtr& msg);
+void PPS1000_Callback(const std_msgs::Bool::ConstPtr& msg);
 double measure_time_diff(ros::Time timer_a, ros::Time tiber_b);
-void PPS_Callback(const std_msgs::Bool::ConstPtr& msg);
 void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg);
 void Command_Callback(const icarus_rover_v2::command& msg);
 std::vector<icarus_rover_v2::diagnostic> check_program_variables();
@@ -45,13 +45,21 @@ void signalinterrupt_handler(int sig);
 //End Template Code: Function Prototypes
 
 //Start User Code: Function Prototypes
+bool run_1000Hz_code();
+bool run_100Hz_code();
+bool run_10Hz_code();
+bool run_1Hz_code();
+bool run_01Hz_code();
 //End User Code: Function Prototypes
 
 //Start Template Code: Define Global variables
 std::string node_name;
-int rate;
 std::string verbosity_level;
-ros::Subscriber pps_sub;  
+ros::Subscriber pps01_sub;
+ros::Subscriber pps1_sub;
+ros::Subscriber pps10_sub;
+ros::Subscriber pps100_sub;
+ros::Subscriber pps1000_sub;
 ros::Subscriber device_sub;
 ros::Publisher diagnostic_pub;
 ros::Publisher resource_pub;
@@ -64,10 +72,6 @@ Logger *logger;
 ResourceMonitor *resourcemonitor;
 bool require_pps_to_start;
 bool received_pps;
-ros::Time fast_timer;
-ros::Time medium_timer;
-ros::Time slow_timer;
-ros::Time veryslow_timer;
 ros::Time now;
 ros::Time boot_time;
 double mtime;
@@ -79,5 +83,26 @@ volatile sig_atomic_t kill_node;
 //End Template Code: Define Global Variables
 
 //Start User Code: Define Global Variables
+ros::Publisher pps01_pub;
+ros::Publisher pps1_pub;
+ros::Publisher pps10_pub;
+ros::Publisher pps100_pub;
+ros::Publisher pps1000_pub;
+ros::Time pps01_timer;
+ros::Time pps1_timer;
+ros::Time pps10_timer;
+ros::Time pps100_timer;
+ros::Time pps1000_timer;
+ros::Time last_pps01_timer;
+ros::Time last_pps1_timer;
+ros::Time last_pps10_timer;
+ros::Time last_pps100_timer;
+ros::Time last_pps1000_timer;
+double pps01_delay;
+double pps1_delay;
+double pps10_delay;
+double pps100_delay;
+double pps1000_delay;
+bool publish_1pps;
 //End User Code: Define Global Variables
 #endif

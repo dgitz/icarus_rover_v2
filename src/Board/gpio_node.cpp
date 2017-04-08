@@ -1,8 +1,8 @@
 #include "gpio_node.h"
 //Start User Code: Firmware Definition
 #define GPIONODE_MAJOR_RELEASE 3
-#define GPIONODE_MINOR_RELEASE 1
-#define GPIONODE_BUILD_NUMBER 3
+#define GPIONODE_MINOR_RELEASE 2
+#define GPIONODE_BUILD_NUMBER 0
 //End User Code: Firmware Definition
 //Start User Code: Functions
 
@@ -83,8 +83,114 @@ void ArmedState_Callback(const std_msgs::UInt8::ConstPtr& msg)
 		diagnostic_pub.publish(diagnostic_status);
 	}
 }
-bool run_fastrate_code()
+void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
+    logger->log_info("Node Running.");
+	icarus_rover_v2::firmware fw;
+	fw.Generic_Node_Name = "gpio_node";
+	fw.Node_Name = node_name;
+	fw.Description = "Latest Rev: 8-April-2017";
+	fw.Major_Release = GPIONODE_MAJOR_RELEASE;
+	fw.Minor_Release = GPIONODE_MINOR_RELEASE;
+	fw.Build_Number = GPIONODE_BUILD_NUMBER;
+	firmware_pub.publish(fw);
+	std::vector<message_info> allmessage_info = process->get_allmessage_info();
+	for(int i = 0; i < allmessage_info.size(); i++)
+	{
+		char tempstr[255];
+		message_info message = allmessage_info.at(i);
+		sprintf(tempstr,"Message: AB%0X Received Counter: %d Received Rate: %f (Hz) Transmitted Counter: %d Transmitted Rate: %f (Hz)",
+				message.id,
+				message.received_counter,
+				message.received_rate,
+				message.sent_counter,
+				message.transmitted_rate);
+		logger->log_info(tempstr);
+	}
+}
+void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
+{
+	received_pps = true;
+    {
+		icarus_rover_v2::diagnostic diag = diagnostic_status;
+		char tempstr[255];
+		sprintf(tempstr,"Board Mode: %s Node Mode: %s",
+			process->map_mode_ToString(process->get_boardstate()).c_str(),
+			process->map_mode_ToString(process->get_nodestate()).c_str());
+		if((process->get_boardstate() == BOARDMODE_RUNNING) &&
+			   (process->get_nodestate() == BOARDMODE_RUNNING))
+		{
+			logger->log_info(tempstr);
+			diag.Level = INFO;
+		}
+		else
+		{
+			logger->log_warn(tempstr);
+			diag.Level = WARN;
+		}
+		diag.Diagnostic_Type = SOFTWARE;
+		diag.Diagnostic_Message = NOERROR;
+		diag.Description = tempstr;
+		diagnostic_pub.publish(diag);
+	}
+
+	if(device_initialized == true)
+	{
+		icarus_rover_v2::diagnostic resource_diagnostic;
+		resource_diagnostic = resourcemonitor->update();
+		if(resource_diagnostic.Diagnostic_Message == DEVICE_NOT_AVAILABLE)
+		{
+			diagnostic_pub.publish(resource_diagnostic);
+			logger->log_warn("Couldn't read resources used.");
+		}
+		else if(resource_diagnostic.Level >= WARN)
+		{
+			resources_used = resourcemonitor->get_resourceused();
+			resource_pub.publish(resources_used);
+			diagnostic_pub.publish(resource_diagnostic);
+		}
+		else if(resource_diagnostic.Level <= NOTICE)
+		{
+			resources_used = resourcemonitor->get_resourceused();
+			resource_pub.publish(resources_used);
+		}
+	}
+
+	{
+		char tempstr[255];
+		sprintf(tempstr,"Checksum passed: %d failed: %d",good_checksum_counter,bad_checksum_counter);
+		logger->log_info(tempstr);
+	}
+}
+void PPS10_Callback(const std_msgs::Bool::ConstPtr& msg)
+{
+    process->transmit_armedstate();
+	double time_since_last_message = measure_time_diff(ros::Time::now(),last_message_received_time);
+	if((time_since_last_message > 3.0) && (time_since_last_message < 6.0))
+	{
+		diagnostic_status.Level = WARN;
+		diagnostic_status.Diagnostic_Message = DROPPING_PACKETS;
+		char tempstr[255];
+		sprintf(tempstr,"No Message received from GPIO Board in %f seconds",time_since_last_message);
+		diagnostic_status.Description = tempstr;
+	}
+	else if(time_since_last_message >= 6.0)
+	{
+		diagnostic_status.Level = ERROR;
+		diagnostic_status.Diagnostic_Message = DROPPING_PACKETS;
+		char tempstr[255];
+		sprintf(tempstr,"No Message received from GPIO Board in %f seconds",time_since_last_message);
+		diagnostic_status.Description = tempstr;
+	}
+
+	beat.stamp = ros::Time::now();
+	heartbeat_pub.publish(beat);
+	diagnostic_pub.publish(diagnostic_status);
+}
+void PPS100_Callback(const std_msgs::Bool::ConstPtr& msg)
+{
+    //diagnostic_status = process->update(0.01);
+    //diagnostic_pub.publish(diagnostic_status);
 	uint8_t armed_command = process->get_armedcommand();
 	uint8_t armed_state = process->get_armedcommand();
 	if(new_message == true)
@@ -311,116 +417,11 @@ bool run_fastrate_code()
 	ready_to_arm_pub.publish(bool_ready_to_arm);
 
 	//diagnostic_pub.publish(diagnostic_status);
-	return true;
 }
-bool run_mediumrate_code()
+void PPS1000_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
-	process->transmit_armedstate();
-	double time_since_last_message = measure_time_diff(ros::Time::now(),last_message_received_time);
-	if((time_since_last_message > 3.0) && (time_since_last_message < 6.0))
-	{
-		diagnostic_status.Level = WARN;
-		diagnostic_status.Diagnostic_Message = DROPPING_PACKETS;
-		char tempstr[255];
-		sprintf(tempstr,"No Message received from GPIO Board in %f seconds",time_since_last_message);
-		diagnostic_status.Description = tempstr;
-	}
-	else if(time_since_last_message >= 6.0)
-	{
-		diagnostic_status.Level = ERROR;
-		diagnostic_status.Diagnostic_Message = DROPPING_PACKETS;
-		char tempstr[255];
-		sprintf(tempstr,"No Message received from GPIO Board in %f seconds",time_since_last_message);
-		diagnostic_status.Description = tempstr;
-	}
-
-	beat.stamp = ros::Time::now();
-	heartbeat_pub.publish(beat);
-	diagnostic_pub.publish(diagnostic_status);
-	return true;
-}
-bool run_slowrate_code()
-{
-	{
-		icarus_rover_v2::diagnostic diag = diagnostic_status;
-		char tempstr[255];
-		sprintf(tempstr,"Board Mode: %s Node Mode: %s",
-			process->map_mode_ToString(process->get_boardstate()).c_str(),
-			process->map_mode_ToString(process->get_nodestate()).c_str());
-		if((process->get_boardstate() == BOARDMODE_RUNNING) &&
-			   (process->get_nodestate() == BOARDMODE_RUNNING))
-		{
-			logger->log_info(tempstr);
-			diag.Level = INFO;
-		}
-		else
-		{
-			logger->log_warn(tempstr);
-			diag.Level = WARN;
-		}
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Diagnostic_Message = NOERROR;
-		diag.Description = tempstr;
-		diagnostic_pub.publish(diag);
-	}
-
-	if(device_initialized == true)
-	{
-		icarus_rover_v2::diagnostic resource_diagnostic;
-		resource_diagnostic = resourcemonitor->update();
-		if(resource_diagnostic.Diagnostic_Message == DEVICE_NOT_AVAILABLE)
-		{
-			diagnostic_pub.publish(resource_diagnostic);
-			logger->log_warn("Couldn't read resources used.");
-		}
-		else if(resource_diagnostic.Level >= WARN)
-		{
-			resources_used = resourcemonitor->get_resourceused();
-			resource_pub.publish(resources_used);
-			diagnostic_pub.publish(resource_diagnostic);
-		}
-		else if(resource_diagnostic.Level <= NOTICE)
-		{
-			resources_used = resourcemonitor->get_resourceused();
-			resource_pub.publish(resources_used);
-		}
-	}
-
-	{
-		char tempstr[255];
-		sprintf(tempstr,"Checksum passed: %d failed: %d",good_checksum_counter,bad_checksum_counter);
-		logger->log_info(tempstr);
-	}
-	return true;
 }
 
-bool run_veryslowrate_code()
-{
-	//logger->log_debug("Running very slow rate code.");
-	logger->log_info("Node Running.");
-	icarus_rover_v2::firmware fw;
-	fw.Generic_Node_Name = "gpio_node";
-	fw.Node_Name = node_name;
-	fw.Description = "Latest Rev: 30-Nov-2016";
-	fw.Major_Release = GPIONODE_MAJOR_RELEASE;
-	fw.Minor_Release = GPIONODE_MINOR_RELEASE;
-	fw.Build_Number = GPIONODE_BUILD_NUMBER;
-	firmware_pub.publish(fw);
-	std::vector<message_info> allmessage_info = process->get_allmessage_info();
-	for(int i = 0; i < allmessage_info.size(); i++)
-	{
-		char tempstr[255];
-		message_info message = allmessage_info.at(i);
-		sprintf(tempstr,"Message: AB%0X Received Counter: %d Received Rate: %f (Hz) Transmitted Counter: %d Transmitted Rate: %f (Hz)",
-				message.id,
-				message.received_counter,
-				message.received_rate,
-				message.sent_counter,
-				message.transmitted_rate);
-		logger->log_info(tempstr);
-	}
-	return true;
-}
 void DigitalOutput_Callback(const icarus_rover_v2::pin::ConstPtr& msg)
 {
 	icarus_rover_v2::pin pinmsg;
@@ -482,7 +483,6 @@ std::vector<icarus_rover_v2::diagnostic> check_program_variables()
 	return diaglist;
 }
 
-
 void Command_Callback(const icarus_rover_v2::command::ConstPtr& msg)
 {
 	diagnostic_status = process->new_commandmsg(
@@ -537,13 +537,9 @@ int main(int argc, char **argv)
 		diagnostic_pub.publish(diagnostic_status);
 		kill_node = 1;
     }
-    ros::Rate loop_rate(rate);
+    ros::Rate loop_rate(1);
 	boot_time = ros::Time::now();
     now = ros::Time::now();
-    fast_timer = now;
-    medium_timer = now;
-    slow_timer = now;
-    veryslow_timer = now;
 	#if( USE_UART == 1)
 
     	boost::thread processmessage_thread(&process_message_thread);
@@ -557,30 +553,6 @@ int main(int argc, char **argv)
     	if(ok_to_start == true)
     	{
     		now = ros::Time::now();
-    		mtime = measure_time_diff(now,fast_timer);
-			if(mtime > .02)
-			{
-				run_fastrate_code();
-				fast_timer = ros::Time::now();
-			}
-			mtime = measure_time_diff(now,medium_timer);
-			if(mtime > 0.1)
-			{
-				run_mediumrate_code();
-				medium_timer = ros::Time::now();
-			}
-			mtime = measure_time_diff(now,slow_timer);
-			if(mtime > 1.0)
-			{
-				run_slowrate_code();
-				slow_timer = ros::Time::now();
-			}
-			mtime = measure_time_diff(now,veryslow_timer);
-			if(mtime > 10.0)
-			{
-				run_veryslowrate_code();
-				veryslow_timer = ros::Time::now();
-			}
 		}
 		else
 		{
@@ -601,7 +573,6 @@ int main(int argc, char **argv)
     logger->log_notice("Node Finished Safely.");
     return 0;
 }
-
 bool initialize(ros::NodeHandle nh)
 {
     //Start Template Code: Initialization, Parameters and Topics
@@ -640,20 +611,17 @@ bool initialize(ros::NodeHandle nh)
     {
         logger = new Logger(verbosity_level,ros::this_node::getName());      
     }
-    std::string param_loop_rate = node_name +"/loop_rate";
-    if(nh.getParam(param_loop_rate,rate) == false)
-    {
-        logger->log_warn("Missing Parameter: loop_rate.");
-        return false;
-    }
     
     std::string heartbeat_topic = "/" + node_name + "/heartbeat";
     heartbeat_pub = nh.advertise<icarus_rover_v2::heartbeat>(heartbeat_topic,1000);
     beat.Node_Name = node_name;
     std::string device_topic = "/" + std::string(hostname) +"_master_node/device";
     device_sub = nh.subscribe<icarus_rover_v2::device>(device_topic,1000,Device_Callback);
-
-    pps_sub = nh.subscribe<std_msgs::Bool>("/pps",1000,PPS_Callback);  //This is a pps consumer.
+    pps01_sub = nh.subscribe<std_msgs::Bool>("/01PPS",1000,PPS01_Callback); 
+    pps1_sub = nh.subscribe<std_msgs::Bool>("/1PPS",1000,PPS1_Callback); 
+    pps10_sub = nh.subscribe<std_msgs::Bool>("/10PPS",1000,PPS10_Callback); 
+    pps100_sub = nh.subscribe<std_msgs::Bool>("/100PPS",1000,PPS100_Callback); 
+    pps1000_sub = nh.subscribe<std_msgs::Bool>("/1000PPS",1000,PPS1000_Callback); 
     command_sub = nh.subscribe<icarus_rover_v2::command>("/command",1000,Command_Callback);
     std::string param_require_pps_to_start = node_name +"/require_pps_to_start";
     if(nh.getParam(param_require_pps_to_start,require_pps_to_start) == false)
@@ -763,11 +731,6 @@ double measure_time_diff(ros::Time timer_a, ros::Time timer_b)
 {
 	ros::Duration etime = timer_a - timer_b;
 	return etime.toSec();
-}
-void PPS_Callback(const std_msgs::Bool::ConstPtr& msg)
-{
-	//logger->log_info("Got pps");
-	received_pps = true;
 }
 void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg)
 {

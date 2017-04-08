@@ -1,8 +1,8 @@
 #include "cameracapture_node.h"
 //Start User Code: Firmware Definition
 #define CAMERACAPTURENODE_MAJOR_RELEASE 2
-#define CAMERACAPTURENODE_MINOR_RELEASE 3
-#define CAMERACAPTURENODE_BUILD_NUMBER 2
+#define CAMERACAPTURENODE_MINOR_RELEASE 4
+#define CAMERACAPTURENODE_BUILD_NUMBER 0
 //End User Code: Firmware Definition
 //Start User Code: Functions
 void Edge_Detect_Threshold_Callback(const std_msgs::UInt8::ConstPtr& msg)
@@ -132,37 +132,24 @@ bool Edge_Detection(cv::Mat gray_image,int,void*)
 	proc_image_pub.publish(proc_image.toImageMsg());
 	return true;
 }
-bool run_fastrate_code()
+void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
-	//logger->log_debug("Running fast rate code.");
-	if(operation_mode == "capture")
-	{
-		ros::Time time_a = ros::Time::now();
-		capture_image(capture);
-		//printf("Capture time: %f\n",measure_time_diff(ros::Time::now(),time_a));
-	}
-	return true;
+	logger->log_info("Node Running.");
+	icarus_rover_v2::firmware fw;
+	fw.Generic_Node_Name = "cameracapture_node";
+	fw.Node_Name = node_name;
+	fw.Description = "Latest Rev: 8-April-2017";
+	fw.Major_Release = CAMERACAPTURENODE_MAJOR_RELEASE;
+	fw.Minor_Release = CAMERACAPTURENODE_MINOR_RELEASE;
+	fw.Build_Number = CAMERACAPTURENODE_BUILD_NUMBER;
+	firmware_pub.publish(fw);
 }
-bool run_mediumrate_code()
+void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
-	beat.stamp = ros::Time::now();
-	heartbeat_pub.publish(beat);
-
-	diagnostic_status.Diagnostic_Type = SOFTWARE;
-	diagnostic_status.Level = INFO;
-	diagnostic_status.Diagnostic_Message = NOERROR;
-	diagnostic_status.Description = "Node Executing.";
-	diagnostic_pub.publish(diagnostic_status);
-	//logger->log_debug("Running medium rate code.");
-
-	return true;
-}
-bool run_slowrate_code()
-{
-	if(device_initialized == true)
+	received_pps = true;
+    if(device_initialized == true)
 	{
-		icarus_rover_v2::diagnostic resource_diagnostic;
-		resource_diagnostic = resourcemonitor->update();
+		icarus_rover_v2::diagnostic resource_diagnostic = resourcemonitor->update();
 		if(resource_diagnostic.Diagnostic_Message == DEVICE_NOT_AVAILABLE)
 		{
 			diagnostic_pub.publish(resource_diagnostic);
@@ -180,23 +167,32 @@ bool run_slowrate_code()
 			resource_pub.publish(resources_used);
 		}
 	}
-	return true;
 }
-bool run_veryslowrate_code()
+void PPS10_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
-	//logger->log_debug("Running very slow rate code.");
-	logger->log_info("Node Running.");
-	icarus_rover_v2::firmware fw;
-	fw.Generic_Node_Name = "cameracapture_node";
-	fw.Node_Name = node_name;
-	fw.Description = "Latest Rev: 9-Jan-2017";
-	fw.Major_Release = CAMERACAPTURENODE_MAJOR_RELEASE;
-	fw.Minor_Release = CAMERACAPTURENODE_MINOR_RELEASE;
-	fw.Build_Number = CAMERACAPTURENODE_BUILD_NUMBER;
-	firmware_pub.publish(fw);
-	return true;
-}
+    beat.stamp = ros::Time::now();
+	heartbeat_pub.publish(beat);
 
+	diagnostic_status.Diagnostic_Type = SOFTWARE;
+	diagnostic_status.Level = INFO;
+	diagnostic_status.Diagnostic_Message = NOERROR;
+	diagnostic_status.Description = "Node Executing.";
+	diagnostic_pub.publish(diagnostic_status);
+}
+void PPS100_Callback(const std_msgs::Bool::ConstPtr& msg)
+{
+	if(operation_mode == "capture")
+	{
+		ros::Time time_a = ros::Time::now();
+		capture_image(capture);
+		//printf("Capture time: %f\n",measure_time_diff(ros::Time::now(),time_a));
+	}
+    //diagnostic_status = process->update(0.01);
+    //diagnostic_pub.publish(diagnostic_status);
+}
+void PPS1000_Callback(const std_msgs::Bool::ConstPtr& msg)
+{
+}
 std::vector<icarus_rover_v2::diagnostic> check_program_variables()
 {
 	std::vector<icarus_rover_v2::diagnostic> diaglist;
@@ -268,13 +264,9 @@ int main(int argc, char **argv)
 		diagnostic_pub.publish(diagnostic_status);
 		kill_node = 1;
     }
-    ros::Rate loop_rate(rate);
+    ros::Rate loop_rate(1);
 	boot_time = ros::Time::now();
     now = ros::Time::now();
-    fast_timer = now;
-    medium_timer = now;
-    slow_timer = now;
-    veryslow_timer = now;
     while (ros::ok() && (kill_node == 0))
     {
     	bool ok_to_start = false;
@@ -283,30 +275,6 @@ int main(int argc, char **argv)
     	if(ok_to_start == true)
     	{
     		now = ros::Time::now();
-    		mtime = measure_time_diff(now,fast_timer);
-			if(mtime > .02)
-			{
-				run_fastrate_code();
-				fast_timer = ros::Time::now();
-			}
-			mtime = measure_time_diff(now,medium_timer);
-			if(mtime > 0.1)
-			{
-				run_mediumrate_code();
-				medium_timer = ros::Time::now();
-			}
-			mtime = measure_time_diff(now,slow_timer);
-			if(mtime > 1.0)
-			{
-				run_slowrate_code();
-				slow_timer = ros::Time::now();
-			}
-			mtime = measure_time_diff(now,veryslow_timer);
-			if(mtime > 10.0)
-			{
-				run_veryslowrate_code();
-				veryslow_timer = ros::Time::now();
-			}
 		}
 		else
 		{
@@ -361,20 +329,17 @@ bool initialize(ros::NodeHandle nh)
     {
         logger = new Logger(verbosity_level,ros::this_node::getName());      
     }
-    std::string param_loop_rate = node_name +"/loop_rate";
-    if(nh.getParam(param_loop_rate,rate) == false)
-    {
-        logger->log_warn("Missing Parameter: loop_rate.");
-        return false;
-    }
     
     std::string heartbeat_topic = "/" + node_name + "/heartbeat";
     heartbeat_pub = nh.advertise<icarus_rover_v2::heartbeat>(heartbeat_topic,1000);
     beat.Node_Name = node_name;
     std::string device_topic = "/" + std::string(hostname) +"_master_node/device";
     device_sub = nh.subscribe<icarus_rover_v2::device>(device_topic,1000,Device_Callback);
-
-    pps_sub = nh.subscribe<std_msgs::Bool>("/pps",1000,PPS_Callback);  //This is a pps consumer.
+    pps01_sub = nh.subscribe<std_msgs::Bool>("/01PPS",1000,PPS01_Callback); 
+    pps1_sub = nh.subscribe<std_msgs::Bool>("/1PPS",1000,PPS1_Callback); 
+    pps10_sub = nh.subscribe<std_msgs::Bool>("/10PPS",1000,PPS10_Callback); 
+    pps100_sub = nh.subscribe<std_msgs::Bool>("/100PPS",1000,PPS100_Callback); 
+    pps1000_sub = nh.subscribe<std_msgs::Bool>("/1000PPS",1000,PPS1000_Callback); 
     command_sub = nh.subscribe<icarus_rover_v2::command>("/command",1000,Command_Callback);
     std::string param_require_pps_to_start = node_name +"/require_pps_to_start";
     if(nh.getParam(param_require_pps_to_start,require_pps_to_start) == false)
@@ -549,11 +514,6 @@ double measure_time_diff(ros::Time timer_a, ros::Time timer_b)
 {
 	ros::Duration etime = timer_a - timer_b;
 	return etime.toSec();
-}
-void PPS_Callback(const std_msgs::Bool::ConstPtr& msg)
-{
-	//logger->log_info("Got pps");
-	received_pps = true;
 }
 void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg)
 {

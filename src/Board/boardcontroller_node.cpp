@@ -1,7 +1,7 @@
 #include "boardcontroller_node.h"
 //Start User Code: Firmware Definition
 #define BOARDCONTROLLERNODE_MAJOR_RELEASE 0
-#define BOARDCONTROLLERNODE_MINOR_RELEASE 3
+#define BOARDCONTROLLERNODE_MINOR_RELEASE 4
 #define BOARDCONTROLLERNODE_BUILD_NUMBER 0
 //End User Code: Firmware Definition
 //Start User Code: Functions
@@ -268,8 +268,187 @@ void ArmedState_Callback(const std_msgs::UInt8::ConstPtr& msg)
 		diagnostic_pub.publish(diagnostic_status);
 	}
 }
-bool run_fastrate_code()
+void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
+	//logger->log_debug("Running very slow rate code.");
+	logger->log_info("Node Running.");
+	icarus_rover_v2::firmware fw;
+	fw.Generic_Node_Name = "boardcontroller_node";
+	fw.Node_Name = node_name;
+	fw.Description = "Latest Rev: 8-April-2017";
+	fw.Major_Release = BOARDCONTROLLERNODE_MAJOR_RELEASE;
+	fw.Minor_Release = BOARDCONTROLLERNODE_MINOR_RELEASE;
+	fw.Build_Number = BOARDCONTROLLERNODE_BUILD_NUMBER;
+	firmware_pub.publish(fw);
+	diagnostic_status = rescan_topics(diagnostic_status);
+	for(int i = 0; i < boardprocesses.size(); i++)
+	{
+        if(boardprocesses.at(i).get_firmwarereceived() == true)
+        {
+            firmware_pub.publish(boardprocesses.at(i).get_boardfirmware());
+        }
+		std::vector<message_info> allmessage_info = boardprocesses.at(i).get_allmessage_info();
+		char tempstr[255];
+		sprintf(tempstr,"--- Message Info for Board: %d ---",boardprocesses.at(i).get_boardid());
+		logger->log_info(tempstr);
+		for(int j = 0; j < allmessage_info.size(); j++)
+		{
+			char tempstr2[512];
+			message_info message = allmessage_info.at(j);
+			sprintf(tempstr2,"Message: %s (AB%0X) Received Counter: %ld Received Rate: %.02f (Hz) Transmitted Counter: %ld Transmitted Rate: %f (Hz)",
+					message.name.c_str(),
+					message.id,
+					message.received_counter,
+					message.received_rate,
+					message.sent_counter,
+					message.transmitted_rate);
+			logger->log_info(tempstr2);
+		}
+		logger->log_info("-------------------");
+	}
+	for(int i = 0; i < UsbDevices.size(); i++)
+	{
+		if(UsbDevices.at(i).valid == 1)
+		{
+			now = ros::Time::now();
+			mtime = measure_time_diff(now,boot_time);
+			double rx_rate = (double)(UsbDevices.at(i).bytesreceived)/mtime;
+			double tx_rate = (double)(UsbDevices.at(i).bytestransmitted)/mtime;
+			{
+				char tempstr[512];
+				sprintf(tempstr,"Loc: %s Received %lld bytes from device at a rate of %.02f (Bps) Transmitted %lld bytes at a rate of %02f (Bps)",
+						UsbDevices.at(i).location.c_str(),
+						UsbDevices.at(i).bytesreceived,
+						rx_rate,
+						UsbDevices.at(i).bytestransmitted,
+						tx_rate);
+				logger->log_info(tempstr);
+			}
+
+		}
+		{
+			char tempstr[255];
+			sprintf(tempstr,"Loc: %s Valid: %d Received Good Checksum: %lld Bad Checksum: %lld",
+					UsbDevices.at(i).location.c_str(),
+					UsbDevices.at(i).valid,
+					UsbDevices.at(i).good_checksum_counter,
+					UsbDevices.at(i).bad_checksum_counter);
+			logger->log_info(tempstr);
+		}
+
+	}
+}
+void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
+{
+	received_pps = true;
+	/*
+    for(int i = 0; i < boardprocesses.size();i++)
+	{
+		if(boardprocesses.at(i).get_boardstate() == BOARDMODE_RUNNING)
+		{
+			diagnostic_status = boardprocesses.at(i).new_pps_transmit();
+		}
+	}
+    {
+		icarus_rover_v2::diagnostic diag = diagnostic_status;
+		char tempstr[255];
+		sprintf(tempstr,"Board Mode: %s Node Mode: %s",
+			process->map_mode_ToString(process->get_boardstate()).c_str(),
+			process->map_mode_ToString(process->get_nodestate()).c_str());
+		if((process->get_boardstate() == BOARDMODE_RUNNING) &&
+			   (process->get_nodestate() == BOARDMODE_RUNNING))
+		{
+			logger->log_info(tempstr);
+			diag.Level = INFO;
+		}
+		else
+		{
+			logger->log_warn(tempstr);
+			diag.Level = WARN;
+		}
+		diag.Diagnostic_Type = SOFTWARE;
+		diag.Diagnostic_Message = NOERROR;
+		diag.Description = tempstr;
+		diagnostic_pub.publish(diag);
+	}
+
+	if(device_initialized == true)
+	{
+		icarus_rover_v2::diagnostic resource_diagnostic;
+		resource_diagnostic = resourcemonitor->update();
+		if(resource_diagnostic.Diagnostic_Message == DEVICE_NOT_AVAILABLE)
+		{
+			diagnostic_pub.publish(resource_diagnostic);
+			logger->log_warn("Couldn't read resources used.");
+		}
+		else if(resource_diagnostic.Level >= WARN)
+		{
+			resources_used = resourcemonitor->get_resourceused();
+			resource_pub.publish(resources_used);
+			diagnostic_pub.publish(resource_diagnostic);
+		}
+		else if(resource_diagnostic.Level <= NOTICE)
+		{
+			resources_used = resourcemonitor->get_resourceused();
+			resource_pub.publish(resources_used);
+		}
+	}
+
+	{
+		char tempstr[255];
+		sprintf(tempstr,"Checksum passed: %d failed: %d",good_checksum_counter,bad_checksum_counter);
+		logger->log_info(tempstr);
+	}
+	*/
+	for(int i = 0; i < boardprocesses.size(); i++)
+	{
+		char tempstr[512];
+		/*
+		sprintf(tempstr,"Board: %s:%d Node State: %s Board State: %s",
+				boardprocesses.at(i).get_boardname().c_str(),
+				boardprocesses.at(i).get_boardid(),
+				boardprocesses.at(i).map_mode_ToString(boardprocesses.at(i).get_nodestate()).c_str(),
+				boardprocesses.at(i).map_mode_ToString(boardprocesses.at(i).get_boardstate()).c_str());
+		*/
+		sprintf(tempstr,"Board: %s:%d Node State: %s Board State: %s Delay: %f (sec)",
+						boardprocesses.at(i).get_boardname().c_str(),
+						boardprocesses.at(i).get_boardid(),
+						boardprocesses.at(i).map_mode_ToString(boardprocesses.at(i).get_nodestate()).c_str(),
+						boardprocesses.at(i).map_mode_ToString(boardprocesses.at(i).get_boardstate()).c_str(),
+						boardprocesses.at(i).get_delay_sec());
+		logger->log_info(tempstr);
+	}
+}
+void PPS10_Callback(const std_msgs::Bool::ConstPtr& msg)
+{
+	/*
+    process->transmit_armedstate();
+	double time_since_last_message = measure_time_diff(ros::Time::now(),last_message_received_time);
+	if((time_since_last_message > 3.0) && (time_since_last_message < 6.0))
+	{
+		diagnostic_status.Level = WARN;
+		diagnostic_status.Diagnostic_Message = DROPPING_PACKETS;
+		char tempstr[255];
+		sprintf(tempstr,"No Message received from GPIO Board in %f seconds",time_since_last_message);
+		diagnostic_status.Description = tempstr;
+	}
+	else if(time_since_last_message >= 6.0)
+	{
+		diagnostic_status.Level = ERROR;
+		diagnostic_status.Diagnostic_Message = DROPPING_PACKETS;
+		char tempstr[255];
+		sprintf(tempstr,"No Message received from GPIO Board in %f seconds",time_since_last_message);
+		diagnostic_status.Description = tempstr;
+	}
+    */
+
+	beat.stamp = ros::Time::now();
+	heartbeat_pub.publish(beat);
+	diagnostic_pub.publish(diagnostic_status);
+}
+void PPS100_Callback(const std_msgs::Bool::ConstPtr& msg)
+{
+   	//logger->log_debug("Running fast rate code.");
 	bool ready = true;
 	for(int i = 0; i < boardprocesses.size();i++)
 	{
@@ -593,182 +772,14 @@ bool run_fastrate_code()
 	//diagnostic_pub.publish(diagnostic_status);
 	 *
 	 */
-	return true;
+	//diagnostic_status = process->update(.01);
+	if(diagnostic_status.Level > NOTICE)
+	{
+		diagnostic_pub.publish(diagnostic_status);
+	}
 }
-bool run_mediumrate_code()
+void PPS1000_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
-
-	/*
-	process->transmit_armedstate();
-	double time_since_last_message = measure_time_diff(ros::Time::now(),last_message_received_time);
-	if((time_since_last_message > 3.0) && (time_since_last_message < 6.0))
-	{
-		diagnostic_status.Level = WARN;
-		diagnostic_status.Diagnostic_Message = DROPPING_PACKETS;
-		char tempstr[255];
-		sprintf(tempstr,"No Message received from GPIO Board in %f seconds",time_since_last_message);
-		diagnostic_status.Description = tempstr;
-	}
-	else if(time_since_last_message >= 6.0)
-	{
-		diagnostic_status.Level = ERROR;
-		diagnostic_status.Diagnostic_Message = DROPPING_PACKETS;
-		char tempstr[255];
-		sprintf(tempstr,"No Message received from GPIO Board in %f seconds",time_since_last_message);
-		diagnostic_status.Description = tempstr;
-	}
-    */
-
-	beat.stamp = ros::Time::now();
-	heartbeat_pub.publish(beat);
-	diagnostic_pub.publish(diagnostic_status);
-	return true;
-}
-bool run_slowrate_code()
-{
-	/*
-	{
-		icarus_rover_v2::diagnostic diag = diagnostic_status;
-		char tempstr[255];
-		sprintf(tempstr,"Board Mode: %s Node Mode: %s",
-			process->map_mode_ToString(process->get_boardstate()).c_str(),
-			process->map_mode_ToString(process->get_nodestate()).c_str());
-		if((process->get_boardstate() == BOARDMODE_RUNNING) &&
-			   (process->get_nodestate() == BOARDMODE_RUNNING))
-		{
-			logger->log_info(tempstr);
-			diag.Level = INFO;
-		}
-		else
-		{
-			logger->log_warn(tempstr);
-			diag.Level = WARN;
-		}
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Diagnostic_Message = NOERROR;
-		diag.Description = tempstr;
-		diagnostic_pub.publish(diag);
-	}
-
-	if(device_initialized == true)
-	{
-		icarus_rover_v2::diagnostic resource_diagnostic;
-		resource_diagnostic = resourcemonitor->update();
-		if(resource_diagnostic.Diagnostic_Message == DEVICE_NOT_AVAILABLE)
-		{
-			diagnostic_pub.publish(resource_diagnostic);
-			logger->log_warn("Couldn't read resources used.");
-		}
-		else if(resource_diagnostic.Level >= WARN)
-		{
-			resources_used = resourcemonitor->get_resourceused();
-			resource_pub.publish(resources_used);
-			diagnostic_pub.publish(resource_diagnostic);
-		}
-		else if(resource_diagnostic.Level <= NOTICE)
-		{
-			resources_used = resourcemonitor->get_resourceused();
-			resource_pub.publish(resources_used);
-		}
-	}
-
-	{
-		char tempstr[255];
-		sprintf(tempstr,"Checksum passed: %d failed: %d",good_checksum_counter,bad_checksum_counter);
-		logger->log_info(tempstr);
-	}
-	*/
-	for(int i = 0; i < boardprocesses.size(); i++)
-	{
-		char tempstr[512];
-		/*
-		sprintf(tempstr,"Board: %s:%d Node State: %s Board State: %s",
-				boardprocesses.at(i).get_boardname().c_str(),
-				boardprocesses.at(i).get_boardid(),
-				boardprocesses.at(i).map_mode_ToString(boardprocesses.at(i).get_nodestate()).c_str(),
-				boardprocesses.at(i).map_mode_ToString(boardprocesses.at(i).get_boardstate()).c_str());
-		*/
-		sprintf(tempstr,"Board: %s:%d Node State: %s Board State: %s Delay: %f (sec)",
-						boardprocesses.at(i).get_boardname().c_str(),
-						boardprocesses.at(i).get_boardid(),
-						boardprocesses.at(i).map_mode_ToString(boardprocesses.at(i).get_nodestate()).c_str(),
-						boardprocesses.at(i).map_mode_ToString(boardprocesses.at(i).get_boardstate()).c_str(),
-						boardprocesses.at(i).get_delay_sec());
-		logger->log_info(tempstr);
-	}
-	return true;
-}
-
-bool run_veryslowrate_code()
-{
-	diagnostic_status = rescan_topics(diagnostic_status);
-	//logger->log_debug("Running very slow rate code.");
-	logger->log_info("Node Running.");
-	icarus_rover_v2::firmware fw;
-	fw.Generic_Node_Name = "boardcontroller_node";
-	fw.Node_Name = node_name;
-	fw.Description = "Latest Rev: 2-April-2017";
-	fw.Major_Release = BOARDCONTROLLERNODE_MAJOR_RELEASE;
-	fw.Minor_Release = BOARDCONTROLLERNODE_MINOR_RELEASE;
-	fw.Build_Number = BOARDCONTROLLERNODE_BUILD_NUMBER;
-	firmware_pub.publish(fw);
-	for(int i = 0; i < boardprocesses.size(); i++)
-	{
-        if(boardprocesses.at(i).get_firmwarereceived() == true)
-        {
-            firmware_pub.publish(boardprocesses.at(i).get_boardfirmware());
-        }
-		std::vector<message_info> allmessage_info = boardprocesses.at(i).get_allmessage_info();
-		char tempstr[255];
-		sprintf(tempstr,"--- Message Info for Board: %d ---",boardprocesses.at(i).get_boardid());
-		logger->log_info(tempstr);
-		for(int j = 0; j < allmessage_info.size(); j++)
-		{
-			char tempstr2[512];
-			message_info message = allmessage_info.at(j);
-			sprintf(tempstr2,"Message: %s (AB%0X) Received Counter: %ld Received Rate: %.02f (Hz) Transmitted Counter: %ld Transmitted Rate: %f (Hz)",
-					message.name.c_str(),
-					message.id,
-					message.received_counter,
-					message.received_rate,
-					message.sent_counter,
-					message.transmitted_rate);
-			logger->log_info(tempstr2);
-		}
-		logger->log_info("-------------------");
-	}
-	for(int i = 0; i < UsbDevices.size(); i++)
-	{
-		if(UsbDevices.at(i).valid == 1)
-		{
-			now = ros::Time::now();
-			mtime = measure_time_diff(now,boot_time);
-			double rx_rate = (double)(UsbDevices.at(i).bytesreceived)/mtime;
-			double tx_rate = (double)(UsbDevices.at(i).bytestransmitted)/mtime;
-			{
-				char tempstr[512];
-				sprintf(tempstr,"Loc: %s Received %lld bytes from device at a rate of %.02f (Bps) Transmitted %lld bytes at a rate of %02f (Bps)",
-						UsbDevices.at(i).location.c_str(),
-						UsbDevices.at(i).bytesreceived,
-						rx_rate,
-						UsbDevices.at(i).bytestransmitted,
-						tx_rate);
-				logger->log_info(tempstr);
-			}
-
-		}
-		{
-			char tempstr[255];
-			sprintf(tempstr,"Loc: %s Valid: %d Received Good Checksum: %lld Bad Checksum: %lld",
-					UsbDevices.at(i).location.c_str(),
-					UsbDevices.at(i).valid,
-					UsbDevices.at(i).good_checksum_counter,
-					UsbDevices.at(i).bad_checksum_counter);
-			logger->log_info(tempstr);
-		}
-
-	}
-	return true;
 }
 void DigitalOutput_Callback(const icarus_rover_v2::pin::ConstPtr& msg)
 {
@@ -1009,13 +1020,9 @@ int main(int argc, char **argv)
 		diagnostic_pub.publish(diagnostic_status);
 		kill_node = 1;
     }
-    ros::Rate loop_rate(rate);
+    ros::Rate loop_rate(1);
 	boot_time = ros::Time::now();
     now = ros::Time::now();
-    fast_timer = now;
-    medium_timer = now;
-    slow_timer = now;
-    veryslow_timer = now;
     for(int i = 0; i < UsbDevices.size(); i++)
     {
     	boost::thread processmessage_thread(process_message_thread,&UsbDevices.at(i));
@@ -1033,30 +1040,6 @@ int main(int argc, char **argv)
     	if(ok_to_start == true)
     	{
     		now = ros::Time::now();
-    		mtime = measure_time_diff(now,fast_timer);
-			if(mtime > .02)
-			{
-				run_fastrate_code();
-				fast_timer = ros::Time::now();
-			}
-			mtime = measure_time_diff(now,medium_timer);
-			if(mtime > 0.1)
-			{
-				run_mediumrate_code();
-				medium_timer = ros::Time::now();
-			}
-			mtime = measure_time_diff(now,slow_timer);
-			if(mtime > 1.0)
-			{
-				run_slowrate_code();
-				slow_timer = ros::Time::now();
-			}
-			mtime = measure_time_diff(now,veryslow_timer);
-			if(mtime > 10.0)
-			{
-				run_veryslowrate_code();
-				veryslow_timer = ros::Time::now();
-			}
 		}
 		else
 		{
@@ -1126,12 +1109,7 @@ bool initializenode()
     {
         logger = new Logger(verbosity_level,ros::this_node::getName());      
     }
-    std::string param_loop_rate = node_name +"/loop_rate";
-    if(n->getParam(param_loop_rate,rate) == false)
-    {
-        logger->log_warn("Missing Parameter: loop_rate.");
-        return false;
-    }
+
     
     std::string heartbeat_topic = "/" + node_name + "/heartbeat";
     heartbeat_pub = n->advertise<icarus_rover_v2::heartbeat>(heartbeat_topic,1000);
@@ -1139,7 +1117,11 @@ bool initializenode()
     std::string device_topic = "/" + std::string(hostname) +"_master_node/device";
     device_sub = n->subscribe<icarus_rover_v2::device>(device_topic,1000,Device_Callback);
 
-    pps_sub = n->subscribe<std_msgs::Bool>("/pps",1000,PPS_Callback);  //This is a pps consumer.
+    pps01_sub = n->subscribe<std_msgs::Bool>("/01PPS",1000,PPS01_Callback);
+    pps1_sub = n->subscribe<std_msgs::Bool>("/1PPS",1000,PPS1_Callback); 
+    pps10_sub = n->subscribe<std_msgs::Bool>("/10PPS",1000,PPS10_Callback); 
+    pps100_sub = n->subscribe<std_msgs::Bool>("/100PPS",1000,PPS100_Callback); 
+    pps1000_sub = n->subscribe<std_msgs::Bool>("/1000PPS",1000,PPS1000_Callback); 
     command_sub = n->subscribe<icarus_rover_v2::command>("/command",1000,Command_Callback);
     std::string param_require_pps_to_start = node_name +"/require_pps_to_start";
     if(n->getParam(param_require_pps_to_start,require_pps_to_start) == false)
@@ -1334,17 +1316,6 @@ double measure_time_diff(ros::Time timer_a, ros::Time timer_b)
 {
 	ros::Duration etime = timer_a - timer_b;
 	return etime.toSec();
-}
-void PPS_Callback(const std_msgs::Bool::ConstPtr& msg)
-{
-	received_pps = true;
-    for(int i = 0; i < boardprocesses.size();i++)
-	{
-		if(boardprocesses.at(i).get_boardstate() == BOARDMODE_RUNNING)
-		{
-			diagnostic_status = boardprocesses.at(i).new_pps_transmit();
-		}
-	}
 }
 void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg)
 {

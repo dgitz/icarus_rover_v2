@@ -1,17 +1,15 @@
 <!--xml-->
 <launch>
     <node name="$(env ROS_HOSTNAME)_timemaster_node" pkg="icarus_rover_v2" type="timemaster_node"  output="screen" clear_params="true">
-        <param name="loop_rate"             value="500"/>
-	    <param name="verbosity_level"       value="DEBUG"/>
-        <param name="require_pps_to_start"  value="false"/>    
+	    <param name="verbosity_level"       value="DEBUG"/> 
+        <param name="pps_source"            value="self"/>
+        <param name="require_pps_to_start"  value="false"/>
     </node>
     <node name="$(env ROS_HOSTNAME)_master_node" pkg="icarus_rover_v2" type="master_node"  output="screen" clear_params="true">
-        <param name="loop_rate"             value="500"/>
 	    <param name="verbosity_level"       value="DEBUG"/>
         <param name="require_pps_to_start"  value="false"/>    
     </node>
     <node name="$(env ROS_HOSTNAME)_network_transceiver_node" pkg="icarus_rover_v2" type="network_transceiver_node"  output="screen">
-        <param name="loop_rate"             value="500"/>
         <param name="verbosity_level"       value="DEBUG"/>
         <param name="require_pps_to_start"  value="false"/> 
         <param name="Send_Multicast_Group"       value="239.255.43.21"/>
@@ -20,20 +18,17 @@
         <param name="Mode"                  value="DriverStation"/> <!--Diagnostics_GUI-->
     </node>
     <node name="$(env ROS_HOSTNAME)_command_node" pkg="icarus_rover_v2" type="command_node"  output="screen" clear_params="true">
-        <param name="loop_rate"             value="500"/>
 	    <param name="verbosity_level"       value="DEBUG"/>
         <param name="require_pps_to_start"  value="false"/>  
         <param name="ready_to_arm_topic1"   value="/ComputeModule1_boardcontroller_node/ready_to_arm"/>
         <param name="ready_to_arm_topic2"   value="/dgitzrosmaster_diagnostic_node/ready_to_arm" />
         <param name="user_armcommand_topic" value="/DriverStation/user_armcommand"/>
     </node>
-    <node name="$(env ROS_HOSTNAME)_topicremapper_node" pkg="icarus_rover_v2" type="topicremapper_node"  output="screen">
-        <param name="loop_rate"             value="500"/>
+     <node name="$(env ROS_HOSTNAME)_topicremapper_node" pkg="icarus_rover_v2" type="topicremapper_node"  output="screen">
         <param name="verbosity_level"       value="DEBUG"/>
         <param name="require_pps_to_start"  value="false"/> 
     </node>
     <node name="$(env ROS_HOSTNAME)_diagnostic_node" pkg="icarus_rover_v2" type="diagnostic_node"  output="screen">
-        <param name="loop_rate"             value="500"/>
         <param name="verbosity_level"       value="INFO"/>
         <param name="require_pps_to_start"  value="false"/> 
         <param name="RAM_usage_threshold_MB"    value="2000"/>
@@ -41,7 +36,6 @@
         <param name="Log_Resources_Used"        value="1"/>  
     </node>
     <node name="$(env ROS_HOSTNAME)_cameracapture_node" pkg="icarus_rover_v2" type="cameracapture_node"  output="screen">
-        <param name="loop_rate"             value="500"/>
         <param name="verbosity_level"       value="DEBUG"/>
         <param name="require_pps_to_start"  value="false"/> 
         <param name="operation_mode"        value="capture"/>
@@ -51,14 +45,12 @@
         <!--<param name="storage_location"      value="/home/robot/Pictures"/>-->
     </node>
     <node name="$(env ROS_HOSTNAME)_speaker_node" pkg="icarus_rover_v2" type="speaker_node"  output="screen">
-        <param name="loop_rate"             value="500"/>
         <param name="verbosity_level"       value="DEBUG"/>
         <param name="require_pps_to_start"  value="false"/> 
     </node>
     <node name="$(env ROS_HOSTNAME)_soundplay_node" pkg="sound_play" type="soundplay_node.py">
     </node>
     <node name="$(env ROS_HOSTNAME)_batterymonitor_node" pkg="icarus_rover_v2" type="batterymonitor_node"  output="screen">
-        <param name="loop_rate"             value="500"/>
         <param name="verbosity_level"       value="DEBUG"/>
         <param name="require_pps_to_start"  value="false"/> 
         <param name="battery1"              value="Battery1"/>

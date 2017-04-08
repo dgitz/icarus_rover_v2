@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include "ros/ros.h"
 #include "ros/time.h"
+#include "std_msgs/Bool.h"
 #include "icarus_rover_v2/device.h"
 #include "icarus_rover_v2/diagnostic.h"
 #include "../boardcontroller_node_process.h"
@@ -478,7 +479,7 @@ TEST(DeviceConfiguration,ConfigureAllShields)
 
 	configured_processes = processes;
 }
-TEST(Timing)
+TEST(Timing,Test1)
 {
     std::vector<std::vector<unsigned char> > tx_buffers;
 	std::vector<BoardControllerNodeProcess> processes = configured_processes;
