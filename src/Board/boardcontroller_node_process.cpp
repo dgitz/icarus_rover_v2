@@ -24,7 +24,9 @@ BoardControllerNodeProcess::BoardControllerNodeProcess(std::string loc, int v)
     current_delay_sec = 0.0;
     for(int i = 0; i < 100; i++)
     {
-        pps_history.push_back(ros::Time::now());
+    	struct timeval now;
+    	gettimeofday(&now,NULL);
+        pps_history.push_back(now);
     }
 	//init_time = ros::Time::now();
 }
@@ -66,7 +68,9 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_pps_transmit()
     icarus_rover_v2::diagnostic diag = diagnostic;
     pps_counter++;
     if(pps_counter >= 100) { pps_counter = 0; }
-    pps_history.at(pps_counter) = ros::Time::now();
+    struct timeval now;
+    gettimeofday(&now,NULL);
+    pps_history.at(pps_counter) = now;
     send_pps.trigger = true;
     return diag;
 }
@@ -835,14 +839,21 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_serialmessage_PPS(in
 
 	return diagnostic;
 }
-double BoardControllerNodeProcess::measure_time_diff(ros::Time timer_a, ros::Time timer_b)
+double BoardControllerNodeProcess::measure_time_diff(struct timeval timer_a, struct timeval timer_b)
 {
-	ros::Duration etime = timer_a - timer_b;
-	return etime.toSec();
+	long mseconds, useconds;
+	double mtime;
+	mseconds  = timer_b.tv_sec  - timer_a.tv_sec;
+	useconds = timer_b.tv_usec - timer_a.tv_usec;
+
+	mtime = ((mseconds) * 1000 + useconds/1000.0) + 0.5;
+	return mtime;
+
 }
 double BoardControllerNodeProcess::compute_delay(uint8_t rx_id)
 {
-    ros::Time now = ros::Time::now();
+    struct timeval now;
+    gettimeofday(&now,NULL);
     return measure_time_diff(now,pps_history.at(rx_id));    
 }
 icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_serialmessage_TestMessageCounter(int packet_type,unsigned char* inpacket)

@@ -19,7 +19,7 @@
 #include <serialmessage.h>
 #include "logger.h"
 #include <math.h>
-#include "ros/ros.h"
+#include <sys/time.h>
 #define INITIAL_TIMEOUT_VALUE_MS 1000
 #define PORT_SIZE 8 //Number of pins in 1 port
 using std::string;
@@ -153,7 +153,7 @@ public:
 	std::string get_boardname() { return my_boardname; }
 	double get_runtime() { return run_time; }
     double compute_delay(uint8_t rx_id);
-    double measure_time_diff(ros::Time timer_a, ros::Time timer_b);
+    double measure_time_diff(struct timeval timer_a, struct timeval timer_b);
     double get_delay_sec() { return current_delay_sec; }
     std::vector<icarus_rover_v2::device> get_shields() { return myshields; }
     
@@ -220,6 +220,6 @@ private:
     Port_Info ANA_Port;
 
 	std::vector<message_info> messages;
-    std::vector<ros::Time> pps_history;
+    std::vector<struct timeval> pps_history;
 };
 #endif
