@@ -151,7 +151,7 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::update(double dt)
 		send_configure_shields.trigger = false;
 		send_configure_DIO_Ports.trigger = true;
 	}
-	if((board_state == BOARDMODE_INITIALIZED) && (node_state == BOARDMODE_SHIELDS_CONFIGURED))
+	if((board_state == BOARDMODE_INITIALIZED) && (node_state == BOARDMODE_SHIELDS_CONFIGURED)) NOT GETTING HERE
 	{
 		node_state = BOARDMODE_INITIALIZED;
         send_defaultvalue_DIO_Port.trigger = true;
@@ -938,7 +938,6 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_serialmessage_Diagno
 }
 icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_serialmessage_Get_ANA_Port(int packet_type,unsigned char* inpacket)
 {
-	printf("Got ANA Port\n");
 	bool status = gather_message_info(SERIAL_Get_ANA_Port_ID, "receive");
 	if(status == false)
 	{
@@ -955,6 +954,31 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_serialmessage_Get_AN
 			unsigned char ShieldID,PortID;
 			int value1,value2,value3,value4;
 			serialmessagehandler->decode_Get_ANA_PortSerial(inpacket,&ShieldID,&PortID,&value1,&value2,&value3,&value4);
+			for(std::size_t i = 0; i < myports.size(); i++)
+			{
+				if((myports.at(i).ShieldID == ShieldID) && (myports.at(i).PortID == PortID))
+				{
+					if(myports.at(i).Mode[0] == PINMODE_ANALOG_INPUT)
+					{
+						myports.at(i).Value[0] = value1;
+					}
+					if(myports.at(i).Mode[1] == PINMODE_ANALOG_INPUT)
+					{
+						myports.at(i).Value[1] = value2;
+					}
+					if(myports.at(i).Mode[2] == PINMODE_ANALOG_INPUT)
+					{
+						myports.at(i).Value[2] = value3;
+					}
+					if(myports.at(i).Mode[3] == PINMODE_ANALOG_INPUT)
+					{
+						myports.at(i).Value[3] = value4;
+					}
+
+				}
+			}
+			//printf("v1: %d v2: %d v3: %d v4: %d\n",value1,value2,value3,value4);
+			/*
 			if(ANA_Port.Mode[0] == PINMODE_ANALOG_INPUT)
 			{
 				ANA_Port.Value[0] = value1;
@@ -990,6 +1014,11 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_serialmessage_Get_AN
 			{
 				//ANA_Port.Value[3] = transducer_model(ANA_PORT.Mode[3],ANA_PORT.ConnectingDevice.at(3),(double)(value4));
 			}
+			*/
+			diagnostic.Diagnostic_Type = SENSORS;
+			diagnostic.Level = INFO;
+			diagnostic.Description = "Get_ANA_PORT Decoded successfully.";
+			diagnostic.Diagnostic_Message = DROPPING_PACKETS;
 		}
 		else
 		{
@@ -1174,6 +1203,7 @@ bool BoardControllerNodeProcess::configure_port(int ShieldID,std::vector<icarus_
 					myports.at(i).DefaultValue.at(j),
 					myports.at(i).ConnectingDevice.at(j).c_str(),
 					myports.at(i).Available.at(j));
+			printf("%s\n",tempstr);
 		}
 	}
 	return status;
@@ -1204,7 +1234,6 @@ std::vector<int> BoardControllerNodeProcess::get_portlist(int ShieldID)
 }
 icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_devicemsg(icarus_rover_v2::device newdevice)
 {
-	printf("Got device msg: %s: %d\n",newdevice.DeviceName.c_str(),(int)newdevice.ID);
 	std::size_t board_message = newdevice.DeviceType.find("Board");
 	std::size_t shield_message = newdevice.DeviceType.find("Shield");
 	if(board_message != std::string::npos)
@@ -1215,6 +1244,7 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_devicemsg(icarus_rov
 			shield_count = newdevice.ShieldCount;
 		}
 	}
+
 
 	else if ((shield_message!=std::string::npos) && (my_boardname != ""))
 	{
@@ -1263,17 +1293,17 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_devicemsg(icarus_rov
 	}
 
 
-	/*
-	printf("Board info recvd: %d sensor info recvd: %d all info recvd: %d\n",
-			all_board_info_received,
+	printf("Shield info recvd: %d sensor info recvd: %d all info recvd: %d\n",
+			all_shield_info_received,
 			all_sensor_info_received,
 			all_device_info_received);
 
-	if( (all_board_info_received == true) &&
+	if( (all_shield_info_received == true) &&
 		(all_sensor_info_received == true) &&
 		(all_device_info_received == false))
 	{
-		mylogger->log_info("Received all Device Info.");
+		printf("Received all Device Info.\n");
+		//mylogger->log_info("Received all Device Info.");
 		all_device_info_received = true;
 	}
 	else if((newdevice.DeviceParent == "None") && (newdevice.DeviceName == myhostname))// && (all_device_info_received == false))
@@ -1284,7 +1314,7 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_devicemsg(icarus_rov
 			all_sensor_info_received = true;
 		}
 	}
-
+	/*
 	else if(((newdevice.DeviceType == "ArduinoBoard"))
 			&& (newdevice.DeviceParent == mydevice.DeviceName) && (mydevice.DeviceName != "") && (all_board_info_received == false))
 	{
@@ -1948,13 +1978,13 @@ int BoardControllerNodeProcess::transducer_model(int mode,std::string SensorName
 						{
 							
 							y = mysensor.output_vector.at(0);
-							printf("res too small: %f using output: %f\n",res,y);
+							//printf("res too small: %f using output: %f\n",res,y);
 							return (int)y;
 						}
 						else if(res < mysensor.input_vector.at(mysensor.input_vector.size()-1))
 						{
 							y = mysensor.output_vector.at(mysensor.output_vector.size()-1);
-							printf("res too big: %f using output: %f\n",res,y);
+							//printf("res too big: %f using output: %f\n",res,y);
 							return (int)y;
 						}
 					}

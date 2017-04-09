@@ -188,7 +188,6 @@ void process_message_thread(UsbDevice* dev)
 				}
 				if(dev->valid == 1)
 				{
-
 					if(packet_type == SERIAL_Mode_ID)
 					{
 						process_diagnostic = boardprocesses.at(dev->boardcontrollernode_id).new_serialmessage_Get_Mode(packet_type,packet);
@@ -236,6 +235,7 @@ void process_message_thread(UsbDevice* dev)
                     	{
                     		diagnostic_pub.publish(process_diagnostic);
                     	}
+
                     }
                     else
                     {
@@ -502,15 +502,36 @@ void PPS100_Callback(const std_msgs::Bool::ConstPtr& msg)
            (boardprocesses.at(i).get_nodestate() == BOARDMODE_RUNNING))
         {
             std::vector<icarus_rover_v2::device> shields = boardprocesses.at(i).get_shields();
+            std::vector<Port_Info> ports = boardprocesses.at(i).get_allports();
+            for(int j = 0; j < ports.size(); j++)
+            {
+            	for(int k = 0; i < PORT_SIZE; k++)
+            	{
+            		icarus_rover_v2::pin newpin;
+            		switch(ports.at(j).Mode[k])
+            		{
+            			case PINMODE_ANALOG_INPUT:
+            				newpin.Function = boardprocesses.at(i).map_PinFunction_ToString(PINMODE_ANALOG_INPUT);
+            				newpin.Number = ports.at(j).Number[k];
+            				newpin.PortID = ports.at(j).PortID;
+            				newpin.Value = ports.at(j).Value[k];
+            				analoginput_pub.publish(newpin);
+            				break;
+            			default:
+            				break;
+            		}
+            	}
+            }
+            /*
             for(int j = 0; j < shields.size(); j++)
             {
+
                 std::string shieldname = shields.at(j).DeviceName;
                 Port_Info ANA_Port;
-                /*
                 switch (shields.at(j).DeviceType)
                 {
                     case "TerminalShield":
-                        ANA_Port = process.get_PortInfo(shieldname,"ANA_Port");
+                        ANA_Port = boardprocesses.at(i).get_PortInfo(shields.at(j).ID)
                         if(ANA_Port.PortName == "")
                         {
                         }
@@ -540,9 +561,9 @@ void PPS100_Callback(const std_msgs::Bool::ConstPtr& msg)
                     default:
                         break;
                 }
-                */
                 
             }
+            */
         }
 	}
 	if((ready == true) && (boardprocesses.size() > 0))
