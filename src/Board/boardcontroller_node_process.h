@@ -21,22 +21,10 @@
 #include <math.h>
 #include <sys/time.h>
 #define INITIAL_TIMEOUT_VALUE_MS 1000
-#define PORT_SIZE 8 //Number of pins in 1 port
+#define DIO_PORT_SIZE 8 //Number of DIO pins in 1 port
+#define ANA_PORT_SIZE 4 //Number of ANA pins in 1 port
 using std::string;
 using namespace std;
-struct Sensor {
-	std::string name;
-	std::string type;
-	int adc_resolution;
-	double voltage_reference;
-	double Rm_ohms;
-	std::vector<double> input_vector;
-	std::vector<double> output_vector;
-	std::string spec_path;
-	std::string spec_relationship;
-	double slope;
-	double intercept;
-};
 struct Port_Info{
 		int ShieldID;
 		int PortID;
@@ -84,7 +72,6 @@ public:
 	BoardControllerNodeProcess();
 	~BoardControllerNodeProcess();
 	BoardControllerNodeProcess(std::string loc, int v);
-	icarus_rover_v2::diagnostic init(icarus_rover_v2::diagnostic indiag,std::string hostname,std::string sensorspecpath,bool extrapolate);
 	icarus_rover_v2::diagnostic init(icarus_rover_v2::diagnostic indiag,std::string hostname,int v_id);
 	icarus_rover_v2::diagnostic update(double dt);
 	icarus_rover_v2::diagnostic new_devicemsg(icarus_rover_v2::device devicemsg);
@@ -93,20 +80,35 @@ public:
     icarus_rover_v2::diagnostic new_diagnosticmsg(icarus_rover_v2::diagnostic diagnosticmsg);
     icarus_rover_v2::diagnostic new_pps_transmit();
 	icarus_rover_v2::device get_mydevice() { return mydevice; }
-	std::vector<icarus_rover_v2::device> get_myshields() { return myshields; }
-	std::vector<int> get_portlist(int ShieldID);
-    int get_portcount(int ShieldID);
+	//std::vector<int> get_portlist(int ShieldID);
+    int get_dioportcount(int ShieldID);
+    int get_anaportcount(int ShieldID);
 	bool is_finished_initializing(){ return all_device_info_received; }
 	bool initialize_Ports();
     bool get_ready_to_arm() { return ready_to_arm; }
-	std::vector<Port_Info> get_allports() { return myports; }
-	Port_Info get_PortInfo(int ShieldID,int PortID)
+	std::vector<Port_Info> get_alldioports() { return my_dioports; }
+    std::vector<Port_Info> get_allanaports() { return my_anaports; }
+	Port_Info get_dioPortInfo(int ShieldID,int PortID)
 	{
-		for(int i = 0; i < myports.size();i++)
+		for(int i = 0; i < my_dioports.size();i++)
 		{
-			if((myports.at(i).ShieldID == ShieldID) && (myports.at(i).PortID == PortID))
+			if((my_dioports.at(i).ShieldID == ShieldID) && (my_dioports.at(i).PortID == PortID))
 			{
-				return myports.at(i);
+				return my_dioports.at(i);
+			}
+		}
+		Port_Info emptyport;
+		emptyport.PortID = 0;
+		emptyport.ShieldID = 0;
+		return emptyport;
+	}
+    Port_Info get_anaPortInfo(int ShieldID,int PortID)
+	{
+		for(int i = 0; i < my_anaports.size();i++)
+		{
+			if((my_anaports.at(i).ShieldID == ShieldID) && (my_anaports.at(i).PortID == PortID))
+			{
+				return my_anaports.at(i);
 			}
 		}
 		Port_Info emptyport;
@@ -147,7 +149,6 @@ public:
 	std::string map_mode_ToString(int mode);
 	uint8_t get_armedstate() { return armed_state; }
 	uint8_t get_armedcommand() { return armed_command; }
-	void set_manualpin_definition(bool v) { manual_pin_definition = v; }
 	uint8_t get_boardid() { return id; }
 	int get_usbdevice_id() { return UsbDevice_id; }
 	std::string get_boardname() { return my_boardname; }
@@ -159,8 +160,8 @@ public:
     
 protected:
 	state_ack send_configure_DIO_Ports;
+    state_ack send_configure_ANA_Ports;
 	state_ack send_defaultvalue_DIO_Port;
-	state_ack send_configure_shields;
 	state_ack send_testmessage_command;
 	state_ack send_nodemode;
 	state_ack send_set_DIO_Port;
@@ -168,6 +169,7 @@ protected:
 	state_ack send_armedstate;
     state_ack send_diagnostic;
     state_ack send_pps;
+    state_ack send_rovercommand;
 private:
 
 	std::string location;
@@ -196,10 +198,9 @@ private:
 	icarus_rover_v2::diagnostic diagnostic;
 	std::vector<icarus_rover_v2::device> myshields;
 	int shield_count;
-	std::vector<icarus_rover_v2::device> mysensors;
-	std::vector<Sensor> SensorSpecs;
-	bool manual_pin_definition;
-	std::vector<Port_Info> myports;
+    int sensor_count;
+	std::vector<Port_Info> my_dioports;
+    std::vector<Port_Info> my_anaports;
 	bool extrapolate_values;
 	long ms_timer;
 	long timeout_value_ms;
@@ -217,6 +218,7 @@ private:
     std::vector<icarus_rover_v2::diagnostic> diagnostics_to_send;
     uint8_t pps_counter;
     double current_delay_sec;
+    bool received_arm_command;
 
 	std::vector<message_info> messages;
     std::vector<struct timeval> pps_history;

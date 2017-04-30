@@ -934,7 +934,7 @@ void diagnostic_Callback(const icarus_rover_v2::diagnostic::ConstPtr& msg,const 
 	diagnosticmsg.Diagnostic_Message = msg->Diagnostic_Message;
     for(int i = 0; i < boardprocesses.size();i++)
     {
-        std::vector<icarus_rover_v2::device> shields = boardprocesses.at(i).get_myshields();
+        std::vector<icarus_rover_v2::device> shields = boardprocesses.at(i).get_shields();
         for(int s = 0; s < shields.size(); s++)
         {
             if(shields.at(s).DeviceType == "LCDShield")
@@ -1361,6 +1361,11 @@ void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg)
 		for(int i = 0; i < boardprocesses.size();i++)
 		{
 			diagnostic_status = boardprocesses.at(i).new_devicemsg(newdevice);
+			if(diagnostic_status.Level > NOTICE)
+			{
+				logger->log_error(diagnostic_status.Description);
+				diagnostic_pub.publish(diagnostic_status);
+			}
 			all_boards_complete = boardprocesses.at(i).is_finished_initializing() and all_boards_complete;
 		}
 		if(boardprocesses.size() == 0)
