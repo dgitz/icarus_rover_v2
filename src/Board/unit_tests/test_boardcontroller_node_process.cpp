@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include "ros/ros.h"
 #include "ros/time.h"
+#include <unistd.h>
 #include "std_msgs/Bool.h"
 #include "icarus_rover_v2/device.h"
 #include "icarus_rover_v2/diagnostic.h"
@@ -109,11 +110,19 @@ TEST(ProcessBootInitialization,ProcessBootInitialization_1Board_2Shields_FullPin
         shield1.DeviceParent = board.DeviceName;
         shield1.DeviceType = "TerminalShield";
         shield1.pins.clear();
-        for(int i = 0; i < 48;i++)
+        for(int i = 0; i < 24;i++)
     	{
     		icarus_rover_v2::pin newpin;
     		newpin.Number = i;
     		newpin.Function = "DigitalOutput";
+    		newpin.DefaultValue = 0;
+    		shield1.pins.push_back(newpin);
+    	}
+        for(int i = 24; i < 48;i++)
+    	{
+    		icarus_rover_v2::pin newpin;
+    		newpin.Number = i;
+    		newpin.Function = "DigitalInput";
     		newpin.DefaultValue = 0;
     		shield1.pins.push_back(newpin);
     	}
@@ -423,6 +432,131 @@ TEST(Operation,Running_1Board_2Shields_FullPins)
                 EXPECT_TRUE(port_value.at(k)==port.Value[k]);
             }
         }
+        
+
+        //Check PPS Transmit
+        diagnostic = processes.at(i).new_pps_transmit();
+        EXPECT_TRUE(diagnostic.Level <= NOTICE);
+        tx_buffers.clear();
+		EXPECT_TRUE(processes.at(i).checkTriggers(tx_buffers));
+        bool found_send_pps = false;
+        for(std::size_t j = 0; j < tx_buffers.size(); j++)
+        {
+            unsigned char tx_buffer[16];
+            std::vector<unsigned char> tempstr = tx_buffers.at(j);
+            if((tempstr[1] == SERIAL_PPS_ID))
+            {
+                found_send_pps = true;
+            }
+        }
+        EXPECT_TRUE(found_send_pps);
+        
+        //Check Diagnostic Transmit
+        for(int j = 0; j < 10; j++)
+        {
+            diagnostic.Diagnostic_Type = SOFTWARE;
+            diagnostic.Level = WARN;
+            diagnostic.Diagnostic_Message = DROPPING_PACKETS;
+            diagnostic.Description = "Test Diagnostic Message";
+            diagnostic = processes.at(i).new_diagnosticmsg(diagnostic);
+            EXPECT_TRUE(diagnostic.Level <= NOTICE);
+        }
+        tx_buffers.clear();
+		EXPECT_TRUE(processes.at(i).checkTriggers(tx_buffers));
+        int found_send_diagnostic = 0;
+        for(std::size_t j = 0; j < tx_buffers.size(); j++)
+        {
+            unsigned char tx_buffer[16];
+            std::vector<unsigned char> tempstr = tx_buffers.at(j);
+            if((tempstr[1] == SERIAL_Diagnostic_ID))
+            {
+                found_send_diagnostic++;
+            }
+        }
+        EXPECT_TRUE(found_send_diagnostic==10);
+        EXPECT_TRUE(processes.at(i).get_diagnostics_to_send().size() == 0);
+        
+        //Check Arm/Disarm Command Transmit
+        icarus_rover_v2::command arm_command;
+        arm_command.Command = ROVERCOMMAND_DISARM;
+        diagnostic = processes.at(i).new_commandmsg(arm_command);
+        if( processes.at(i).get_stateack("Send Arm Command").stream_rate > 0)
+        {
+            usleep(1000+(1000000*(1.0/processes.at(i).get_stateack("Send Arm Command").stream_rate)));
+        }
+        EXPECT_TRUE(diagnostic.Level <= NOTICE);
+        {
+            tx_buffers.clear();
+            EXPECT_TRUE(processes.at(i).checkTriggers(tx_buffers));
+            bool found_send_disarmcommand = false;
+            for(std::size_t j = 0; j < tx_buffers.size(); j++)
+            {
+                unsigned char tx_buffer[16];
+                std::vector<unsigned char> tempstr = tx_buffers.at(j);
+                if((tempstr[1] == SERIAL_Command_ID) && (tempstr[3] == ROVERCOMMAND_DISARM))
+                {
+                    found_send_disarmcommand = true;
+                }
+            }
+            EXPECT_TRUE(found_send_disarmcommand);
+        }
+        diagnostic = processes.at(i).update(.01);
+        EXPECT_TRUE(diagnostic.Level <= NOTICE);
+        EXPECT_TRUE(processes.at(i).get_armedstate() == ARMEDSTATUS_DISARMED);
+        arm_command.Command = ROVERCOMMAND_ARM;
+        diagnostic = processes.at(i).new_commandmsg(arm_command);
+        EXPECT_TRUE(diagnostic.Level <= NOTICE);
+        diagnostic = processes.at(i).update(.01);
+        EXPECT_TRUE(diagnostic.Level <= NOTICE);
+        EXPECT_TRUE(processes.at(i).get_armedstate() == ARMEDSTATUS_ARMED);
+        if( processes.at(i).get_stateack("Send Arm Command").stream_rate > 0)
+        {
+            usleep(1000+(1000000*(1.0/processes.at(i).get_stateack("Send Arm Command").stream_rate)));
+        }
+        EXPECT_TRUE(diagnostic.Level <= NOTICE);
+        {
+            tx_buffers.clear();
+            EXPECT_TRUE(processes.at(i).checkTriggers(tx_buffers));
+            bool found_send_armcommand = false;
+            for(std::size_t j = 0; j < tx_buffers.size(); j++)
+            {
+                unsigned char tx_buffer[16];
+                std::vector<unsigned char> tempstr = tx_buffers.at(j);
+                if((tempstr[1] == SERIAL_Command_ID) && (tempstr[3] == ROVERCOMMAND_ARM))
+                {
+                    found_send_armcommand = true;
+                }
+            }
+            EXPECT_TRUE(found_send_armcommand);
+        }
+        arm_command.Command = ROVERCOMMAND_DISARM;
+        diagnostic = processes.at(i).new_commandmsg(arm_command);
+        EXPECT_TRUE(diagnostic.Level <= NOTICE);
+        diagnostic = processes.at(i).update(.01);
+        EXPECT_TRUE(diagnostic.Level <= NOTICE);
+        EXPECT_TRUE(processes.at(i).get_armedstate() == ARMEDSTATUS_DISARMED);
+        if( processes.at(i).get_stateack("Send Arm Command").stream_rate > 0)
+        {
+            usleep(1000+(1000000*(1.0/processes.at(i).get_stateack("Send Arm Command").stream_rate)));
+        }
+        EXPECT_TRUE(diagnostic.Level <= NOTICE);
+        {
+            tx_buffers.clear();
+            EXPECT_TRUE(processes.at(i).checkTriggers(tx_buffers));
+            bool found_send_disarmcommand = false;
+            for(std::size_t j = 0; j < tx_buffers.size(); j++)
+            {
+                unsigned char tx_buffer[16];
+                std::vector<unsigned char> tempstr = tx_buffers.at(j);
+                if((tempstr[1] == SERIAL_Command_ID) && (tempstr[3] == ROVERCOMMAND_DISARM))
+                {
+                    found_send_disarmcommand = true;
+                }
+            }
+            EXPECT_TRUE(found_send_disarmcommand);
+        }
+        
+        
     }
 }
 /*

@@ -110,8 +110,7 @@ TEST(ArmDisarm,TestA)
 	EXPECT_EQ(process.get_armeddisarmed_state(),ARMEDSTATUS_DISARMED);
 	diagnostic_status = process.new_user_armcommandmsg(ROVERCOMMAND_ARM);
 	EXPECT_TRUE(diagnostic_status.Level <= NOTICE);
-	EXPECT_EQ(process.get_currentcommand().Command,ARM_COMMAND_ID);
-	EXPECT_EQ(process.get_currentcommand().Option1,ROVERCOMMAND_ARM);
+	EXPECT_EQ(process.get_currentcommand().Command,ROVERCOMMAND_ARM);
 	for(int i = 0; i < 10; i++)
 	{
 		diagnostic_status = process.update(1.0/(FAST_RATE*1000.0));

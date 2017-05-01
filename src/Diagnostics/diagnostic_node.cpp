@@ -63,7 +63,7 @@ icarus_rover_v2::diagnostic rescan_topics(icarus_rover_v2::diagnostic diag)
 	char tempstr[512];
 	if(topics_to_add.size() > 0)
 	{
-		sprintf(tempstr,"Rescanned and found %d new topics.",topics_to_add.size());
+		sprintf(tempstr,"Rescanned and found %d new topics.",(int)topics_to_add.size());
 	}
 	else
 	{
@@ -237,7 +237,7 @@ bool check_tasks()
 		{
 			task_ok = false;
 			char tempstr[512];
-			sprintf(tempstr,"Task: %s is using high CPU resource: %d/%d %",
+			sprintf(tempstr,"Task: %s is using high CPU resource: %d/%d %%",
 					newTask.Task_Name.c_str(),newTask.CPU_Perc,CPU_usage_threshold_percent);
 			logger->log_warn(tempstr);
 			diagnostic_status.Diagnostic_Message = HIGH_RESOURCE_USAGE;
@@ -249,7 +249,7 @@ bool check_tasks()
 		{
 			task_ok = false;
 			char tempstr[512];
-			sprintf(tempstr,"Task: %s is using high RAM resource: %ld/%ld (MB)",
+			sprintf(tempstr,"Task: %s is using high RAM resource: %ld/%d (MB)",
 					newTask.Task_Name.c_str(),newTask.RAM_MB,RAM_usage_threshold_MB);
 			logger->log_warn(tempstr);
 			diagnostic_status.Diagnostic_Message = HIGH_RESOURCE_USAGE;
@@ -323,7 +323,7 @@ bool check_tasks()
 			ready_to_arm = false;
 		}
 		char tempstr[255];
-		sprintf(tempstr,"%d/%d (All) Tasks Operational.",task_ok_counter,TasksToCheck.size());
+		sprintf(tempstr,"%d/%d (All) Tasks Operational.",task_ok_counter,(int)TasksToCheck.size());
         
 		logger->log_info(tempstr);
 		icarus_rover_v2::diagnostic system_diag;
@@ -341,7 +341,7 @@ bool check_tasks()
 	{
 		ready_to_arm = false;
 		char tempstr[255];
-		sprintf(tempstr,"%d/%d Tasks are in WARN state or Higher!",TasksToCheck.size()-task_ok_counter,TasksToCheck.size());
+		sprintf(tempstr,"%d/%d Tasks are in WARN state or Higher!",(int)TasksToCheck.size()-task_ok_counter,(int)TasksToCheck.size());
 		logger->log_warn(tempstr);
 		diagnostic_status.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
 		diagnostic_status.Level = WARN;

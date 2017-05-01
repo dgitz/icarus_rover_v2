@@ -157,6 +157,7 @@ public:
     double measure_time_diff(struct timeval timer_a, struct timeval timer_b);
     double get_delay_sec() { return current_delay_sec; }
     std::vector<icarus_rover_v2::device> get_shields() { return myshields; }
+    std::vector<icarus_rover_v2::diagnostic> get_diagnostics_to_send() { return diagnostics_to_send; }
     
 protected:
 	state_ack send_configure_DIO_Ports;

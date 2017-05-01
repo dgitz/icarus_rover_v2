@@ -106,10 +106,10 @@ icarus_rover_v2::diagnostic CommandNodeProcess::new_user_armcommandmsg(uint8_t v
 		if(value == ROVERCOMMAND_ARM)
 		{
 			last_command = current_command;
-			current_command.Command = ARM_COMMAND_ID;
-			current_command.Option1 = ROVERCOMMAND_ARM;
-			current_command.Option2 = 0;
-			current_command.Option3 = 0;
+			current_command.Command = ROVERCOMMAND_ARM;
+			current_command.Option1 = ROVERCOMMAND_NONE;
+			current_command.Option2 = ROVERCOMMAND_NONE;
+			current_command.Option3 = ROVERCOMMAND_NONE;
 			diagnostic.Diagnostic_Type = REMOTE_CONTROL;
 			diagnostic.Level = NOTICE;
 			diagnostic.Description = "Rover is ARMED";
@@ -120,8 +120,10 @@ icarus_rover_v2::diagnostic CommandNodeProcess::new_user_armcommandmsg(uint8_t v
 		else if(value == ROVERCOMMAND_DISARM)
 		{
 			last_command = current_command;
-			current_command.Command = ARM_COMMAND_ID;
-			current_command.Option1 = ROVERCOMMAND_DISARM;
+			current_command.Command = ROVERCOMMAND_DISARM;
+			current_command.Option1 = ROVERCOMMAND_NONE;
+			current_command.Option2 = ROVERCOMMAND_NONE;
+			current_command.Option3 = ROVERCOMMAND_NONE;
 			diagnostic.Diagnostic_Type = REMOTE_CONTROL;
 			diagnostic.Level = INFO;
 			diagnostic.Description = "Rover is still DISARMED";
@@ -135,10 +137,10 @@ icarus_rover_v2::diagnostic CommandNodeProcess::new_user_armcommandmsg(uint8_t v
 		if(value == ROVERCOMMAND_DISARM)
 		{
 			last_command = current_command;
-			current_command.Command = ARM_COMMAND_ID;
-			current_command.Option1 = ROVERCOMMAND_DISARM;
-			current_command.Option2 = 0;
-			current_command.Option3 = 0;
+			current_command.Command = ROVERCOMMAND_DISARM;
+			current_command.Option1 = ROVERCOMMAND_NONE;
+			current_command.Option2 = ROVERCOMMAND_NONE;
+			current_command.Option3 = ROVERCOMMAND_NONE;
 			diagnostic.Diagnostic_Type = REMOTE_CONTROL;
 			diagnostic.Level = NOTICE;
 			diagnostic.Description = "Rover is DISARMED";
@@ -149,8 +151,10 @@ icarus_rover_v2::diagnostic CommandNodeProcess::new_user_armcommandmsg(uint8_t v
 		else if(value == ROVERCOMMAND_ARM)
 		{
 			last_command = current_command;
-			current_command.Command = ARM_COMMAND_ID;
-			current_command.Option1 = ROVERCOMMAND_ARM;
+			current_command.Command = ROVERCOMMAND_ARM;
+			current_command.Option1 = ROVERCOMMAND_NONE;
+			current_command.Option2 = ROVERCOMMAND_NONE;
+			current_command.Option3 = ROVERCOMMAND_NONE;
 			diagnostic.Diagnostic_Type = REMOTE_CONTROL;
 			diagnostic.Level = INFO;
 			diagnostic.Description = "Rover is still ARMED";

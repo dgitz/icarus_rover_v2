@@ -1,7 +1,7 @@
 #include "boardcontroller_node.h"
 //Start User Code: Firmware Definition
 #define BOARDCONTROLLERNODE_MAJOR_RELEASE 0
-#define BOARDCONTROLLERNODE_MINOR_RELEASE 4
+#define BOARDCONTROLLERNODE_MINOR_RELEASE 5
 #define BOARDCONTROLLERNODE_BUILD_NUMBER 0
 //End User Code: Firmware Definition
 //Start User Code: Functions
@@ -119,9 +119,6 @@ void process_message_thread(UsbDevice* dev)
 						process_diagnostic = newprocess.init(process_diagnostic,std::string(hostname),dev->index);
 						boardprocesses.push_back(newprocess);
 						dev->boardcontrollernode_id = boardprocesses.size()-1;
-						
-
-
 					}
 				}
 
@@ -132,13 +129,15 @@ void process_message_thread(UsbDevice* dev)
 				logger->log_debug(tempstr);
 			}
 			*/
+            /*
 			for(int i = 0; i < rx_length;i++)
 			{
-				//printf(" i: %d b: %d ",i,rx_buffer[i]);
+				printf(" i: %d b: %d ",i,rx_buffer[i]);
 			}
 			if(rx_length > 0) {
-				//printf("\n");
+				printf("\n");
 			}
+            */
 			if(rx_length > 0)
 			{
 				last_message_received_time = ros::Time::now();
@@ -275,7 +274,7 @@ void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg)
 	icarus_rover_v2::firmware fw;
 	fw.Generic_Node_Name = "boardcontroller_node";
 	fw.Node_Name = node_name;
-	fw.Description = "Latest Rev: 8-April-2017";
+	fw.Description = "Latest Rev: 30-April-2017";
 	fw.Major_Release = BOARDCONTROLLERNODE_MAJOR_RELEASE;
 	fw.Minor_Release = BOARDCONTROLLERNODE_MINOR_RELEASE;
 	fw.Build_Number = BOARDCONTROLLERNODE_BUILD_NUMBER;
@@ -454,13 +453,30 @@ void PPS100_Callback(const std_msgs::Bool::ConstPtr& msg)
 	{
 		//printf("Running process update.\n");
 		diagnostic_status = boardprocesses.at(i).update(0.01);  //Need to change 20 to the actual dt!!!
+        switch(diagnostic_status.Level)
+        {
+            case DEBUG:
+                logger->log_debug(diagnostic_status.Description);
+            case INFO:
+                logger->log_info(diagnostic_status.Description);
+            case NOTICE:
+                logger->log_notice(diagnostic_status.Description);
+                break;
+            case WARN:
+                logger->log_warn(diagnostic_status.Description);
+                break;
+            case ERROR:
+                logger->log_error(diagnostic_status.Description);
+                break;
+            case FATAL:
+                logger->log_fatal(diagnostic_status.Description);
+                break;
+            default:
+                break;
+        }
 		diagnostic_pub.publish(diagnostic_status);
 		ready = boardprocesses.at(i).get_ready_to_arm() and ready;
 
-		if(diagnostic_status.Level > NOTICE)
-		{
-			logger->log_warn(diagnostic_status.Description);
-		}
 		//printf("diag: %s\n",diagnostic_status.Description.c_str());
 		std::vector<std::vector<unsigned char> > tx_buffers;
 		bool send = boardprocesses.at(i).checkTriggers(tx_buffers);
@@ -502,68 +518,62 @@ void PPS100_Callback(const std_msgs::Bool::ConstPtr& msg)
            (boardprocesses.at(i).get_nodestate() == BOARDMODE_RUNNING))
         {
             std::vector<icarus_rover_v2::device> shields = boardprocesses.at(i).get_shields();
-            std::vector<Port_Info> ports = boardprocesses.at(i).get_allports();
-            for(int j = 0; j < ports.size(); j++)
+            std::vector<Port_Info> dio_ports = boardprocesses.at(i).get_alldioports();
+            for(int j = 0; j < dio_ports.size(); j++)
             {
-            	for(int k = 0; i < PORT_SIZE; k++)
+            	for(int k = 0; i < DIO_PORT_SIZE; k++)
             	{
             		icarus_rover_v2::pin newpin;
-            		switch(ports.at(j).Mode[k])
+            		switch(dio_ports.at(j).Mode[k])
             		{
-            			case PINMODE_ANALOG_INPUT:
-            				newpin.Function = boardprocesses.at(i).map_PinFunction_ToString(PINMODE_ANALOG_INPUT);
-            				newpin.Number = ports.at(j).Number[k];
-            				newpin.PortID = ports.at(j).PortID;
-            				newpin.Value = ports.at(j).Value[k];
-            				analoginput_pub.publish(newpin);
+            			case PINMODE_DIGITAL_INPUT:
+            				newpin.Function = boardprocesses.at(i).map_PinFunction_ToString(PINMODE_DIGITAL_INPUT);
+            				newpin.Number = dio_ports.at(j).Number[k];
+                            newpin.ShieldID = dio_ports.at(j).ShieldID;
+            				newpin.PortID = dio_ports.at(j).PortID;
+            				newpin.Value = dio_ports.at(j).Value[k];
+            				//digitalinput_pub.publish(newpin); //Not Implemented Yet
             				break;
+                        case PINMODE_QUADRATUREENCODER_INPUT:
+                            newpin.Function = boardprocesses.at(i).map_PinFunction_ToString(PINMODE_QUADRATUREENCODER_INPUT);
+            				newpin.Number = dio_ports.at(j).Number[k];
+                            newpin.ShieldID = dio_ports.at(j).ShieldID;
+            				newpin.PortID = dio_ports.at(j).PortID;
+            				newpin.Value = dio_ports.at(j).Value[k];
+                            //quadratureencoderinput_pub.publish(newpin); //Not Implemented Yet
             			default:
             				break;
             		}
             	}
             }
-            /*
-            for(int j = 0; j < shields.size(); j++)
+            std::vector<Port_Info> ana_ports = boardprocesses.at(i).get_allanaports();
+            for(int j = 0; j < ana_ports.size(); j++)
             {
-
-                std::string shieldname = shields.at(j).DeviceName;
-                Port_Info ANA_Port;
-                switch (shields.at(j).DeviceType)
-                {
-                    case "TerminalShield":
-                        ANA_Port = boardprocesses.at(i).get_PortInfo(shields.at(j).ID)
-                        if(ANA_Port.PortName == "")
-                        {
-                        }
-                        else
-                        {
-                            for(int k = 0; k < 4; k++)
-                            {
-                                icarus_rover_v2::pin newpin;
-                                newpin.Function = process->map_PinFunction_ToString(ANA_Port.Mode[k]);
-                                newpin.Number = ANA_Port.Number[k];
-                                newpin.Port = "ANA_Port";
-                                newpin.Value = ANA_Port.Value[k];
-                                newpin.ConnectedDevice = ANA_Port.ConnectingDevice.at(k);
-                                //printf("Port Name: %s Pin Number: %d Pin Function: %d Pin Value: %d\n",
-                                //		ANA_PortA.PortName.c_str(),ANA_PortA.Number[j],ANA_PortA.Mode[j],ANA_PortA.Value[j]);
-                                if(ANA_Port.Mode[k] == PINMODE_ANALOG_INPUT)
-                                {
-                                    analoginput_pub.publish(newpin);
-                                }
-                                else if(ANA_Port.Mode[k] == PINMODE_FORCESENSOR_INPUT)
-                                {
-                                    forcesensorinput_pub.publish(newpin);
-                                }
-                            }
-                        }
-                        break;
-                    default:
-                        break;
-                }
-                
+            	for(int k = 0; i < ANA_PORT_SIZE; k++)
+            	{
+            		icarus_rover_v2::pin newpin;
+            		switch(ana_ports.at(j).Mode[k])
+            		{
+            			case PINMODE_ANALOG_INPUT:
+            				newpin.Function = boardprocesses.at(i).map_PinFunction_ToString(PINMODE_ANALOG_INPUT);
+            				newpin.Number = ana_ports.at(j).Number[k];
+                            newpin.ShieldID = ana_ports.at(j).ShieldID;
+            				newpin.PortID = ana_ports.at(j).PortID;
+            				newpin.Value = ana_ports.at(j).Value[k];
+            				analoginput_pub.publish(newpin);
+            				break;
+                        case PINMODE_FORCESENSOR_INPUT:
+                            newpin.Function = boardprocesses.at(i).map_PinFunction_ToString(PINMODE_FORCESENSOR_INPUT);
+            				newpin.Number = ana_ports.at(j).Number[k];
+                            newpin.ShieldID = ana_ports.at(j).ShieldID;
+            				newpin.PortID = ana_ports.at(j).PortID;
+            				newpin.Value = ana_ports.at(j).Value[k];
+                            forcesensorinput_pub.publish(newpin);
+            			default:
+            				break;
+            		}
+            	}
             }
-            */
         }
 	}
 	if((ready == true) && (boardprocesses.size() > 0))

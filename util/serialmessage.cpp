@@ -1,5 +1,5 @@
 /***************AUTO-GENERATED.  DO NOT EDIT********************/
-/***Created on:2017-04-30 07:51:09.684147***/
+/***Created on:2017-04-30 10:31:34.485082***/
 /***Target: Raspberry Pi ***/
 #include "serialmessage.h"
 SerialMessageHandler::SerialMessageHandler(){}
@@ -48,25 +48,25 @@ int SerialMessageHandler::decode_UserMessageSerial(unsigned char* inpacket,unsig
 	*value12=inpacket[11];
 	return 1;
 }
-int SerialMessageHandler::encode_CommandSerial(char* outbuffer,int* length,unsigned char value1,unsigned char value2,unsigned char value3,unsigned char value4,unsigned char value5,unsigned char value6,unsigned char value7,unsigned char value8,unsigned char value9,unsigned char value10,unsigned char value11,unsigned char value12)
+int SerialMessageHandler::encode_CommandSerial(char* outbuffer,int* length,unsigned char Command,unsigned char Option1,unsigned char Option2,unsigned char Option3)
 {
 	char *p_outbuffer;
 	p_outbuffer = &outbuffer[0];
 	*p_outbuffer++ = 0xAB;
 	*p_outbuffer++ = 0x2;
 	*p_outbuffer++ = 12;
-	*p_outbuffer++ = value1;
-	*p_outbuffer++ = value2;
-	*p_outbuffer++ = value3;
-	*p_outbuffer++ = value4;
-	*p_outbuffer++ = value5;
-	*p_outbuffer++ = value6;
-	*p_outbuffer++ = value7;
-	*p_outbuffer++ = value8;
-	*p_outbuffer++ = value9;
-	*p_outbuffer++ = value10;
-	*p_outbuffer++ = value11;
-	*p_outbuffer++ = value12;
+	*p_outbuffer++ = Command;
+	*p_outbuffer++ = Option1;
+	*p_outbuffer++ = Option2;
+	*p_outbuffer++ = Option3;
+	*p_outbuffer++ = 0;
+	*p_outbuffer++ = 0;
+	*p_outbuffer++ = 0;
+	*p_outbuffer++ = 0;
+	*p_outbuffer++ = 0;
+	*p_outbuffer++ = 0;
+	*p_outbuffer++ = 0;
+	*p_outbuffer++ = 0;
 	int checksum = 0;
 	for(int i = 3; i < (3+12);i++)
 	{
@@ -76,20 +76,12 @@ int SerialMessageHandler::encode_CommandSerial(char* outbuffer,int* length,unsig
 	*length = p_outbuffer-&outbuffer[0];
 	return 1;
 }
-int SerialMessageHandler::decode_CommandSerial(unsigned char* inpacket,unsigned char* value1,unsigned char* value2,unsigned char* value3,unsigned char* value4,unsigned char* value5,unsigned char* value6,unsigned char* value7,unsigned char* value8,unsigned char* value9,unsigned char* value10,unsigned char* value11,unsigned char* value12)
+int SerialMessageHandler::decode_CommandSerial(unsigned char* inpacket,unsigned char* Command,unsigned char* Option1,unsigned char* Option2,unsigned char* Option3)
 {
-	*value1=inpacket[0];
-	*value2=inpacket[1];
-	*value3=inpacket[2];
-	*value4=inpacket[3];
-	*value5=inpacket[4];
-	*value6=inpacket[5];
-	*value7=inpacket[6];
-	*value8=inpacket[7];
-	*value9=inpacket[8];
-	*value10=inpacket[9];
-	*value11=inpacket[10];
-	*value12=inpacket[11];
+	*Command=inpacket[0];
+	*Option1=inpacket[1];
+	*Option2=inpacket[2];
+	*Option3=inpacket[3];
 	return 1;
 }
 int SerialMessageHandler::encode_DiagnosticSerial(char* outbuffer,int* length,unsigned char System,unsigned char SubSystem,unsigned char Component,unsigned char Diagnostic_Type,unsigned char Level,unsigned char Diagnostic_Message)
@@ -424,39 +416,6 @@ int SerialMessageHandler::decode_FirmwareVersionSerial(unsigned char* inpacket,u
 	*majorVersion=inpacket[0];
 	*minorVersion=inpacket[1];
 	*buildNumber=inpacket[2];
-	return 1;
-}
-int SerialMessageHandler::encode_Arm_CommandSerial(char* outbuffer,int* length,unsigned char Command)
-{
-	char *p_outbuffer;
-	p_outbuffer = &outbuffer[0];
-	*p_outbuffer++ = 0xAB;
-	*p_outbuffer++ = 0x27;
-	*p_outbuffer++ = 12;
-	*p_outbuffer++ = Command;
-	*p_outbuffer++ = 0;
-	*p_outbuffer++ = 0;
-	*p_outbuffer++ = 0;
-	*p_outbuffer++ = 0;
-	*p_outbuffer++ = 0;
-	*p_outbuffer++ = 0;
-	*p_outbuffer++ = 0;
-	*p_outbuffer++ = 0;
-	*p_outbuffer++ = 0;
-	*p_outbuffer++ = 0;
-	*p_outbuffer++ = 0;
-	int checksum = 0;
-	for(int i = 3; i < (3+12);i++)
-	{
-		checksum ^= outbuffer[i];
-	}
-	*p_outbuffer++ = checksum;
-	*length = p_outbuffer-&outbuffer[0];
-	return 1;
-}
-int SerialMessageHandler::decode_Arm_CommandSerial(unsigned char* inpacket,unsigned char* Command)
-{
-	*Command=inpacket[0];
 	return 1;
 }
 int SerialMessageHandler::encode_Setup_ControlGroupSerial(char* outbuffer,int* length,char ID,char Mode,char Input_Port,unsigned char Input_PinMode,unsigned char Input_PinNumber,unsigned char Output_Port,unsigned char Output_PinMode,unsigned char Output_PinNUmber)

@@ -403,7 +403,6 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_pinmsg(icarus_rover_
 bool BoardControllerNodeProcess::checkTriggers(std::vector<std::vector<unsigned char > > &tx_buffers)
 {
 	bool nothing_triggered = true;
-	//send_nodemode.trigger = true;
 	if(send_nodemode.trigger == true)
 	{
 		bool send_me = false;
@@ -463,7 +462,7 @@ bool BoardControllerNodeProcess::checkTriggers(std::vector<std::vector<unsigned 
             int length;
             int computed_checksum;
             int tx_status = serialmessagehandler->encode_CommandSerial(buffer,&length,ROVERCOMMAND_CONFIGURE,
-                0,0,0,0,0,0,0,0,0,0,0);
+                ROVERCOMMAND_NONE,ROVERCOMMAND_NONE,ROVERCOMMAND_NONE);
             tx_buffers.push_back(std::vector<unsigned char>(buffer,buffer+sizeof(buffer)/sizeof(buffer[0])));
                 
             send_rovercommand.state = true;
@@ -696,7 +695,80 @@ bool BoardControllerNodeProcess::checkTriggers(std::vector<std::vector<unsigned 
 			}
 		}
 	}
-    /*
+     if(send_pps.trigger == true)
+	{
+    	bool send_me = false;
+		if(send_pps.stream_rate < 0) //Normal operation, should send
+		{
+			send_me = true;
+			send_pps.trigger = false;
+		}
+		else
+		{
+			struct timeval now;
+			gettimeofday(&now,NULL);
+			double etime = time_diff(send_pps.orig_send_time,now);
+			double delay = 1.0/(send_pps.stream_rate);
+			if(etime > delay){ send_me = true; }
+			else{ send_me = false; }
+		}
+		if(send_me == true)
+		{
+			nothing_triggered = false;
+            char buffer[16];
+            int length;
+            int computed_checksum;
+            int index=0;
+            int tx_status = serialmessagehandler->encode_PPSSerial(buffer,&length,
+                    pps_counter);
+
+            bool status = gather_message_info(SERIAL_PPS_ID, "transmit");
+            tx_buffers.push_back(std::vector<unsigned char>(buffer,buffer+sizeof(buffer)/sizeof(buffer[0])));
+			send_pps.state = true;
+			if (send_pps.retrying == false)
+			{
+				gettimeofday(&send_pps.orig_send_time,NULL);
+				send_pps.retries = 0;
+			}
+		}
+    }
+    if(send_armedcommand.trigger == true)
+	{
+		bool send_me = false;
+		if(send_armedcommand.stream_rate < 0) //Normal operation, should send
+		{
+			send_me = true;
+			send_armedcommand.trigger = false;
+		}
+		else
+		{
+			struct timeval now;
+			gettimeofday(&now,NULL);
+			double etime = time_diff(send_armedcommand.orig_send_time,now);
+			double delay = 1.0/(send_armedcommand.stream_rate);
+			if(etime > delay){ send_me = true; }
+			else{ send_me = false; }
+		}
+		if(send_me == true)
+		{
+			nothing_triggered = false;
+			char buffer[16];
+			int length;
+			int computed_checksum;
+			int index=0;
+			int tx_status = serialmessagehandler->encode_CommandSerial(buffer,&length,
+					armed_command,ROVERCOMMAND_NONE,ROVERCOMMAND_NONE,ROVERCOMMAND_NONE);
+			bool status = gather_message_info(SERIAL_Command_ID, "transmit");
+			tx_buffers.push_back(std::vector<unsigned char>(buffer,buffer+sizeof(buffer)/sizeof(buffer[0])));
+			send_armedcommand.state = true;
+			if (send_armedcommand.retrying == false)
+			{
+				gettimeofday(&send_armedcommand.orig_send_time,NULL);
+				send_armedcommand.retries = 0;
+			}
+			send_armedcommand.trigger = false;
+		}
+	}
     if(send_diagnostic.trigger == true)
 	{
 		bool send_me = false;
@@ -744,100 +816,6 @@ bool BoardControllerNodeProcess::checkTriggers(std::vector<std::vector<unsigned 
 		}
 
 	}
-	if(send_armedcommand.trigger == true)
-	{
-		bool send_me = false;
-		if(send_armedcommand.stream_rate < 0) //Normal operation, should send
-		{
-			send_me = true;
-			send_armedcommand.trigger = false;
-		}
-		else
-		{
-			struct timeval now;
-			gettimeofday(&now,NULL);
-			double etime = time_diff(send_armedcommand.orig_send_time,now);
-			double delay = 1.0/(send_armedcommand.stream_rate);
-			if(etime > delay){ send_me = true; }
-			else{ send_me = false; }
-		}
-		if(send_me == true)
-		{
-			nothing_triggered = false;
-			char buffer[16];
-			int length;
-			int computed_checksum;
-			int index=0;
-			int tx_status = serialmessagehandler->encode_Arm_CommandSerial(buffer,&length,
-					armed_command);
-			bool status = gather_message_info(SERIAL_Arm_Command_ID, "transmit");
-			//printf("%d Sending shield config for shield: %d\n",get_boardid(),myshields.at(i).ID);
-			tx_buffers.push_back(std::vector<unsigned char>(buffer,buffer+sizeof(buffer)/sizeof(buffer[0])));
-			for(int i = 0; i < 16; i++)
-			{
-				printf("%0x ",buffer[i]);
-			}
-			printf("\n");
-			
-
-			send_armedcommand.state = true;
-			if (send_armedcommand.retrying == false)
-			{
-				gettimeofday(&send_armedcommand.orig_send_time,NULL);
-				send_armedcommand.retries = 0;
-			}
-			send_armedcommand.trigger = false;
-		}
-	}
-    
-    if(send_pps.trigger == true)
-	{
-    	bool send_me = false;
-		if(send_pps.stream_rate < 0) //Normal operation, should send
-		{
-			send_me = true;
-			send_pps.trigger = false;
-		}
-		else
-		{
-			struct timeval now;
-			gettimeofday(&now,NULL);
-			double etime = time_diff(send_pps.orig_send_time,now);
-			double delay = 1.0/(send_pps.stream_rate);
-			if(etime > delay){ send_me = true; }
-			else{ send_me = false; }
-		}
-		if(send_me == true)
-		{
-			nothing_triggered = false;
-			for(int i = 0; i < myports.size();i++)
-			{
-				char buffer[16];
-				int length;
-				int computed_checksum;
-				int index=0;
-				int tx_status = serialmessagehandler->encode_PPSSerial(buffer,&length,
-						pps_counter);
-
-				bool status = gather_message_info(SERIAL_PPS_ID, "transmit");
-				for(int i = 0; i < 16; i++)
-				{
-					printf("%0x ",buffer[i]);
-				}
-				printf("\n");
-				tx_buffers.push_back(std::vector<unsigned char>(buffer,buffer+sizeof(buffer)/sizeof(buffer[0])));
-			}
-			send_pps.state = true;
-			if (send_pps.retrying == false)
-			{
-				gettimeofday(&send_pps.orig_send_time,NULL);
-				send_pps.retries = 0;
-			}
-		}
-
-	}
-	
-    */
 	if(nothing_triggered == true)
 	{
 		tx_buffers.clear();
@@ -850,7 +828,7 @@ bool BoardControllerNodeProcess::checkTriggers(std::vector<std::vector<unsigned 
 }
 icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_commandmsg(icarus_rover_v2::command newcommand)
 {
-	if (newcommand.Command ==  DIAGNOSTIC_ID)
+	if (newcommand.Command == ROVERCOMMAND_RUNDIAGNOSTIC)
 	{
 		if(newcommand.Option1 == LEVEL1)
 		{
@@ -882,10 +860,10 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_commandmsg(icarus_ro
 			sprintf(tempstr,"Got: Diagnostic ID w/ Option: %d but not implemented yet.",newcommand.Option1);
 		}
 	}
-	else if(newcommand.Command == ARM_COMMAND_ID)
+	else if((newcommand.Command == ROVERCOMMAND_ARM) || (newcommand.Command == ROVERCOMMAND_DISARM))
 	{
         received_arm_command = true;
-		armed_command = newcommand.Option1;
+		armed_command = newcommand.Command;
 		send_armedcommand.trigger = true;
 	}
 	return diagnostic;
@@ -1110,6 +1088,7 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_serialmessage_Get_AN
 icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_serialmessage_Get_DIO_Port(int packet_type,unsigned char* inpacket)
 {
 	bool status = gather_message_info(SERIAL_Get_DIO_Port_ID, "receive");
+    status = false;
 	if(status == false)
 	{
 		diagnostic.Level = ERROR;
@@ -1430,7 +1409,7 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_devicemsg(icarus_rov
                 diagnostic.Level = ERROR;
                 diagnostic.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
                 char tempstr[1024];
-                sprintf(tempstr,"TerminalShield required ID: 0 but received: %d",newdevice.ID);
+                sprintf(tempstr,"TerminalShield required ID: 0 but received: %d",(int)newdevice.ID);
                 diagnostic.Description = tempstr;
                 return diagnostic;
             }
@@ -2113,13 +2092,6 @@ void BoardControllerNodeProcess::initialize_message_info()
 		message_info newmessage;
 		newmessage.id = SERIAL_FirmwareVersion_ID;
 		newmessage.name = "Firmware";
-		messages.push_back(newmessage);
-	}
-
-	{
-		message_info newmessage;
-		newmessage.id = SERIAL_Arm_Command_ID;
-		newmessage.name = "Arm Command";
 		messages.push_back(newmessage);
 	}
 
