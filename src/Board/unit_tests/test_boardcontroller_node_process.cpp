@@ -132,6 +132,8 @@ TEST(ProcessBootInitialization,ProcessBootInitialization_1Board_2Shields_FullPin
     		newpin.Number = i;
     		newpin.Function = "AnalogInput";
     		newpin.DefaultValue = 0;
+            newpin.ADCResolution = 10;
+            newpin.VoltageReference = 5.0;
     		shield1.pins.push_back(newpin);
     	}
         icarus_rover_v2::device shield2;
@@ -241,66 +243,68 @@ TEST(Operation,NormalOperation_1Board_2Shields_FullPins)
         }
         diagnostic = processes.at(i).update(.1);
         EXPECT_TRUE(diagnostic.Level <= NOTICE);
-        tx_buffers.clear();
-		EXPECT_TRUE(processes.at(i).checkTriggers(tx_buffers));
-        //Check Configure DIO Messages
+        for(int k = 0; k < 5; k++)
         {
-            std::vector<Port_Info> dio_ports = processes.at(i).get_alldioports();
-            int dio_port_messages = 0;
-            for(int j = 0; j < tx_buffers.size();j++)
+            tx_buffers.clear();
+            EXPECT_TRUE(processes.at(i).checkTriggers(tx_buffers));
+            //Check Configure DIO Messages
             {
-                unsigned char tx_buffer[16];
-                std::vector<unsigned char> tempstr = tx_buffers.at(j);
-                if(tempstr[1] == SERIAL_Configure_DIO_Port_ID)
+                std::vector<Port_Info> dio_ports = processes.at(i).get_alldioports();
+                int dio_port_messages = 0;
+                for(int j = 0; j < tx_buffers.size();j++)
                 {
-                    dio_port_messages++;
+                    unsigned char tx_buffer[16];
+                    std::vector<unsigned char> tempstr = tx_buffers.at(j);
+                    if(tempstr[1] == SERIAL_Configure_DIO_Port_ID)
+                    {
+                        dio_port_messages++;
+                    }
                 }
+                EXPECT_TRUE(dio_port_messages > 0);
+                EXPECT_TRUE(dio_ports.size() == dio_port_messages);    
             }
-            EXPECT_TRUE(dio_port_messages > 0);
-            EXPECT_TRUE(dio_ports.size() == dio_port_messages);    
-        }
-        diagnostic = processes.at(i).update(.1);
-        EXPECT_TRUE(diagnostic.Level <= NOTICE);
-        
-        //Check DIO Default Messages
-        {
-            std::vector<Port_Info> dio_ports = processes.at(i).get_alldioports();
-            int dio_default_messages = 0;
-            for(int j = 0; j < tx_buffers.size();j++)
+            diagnostic = processes.at(i).update(.1);
+            EXPECT_TRUE(diagnostic.Level <= NOTICE);
+            
+            //Check DIO Default Messages
             {
-                unsigned char tx_buffer[16];
-                std::vector<unsigned char> tempstr = tx_buffers.at(j);
-                if(tempstr[1] == SERIAL_Set_DIO_Port_DefaultValue_ID)
+                std::vector<Port_Info> dio_ports = processes.at(i).get_alldioports();
+                int dio_default_messages = 0;
+                for(int j = 0; j < tx_buffers.size();j++)
                 {
-                    dio_default_messages++;
+                    unsigned char tx_buffer[16];
+                    std::vector<unsigned char> tempstr = tx_buffers.at(j);
+                    if(tempstr[1] == SERIAL_Set_DIO_Port_DefaultValue_ID)
+                    {
+                        dio_default_messages++;
+                    }
                 }
+                EXPECT_TRUE(dio_default_messages > 0);
+                EXPECT_TRUE(dio_ports.size() == dio_default_messages);    
+                diagnostic = processes.at(i).update(.1);
+                EXPECT_TRUE(diagnostic.Level <= NOTICE);
             }
-            EXPECT_TRUE(dio_default_messages > 0);
-            EXPECT_TRUE(dio_ports.size() == dio_default_messages);    
-        }
-        diagnostic = processes.at(i).update(.1);
-        EXPECT_TRUE(diagnostic.Level <= NOTICE);
-        EXPECT_FALSE(processes.at(i).get_ready_to_arm());
-        EXPECT_TRUE(processes.at(i).get_armedstate() == ARMEDSTATUS_DISARMED_CANNOTARM);
-        //Check Configure ANA Messages
-        {
-            std::vector<Port_Info> ana_ports = processes.at(i).get_allanaports();
-            int ana_port_messages = 0;
-            for(int j = 0; j < tx_buffers.size();j++)
+            EXPECT_FALSE(processes.at(i).get_ready_to_arm());
+            EXPECT_TRUE(processes.at(i).get_armedstate() == ARMEDSTATUS_DISARMED_CANNOTARM);
+            //Check Configure ANA Messages
             {
-                unsigned char tx_buffer[16];
-                std::vector<unsigned char> tempstr = tx_buffers.at(j);
-                if(tempstr[1] == SERIAL_Configure_ANA_Port_ID)
+                std::vector<Port_Info> ana_ports = processes.at(i).get_allanaports();
+                int ana_port_messages = 0;
+                for(int j = 0; j < tx_buffers.size();j++)
                 {
-                    ana_port_messages++;
+                    unsigned char tx_buffer[16];
+                    std::vector<unsigned char> tempstr = tx_buffers.at(j);
+                    if(tempstr[1] == SERIAL_Configure_ANA_Port_ID)
+                    {
+                        ana_port_messages++;
+                    }
                 }
+                EXPECT_TRUE(ana_port_messages > 0);
+                EXPECT_TRUE(ana_ports.size() == ana_port_messages); 
             }
-            EXPECT_TRUE(ana_port_messages > 0);
-            EXPECT_TRUE(ana_ports.size() == ana_port_messages); 
-        }
-        diagnostic = processes.at(i).update(.1);
-        EXPECT_TRUE(diagnostic.Level <= NOTICE);
-        
+            diagnostic = processes.at(i).update(.1);
+            EXPECT_TRUE(diagnostic.Level <= NOTICE);
+        }        
         EXPECT_TRUE(processes.at(i).get_nodestate() == BOARDMODE_CONFIGURED);
         {
             unsigned char packet[12];
@@ -403,7 +407,7 @@ TEST(Operation,Running_1Board_2Shields_FullPins)
                 }
             }
         }
-        int step_size = 65536/(available_analog_pins-1);
+        int step_size = 1024/(available_analog_pins-1);
         int current_value = 1;
         for(std::size_t j = 0; j < ana_ports.size(); j++)
         {
@@ -429,27 +433,41 @@ TEST(Operation,Running_1Board_2Shields_FullPins)
             Port_Info port = processes.at(i).get_anaPortInfo(ana_ports.at(j).ShieldID,ana_ports.at(j).PortID);
             for(int k = 0; k < ANA_PORT_SIZE; k++)
             {
-                EXPECT_TRUE(port_value.at(k)==port.Value[k]);
+                float expected_value = port_value[k]*5.0/1024.0;
+                float error = fabs(expected_value-port.Value[k]);
+                EXPECT_TRUE(error < .0000001);
+                //EXPECT_TRUE(port_value.at(k)==port.Value[k]);
             }
         }
         
 
-        //Check PPS Transmit
-        diagnostic = processes.at(i).new_pps_transmit();
-        EXPECT_TRUE(diagnostic.Level <= NOTICE);
-        tx_buffers.clear();
-		EXPECT_TRUE(processes.at(i).checkTriggers(tx_buffers));
-        bool found_send_pps = false;
-        for(std::size_t j = 0; j < tx_buffers.size(); j++)
+        //Check PPS Transmit & Receive
+        for(int j = 0; j < 10; j++)
         {
-            unsigned char tx_buffer[16];
-            std::vector<unsigned char> tempstr = tx_buffers.at(j);
-            if((tempstr[1] == SERIAL_PPS_ID))
+            diagnostic = processes.at(i).new_pps_transmit();
+            EXPECT_TRUE(diagnostic.Level <= NOTICE);
+            tx_buffers.clear();
+            EXPECT_TRUE(processes.at(i).checkTriggers(tx_buffers));
+            bool found_send_pps = false;
+            for(std::size_t j = 0; j < tx_buffers.size(); j++)
             {
-                found_send_pps = true;
+                unsigned char tx_buffer[16];
+                std::vector<unsigned char> tempstr = tx_buffers.at(j);
+                if((tempstr[1] == SERIAL_PPS_ID))
+                {
+                    found_send_pps = true;
+                }
+            }
+            EXPECT_TRUE(found_send_pps);
+            {
+                unsigned char packet[12];
+                int length;
+                int computed_checksum;
+                packet[0] = j+1;
+                diagnostic = processes.at(i).new_serialmessage_PPS(SERIAL_PPS_ID,packet);
+                EXPECT_TRUE(diagnostic.Level <= NOTICE);
             }
         }
-        EXPECT_TRUE(found_send_pps);
         
         //Check Diagnostic Transmit
         for(int j = 0; j < 10; j++)

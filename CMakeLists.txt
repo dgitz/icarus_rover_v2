@@ -73,6 +73,7 @@ add_message_files(
   imu.msg
   usermessage.msg
   battery.msg
+  cell.msg
 )
 
 ## Generate services in the 'srv' folder

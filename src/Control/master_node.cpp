@@ -481,11 +481,13 @@ bool parse_devicefile(TiXmlDocument doc)
 				{
 					icarus_rover_v2::pin newpin;
 					newpin.ShieldID = newDevice.ID;
+                    /*
 					TiXmlElement *l_pPinPortID = l_pPin->FirstChildElement( "PortID" );
 					if ( NULL != l_pPinPortID )
 					{
 						newpin.PortID = atoi(l_pPinPortID->GetText());
 					}
+                    */
 					TiXmlElement *l_pPinNumber = l_pPin->FirstChildElement( "Number" );
 					if ( NULL != l_pPinNumber )
 					{
@@ -517,24 +519,24 @@ bool parse_devicefile(TiXmlDocument doc)
 						newpin.DefaultValue = 0;
 					}
 
-					TiXmlElement *l_pPinAuxTopic = l_pPin->FirstChildElement( "AuxTopic" );
-					if ( NULL != l_pPinAuxTopic )
+					TiXmlElement *l_pPinADCResolution = l_pPin->FirstChildElement( "ADCResolution" );
+					if ( NULL != l_pPinADCResolution )
 					{
-						newpin.AuxTopic = l_pPinAuxTopic->GetText();
+						newpin.ADCResolution = atoi(l_pPinADCResolution->GetText());
 					}
 					else
 					{
-						newpin.AuxTopic = "";
+						newpin.ADCResolution = 0;
 					}
 
-					TiXmlElement *l_pPinScaleFactor = l_pPin->FirstChildElement( "ScaleFactor" );
-					if ( NULL != l_pPinScaleFactor )
+					TiXmlElement *l_pPinVoltageReference = l_pPin->FirstChildElement( "VoltageReference" );
+					if ( NULL != l_pPinVoltageReference )
 					{
-						newpin.ScaleFactor = atof(l_pPinScaleFactor->GetText());
+						newpin.VoltageReference = atof(l_pPinVoltageReference->GetText());
 					}
 					else
 					{
-						newpin.ScaleFactor = 1.0;
+						newpin.VoltageReference = 1.0;
 					}
 
 

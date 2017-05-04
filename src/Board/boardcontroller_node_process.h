@@ -1,6 +1,9 @@
 #ifndef BOARDCONTROLLERNODEPROCESS_H
 #define BOARDCONTROLLERNODEPROCESS_H
-
+/*
+TODO:
+PPS Transmit/Receive
+*/
 #include "Definitions.h"
 #include <sys/time.h>
 #include <stdio.h>
@@ -30,10 +33,12 @@ struct Port_Info{
 		int PortID;
 		bool Updated;
 		std::vector<int> Available;
-		std::vector<int> Value;
+		std::vector<float> Value;
 		std::vector<int> Mode;
 		std::vector<int> Number;
 		std::vector<int> DefaultValue;
+        std::vector<int> ADCResolution;
+        std::vector<float> VoltageReference;
 		std::vector<std::string> ConnectingDevice;
 	};
 struct state_ack

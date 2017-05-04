@@ -34,7 +34,7 @@
 //End User Code: Data Structures
 
 //Start Template Code: Function Prototypes
-bool initialize(ros::NodeHandle nh);
+bool initializenode();//ros::NodeHandle nh);
 void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg);
 void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg);
 void PPS10_Callback(const std_msgs::Bool::ConstPtr& msg);
@@ -48,6 +48,8 @@ void signalinterrupt_handler(int sig);
 //End Template Code: Function Prototypes
 
 //Start User Code: Function Prototypes
+icarus_rover_v2::diagnostic rescan_topics();
+void Pin_Callback(const icarus_rover_v2::pin::ConstPtr& msg);
 //End User Code: Function Prototypes
 
 //Start Template Code: Define Global variables
@@ -81,7 +83,10 @@ volatile sig_atomic_t kill_node;
 //End Template Code: Define Global Variables
 
 //Start User Code: Define Global Variables
+boost::shared_ptr<ros::NodeHandle> n;
 PowerMonitorNodeProcess *process;
 ros::Publisher battery_pub;
+std::vector<std::string> analogpin_topics;
+std::vector<ros::Subscriber> analogpin_subs;
 //End User Code: Define Global Variables
 #endif

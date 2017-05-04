@@ -1,0 +1,6 @@
+#cell
+string name
+float32 rated_voltage
+float32 current_voltage
+float32 rated_capacity_Ah
+float32 current_capacity_Ah

@@ -1,17 +1,93 @@
 #include "powermonitor_node.h"
 //Start User Code: Firmware Definition
-#define POWERMONITORNODE_MAJOR_RELEASE 2
-#define POWERMONITORNODE_MINOR_RELEASE 4
+#define POWERMONITORNODE_MAJOR_RELEASE 3
+#define POWERMONITORNODE_MINOR_RELEASE 1
 #define POWERMONITORNODE_BUILD_NUMBER 0
 //End User Code: Firmware Definition
 //Start User Code: Functions
+icarus_rover_v2::diagnostic rescan_topics()
+{
+    icarus_rover_v2::diagnostic diag = diagnostic_status;
+	int found_new_topics = 0;
+	ros::master::V_TopicInfo master_topics;
+	ros::master::getTopics(master_topics);
+	std::vector<std::string> topics_to_add;
+	for (ros::master::V_TopicInfo::iterator it = master_topics.begin() ; it != master_topics.end(); it++)
+	{
+		const ros::master::TopicInfo& info = *it;
+		if(info.datatype == "icarus_rover_v2/pin")
+		{
+			bool add_me = true;
+			for(int i = 0; i < analogpin_topics.size();i++)
+			{
+				if(analogpin_topics.at(i) == info.name)
+				{
+					add_me = false;
+					break;
+				}
+			}
+			if(add_me == true)
+			{
+				analogpin_topics.push_back(info.name);
+			}
+		}
+	}
+	for(int i = 0; i < topics_to_add.size(); i++)
+	{
+        //ros::Subscriber analogpin_sub = n->subscribe<icarus_rover_v2::pin>(topics_to_add.at(i),1000,Pin_Callback);
+        ros::Subscriber analogpin_sub = n->subscribe<icarus_rover_v2::pin>(topics_to_add.at(i),5,Pin_Callback);
+        analogpin_subs.push_back(analogpin_sub);
+	}
+
+	diag.Diagnostic_Type = SOFTWARE;
+	diag.Level = INFO;
+	diag.Diagnostic_Message = NOERROR;
+	char tempstr[512];
+	if(topics_to_add.size() > 0)
+	{
+		sprintf(tempstr,"Rescanned and found %d new topics.",(int)topics_to_add.size());
+	}
+	else
+	{
+		sprintf(tempstr,"Rescanned and found no new topics.");
+	}
+	logger->log_info(tempstr);
+	diag.Description = tempstr;
+	return diag;
+}
+
+void Pin_Callback(const icarus_rover_v2::pin::ConstPtr& msg)
+{
+    icarus_rover_v2::diagnostic diag;
+    icarus_rover_v2::pin newpin;
+    newpin.BoardID = msg->BoardID;
+    newpin.ShieldID = msg->ShieldID;
+    newpin.PortID = msg->PortID;
+    newpin.Number = msg->Number;
+    newpin.Function = msg->Function;
+    newpin.Value = msg->Value;
+    newpin.DefaultValue = msg->DefaultValue;
+    newpin.ConnectedDevice = msg->ConnectedDevice;
+    newpin.ADCResolution = msg->ADCResolution;
+    newpin.VoltageReference = msg->VoltageReference;
+    diag = process->new_pinmsg(newpin);
+    if(diag.Level > NOTICE)
+    {
+        diagnostic_pub.publish(diag);
+    }
+}
 void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
+    diagnostic_status = rescan_topics();
+    if(diagnostic_status.Level > INFO)
+    {
+        diagnostic_pub.publish(diagnostic_status);
+    }
     logger->log_info("Node Running.");
 	icarus_rover_v2::firmware fw;
 	fw.Generic_Node_Name = "powermonitor_node";
 	fw.Node_Name = node_name;
-	fw.Description = "Latest Rev: 2-Feb-2017";
+	fw.Description = "Latest Rev: 3-May-2017";
 	fw.Major_Release = POWERMONITORNODE_MAJOR_RELEASE;
 	fw.Minor_Release = POWERMONITORNODE_MINOR_RELEASE;
 	fw.Build_Number = POWERMONITORNODE_BUILD_NUMBER;
@@ -40,17 +116,14 @@ void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 			resource_pub.publish(resources_used);
 		}
 	}
+    logger->log_info(process->print_batteryinfo());
 }
 void PPS10_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
-	std::vector<Battery> batteries = process->get_batteries();
+	std::vector<icarus_rover_v2::battery> batteries = process->get_batteries();
     for(int i = 0; i < batteries.size(); i++)
     {
-        icarus_rover_v2::battery battery_topic;
-        battery_topic.name = batteries.at(i).name;
-        battery_topic.active = batteries.at(i).active;
-        battery_topic.level_perc = batteries.at(i).capacity_level_perc;
-        battery_pub.publish(battery_topic);
+        battery_pub.publish(batteries.at(i));
     }
     beat.stamp = ros::Time::now();
 	heartbeat_pub.publish(beat);
@@ -63,8 +136,8 @@ void PPS10_Callback(const std_msgs::Bool::ConstPtr& msg)
 }
 void PPS100_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
-    //diagnostic_status = process->update(0.01);
-    //diagnostic_pub.publish(diagnostic_status);
+    diagnostic_status = process->update(0.01);
+    if(diagnostic_status.Level > INFO) { diagnostic_pub.publish(diagnostic_status); }
 }
 void PPS1000_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
@@ -126,10 +199,10 @@ int main(int argc, char **argv)
 {
 	node_name = "io_node";
     ros::init(argc, argv, node_name);
+    n.reset(new ros::NodeHandle);
     node_name = ros::this_node::getName();
-    ros::NodeHandle n;
     
-    if(initialize(n) == false)
+    if(initializenode() == false)
     {
         logger->log_fatal("Unable to Initialize.  Exiting.");
     	diagnostic_status.Diagnostic_Type = SOFTWARE;
@@ -161,7 +234,7 @@ int main(int argc, char **argv)
     logger->log_notice("Node Finished Safely.");
     return 0;
 }
-bool initialize(ros::NodeHandle nh)
+bool initializenode()
 {
     //Start Template Code: Initialization, Parameters and Topics
 	kill_node = 0;
@@ -172,7 +245,7 @@ bool initialize(ros::NodeHandle nh)
     hostname[1023] = '\0';
     gethostname(hostname,1023);
     std::string diagnostic_topic = "/" + node_name + "/diagnostic";
-	diagnostic_pub =  nh.advertise<icarus_rover_v2::diagnostic>(diagnostic_topic,1000);
+	diagnostic_pub =  n->advertise<icarus_rover_v2::diagnostic>(diagnostic_topic,1000);
     diagnostic_status.DeviceName = hostname;
 	diagnostic_status.Node_Name = node_name;
 	diagnostic_status.System = ROVER;
@@ -186,10 +259,10 @@ bool initialize(ros::NodeHandle nh)
 	diagnostic_pub.publish(diagnostic_status);
 
 	std::string resource_topic = "/" + node_name + "/resource";
-	resource_pub = nh.advertise<icarus_rover_v2::resource>(resource_topic,1000);
+	resource_pub = n->advertise<icarus_rover_v2::resource>(resource_topic,1000);
 
     std::string param_verbosity_level = node_name +"/verbosity_level";
-    if(nh.getParam(param_verbosity_level,verbosity_level) == false)
+    if(n->getParam(param_verbosity_level,verbosity_level) == false)
     {
         logger = new Logger("WARN",ros::this_node::getName());
         logger->log_warn("Missing Parameter: verbosity_level");
@@ -201,32 +274,36 @@ bool initialize(ros::NodeHandle nh)
     }
     
     std::string heartbeat_topic = "/" + node_name + "/heartbeat";
-    heartbeat_pub = nh.advertise<icarus_rover_v2::heartbeat>(heartbeat_topic,1000);
+    heartbeat_pub = n->advertise<icarus_rover_v2::heartbeat>(heartbeat_topic,1000);
     beat.Node_Name = node_name;
     std::string device_topic = "/" + std::string(hostname) +"_master_node/device";
-    device_sub = nh.subscribe<icarus_rover_v2::device>(device_topic,1000,Device_Callback);
-    pps01_sub = nh.subscribe<std_msgs::Bool>("/01PPS",1000,PPS01_Callback); 
-    pps1_sub = nh.subscribe<std_msgs::Bool>("/1PPS",1000,PPS1_Callback); 
-    pps10_sub = nh.subscribe<std_msgs::Bool>("/10PPS",1000,PPS10_Callback); 
-    pps100_sub = nh.subscribe<std_msgs::Bool>("/100PPS",1000,PPS100_Callback); 
-    pps1000_sub = nh.subscribe<std_msgs::Bool>("/1000PPS",1000,PPS1000_Callback); 
-    command_sub = nh.subscribe<icarus_rover_v2::command>("/command",1000,Command_Callback);
+    device_sub = n->subscribe<icarus_rover_v2::device>(device_topic,1000,Device_Callback);
+    pps01_sub = n->subscribe<std_msgs::Bool>("/01PPS",1000,PPS01_Callback); 
+    pps1_sub = n->subscribe<std_msgs::Bool>("/1PPS",1000,PPS1_Callback); 
+    pps10_sub = n->subscribe<std_msgs::Bool>("/10PPS",1000,PPS10_Callback); 
+    pps100_sub = n->subscribe<std_msgs::Bool>("/100PPS",1000,PPS100_Callback); 
+    pps1000_sub = n->subscribe<std_msgs::Bool>("/1000PPS",1000,PPS1000_Callback); 
+    command_sub = n->subscribe<icarus_rover_v2::command>("/command",1000,Command_Callback);
     std::string param_require_pps_to_start = node_name +"/require_pps_to_start";
-    if(nh.getParam(param_require_pps_to_start,require_pps_to_start) == false)
+    if(n->getParam(param_require_pps_to_start,require_pps_to_start) == false)
 	{
 		logger->log_warn("Missing Parameter: require_pps_to_start.");
 		return false;
 	}
     std::string firmware_topic = "/" + node_name + "/firmware";
-    firmware_pub =  nh.advertise<icarus_rover_v2::firmware>(firmware_topic,1000);
+    firmware_pub =  n->advertise<icarus_rover_v2::firmware>(firmware_topic,1000);
     //End Template Code: Initialization and Parameters
 
     //Start User Code: Initialization and Parameters
 	process = new PowerMonitorNodeProcess;
-	diagnostic_status = process->init(diagnostic_status,logger,std::string(hostname));
+	diagnostic_status = process->init(diagnostic_status,std::string(hostname));
     
     std::string battery_topic = "/" + node_name + "/battery";
-    battery_pub = nh.advertise<icarus_rover_v2::battery>(battery_topic,1000);
+    battery_pub = n->advertise<icarus_rover_v2::battery>(battery_topic,1000);
+    
+    
+    analogpin_topics.clear();
+    analogpin_subs.clear();
    
     //Finish User Code: Initialization and Parameters
 

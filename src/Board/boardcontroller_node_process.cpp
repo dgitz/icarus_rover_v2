@@ -570,11 +570,7 @@ bool BoardControllerNodeProcess::checkTriggers(std::vector<std::vector<unsigned 
                         my_anaports.at(i).Mode[0],
                         my_anaports.at(i).Mode[1],
                         my_anaports.at(i).Mode[2],
-                        my_anaports.at(i).Mode[3],
-                        my_anaports.at(i).Mode[4],
-                        my_anaports.at(i).Mode[5],
-                        my_anaports.at(i).Mode[6],
-                        my_anaports.at(i).Mode[7]);
+                        my_anaports.at(i).Mode[3]);
                         bool status = gather_message_info(SERIAL_Configure_ANA_Port_ID, "transmit");
                         tx_buffers.push_back(std::vector<unsigned char>(buffer,buffer+sizeof(buffer)/sizeof(buffer[0])));
                 }			
@@ -614,7 +610,7 @@ bool BoardControllerNodeProcess::checkTriggers(std::vector<std::vector<unsigned 
             }
             else
             {
-			nothing_triggered = false;
+                nothing_triggered = false;
                 for(int i = 0; i < my_dioports.size();i++)
                 {
                     char buffer[16];
@@ -624,6 +620,7 @@ bool BoardControllerNodeProcess::checkTriggers(std::vector<std::vector<unsigned 
                     int tx_status = serialmessagehandler->encode_Set_DIO_Port_DefaultValueSerial(buffer,&length,
                             my_dioports.at(i).ShieldID,
                             my_dioports.at(i).PortID,
+                            i,my_dioports.size(),
                             my_dioports.at(i).DefaultValue.at(0),
                             my_dioports.at(i).DefaultValue.at(1),
                             my_dioports.at(i).DefaultValue.at(2),
@@ -675,14 +672,14 @@ bool BoardControllerNodeProcess::checkTriggers(std::vector<std::vector<unsigned 
                 int tx_status = serialmessagehandler->encode_Set_DIO_PortSerial(buffer,&length,
                         my_dioports.at(i).ShieldID,
                         my_dioports.at(i).PortID,
-                        my_dioports.at(i).Value[0],
-                        my_dioports.at(i).Value[1],
-                        my_dioports.at(i).Value[2],
-                        my_dioports.at(i).Value[3],
-                        my_dioports.at(i).Value[4],
-                        my_dioports.at(i).Value[5],
-                        my_dioports.at(i).Value[6],
-                        my_dioports.at(i).Value[7]);
+                        (uint8_t)my_dioports.at(i).Value[0],
+                        (uint8_t)my_dioports.at(i).Value[1],
+                        (uint8_t)my_dioports.at(i).Value[2],
+                        (uint8_t)my_dioports.at(i).Value[3],
+                        (uint8_t)my_dioports.at(i).Value[4],
+                        (uint8_t)my_dioports.at(i).Value[5],
+                        (uint8_t)my_dioports.at(i).Value[6],
+                        (uint8_t)my_dioports.at(i).Value[7]);
 
                 bool status = gather_message_info(SERIAL_Set_DIO_Port_ID, "transmit");
                 tx_buffers.push_back(std::vector<unsigned char>(buffer,buffer+sizeof(buffer)/sizeof(buffer[0])));
@@ -1009,27 +1006,28 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_serialmessage_Get_AN
 			unsigned char ShieldID,PortID;
 			int value1,value2,value3,value4;
 			serialmessagehandler->decode_Get_ANA_PortSerial(inpacket,&ShieldID,&PortID,&value1,&value2,&value3,&value4);
+            int anavalues[4] = {value1,value2,value3,value4};
 			for(std::size_t i = 0; i < my_anaports.size(); i++)
 			{
 				if((my_anaports.at(i).ShieldID == ShieldID) && (my_anaports.at(i).PortID == PortID))
 				{
-					if(my_anaports.at(i).Mode[0] == PINMODE_ANALOG_INPUT)
-					{
-						my_anaports.at(i).Value[0] = value1;
-					}
-					if(my_anaports.at(i).Mode[1] == PINMODE_ANALOG_INPUT)
-					{
-						my_anaports.at(i).Value[1] = value2;
-					}
-					if(my_anaports.at(i).Mode[2] == PINMODE_ANALOG_INPUT)
-					{
-						my_anaports.at(i).Value[2] = value3;
-					}
-					if(my_anaports.at(i).Mode[3] == PINMODE_ANALOG_INPUT)
-					{
-						my_anaports.at(i).Value[3] = value4;
-					}
-
+                    for(int j = 0; j < ANA_PORT_SIZE; j++)
+                    {
+                        
+                        if(my_anaports.at(i).Mode[j] == PINMODE_ANALOG_INPUT)
+                        {
+                            
+                            my_anaports.at(i).Value[j] = ((float)anavalues[j]*my_anaports.at(i).VoltageReference[j])/
+                                pow(2.0,(float)my_anaports.at(i).ADCResolution[j]);
+                        }
+                        else if(my_anaports.at(i).Mode[j] == PINMODE_FORCESENSOR_INPUT)
+                        {
+                            my_anaports.at(i).Value[j] = ((float)anavalues[j]*my_anaports.at(i).VoltageReference[j])/
+                                pow(2.0,(float)my_anaports.at(i).ADCResolution[j]);
+         
+                        }
+                        
+                    }
 				}
 			}
 			//printf("v1: %d v2: %d v3: %d v4: %d\n",value1,value2,value3,value4);
@@ -1217,6 +1215,8 @@ bool BoardControllerNodeProcess::configure_port(int ShieldID,std::vector<icarus_
             		newport.DefaultValue.push_back(0);
             		newport.Mode.push_back(PINMODE_UNDEFINED);
             		newport.Number.push_back((ANA_PORT_SIZE*port_id)+i);
+                    newport.ADCResolution.push_back(0);
+                    newport.VoltageReference.push_back(0.0);
             		newport.Value.push_back(0);
             	}
             	my_anaports.push_back(newport);
@@ -1231,6 +1231,8 @@ bool BoardControllerNodeProcess::configure_port(int ShieldID,std::vector<icarus_
                     my_anaports.at(i).Mode[pin_index] = map_PinFunction_ToInt(pins.at(p).Function);
             		my_anaports.at(i).ConnectingDevice[pin_index] = pins.at(p).ConnectedDevice;
             		my_anaports.at(i).DefaultValue[pin_index] = pins.at(p).DefaultValue;
+                    my_anaports.at(i).ADCResolution[pin_index] = pins.at(p).ADCResolution;
+                    my_anaports.at(i).VoltageReference[pin_index] = pins.at(p).VoltageReference;
                     my_anaports.at(i).Available[pin_index] = 1;
             		break;
             	}
