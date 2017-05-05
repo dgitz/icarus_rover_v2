@@ -1,5 +1,5 @@
 /***************AUTO-GENERATED.  DO NOT EDIT********************/
-/***Created on:2017-05-02 13:27:45.551630***/
+/***Created on:2017-05-05 07:38:59.368122***/
 /***Target: Raspberry Pi OR Arduino ***/
 #ifndef SERIALMESSAGE_H
 #define SERIALMESSAGE_H
@@ -13,13 +13,13 @@
 #define SERIAL_Set_DIO_Port_ID 0x18
 #define SERIAL_Get_DIO_Port_ID 0x19
 #define SERIAL_Get_ANA_Port_ID 0x20
-#define SERIAL_Configure_ANA_Port_ID 0x17
 #define SERIAL_FirmwareVersion_ID 0x25
 #define SERIAL_Setup_ControlGroup_ID 0x28
 #define SERIAL_Tune_ControlGroup_ID 0x29
 #define SERIAL_Arm_Status_ID 0x30
 #define SERIAL_Set_DIO_Port_DefaultValue_ID 0x32
 #define SERIAL_PPS_ID 0x35
+#define SERIAL_Configure_ANA_Port_ID 0x36
 
 class SerialMessageHandler
 {
@@ -44,8 +44,6 @@ public:
 	int decode_Get_DIO_PortSerial(unsigned char* inpacket,unsigned char* ShieldID,unsigned char* PortID,unsigned char* Pin1_Value,unsigned char* Pin2_Value,unsigned char* Pin3_Value,unsigned char* Pin4_Value,unsigned char* Pin5_Value,unsigned char* Pin6_Value,unsigned char* Pin7_Value,unsigned char* Pin8_Value);
 	int encode_Get_ANA_PortSerial(char* outbuffer,int* length,unsigned char ShieldID,unsigned char PortID,int Pin1_Value,int Pin2_Value,int Pin3_Value,int Pin4_Value);
 	int decode_Get_ANA_PortSerial(unsigned char* inpacket,unsigned char* ShieldID,unsigned char* PortID,int* Pin1_Value,int* Pin2_Value,int* Pin3_Value,int* Pin4_Value);
-	int encode_Configure_ANA_PortSerial(char* outbuffer,int* length,unsigned char ShieldID,unsigned char PortID,unsigned char MessageIndex,unsigned char MessageCount,unsigned char Pin1_Mode,unsigned char Pin2_Mode,unsigned char Pin3_Mode,unsigned char Pin4_Mode);
-	int decode_Configure_ANA_PortSerial(unsigned char* inpacket,unsigned char* ShieldID,unsigned char* PortID,unsigned char* MessageIndex,unsigned char* MessageCount,unsigned char* Pin1_Mode,unsigned char* Pin2_Mode,unsigned char* Pin3_Mode,unsigned char* Pin4_Mode);
 	int decode_FirmwareVersionSerial(unsigned char* inpacket,unsigned char* majorVersion,unsigned char* minorVersion,unsigned char* buildNumber);
 	int encode_Setup_ControlGroupSerial(char* outbuffer,int* length,char ID,char Mode,char Input_Port,unsigned char Input_PinMode,unsigned char Input_PinNumber,unsigned char Output_Port,unsigned char Output_PinMode,unsigned char Output_PinNUmber);
 	int encode_Tune_ControlGroupSerial(char* outbuffer,int* length,unsigned char ID,unsigned char Mode,int Proportional_Gain,int Integral_Gain,int Derivative_Gain);
@@ -55,6 +53,8 @@ public:
 	int decode_Set_DIO_Port_DefaultValueSerial(unsigned char* inpacket,unsigned char* ShieldID,unsigned char* PortID,unsigned char* MessageIndex,unsigned char* MessageCount,unsigned char* Pin1_Value,unsigned char* Pin2_Value,unsigned char* Pin3_Value,unsigned char* Pin4_Value,unsigned char* Pin5_Value,unsigned char* Pin6_Value,unsigned char* Pin7_Value,unsigned char* Pin8_Value);
 	int encode_PPSSerial(char* outbuffer,int* length,unsigned char counter);
 	int decode_PPSSerial(unsigned char* inpacket,unsigned char* counter);
+	int encode_Configure_ANA_PortSerial(char* outbuffer,int* length,unsigned char ShieldID,unsigned char PortID,unsigned char MessageIndex,unsigned char MessageCount,unsigned char Pin1_Mode,unsigned char Pin2_Mode,unsigned char Pin3_Mode,unsigned char Pin4_Mode);
+	int decode_Configure_ANA_PortSerial(unsigned char* inpacket,unsigned char* ShieldID,unsigned char* PortID,unsigned char* MessageIndex,unsigned char* MessageCount,unsigned char* Pin1_Mode,unsigned char* Pin2_Mode,unsigned char* Pin3_Mode,unsigned char* Pin4_Mode);
 private:
 };
 #endif

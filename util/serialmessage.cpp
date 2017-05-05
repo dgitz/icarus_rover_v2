@@ -1,5 +1,5 @@
 /***************AUTO-GENERATED.  DO NOT EDIT********************/
-/***Created on:2017-05-02 13:27:45.551663***/
+/***Created on:2017-05-05 07:38:59.368153***/
 /***Target: Raspberry Pi ***/
 #include "serialmessage.h"
 SerialMessageHandler::SerialMessageHandler(){}
@@ -367,46 +367,6 @@ int SerialMessageHandler::decode_Get_ANA_PortSerial(unsigned char* inpacket,unsi
 	*Pin4_Value=inpacket[9] + v_Pin4_Value1;
 	return 1;
 }
-int SerialMessageHandler::encode_Configure_ANA_PortSerial(char* outbuffer,int* length,unsigned char ShieldID,unsigned char PortID,unsigned char MessageIndex,unsigned char MessageCount,unsigned char Pin1_Mode,unsigned char Pin2_Mode,unsigned char Pin3_Mode,unsigned char Pin4_Mode)
-{
-	char *p_outbuffer;
-	p_outbuffer = &outbuffer[0];
-	*p_outbuffer++ = 0xAB;
-	*p_outbuffer++ = 0x17;
-	*p_outbuffer++ = 12;
-	*p_outbuffer++ = ShieldID;
-	*p_outbuffer++ = PortID;
-	*p_outbuffer++ = MessageIndex;
-	*p_outbuffer++ = MessageCount;
-	*p_outbuffer++ = Pin1_Mode;
-	*p_outbuffer++ = Pin2_Mode;
-	*p_outbuffer++ = Pin3_Mode;
-	*p_outbuffer++ = Pin4_Mode;
-	*p_outbuffer++ = 0;
-	*p_outbuffer++ = 0;
-	*p_outbuffer++ = 0;
-	*p_outbuffer++ = 0;
-	int checksum = 0;
-	for(int i = 3; i < (3+12);i++)
-	{
-		checksum ^= outbuffer[i];
-	}
-	*p_outbuffer++ = checksum;
-	*length = p_outbuffer-&outbuffer[0];
-	return 1;
-}
-int SerialMessageHandler::decode_Configure_ANA_PortSerial(unsigned char* inpacket,unsigned char* ShieldID,unsigned char* PortID,unsigned char* MessageIndex,unsigned char* MessageCount,unsigned char* Pin1_Mode,unsigned char* Pin2_Mode,unsigned char* Pin3_Mode,unsigned char* Pin4_Mode)
-{
-	*ShieldID=inpacket[0];
-	*PortID=inpacket[1];
-	*MessageIndex=inpacket[2];
-	*MessageCount=inpacket[3];
-	*Pin1_Mode=inpacket[4];
-	*Pin2_Mode=inpacket[5];
-	*Pin3_Mode=inpacket[6];
-	*Pin4_Mode=inpacket[7];
-	return 1;
-}
 int SerialMessageHandler::decode_FirmwareVersionSerial(unsigned char* inpacket,unsigned char* majorVersion,unsigned char* minorVersion,unsigned char* buildNumber)
 {
 	*majorVersion=inpacket[0];
@@ -575,5 +535,45 @@ int SerialMessageHandler::encode_PPSSerial(char* outbuffer,int* length,unsigned 
 int SerialMessageHandler::decode_PPSSerial(unsigned char* inpacket,unsigned char* counter)
 {
 	*counter=inpacket[0];
+	return 1;
+}
+int SerialMessageHandler::encode_Configure_ANA_PortSerial(char* outbuffer,int* length,unsigned char ShieldID,unsigned char PortID,unsigned char MessageIndex,unsigned char MessageCount,unsigned char Pin1_Mode,unsigned char Pin2_Mode,unsigned char Pin3_Mode,unsigned char Pin4_Mode)
+{
+	char *p_outbuffer;
+	p_outbuffer = &outbuffer[0];
+	*p_outbuffer++ = 0xAB;
+	*p_outbuffer++ = 0x36;
+	*p_outbuffer++ = 12;
+	*p_outbuffer++ = ShieldID;
+	*p_outbuffer++ = PortID;
+	*p_outbuffer++ = MessageIndex;
+	*p_outbuffer++ = MessageCount;
+	*p_outbuffer++ = Pin1_Mode;
+	*p_outbuffer++ = Pin2_Mode;
+	*p_outbuffer++ = Pin3_Mode;
+	*p_outbuffer++ = Pin4_Mode;
+	*p_outbuffer++ = 0;
+	*p_outbuffer++ = 0;
+	*p_outbuffer++ = 0;
+	*p_outbuffer++ = 0;
+	int checksum = 0;
+	for(int i = 3; i < (3+12);i++)
+	{
+		checksum ^= outbuffer[i];
+	}
+	*p_outbuffer++ = checksum;
+	*length = p_outbuffer-&outbuffer[0];
+	return 1;
+}
+int SerialMessageHandler::decode_Configure_ANA_PortSerial(unsigned char* inpacket,unsigned char* ShieldID,unsigned char* PortID,unsigned char* MessageIndex,unsigned char* MessageCount,unsigned char* Pin1_Mode,unsigned char* Pin2_Mode,unsigned char* Pin3_Mode,unsigned char* Pin4_Mode)
+{
+	*ShieldID=inpacket[0];
+	*PortID=inpacket[1];
+	*MessageIndex=inpacket[2];
+	*MessageCount=inpacket[3];
+	*Pin1_Mode=inpacket[4];
+	*Pin2_Mode=inpacket[5];
+	*Pin3_Mode=inpacket[6];
+	*Pin4_Mode=inpacket[7];
 	return 1;
 }

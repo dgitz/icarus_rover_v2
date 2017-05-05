@@ -9,3 +9,4 @@ int32 DefaultValue
 string ConnectedDevice
 uint8 ADCResolution
 float32 VoltageReference
+float32 ScaleFactor

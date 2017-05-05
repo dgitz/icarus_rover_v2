@@ -39,6 +39,7 @@ struct Port_Info{
 		std::vector<int> DefaultValue;
         std::vector<int> ADCResolution;
         std::vector<float> VoltageReference;
+        std::vector<float> ScaleFactor;
 		std::vector<std::string> ConnectingDevice;
 	};
 struct state_ack
@@ -67,6 +68,8 @@ struct message_info
 	long sent_counter;
 	double received_rate;
 	double transmitted_rate;
+	double initial_time_received;
+	double initial_time_transmitted;
 
 };
 class BoardControllerNodeProcess
@@ -91,6 +94,7 @@ public:
 	bool is_finished_initializing(){ return all_device_info_received; }
 	bool initialize_Ports();
     bool get_ready_to_arm() { return ready_to_arm; }
+    std::vector<icarus_rover_v2::pin> get_pins(uint8_t pin_mode);
 	std::vector<Port_Info> get_alldioports() { return my_dioports; }
     std::vector<Port_Info> get_allanaports() { return my_anaports; }
 	Port_Info get_dioPortInfo(int ShieldID,int PortID)
@@ -161,7 +165,7 @@ public:
     double compute_delay(uint8_t rx_id);
     double measure_time_diff(struct timeval timer_a, struct timeval timer_b);
     double get_delay_sec() { return current_delay_sec; }
-    std::vector<icarus_rover_v2::device> get_shields() { return myshields; }
+    std::vector<icarus_rover_v2::device> get_shields() { return myshields; 	}
     std::vector<icarus_rover_v2::diagnostic> get_diagnostics_to_send() { return diagnostics_to_send; }
     
 protected:

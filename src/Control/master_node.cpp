@@ -529,6 +529,16 @@ bool parse_devicefile(TiXmlDocument doc)
 						newpin.ADCResolution = 0;
 					}
 
+                    TiXmlElement *l_pPinScaleFactor = l_pPin->FirstChildElement( "ScaleFactor" );
+					if ( NULL != l_pPinScaleFactor )
+					{
+						newpin.ScaleFactor = atof(l_pPinScaleFactor->GetText());
+					}
+					else
+					{
+						newpin.ScaleFactor = 1.0;
+					}
+                    
 					TiXmlElement *l_pPinVoltageReference = l_pPin->FirstChildElement( "VoltageReference" );
 					if ( NULL != l_pPinVoltageReference )
 					{

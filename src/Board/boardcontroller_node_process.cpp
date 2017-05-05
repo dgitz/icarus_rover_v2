@@ -16,8 +16,8 @@ BoardControllerNodeProcess::BoardControllerNodeProcess(std::string loc, int v)
 	timeout_value_ms = 0;
 	armed_state = ARMEDSTATUS_DISARMED_CANNOTARM;
 	armed_command = ROVERCOMMAND_UNDEFINED;
-	shield_count = 0;
-    sensor_count = 0;
+	shield_count = -1; //Don't know how many yet.
+    sensor_count = -1; //Don't know how many yet.
 	run_time = 0.0;
     ready_to_arm = false;
     diagnostics_to_send.clear();
@@ -30,6 +30,7 @@ BoardControllerNodeProcess::BoardControllerNodeProcess(std::string loc, int v)
     	gettimeofday(&now,NULL);
         pps_history.push_back(now);
     }
+	//myshields.clear();
 	//init_time = ros::Time::now();
 }
 BoardControllerNodeProcess::BoardControllerNodeProcess()
@@ -101,7 +102,8 @@ void  BoardControllerNodeProcess::transmit_armedstate()
 }
 icarus_rover_v2::diagnostic BoardControllerNodeProcess::update(double dt)
 {
-	if((shield_count == myshields.size() && (shield_count > 0))) { all_shield_info_received = true; }
+	
+	if((shield_count == myshields.size()) && (shield_count > 0)){ all_shield_info_received = true; }
 	else if(shield_count == 0) { all_shield_info_received = true; }
     if(sensor_count == 0) { all_sensor_info_received = true; }
 	if( (all_shield_info_received == true) &&
@@ -136,7 +138,10 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::update(double dt)
     {
         node_state = BOARDMODE_RUNNING;
     }
-    
+    else if((node_state == BOARDMODE_CONFIGURED) && (board_state == BOARDMODE_RUNNING)) 
+	{
+		node_state = BOARDMODE_RUNNING;
+	}
     //Arm/Disarm Logic
     if((node_state == BOARDMODE_RUNNING) && (board_state == BOARDMODE_RUNNING))
     {
@@ -245,6 +250,84 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_diagnosticmsg(icarus
     }
     return diagnostic;
 }
+std::vector<icarus_rover_v2::pin> BoardControllerNodeProcess::get_pins(uint8_t pin_mode)
+{
+	std::vector<icarus_rover_v2::pin> pins;
+	pins.clear();
+	for(std::size_t i = 0; i < my_dioports.size(); i++)
+	{
+		for(std::size_t j = 0; j < my_dioports.at(i).Number.size(); j++)
+		{
+			if(my_dioports.at(i).Mode[j] == pin_mode)
+			{
+				icarus_rover_v2::pin newpin;
+				newpin.Function = map_PinFunction_ToString(pin_mode);
+				newpin.Number = my_dioports.at(i).Number[j];
+				newpin.ShieldID = my_dioports.at(i).ShieldID;
+				newpin.PortID = my_dioports.at(i).PortID;
+				newpin.Value = my_dioports.at(i).Value[j];
+				newpin.DefaultValue = my_dioports.at(i).Value[j];
+				newpin.ADCResolution = my_dioports.at(i).ADCResolution[j];
+				newpin.VoltageReference = my_dioports.at(i).VoltageReference[j];
+		        newpin.ScaleFactor = my_dioports.at(i).ScaleFactor[j];
+				newpin.ConnectedDevice = my_dioports.at(i).ConnectingDevice[j];
+				pins.push_back(newpin);
+			}
+		}
+	}
+	for(std::size_t i = 0; i < my_anaports.size(); i++)
+	{
+		for(std::size_t j = 0; j < my_anaports.at(i).Number.size(); j++)
+		{
+			if(my_anaports.at(i).Mode[j] == pin_mode)
+			{
+				icarus_rover_v2::pin newpin;
+				newpin.Function = map_PinFunction_ToString(pin_mode);
+				newpin.Number = my_anaports.at(i).Number[j];
+				newpin.ShieldID = my_anaports.at(i).ShieldID;
+				newpin.PortID = my_anaports.at(i).PortID;
+				newpin.Value = my_anaports.at(i).Value[j];
+				newpin.DefaultValue = my_anaports.at(i).Value[j];
+				newpin.ADCResolution = my_anaports.at(i).ADCResolution[j];
+				newpin.VoltageReference = my_anaports.at(i).VoltageReference[j];
+				newpin.ScaleFactor = my_anaports.at(i).ScaleFactor[j];
+				newpin.ConnectedDevice = my_anaports.at(i).ConnectingDevice[j];
+				pins.push_back(newpin);
+			}
+		}
+	}
+	return pins;
+}
+/*
+ std::vector<Port_Info> dio_ports = boardprocesses.at(i).get_alldioports();
+            for(std::size_t j = 0; j < dio_ports.size(); j++)
+            {
+            	for(std::size_t k = 0; i < DIO_PORT_SIZE; k++)
+            	{
+            		icarus_rover_v2::pin newpin;
+            		switch(dio_ports.at(j).Mode[k])
+            		{
+            			case PINMODE_DIGITAL_INPUT:
+            				newpin.Function = boardprocesses.at(i).map_PinFunction_ToString(PINMODE_DIGITAL_INPUT);
+            				newpin.Number = dio_ports.at(j).Number[k];
+                            newpin.ShieldID = dio_ports.at(j).ShieldID;
+            				newpin.PortID = dio_ports.at(j).PortID;
+            				newpin.Value = dio_ports.at(j).Value[k];
+            				//digitalinput_pub.publish(newpin); //Not Implemented Yet
+            				break;
+                        case PINMODE_QUADRATUREENCODER_INPUT:
+                            newpin.Function = boardprocesses.at(i).map_PinFunction_ToString(PINMODE_QUADRATUREENCODER_INPUT);
+            				newpin.Number = dio_ports.at(j).Number[k];
+                            newpin.ShieldID = dio_ports.at(j).ShieldID;
+            				newpin.PortID = dio_ports.at(j).PortID;
+            				newpin.Value = dio_ports.at(j).Value[k];
+                            //quadratureencoderinput_pub.publish(newpin); //Not Implemented Yet
+            			default:
+            				break;
+            		}
+            	}
+            }
+ */
 state_ack BoardControllerNodeProcess::get_stateack(std::string name)
 {
 
@@ -1017,12 +1100,12 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_serialmessage_Get_AN
                         if(my_anaports.at(i).Mode[j] == PINMODE_ANALOG_INPUT)
                         {
                             
-                            my_anaports.at(i).Value[j] = ((float)anavalues[j]*my_anaports.at(i).VoltageReference[j])/
+                            my_anaports.at(i).Value[j] = my_anaports.at(i).ScaleFactor[j]*((float)anavalues[j]*my_anaports.at(i).VoltageReference[j])/
                                 pow(2.0,(float)my_anaports.at(i).ADCResolution[j]);
                         }
                         else if(my_anaports.at(i).Mode[j] == PINMODE_FORCESENSOR_INPUT)
                         {
-                            my_anaports.at(i).Value[j] = ((float)anavalues[j]*my_anaports.at(i).VoltageReference[j])/
+                            my_anaports.at(i).Value[j] = my_anaports.at(i).ScaleFactor[j]*((float)anavalues[j]*my_anaports.at(i).VoltageReference[j])/
                                 pow(2.0,(float)my_anaports.at(i).ADCResolution[j]);
          
                         }
@@ -1218,6 +1301,7 @@ bool BoardControllerNodeProcess::configure_port(int ShieldID,std::vector<icarus_
                     newport.ADCResolution.push_back(0);
                     newport.VoltageReference.push_back(0.0);
             		newport.Value.push_back(0);
+                    newport.ScaleFactor.push_back(1.0);
             	}
             	my_anaports.push_back(newport);
             }
@@ -1234,6 +1318,7 @@ bool BoardControllerNodeProcess::configure_port(int ShieldID,std::vector<icarus_
                     my_anaports.at(i).ADCResolution[pin_index] = pins.at(p).ADCResolution;
                     my_anaports.at(i).VoltageReference[pin_index] = pins.at(p).VoltageReference;
                     my_anaports.at(i).Available[pin_index] = 1;
+                    my_anaports.at(i).ScaleFactor[pin_index] = pins.at(p).ScaleFactor;
             		break;
             	}
             }
@@ -1423,6 +1508,7 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_devicemsg(icarus_rov
 		{
 			my_boardname = newdevice.DeviceName;
 			shield_count = newdevice.ShieldCount;
+			sensor_count = newdevice.SensorCount;
 		}
 	}
 	else if ((shield_message!=std::string::npos) && (my_boardname != ""))
@@ -1998,17 +2084,26 @@ bool BoardControllerNodeProcess::gather_message_info(int id, std::string mode)
 				struct timeval now;
 				gettimeofday(&now,NULL);
 				double run_time = time_diff(init_time,now);
+				if(messages.at(i).received_counter == 0)
+				{
+					messages.at(i).initial_time_transmitted = run_time;
+				}
 				messages.at(i).sent_counter++;
-                messages.at(i).transmitted_rate = (double)(messages.at(i)).sent_counter/run_time;
+                messages.at(i).transmitted_rate = (double)(messages.at(i)).sent_counter/(run_time-messages.at(i).initial_time_transmitted);
 				gettimeofday(&messages.at(i).last_time_transmitted,NULL);
 			}
 			else if(mode == "receive")
 			{
 				struct timeval now;
 				gettimeofday(&now,NULL);
+
 				double run_time = time_diff(init_time,now);
+				if(messages.at(i).received_counter == 0)
+				{
+					messages.at(i).initial_time_received = run_time;
+				}
 				messages.at(i).received_counter++;
-                messages.at(i).received_rate = (double)(messages.at(i)).received_counter/run_time;
+                messages.at(i).received_rate = (double)(messages.at(i)).received_counter/(run_time-messages.at(i).initial_time_received);
 				gettimeofday(&messages.at(i).last_time_received,NULL);
 			}
 			break;
@@ -2059,6 +2154,13 @@ void BoardControllerNodeProcess::initialize_message_info()
 		message_info newmessage;
 		newmessage.id = SERIAL_Configure_DIO_Port_ID;
 		newmessage.name = "Configure DIO Port";
+		messages.push_back(newmessage);
+	}
+	
+	{
+		message_info newmessage;
+		newmessage.id = SERIAL_Configure_ANA_Port_ID;
+		newmessage.name = "Configure ANA Port";
 		messages.push_back(newmessage);
 	}
 

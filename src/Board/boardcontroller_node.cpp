@@ -270,11 +270,11 @@ void ArmedState_Callback(const std_msgs::UInt8::ConstPtr& msg)
 void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
 	//logger->log_debug("Running very slow rate code.");
-	logger->log_info("Node Running.");
+	logger->log_info("Node Executing.");
 	icarus_rover_v2::firmware fw;
 	fw.Generic_Node_Name = "boardcontroller_node";
 	fw.Node_Name = node_name;
-	fw.Description = "Latest Rev: 30-April-2017";
+	fw.Description = "Latest Rev: 5-May-2017";
 	fw.Major_Release = BOARDCONTROLLERNODE_MAJOR_RELEASE;
 	fw.Minor_Release = BOARDCONTROLLERNODE_MINOR_RELEASE;
 	fw.Build_Number = BOARDCONTROLLERNODE_BUILD_NUMBER;
@@ -420,6 +420,35 @@ void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 }
 void PPS10_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
+	for(int i = 0; i < boardprocesses.size();i++)
+	{
+		std::vector<std::vector<unsigned char> > tx_buffers;
+		bool send = boardprocesses.at(i).checkTriggers(tx_buffers);
+		if(send == true)
+		{
+			for(int j = 0; j < tx_buffers.size();j++)
+			{
+				unsigned char tx_buffer[16];
+				std::vector<unsigned char> tempstr = tx_buffers.at(j);
+				//printf("usbdevice: %d board id: %d\n",
+				//		UsbDevices.at(boardprocesses.at(i).get_usbdevice_id()).device_fid,boardprocesses.at(i).get_boardid());
+				int count = write(UsbDevices.at(boardprocesses.at(i).get_usbdevice_id()).device_fid,
+						reinterpret_cast<char*> (&tempstr[0]),16);
+				UsbDevices.at(i).bytestransmitted += count;
+				if(count < 0)
+				{
+					logger->log_error("UART TX error\n");
+					icarus_rover_v2::diagnostic diag=diagnostic_status;
+					diag.Diagnostic_Type = COMMUNICATIONS;
+					diag.Level = ERROR;
+					diag.Diagnostic_Message = DROPPING_PACKETS;
+					diag.Description = "Cannot write to UART.";
+					diagnostic_pub.publish(diag);
+				}
+				ros::Duration(.02).sleep();
+			}
+		}
+	}
 	/*
     process->transmit_armedstate();
 	double time_since_last_message = measure_time_diff(ros::Time::now(),last_message_received_time);
@@ -449,16 +478,18 @@ void PPS100_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
    	//logger->log_debug("Running fast rate code.");
 	bool ready = true;
-	for(int i = 0; i < boardprocesses.size();i++)
+	for(std::size_t i = 0; i < boardprocesses.size();i++)
 	{
 		//printf("Running process update.\n");
 		diagnostic_status = boardprocesses.at(i).update(0.01);  //Need to change 20 to the actual dt!!!
         switch(diagnostic_status.Level)
         {
             case DEBUG:
-                logger->log_debug(diagnostic_status.Description);
+                //logger->log_debug(diagnostic_status.Description);
+                break;
             case INFO:
-                logger->log_info(diagnostic_status.Description);
+                //logger->log_info(diagnostic_status.Description);
+                break;
             case NOTICE:
                 logger->log_notice(diagnostic_status.Description);
                 break;
@@ -478,102 +509,38 @@ void PPS100_Callback(const std_msgs::Bool::ConstPtr& msg)
 		ready = boardprocesses.at(i).get_ready_to_arm() and ready;
 
 		//printf("diag: %s\n",diagnostic_status.Description.c_str());
-		std::vector<std::vector<unsigned char> > tx_buffers;
-		bool send = boardprocesses.at(i).checkTriggers(tx_buffers);
-		if(send == true)
-		{
-			for(int j = 0; j < tx_buffers.size();j++)
-			{
-				unsigned char tx_buffer[16];
-				std::vector<unsigned char> tempstr = tx_buffers.at(j);
-				//printf("usbdevice: %d board id: %d\n",
-				//		UsbDevices.at(boardprocesses.at(i).get_usbdevice_id()).device_fid,boardprocesses.at(i).get_boardid());
-				int count = write(UsbDevices.at(boardprocesses.at(i).get_usbdevice_id()).device_fid,
-						reinterpret_cast<char*> (&tempstr[0]),16);
-				UsbDevices.at(i).bytestransmitted += count;
-				/*
-				char tempstr2[255];
-				for(int i = 0; i < 16; i++)
-				{
-					sprintf(tempstr2,"%s %0x ",tempstr2,tempstr[i]);
-				}
-				logger->log_debug(tempstr2);
-				*/
 
-
-				if(count < 0)
-				{
-					logger->log_error("UART TX error\n");
-					icarus_rover_v2::diagnostic diag=diagnostic_status;
-					diag.Diagnostic_Type = COMMUNICATIONS;
-					diag.Level = ERROR;
-					diag.Diagnostic_Message = DROPPING_PACKETS;
-					diag.Description = "Cannot write to UART.";
-					diagnostic_pub.publish(diag);
-				}
-				ros::Duration(.02).sleep();
-			}
-		}
         if((boardprocesses.at(i).get_boardstate() == BOARDMODE_RUNNING) &&
            (boardprocesses.at(i).get_nodestate() == BOARDMODE_RUNNING))
         {
-            std::vector<icarus_rover_v2::device> shields = boardprocesses.at(i).get_shields();
-            std::vector<Port_Info> dio_ports = boardprocesses.at(i).get_alldioports();
-            for(int j = 0; j < dio_ports.size(); j++)
-            {
-            	for(int k = 0; i < DIO_PORT_SIZE; k++)
-            	{
-            		icarus_rover_v2::pin newpin;
-            		switch(dio_ports.at(j).Mode[k])
-            		{
-            			case PINMODE_DIGITAL_INPUT:
-            				newpin.Function = boardprocesses.at(i).map_PinFunction_ToString(PINMODE_DIGITAL_INPUT);
-            				newpin.Number = dio_ports.at(j).Number[k];
-                            newpin.ShieldID = dio_ports.at(j).ShieldID;
-            				newpin.PortID = dio_ports.at(j).PortID;
-            				newpin.Value = dio_ports.at(j).Value[k];
-            				//digitalinput_pub.publish(newpin); //Not Implemented Yet
-            				break;
-                        case PINMODE_QUADRATUREENCODER_INPUT:
-                            newpin.Function = boardprocesses.at(i).map_PinFunction_ToString(PINMODE_QUADRATUREENCODER_INPUT);
-            				newpin.Number = dio_ports.at(j).Number[k];
-                            newpin.ShieldID = dio_ports.at(j).ShieldID;
-            				newpin.PortID = dio_ports.at(j).PortID;
-            				newpin.Value = dio_ports.at(j).Value[k];
-                            //quadratureencoderinput_pub.publish(newpin); //Not Implemented Yet
-            			default:
-            				break;
-            		}
-            	}
-            }
-            std::vector<Port_Info> ana_ports = boardprocesses.at(i).get_allanaports();
-            for(int j = 0; j < ana_ports.size(); j++)
-            {
-            	for(int k = 0; i < ANA_PORT_SIZE; k++)
-            	{
-            		icarus_rover_v2::pin newpin;
-            		switch(ana_ports.at(j).Mode[k])
-            		{
-            			case PINMODE_ANALOG_INPUT:
-            				newpin.Function = boardprocesses.at(i).map_PinFunction_ToString(PINMODE_ANALOG_INPUT);
-            				newpin.Number = ana_ports.at(j).Number[k];
-                            newpin.ShieldID = ana_ports.at(j).ShieldID;
-            				newpin.PortID = ana_ports.at(j).PortID;
-            				newpin.Value = ana_ports.at(j).Value[k];
-            				analoginput_pub.publish(newpin);
-            				break;
-                        case PINMODE_FORCESENSOR_INPUT:
-                            newpin.Function = boardprocesses.at(i).map_PinFunction_ToString(PINMODE_FORCESENSOR_INPUT);
-            				newpin.Number = ana_ports.at(j).Number[k];
-                            newpin.ShieldID = ana_ports.at(j).ShieldID;
-            				newpin.PortID = ana_ports.at(j).PortID;
-            				newpin.Value = ana_ports.at(j).Value[k];
-                            forcesensorinput_pub.publish(newpin);
-            			default:
-            				break;
-            		}
-            	}
-            }
+        	{
+        		std::vector<icarus_rover_v2::pin> pins = boardprocesses.at(i).get_pins(PINMODE_DIGITAL_INPUT);
+        		for(std::size_t j = 0; j < pins.size(); j++)
+        		{
+        			//digitalinput_pub.publish(pins.at(j)); //Not Implemented Yet
+        		}
+        	}
+        	{
+        		std::vector<icarus_rover_v2::pin> pins = boardprocesses.at(i).get_pins(PINMODE_QUADRATUREENCODER_INPUT);
+        		for(std::size_t j = 0; j < pins.size(); j++)
+        		{
+        			//quadratureencoderinput_pub.publish(pins.at(j)); //Not Implemented Yet
+        		}
+        	}
+        	{
+        		std::vector<icarus_rover_v2::pin> pins = boardprocesses.at(i).get_pins(PINMODE_ANALOG_INPUT);
+        		for(std::size_t j = 0; j < pins.size(); j++)
+        		{
+        			analoginput_pub.publish(pins.at(j)); //Not Implemented Yet
+        		}
+        	}
+        	{
+        		std::vector<icarus_rover_v2::pin> pins = boardprocesses.at(i).get_pins(PINMODE_FORCESENSOR_INPUT);
+        		for(std::size_t j = 0; j < pins.size(); j++)
+        		{
+        			//forcesensorinput_pub.publish(pins.at(j)); //Not Implemented Yet
+        		}
+        	}
         }
 	}
 	if((ready == true) && (boardprocesses.size() > 0))
@@ -1370,6 +1337,7 @@ void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg)
 		bool all_boards_complete = true;
 		for(int i = 0; i < boardprocesses.size();i++)
 		{
+
 			diagnostic_status = boardprocesses.at(i).new_devicemsg(newdevice);
 			if(diagnostic_status.Level > NOTICE)
 			{
