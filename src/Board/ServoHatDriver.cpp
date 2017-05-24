@@ -38,8 +38,8 @@ void setPWMFreq(int freq)
 }
 void setServoValue(int channel, int v)
 {
-    int on = v;
-    int off = v;
+    int on = 0;
+    int off = v/3.90;
     setPWM(channel,on,off);
 }
 void resetAllServo()

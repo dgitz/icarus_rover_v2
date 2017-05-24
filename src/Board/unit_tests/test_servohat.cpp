@@ -11,7 +11,7 @@ static void show_usage(std::string name)
 {
     std::cerr << "Usage: Test ServoHat. Options:\n"
               << "\t-h,--help\t\tShow this help message\n"
-              << "\t-a,--address Address\tThe I2C Address of the Hat.  Default=40.\n"
+              << "\t-a,--address Address\tThe I2C Address of the Hat (Base 10).  Default=64.\n"
               << "\t-r,--reset\tReset all PWM Outputs. Default=0.\n"
               << "\t-m,--mode\tMode: oneshot, sweep. Default=oneshot.\n"
               << "\toneshot: Sets a PWM Channel with a value. Options:\n"
@@ -28,12 +28,12 @@ static void show_usage(std::string name)
 int main(int argc, char* argv[])
 {
     std::string mode = "oneshot";
-    int hat_address = 40;
+    int hat_address = 64;
     int channel = 0;
     int value = 2047;
     int reset = 0;
-    int start_ramp = 0;
-    int stop_ramp = 4095;
+    int start_sweep = 0;
+    int stop_sweep = 4095;
     int increment = 1;
     if (argc < 2) {
         show_usage(argv[0]);
@@ -127,7 +127,7 @@ int main(int argc, char* argv[])
             if (i + 1 < argc) 
             { 
                 // Make sure we aren't at the end of argv!
-                start_ramp = atoi(argv[i+1]); // Increment 'i' so we don't get the argument as the next argv[i
+                start_sweep = atoi(argv[i+1]); // Increment 'i' so we don't get the argument as the next argv[i
                 i++;
             } 
             else 
@@ -142,7 +142,7 @@ int main(int argc, char* argv[])
             if (i + 1 < argc) 
             { 
                 // Make sure we aren't at the end of argv!
-                stop_ramp = atoi(argv[i+1]); // Increment 'i' so we don't get the argument as the next argv[i
+                stop_sweep = atoi(argv[i+1]); // Increment 'i' so we don't get the argument as the next argv[i
                 i++;
             } 
             else 
@@ -171,7 +171,7 @@ int main(int argc, char* argv[])
         {
         }
     }
-    if(mode == "ramp") {    value = start_ramp; }
+    if(mode == "sweep") {    value = start_sweep; }
     bool direction = true;
     initServoHat(hat_address);
 	if(reset == 1)
@@ -189,15 +189,15 @@ int main(int argc, char* argv[])
                 usleep(100000);  // wait for 0.1 seconds
 
             }
-            else if(mode == "ramp")
+            else if(mode == "sweep")
             {
                 
-                //printf("value: %d direction: %d start: %d end: %d\n",value,direction,start_ramp,stop_ramp);
-                if(value > stop_ramp)
+                //printf("value: %d direction: %d start: %d end: %d\n",value,direction,start_sweep,stop_sweep);
+                if(value > stop_sweep)
                 {
                     direction = !direction;
                 }
-                else if(value < start_ramp)
+                else if(value < start_sweep)
                 {
                     direction = !direction;
                 }
@@ -205,7 +205,7 @@ int main(int argc, char* argv[])
                 {
                     cout << "Setting ServoHat Address: " << hat_address << " Channel: " << channel << " To Value: " << value << endl;
                     setServoValue(channel,value);
-                    usleep(100000);  // wait for 0.1 seconds
+                    usleep(1000);  // wait for 0.1 seconds
                 }
                 if(direction == true)
                 {
