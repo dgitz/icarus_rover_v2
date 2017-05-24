@@ -217,59 +217,11 @@ include_directories(
 # catkin_add_nosetests(test)
 include_directories(include ${catkin_INCLUDE_DIRS} ${roscpp_INCLUDE_DIRS})
 add_library(logger util/logger.cpp)
-add_library(udpmessage util/udpmessage.cpp)
-add_library(serialmessage util/serialmessage.cpp)
 add_library(resourcemonitor util/resourcemonitor.cpp)
-add_library(visionhelper util/visionhelper.cpp)
-add_library(sample_node_process src_templates/sample_node_process.cpp)
-add_library(speaker_node_process src/Communication/speaker_node_process.cpp)
-add_library(boardcontroller_node_process src/Board/boardcontroller_node_process.cpp)
-add_library(command_node_process src/Control/command_node_process.cpp)
-add_library(powermonitor_node_process src/Control/powermonitor_node_process.cpp)
+add_library(neuralnetwork src/MachineLearning/NeuralNetwork.cpp)
+add_library(neuralnetwork_node_process src/MachineLearning/neuralnetwork_node_process.cpp)
 
-add_executable(sample_node src_templates/sample_node.cpp)
-target_link_libraries(sample_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor sample_node_process)
-catkin_add_gtest(test_sample_node_process src_templates/unit_tests/test_sample_node_process.cpp)
-target_link_libraries(test_sample_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} sample_node_process)
-
-
-add_executable(timemaster_node src/Timing/timemaster_node.cpp)
-target_link_libraries(timemaster_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor)
-
-add_executable(diagnostic_node src/Diagnostics/diagnostic_node.cpp)
-target_link_libraries(diagnostic_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} logger resourcemonitor)
-
-add_executable(network_transceiver_node src/Communication/network_transceiver_node.cpp)
-target_link_libraries(network_transceiver_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} logger udpmessage resourcemonitor)
-
-add_executable(command_node src/Control/command_node.cpp)
-target_link_libraries(command_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor command_node_process)
-catkin_add_gtest(test_command_node_process src/Control/unit_tests/test_command_node_process.cpp)
-target_link_libraries(test_command_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} command_node_process logger serialmessage)
-
-add_executable(master_node src/Control/master_node.cpp)
-target_link_libraries(master_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor)
-
-add_executable(boardcontroller_node src/Board/boardcontroller_node.cpp)
-target_link_libraries(boardcontroller_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} boardcontroller_node_process logger serialmessage resourcemonitor)
-catkin_add_gtest(test_boardcontroller_node_process src/Board/unit_tests/test_boardcontroller_node_process.cpp)
-target_link_libraries(test_boardcontroller_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} boardcontroller_node_process logger serialmessage)
-
-add_executable(topicremapper_node src/Communication/topicremapper_node.cpp)
-target_link_libraries(topicremapper_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} logger resourcemonitor)
-
-add_executable(cameracapture_node src/Vision/cameracapture_node.cpp)
-target_link_libraries(cameracapture_node ${OpenCV_LIBRARIES} ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor visionhelper)
-
-add_executable(speaker_node src/Communication/speaker_node.cpp)
-target_link_libraries(speaker_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} speaker_node_process logger resourcemonitor)
-catkin_add_gtest(test_speaker_node_process src/Communication/unit_tests/test_speaker_node_process.cpp)
-target_link_libraries(test_speaker_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} speaker_node_process logger)
-
-add_executable(powermonitor_node src/Control/powermonitor_node.cpp)
-target_link_libraries(powermonitor_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor powermonitor_node_process)
-catkin_add_gtest(test_powermonitor_node_process src/Control/unit_tests/test_powermonitor_node_process.cpp)
-target_link_libraries(test_powermonitor_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} powermonitor_node_process logger)
-
-add_executable(batterymonitor_node src/Board/batterymonitor_node.cpp)
-target_link_libraries(batterymonitor_node ${OpenCV_LIBRARIES} ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor)
+#(neuralnetwork_node src/MachineLearning/neuralnetwork_node.cpp)
+#target_link_libraries(neuralnetwork_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor neuralnetwork_node_process)
+catkin_add_gtest(test_neuralnetwork_node_process src/MachineLearning/unit_tests/test_neuralnetwork_node_process.cpp)
+target_link_libraries(test_neuralnetwork_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} neuralnetwork neuralnetwork_node_process logger)
