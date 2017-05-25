@@ -1,6 +1,6 @@
 #ifndef HATCONTROLLERNODEPROCESS_H
 #define HATCONTROLLERNODEPROCESS_H
-#include <wiringPiI2C.h>
+
 #include "Definitions.h"
 #include <sys/time.h>
 #include <stdio.h>
@@ -20,8 +20,12 @@
 #include "logger.h"
 #include <math.h>
 #include <sys/time.h>
-#include "ServoHatDriver.h"
 
+struct ChannelValue
+{
+    uint8_t channel;
+    int16_t value;
+};
 using std::string;
 using namespace std;
 class HatControllerNodeProcess
@@ -29,8 +33,30 @@ class HatControllerNodeProcess
 public:
 	HatControllerNodeProcess();
 	~HatControllerNodeProcess();    
+    void init(std::string name,icarus_rover_v2::diagnostic diag);
+    icarus_rover_v2::diagnostic new_devicemsg(icarus_rover_v2::device newdevice);
+    uint8_t get_armedstate() { return armed_state; }
+    bool get_ready_to_arm() { return ready_to_arm; }
+    bool is_initialized() { return initialized; }
+    bool is_ready() { return ready; }
+    icarus_rover_v2::diagnostic update(double dt);
+    icarus_rover_v2::diagnostic new_commandmsg(icarus_rover_v2::command msg);
+
+    icarus_rover_v2::diagnostic set_hat_initialized(uint16_t id);
+    
+    //Functions specific to Hats
+    std::vector<ChannelValue> get_servohatvalues(uint16_t id);
+    
 protected:
 private:
-
+    bool initialized;
+    bool ready;
+    std::string hostname;
+    icarus_rover_v2::device mydevice;
+    icarus_rover_v2::diagnostic diagnostic;
+    uint8_t armed_state;
+    bool ready_to_arm;
+    std::vector<icarus_rover_v2::device> hats;
+    std::vector<bool> hats_running;
 };
 #endif

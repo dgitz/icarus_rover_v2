@@ -223,8 +223,8 @@ add_library(resourcemonitor util/resourcemonitor.cpp)
 add_library(visionhelper util/visionhelper.cpp)
 add_library(sample_node_process src_templates/sample_node_process.cpp)
 add_library(speaker_node_process src/Communication/speaker_node_process.cpp)
-add_library(boardcontroller_node_process src/Board/boardcontroller_node_process.cpp)
 add_library(command_node_process src/Control/command_node_process.cpp)
+add_library(hatcontroller_node_process src/Board/hatcontroller_node_process.cpp)
 add_library(powermonitor_node_process src/Control/powermonitor_node_process.cpp)
 
 add_executable(sample_node src_templates/sample_node.cpp)
@@ -250,11 +250,6 @@ target_link_libraries(test_command_node_process ${catkin_LIBRARIES} ${Boost_LIBR
 add_executable(master_node src/Control/master_node.cpp)
 target_link_libraries(master_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor)
 
-add_executable(boardcontroller_node src/Board/boardcontroller_node.cpp)
-target_link_libraries(boardcontroller_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} boardcontroller_node_process logger serialmessage resourcemonitor)
-catkin_add_gtest(test_boardcontroller_node_process src/Board/unit_tests/test_boardcontroller_node_process.cpp)
-target_link_libraries(test_boardcontroller_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} boardcontroller_node_process logger serialmessage)
-
 add_executable(topicremapper_node src/Communication/topicremapper_node.cpp)
 target_link_libraries(topicremapper_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} logger resourcemonitor)
 
@@ -271,5 +266,7 @@ target_link_libraries(powermonitor_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} $
 catkin_add_gtest(test_powermonitor_node_process src/Control/unit_tests/test_powermonitor_node_process.cpp)
 target_link_libraries(test_powermonitor_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} powermonitor_node_process logger)
 
-add_executable(batterymonitor_node src/Board/batterymonitor_node.cpp)
-target_link_libraries(batterymonitor_node ${OpenCV_LIBRARIES} ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor)
+#add_executable(hatcontroller_node src/Board/hatcontroller_node.cpp)
+#target_link_libraries(hatcontroller_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor hatcontroller_node_process)
+catkin_add_gtest(test_hatcontroller_node_process src/Board/unit_tests/test_hatcontroller_node_process.cpp)
+target_link_libraries(test_hatcontroller_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} hatcontroller_node_process logger)
