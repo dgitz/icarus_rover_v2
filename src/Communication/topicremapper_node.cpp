@@ -1,7 +1,7 @@
 #include "topicremapper_node.h"
 //Start User Code: Firmware Definition
-#define TOPICREMAPPERNODE_MAJOR_RELEASE 2
-#define TOPICREMAPPERNODE_MINOR_RELEASE 3
+#define TOPICREMAPPERNODE_MAJOR_RELEASE 3
+#define TOPICREMAPPERNODE_MINOR_RELEASE 0
 #define TOPICREMAPPERNODE_BUILD_NUMBER 0
 //End User Code: Firmware Definition
 //Start User Code: Functions
@@ -11,7 +11,7 @@ void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg)
 	icarus_rover_v2::firmware fw;
 	fw.Generic_Node_Name = "topicremapper_node";
 	fw.Node_Name = node_name;
-	fw.Description = "Latest Rev: 8-April-2017";
+	fw.Description = "Latest Rev: 25-May-2017";
 	fw.Major_Release = TOPICREMAPPERNODE_MAJOR_RELEASE;
 	fw.Minor_Release = TOPICREMAPPERNODE_MINOR_RELEASE;
 	fw.Build_Number = TOPICREMAPPERNODE_BUILD_NUMBER;
@@ -73,8 +73,7 @@ void Joystick_Callback(const sensor_msgs::Joy::ConstPtr& msg,const std::string &
                 double in_value = msg->axes[map.in.index];
                 double out = scale_value(in_value,map.out.neutralvalue,map.in.minvalue,map.in.maxvalue,map.out.minvalue,map.out.maxvalue,map.out.deadband);
                 icarus_rover_v2::pin newpin;
-                newpin.BoardID = map.out.boardID;
-                newpin.ShieldID = map.out.shieldID;
+                newpin.ParentDevice = map.out.parentdevice;
                 newpin.DefaultValue = (int)map.out.neutralvalue;
                 newpin.Function = map.out.function;
                 newpin.Number = map.out.pinnumber;
@@ -84,8 +83,7 @@ void Joystick_Callback(const sensor_msgs::Joy::ConstPtr& msg,const std::string &
             if(map.in.name == "button")
             {
             	icarus_rover_v2::pin newpin;
-            	newpin.BoardID = map.out.boardID;
-            	newpin.ShieldID = map.out.shieldID;
+            	newpin.ParentDevice = map.out.parentdevice;
             	newpin.Function = map.out.function;
             	newpin.Number = map.out.pinnumber;
             	newpin.Value = msg->buttons[map.in.index];
@@ -192,20 +190,13 @@ int parse_topicmapfile(TiXmlDocument doc)
 							}
                             else { return -1; }
                             
-							TiXmlElement *l_pBoardID = l_pOutput->FirstChildElement( "BoardID" );
-							if(NULL != l_pBoardID)
+							TiXmlElement *l_pParentDevice = l_pOutput->FirstChildElement( "ParentDevice" );
+							if(NULL != l_pParentDevice)
 							{
-								out.boardID = std::atoi(l_pBoardID->GetText());
+								out.parentdevice = l_pParentDevice->GetText();
 							}
                             else { return -1; }
-                            
-                            TiXmlElement *l_pShieldID = l_pOutput->FirstChildElement( "ShieldID" );
-							if(NULL != l_pShieldID)
-							{
-								out.shieldID = std::atoi(l_pShieldID->GetText());
-							}
-                            else { return -1; }
-                            
+                                                        
                             TiXmlElement *l_pPinNumber = l_pOutput->FirstChildElement( "PinNumber" );
 							if(NULL != l_pPinNumber)
 							{
@@ -467,12 +458,11 @@ bool initialize(ros::NodeHandle nh)
             }
             {
                 char tempstr[512];
-                sprintf(tempstr,"i: %d Output Channel: Type: %s topic: %s BoardID: %d ShieldID: %d Pin: %d Function: %s Max Value: %f Neutral: %f Min Value: %f Deadband: %f",
+                sprintf(tempstr,"i: %d Output Channel: Type: %s topic: %s ParentDevice: %s Pin: %d Function: %s Max Value: %f Neutral: %f Min Value: %f Deadband: %f",
                     i,
                     TopicMaps.at(i).out.type.c_str(),
                     TopicMaps.at(i).out.topic.c_str(),
-                    TopicMaps.at(i).out.boardID,
-                    TopicMaps.at(i).out.shieldID,
+                    TopicMaps.at(i).out.parentdevice.c_str(),
                     TopicMaps.at(i).out.pinnumber,
                     TopicMaps.at(i).out.function.c_str(),
                     TopicMaps.at(i).out.maxvalue,

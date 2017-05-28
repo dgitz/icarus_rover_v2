@@ -13,9 +13,17 @@ void ReadyToArm_Callback(const std_msgs::Bool::ConstPtr& msg,const std::string &
     	diagnostic_pub.publish(diagnostic_status);
     }
 }
-void User_ArmCommand_Callback(const std_msgs::UInt8::ConstPtr& msg)
+void User_Command_Callback(const icarus_rover_v2::command::ConstPtr& msg)
 {
-    diagnostic_status = process->new_user_armcommandmsg(msg->data);
+	icarus_rover_v2::command command;
+	command.Command = msg->Command;
+	command.Option1 = msg->Option1;
+	command.Option2 = msg->Option2;
+	command.Option3 = msg->Option3;
+	command.CommandText = msg->CommandText;
+	command.Description = msg->Description;
+    diagnostic_status = process->new_user_commandmsg(command);
+    logger->log_diagnostic(diagnostic_status);
     diagnostic_pub.publish(diagnostic_status);
 }
 void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg)
@@ -253,14 +261,14 @@ bool initialize(ros::NodeHandle nh)
         return false;
     }
 
-    std::string param_user_armcommand_topic = node_name +"/user_armcommand_topic";
-    std::string armcommand_topic;
-    if(nh.getParam(param_user_armcommand_topic,armcommand_topic) == false)
+    std::string param_user_command_topic = node_name +"/user_command_topic";
+    std::string user_command_topic;
+    if(nh.getParam(param_user_command_topic,user_command_topic) == false)
     {
-        logger->log_error("Missing parameter: user_armcommand_topic. Exiting.");
+        logger->log_error("Missing parameter: user_command_topic. Exiting.");
         return false;
     }
-    armcommand_sub = nh.subscribe<std_msgs::UInt8>(armcommand_topic,1000,User_ArmCommand_Callback);
+    user_command_sub = nh.subscribe<icarus_rover_v2::command>(user_command_topic,1000,User_Command_Callback);
     
     std::string armeddisarmed_state_topic = "/armed_state";
     armeddisarmed_state_pub = nh.advertise<std_msgs::UInt8>(armeddisarmed_state_topic,1000);

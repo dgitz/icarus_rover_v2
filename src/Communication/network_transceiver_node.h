@@ -37,6 +37,7 @@
 #include <iostream>
 #include <string>
 #include <boost/thread.hpp>
+#include <sys/time.h>
 #define RECV_BUFFERSIZE 2048
 //End User Code: Includes
 
@@ -132,8 +133,9 @@ std::vector<ros::Subscriber> device_subs;
 std::vector<ros::Subscriber> resource_subs;
 std::vector<ros::Subscriber> diagnostic_subs;
 ros::Subscriber armed_disarmed_state_sub;
-ros::Publisher arm_command_pub;
+ros::Publisher user_command_pub;
 ros::Publisher ready_to_arm_pub;
 std::vector<RemoteDevice> remote_devices;
+struct timeval now2;
 //End User Code: Define Global Variables
 #endif

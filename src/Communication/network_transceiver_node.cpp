@@ -1,7 +1,7 @@
 #include "network_transceiver_node.h"
 //Start User Code: Firmware Definition
-#define NETWORKTRANSCEIVERNODE_MAJOR_RELEASE 2
-#define NETWORKTRANSCEIVERNODE_MINOR_RELEASE 2
+#define NETWORKTRANSCEIVERNODE_MAJOR_RELEASE 3
+#define NETWORKTRANSCEIVERNODE_MINOR_RELEASE 0
 #define NETWORKTRANSCEIVERNODE_BUILD_NUMBER 0
 //End User Code: Firmware Definition
 //Start User Code: Functions
@@ -10,21 +10,24 @@ bool check_remoteHeartbeats()
 	bool heartbeat_pass = true;
 	for(int i = 0; i < remote_devices.size();i++)
 	{
+		gettimeofday(&now2,NULL);
 		double last_beat_time_sec = remote_devices.at(i).current_beatepoch_sec + remote_devices.at(i).offset_sec;
-		double now_sec = ros::Time::now().sec + ros::Time::now().nsec/1000000000.0;
+		float now_sec = (float)now2.tv_sec;// + (float)(now2.tv_usec)/1000000.0;
 		double time_since_last = now_sec - last_beat_time_sec;
+		//printf("%f %f %f\n",time_since_last,now_sec,last_beat_time_sec);
 		if(time_since_last > 1.0)
 		{
 			heartbeat_pass = false;
 			char tempstr[255];
-			sprintf(tempstr,"Haven't received Heartbeat from: %s in %f Seconds. Disarming."
-					,time_since_last,remote_devices.at(i).Name.c_str());
+			sprintf(tempstr,"Haven't received Heartbeat from: %s in %f Seconds. Disarming.",
+					remote_devices.at(i).Name.c_str(),time_since_last);
 			logger->log_error(tempstr);
 			diagnostic_status.Diagnostic_Type = COMMUNICATIONS;
 			diagnostic_status.Level = ERROR;
 			diagnostic_status.Diagnostic_Message = MISSING_HEARTBEATS;
 			diagnostic_status.Description = tempstr;
-			diagnostic_pub.publish(diagnostic_status);
+			logger->log_diagnostic(diagnostic_status);
+			//diagnostic_pub.publish(diagnostic_status); Bypassed out until Bug fix: #77
 
 		}
 	}
@@ -34,10 +37,12 @@ bool check_remoteHeartbeats()
 		diagnostic_status.Level = WARN;
 		diagnostic_status.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
 		diagnostic_status.Description = "No Remote UI Devices Found Yet.";
-		diagnostic_pub.publish(diagnostic_status);
+		//diagnostic_pub.publish(diagnostic_status); Bypassed out until Bug fix: #77
+		logger->log_diagnostic(diagnostic_status);
 		heartbeat_pass = false;
 
 	}
+	heartbeat_pass = true; //Bypassed out until Bug fix: #77
 	return heartbeat_pass;
 }
 icarus_rover_v2::diagnostic rescan_topics(icarus_rover_v2::diagnostic diag)
@@ -211,23 +216,27 @@ void process_udp_receive()
 		char tempstr[8];
 		sprintf(tempstr,"0x%s",items.at(0).c_str());
 		int id = (int)strtol(tempstr,NULL,0);
-		//printf("Got ID: %0X\n",id);
-
 		uint8_t device,armcommand;
 		int axis1,axis2,axis3,axis4,axis5,axis6,axis7,axis8;
+		uint8_t command,option1,option2,option3;
 		uint8_t button1,button2,button3,button4,button5,button6,button7,button8;
-		std::string tempstr1;
+		std::string tempstr1,tempstr2;
 		uint64_t t,t2;
 		switch (id)
 		{
-			printf("Got ID: %d\n",id);
-			case UDPMessageHandler::UDP_Arm_Command_ID:
-				success = udpmessagehandler->decode_Arm_CommandUDP(items,&armcommand);
+
+			case UDPMessageHandler::UDP_Command_ID:
+				success = udpmessagehandler->decode_CommandUDP(items,&command,&option1,&option2,&option3,&tempstr1,&tempstr2);
 				if(success == 1)
 				{
-					std_msgs::UInt8 int_arm_command;
-					int_arm_command.data = armcommand;
-					arm_command_pub.publish(int_arm_command);
+					icarus_rover_v2::command newcommand;
+					newcommand.Command = command;
+					newcommand.Option1 = option1;
+					newcommand.Option2 = option2;
+					newcommand.Option3 = option3;
+					newcommand.CommandText = tempstr1;
+					newcommand.Description = tempstr2;
+					user_command_pub.publish(newcommand);
 				}
 				else
 				{
@@ -326,7 +335,11 @@ void process_udp_receive()
 				}
 				break;
 			default:
-				printf("Message: %d Not Supported.\n",id);
+				char tempstr[512];
+
+				sprintf(tempstr,"Message: %d Not Supported.",id);
+				printf("%s\n",tempstr);
+				logger->log_warn(std::string(tempstr));
 				break;
 		}
 
@@ -385,7 +398,7 @@ void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg)
 	icarus_rover_v2::firmware fw;
 	fw.Generic_Node_Name = "network_transceiver_Node";
 	fw.Node_Name = node_name;
-	fw.Description = "Latest Rev: 7-April-2017";
+	fw.Description = "Latest Rev: 27-May-2017";
 	fw.Major_Release = NETWORKTRANSCEIVERNODE_MAJOR_RELEASE;
 	fw.Minor_Release = NETWORKTRANSCEIVERNODE_MINOR_RELEASE;
 	fw.Build_Number = NETWORKTRANSCEIVERNODE_BUILD_NUMBER;
@@ -607,6 +620,7 @@ bool initializenode()
     //End Template Code: Initialization and Parameters
 
     //Start User Code: Initialization and Parameters
+    ros::Time::init();
     ready_to_arm = false;
     remote_heartbeat_pass = false;
     std::string armed_disarmed_state_topic = "/armed_state";
@@ -657,8 +671,8 @@ bool initializenode()
 		std::string arm2_joystick_topic = "/" + Mode + "/arm2_joystick";
 		arm2_joy_pub =  n->advertise<sensor_msgs::Joy>(arm2_joystick_topic,1000);
 
-		std::string arm_command_topic = "/" + Mode + "/user_armcommand";
-		arm_command_pub = n->advertise<std_msgs::UInt8>(arm_command_topic,1000);
+		//std::string arm_command_topic = "/" + Mode + "/user_command";
+		//arm_command_pub = n->advertise<icarus_rover_v2::command>(arm_command_topic,1000);
 
 
 	}
@@ -673,8 +687,8 @@ bool initializenode()
 		std::string arm2_joystick_topic = "/" + Mode + "/arm2_joystick";
 		arm2_joy_pub =  n->advertise<sensor_msgs::Joy>(arm2_joystick_topic,1000);
 
-		std::string arm_command_topic = "/" + Mode + "/user_armcommand";
-		arm_command_pub = n->advertise<std_msgs::UInt8>(arm_command_topic,1000);
+		std::string user_command_topic = "/" + Mode + "/user_command";
+		user_command_pub = n->advertise<icarus_rover_v2::command>(user_command_topic,1000);
 
 
 	}

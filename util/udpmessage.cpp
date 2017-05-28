@@ -1,8 +1,23 @@
 /***************AUTO-GENERATED.  DO NOT EDIT********************/
-/***Created on:2016-11-25 20:57:01.875157***/
+/***Created on:2017-05-06 18:53:54.319058***/
 #include "udpmessage.h"
 UDPMessageHandler::UDPMessageHandler(){}
 UDPMessageHandler::~UDPMessageHandler(){}
+int UDPMessageHandler::decode_CommandUDP(std::vector<std::string> items,uint8_t* Command,uint8_t* Option1,uint8_t* Option2,uint8_t* Option3,std::string* CommandText,std::string* Description)
+{
+	char tempstr[8];
+	sprintf(tempstr,"0x%s",items.at(0).c_str());
+	int id = (int)strtol(tempstr,NULL,0);
+	if(id != UDP_Command_ID){ return 0; }
+	if(items.size() != 7){ return 0; }
+	*Command=(uint8_t)atoi(items.at(1).c_str());
+	*Option1=(uint8_t)atoi(items.at(2).c_str());
+	*Option2=(uint8_t)atoi(items.at(3).c_str());
+	*Option3=(uint8_t)atoi(items.at(4).c_str());
+	*CommandText=items.at(5);
+	*Description=items.at(6);
+	return 1;
+}
 int UDPMessageHandler::decode_RemoteControlUDP(std::vector<std::string> items,int* axis1,int* axis2,int* axis3,int* axis4,int* axis5,int* axis6,int* axis7,int* axis8,uint8_t* button1,uint8_t* button2,uint8_t* button3,uint8_t* button4,uint8_t* button5,uint8_t* button6,uint8_t* button7,uint8_t* button8)
 {
 	char tempstr[8];
@@ -100,16 +115,6 @@ int UDPMessageHandler::decode_ArmControlUDP(std::vector<std::string> items,uint8
 	*button6=(uint8_t)atoi(items.at(13).c_str());
 	return 1;
 }
-int UDPMessageHandler::decode_Arm_CommandUDP(std::vector<std::string> items,uint8_t* Command)
-{
-	char tempstr[8];
-	sprintf(tempstr,"0x%s",items.at(0).c_str());
-	int id = (int)strtol(tempstr,NULL,0);
-	if(id != UDP_Arm_Command_ID){ return 0; }
-	if(items.size() != 2){ return 0; }
-	*Command=(uint8_t)atoi(items.at(1).c_str());
-	return 1;
-}
 std::string UDPMessageHandler::encode_Arm_StatusUDP(uint8_t Status)
 {
 	std::string tempstr = "";
@@ -129,4 +134,24 @@ int UDPMessageHandler::decode_HeartbeatUDP(std::vector<std::string> items,std::s
 	*Current_Timestamp=(uint64_t)strtoull(items.at(2).c_str(),NULL,10);
 	*Expected_Timestamp=(uint64_t)strtoull(items.at(3).c_str(),NULL,10);
 	return 1;
+}
+int UDPMessageHandler::decode_FindTargetUDP(std::vector<std::string> items,std::string* SearchDevice)
+{
+	char tempstr[8];
+	sprintf(tempstr,"0x%s",items.at(0).c_str());
+	int id = (int)strtol(tempstr,NULL,0);
+	if(id != UDP_FindTarget_ID){ return 0; }
+	if(items.size() != 2){ return 0; }
+	*SearchDevice=items.at(1);
+	return 1;
+}
+std::string UDPMessageHandler::encode_PowerUDP(uint8_t PowerLevel,uint8_t PowerState)
+{
+	std::string tempstr = "";
+	tempstr.append(boost::lexical_cast<std::string>(UDP_Power_ID));
+	tempstr.append(",");
+	tempstr.append(boost::lexical_cast<std::string>((int)PowerLevel));
+	tempstr.append(",");
+	tempstr.append(boost::lexical_cast<std::string>((int)PowerState));
+	return tempstr;
 }

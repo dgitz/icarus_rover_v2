@@ -15,17 +15,13 @@
 #include "icarus_rover_v2/command.h"
 #include "icarus_rover_v2/pin.h"
 #include "icarus_rover_v2/firmware.h"
+#include <std_msgs/Bool.h>
 #include <std_msgs/UInt8.h>
 #include <serialmessage.h>
 #include "logger.h"
 #include <math.h>
 #include <sys/time.h>
 
-struct ChannelValue
-{
-    uint8_t channel;
-    int16_t value;
-};
 using std::string;
 using namespace std;
 class HatControllerNodeProcess
@@ -41,11 +37,14 @@ public:
     bool is_ready() { return ready; }
     icarus_rover_v2::diagnostic update(double dt);
     icarus_rover_v2::diagnostic new_commandmsg(icarus_rover_v2::command msg);
-
-    icarus_rover_v2::diagnostic set_hat_initialized(uint16_t id);
+    icarus_rover_v2::diagnostic new_pinmsg(icarus_rover_v2::pin msg);
+    icarus_rover_v2::diagnostic new_ppsmsg(std_msgs::Bool msg);
+    
+    icarus_rover_v2::diagnostic set_servohat_initialized(uint16_t id);
     
     //Functions specific to Hats
-    std::vector<ChannelValue> get_servohatvalues(uint16_t id);
+    std::vector<icarus_rover_v2::pin> get_servohatpins(uint16_t id);
+    std::vector<uint16_t> get_servohataddresses();
     
 protected:
 private:
@@ -58,5 +57,7 @@ private:
     bool ready_to_arm;
     std::vector<icarus_rover_v2::device> hats;
     std::vector<bool> hats_running;
+    uint64_t pps_counter;
+    double time_sincelast_pps;
 };
 #endif

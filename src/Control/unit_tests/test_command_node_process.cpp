@@ -108,7 +108,9 @@ TEST(ArmDisarm,TestA)
 	diagnostic_status = process.update(1.0/(FAST_RATE*1000.0));
 	EXPECT_TRUE(diagnostic_status.Level <= NOTICE);
 	EXPECT_EQ(process.get_armeddisarmed_state(),ARMEDSTATUS_DISARMED);
-	diagnostic_status = process.new_user_armcommandmsg(ROVERCOMMAND_ARM);
+    icarus_rover_v2::command arm_command;
+    arm_command.Command = ROVERCOMMAND_ARM;
+	diagnostic_status = process.new_user_commandmsg(arm_command);
 	EXPECT_TRUE(diagnostic_status.Level <= NOTICE);
 	EXPECT_EQ(process.get_currentcommand().Command,ROVERCOMMAND_ARM);
 	for(int i = 0; i < 10; i++)

@@ -1,7 +1,7 @@
 #include "master_node.h"
 //Start User Code: Firmware Definition
 #define MASTERNODE_MAJOR_RELEASE 1
-#define MASTERNODE_MINOR_RELEASE 3
+#define MASTERNODE_MINOR_RELEASE 4
 #define MASTERNODE_BUILD_NUMBER 0
 //End User Code: Firmware Definition
 //Start User Code: Functions
@@ -18,6 +18,10 @@ double read_device_temperature()
 		temp = temp*(9.0/5.0) + 32.0;  //To Degrees Farenheit
 		temp_file.close();
 	}
+	else
+	{
+		logger->log_error("Unable to read system temperature.");
+	}
 	return temp;
 }
 void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg)
@@ -26,7 +30,7 @@ void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg)
 	icarus_rover_v2::firmware fw;
 	fw.Generic_Node_Name = "master_node";
 	fw.Node_Name = node_name;
-	fw.Description = "Latest Rev: 7-April-2017";
+	fw.Description = "Latest Rev: 27-May-2017";
 	fw.Major_Release = MASTERNODE_MAJOR_RELEASE;
 	fw.Minor_Release = MASTERNODE_MINOR_RELEASE;
 	fw.Build_Number = MASTERNODE_BUILD_NUMBER;
@@ -64,7 +68,7 @@ void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 	if(myDevice.Architecture == "armv7l")
 	{
 		//diagnostic_status.Diagnostic_Type = SENSORS;
-		//device_temperature = read_device_temperature();
+		device_temperature = read_device_temperature();
 
 		if(device_temperature > 130.0)
 		{
@@ -480,12 +484,8 @@ bool parse_devicefile(TiXmlDocument doc)
 				while( l_pPin )
 				{
 					icarus_rover_v2::pin newpin;
-					newpin.ShieldID = newDevice.ID;
-					TiXmlElement *l_pPinPortID = l_pPin->FirstChildElement( "PortID" );
-					if ( NULL != l_pPinPortID )
-					{
-						newpin.PortID = atoi(l_pPinPortID->GetText());
-					}
+					newpin.ParentDevice = newDevice.DeviceName;
+
 					TiXmlElement *l_pPinNumber = l_pPin->FirstChildElement( "Number" );
 					if ( NULL != l_pPinNumber )
 					{

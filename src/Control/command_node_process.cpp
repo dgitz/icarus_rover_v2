@@ -91,121 +91,49 @@ icarus_rover_v2::diagnostic CommandNodeProcess::new_readytoarmmsg(std::string to
    
     return diagnostic;
 }
-icarus_rover_v2::diagnostic CommandNodeProcess::new_user_armcommandmsg(uint8_t value)
+icarus_rover_v2::diagnostic CommandNodeProcess::new_user_commandmsg(icarus_rover_v2::command msg)
 {
-	if(armeddisarmed_state == ARMEDSTATUS_DISARMED_CANNOTARM)
-	{
-		diagnostic.Diagnostic_Type = REMOTE_CONTROL;
-		diagnostic.Level = FATAL;
-		diagnostic.Description = "Armed Status is UNDEFINED!";
-		diagnostic.Diagnostic_Message = DIAGNOSTIC_FAILED;
-		return diagnostic;
-	}
-	else if(armeddisarmed_state == ARMEDSTATUS_DISARMED)
-	{
-		if(value == ROVERCOMMAND_ARM)
-		{
-			last_command = current_command;
-			current_command.Command = ROVERCOMMAND_ARM;
-			current_command.Option1 = 0;
-			current_command.Option2 = 0;
-			current_command.Option3 = 0;
-			diagnostic.Diagnostic_Type = REMOTE_CONTROL;
+    if((msg.Command == ROVERCOMMAND_ARM) || (msg.Command == ROVERCOMMAND_DISARM))
+    {
+        if(armeddisarmed_state == ARMEDSTATUS_DISARMED_CANNOTARM)
+        {
+            diagnostic.Diagnostic_Type = REMOTE_CONTROL;
+            diagnostic.Level = FATAL;
+            diagnostic.Description = "Armed Status is DISARMED AND CANNOT ARM!";
+            diagnostic.Diagnostic_Message = DIAGNOSTIC_FAILED;
+            return diagnostic;
+        }
+        last_command = current_command;
+        current_command = msg;
+        if(msg.Command == ROVERCOMMAND_ARM)
+        {
+            armeddisarmed_state = ARMEDSTATUS_ARMED;
+            diagnostic.Diagnostic_Type = REMOTE_CONTROL;
 			diagnostic.Level = NOTICE;
 			diagnostic.Description = "Rover is ARMED";
 			diagnostic.Diagnostic_Message = ROVERCOMMAND_ARM;
-			armeddisarmed_state = ARMEDSTATUS_ARMED;
-			return diagnostic;
-		}
-		else if(value == ROVERCOMMAND_DISARM)
-		{
-			last_command = current_command;
-			current_command.Command = ROVERCOMMAND_DISARM;
-			current_command.Option1 = 0;
-			diagnostic.Diagnostic_Type = REMOTE_CONTROL;
-			diagnostic.Level = INFO;
-			diagnostic.Description = "Rover is still DISARMED";
-			diagnostic.Diagnostic_Message = ROVERCOMMAND_DISARM;
-			armeddisarmed_state = ARMEDSTATUS_DISARMED;
-			return diagnostic;
-		}
-	}
-	else if(armeddisarmed_state == ARMEDSTATUS_ARMED)
-	{
-		if(value == ROVERCOMMAND_DISARM)
-		{
-			last_command = current_command;
-			current_command.Command = ROVERCOMMAND_DISARM;
-			current_command.Option1 = 0;
-			current_command.Option2 = 0;
-			current_command.Option3 = 0;
-			diagnostic.Diagnostic_Type = REMOTE_CONTROL;
+            return diagnostic;
+        }
+        else//msg.Command == ROVERCOMMAND_DISARM
+        {
+            armeddisarmed_state = ARMEDSTATUS_DISARMED;
+            diagnostic.Diagnostic_Type = REMOTE_CONTROL;
 			diagnostic.Level = NOTICE;
 			diagnostic.Description = "Rover is DISARMED";
 			diagnostic.Diagnostic_Message = ROVERCOMMAND_DISARM;
-			armeddisarmed_state = ARMEDSTATUS_DISARMED;
-			return diagnostic;
-		}
-		else if(value == ROVERCOMMAND_ARM)
-		{
-			last_command = current_command;
-			current_command.Command = ROVERCOMMAND_ARM;
-			current_command.Option1 = 0;
-			diagnostic.Diagnostic_Type = REMOTE_CONTROL;
-			diagnostic.Level = INFO;
-			diagnostic.Description = "Rover is still ARMED";
-			diagnostic.Diagnostic_Message = ROVERCOMMAND_ARM;
-			armeddisarmed_state = ARMEDSTATUS_ARMED;
-			return diagnostic;
-		}
-	}
-
-	/*
-	if(armeddisarmed_state == ARMEDSTATUS_UNDEFINED)
-	{
-		diagnostic.Diagnostic_Type = REMOTE_CONTROL;
-		diagnostic.Level = FATAL;
-		diagnostic.Description = "Armed Status is UNDEFINED!";
-		diagnostic.Diagnostic_Message = DIAGNOSTIC_FAILED;
-		return diagnostic;
-	}
-	else if(armeddisarmed_state == ARMEDSTATUS_DISARMED_CANNOTARM)
-	{
-		diagnostic.Diagnostic_Type = REMOTE_CONTROL;
-		diagnostic.Level = WARN;
-		diagnostic.Description = "Cannot set new Arm Command";
-		diagnostic.Diagnostic_Message = DIAGNOSTIC_FAILED;
-		return diagnostic;
-	}
-	else if(armeddisarmed_state == ARMEDSTATUS_DISARMED)
-	{
-		if(value ==)
-		{
-			//armedcommand = ARMEDCOMMAND_ARM;
-			armeddisarmed_state = ARMEDSTATUS_ARMED;
-			c
-		}
-	}
-	else if(armeddisarmed_state == ARMEDSTATUS_ARMED)
-	{
-		if(value == ARMEDCOMMAND_DISARM)
-		{
-			//armedcommand = ARMEDCOMMAND_DISARM;
-			armeddisarmed_state = ARMEDSTATUS_DISARMED;
-			diagnostic.Diagnostic_Type = REMOTE_CONTROL;
-			diagnostic.Level = NOTICE;
-			diagnostic.Description = "Rover is DISARMED";
-			diagnostic.Diagnostic_Message = ROVER_DISARMED;
-			return diagnostic;
-		}
-	}
-	*/
-	diagnostic.Diagnostic_Type = REMOTE_CONTROL;
-	diagnostic.Level = WARN;
-	diagnostic.Description = "An Unknown Problem occurred.";
-	diagnostic.Diagnostic_Message = DIAGNOSTIC_FAILED;
-	return diagnostic;
-
+            return diagnostic;
+        }
+    }
+    else
+    {
+        diagnostic.Diagnostic_Type = REMOTE_CONTROL;
+        diagnostic.Level = WARN;
+        char tempstr[512];
+        sprintf(tempstr,"User Command: %d Not supported.",msg.Command);
+        diagnostic.Description = std::string(tempstr);
+        diagnostic.Diagnostic_Message = DIAGNOSTIC_FAILED;
+        return diagnostic;
+    }
 }
 icarus_rover_v2::diagnostic CommandNodeProcess::update(double dt)
 {

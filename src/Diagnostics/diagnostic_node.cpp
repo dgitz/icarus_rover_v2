@@ -239,10 +239,10 @@ bool check_tasks()
 			char tempstr[512];
 			sprintf(tempstr,"Task: %s is using high CPU resource: %d/%d %",
 					newTask.Task_Name.c_str(),newTask.CPU_Perc,CPU_usage_threshold_percent);
-			logger->log_warn(tempstr);
 			diagnostic_status.Diagnostic_Message = HIGH_RESOURCE_USAGE;
 			diagnostic_status.Level = WARN;
 			diagnostic_status.Description = tempstr;
+			logger->log_diagnostic(diagnostic_status);
 			diagnostic_pub.publish(diagnostic_status);
 		}
 		if(newTask.RAM_MB > RAM_usage_threshold_MB)
@@ -251,10 +251,10 @@ bool check_tasks()
 			char tempstr[512];
 			sprintf(tempstr,"Task: %s is using high RAM resource: %ld/%ld (MB)",
 					newTask.Task_Name.c_str(),newTask.RAM_MB,RAM_usage_threshold_MB);
-			logger->log_warn(tempstr);
 			diagnostic_status.Diagnostic_Message = HIGH_RESOURCE_USAGE;
 			diagnostic_status.Level = WARN;
 			diagnostic_status.Description = tempstr;
+			logger->log_diagnostic(diagnostic_status);
 			diagnostic_pub.publish(diagnostic_status);
 		}
 		/*
@@ -302,10 +302,10 @@ bool check_tasks()
 			task_ok = false;
 			char tempstr[512];
 			sprintf(tempstr,"Task: %s has not reported heartbeats in %.1f seconds",newTask.Task_Name.c_str(),heartbeat_time_duration);
-			logger->log_fatal(tempstr);
 			diagnostic_status.Diagnostic_Message = MISSING_HEARTBEATS;
 			diagnostic_status.Level = FATAL;
 			diagnostic_status.Description = tempstr;
+			logger->log_diagnostic(diagnostic_status);
 			diagnostic_pub.publish(diagnostic_status);
 
 		}
@@ -321,6 +321,7 @@ bool check_tasks()
 		else
 		{
 			ready_to_arm = false;
+			logger->log_fatal("No Tasks to report!");
 		}
 		char tempstr[255];
 		sprintf(tempstr,"%d/%d (All) Tasks Operational.",task_ok_counter,TasksToCheck.size());
@@ -335,6 +336,7 @@ bool check_tasks()
 		system_diag.Diagnostic_Type = NOERROR;
 		system_diag.Level = NOTICE;
 		system_diag.Description = "System is Operational.";
+		logger->log_diagnostic(system_diag);
 		diagnostic_pub.publish(system_diag);
 	}
 	else
@@ -346,6 +348,7 @@ bool check_tasks()
 		diagnostic_status.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
 		diagnostic_status.Level = WARN;
 		diagnostic_status.Description = tempstr;
+		logger->log_diagnostic(diagnostic_status);
 		diagnostic_pub.publish(diagnostic_status);
 	}
 	return true;

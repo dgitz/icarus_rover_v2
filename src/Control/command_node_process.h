@@ -53,7 +53,7 @@ public:
     icarus_rover_v2::diagnostic new_readytoarmmsg(std::string topic, bool value);
     icarus_rover_v2::diagnostic init_readytoarm_list(std::vector<std::string> topics);
     icarus_rover_v2::diagnostic init_PeriodicCommands(std::vector<PeriodicCommand> commands);
-    icarus_rover_v2::diagnostic new_user_armcommandmsg(uint8_t value);
+    icarus_rover_v2::diagnostic new_user_commandmsg(icarus_rover_v2::command msg);
     icarus_rover_v2::diagnostic new_targetmsg(std::string target);
   //  int get_armcommand() { return armedcommand; }
 	//std::vector<icarus_rover_v2::device> get_myboards() { return myboards;

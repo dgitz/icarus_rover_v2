@@ -20,9 +20,9 @@
     <node name="$(env ROS_HOSTNAME)_command_node" pkg="icarus_rover_v2" type="command_node"  output="screen" clear_params="true">
 	    <param name="verbosity_level"       value="DEBUG"/>
         <param name="require_pps_to_start"  value="false"/>  
-        <param name="ready_to_arm_topic1"   value="/ComputeModule1_boardcontroller_node/ready_to_arm"/>
+        <param name="ready_to_arm_topic1"   value="/ControlModule1_hatcontroller_node/ready_to_arm"/>
         <param name="ready_to_arm_topic2"   value="/dgitzrosmaster_diagnostic_node/ready_to_arm" />
-        <param name="user_armcommand_topic" value="/DriverStation/user_armcommand"/>
+        <param name="user_command_topic" value="/DriverStation/user_command"/>
     </node>
      <node name="$(env ROS_HOSTNAME)_topicremapper_node" pkg="icarus_rover_v2" type="topicremapper_node"  output="screen">
         <param name="verbosity_level"       value="DEBUG"/>

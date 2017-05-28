@@ -1,5 +1,5 @@
-#ifndef BOARDCONTROLLERNODE_H
-#define BOARDCONTROLLERNODE_H
+#ifndef HATCONTROLLERNODE_H
+#define HATCONTROLLERNODE_H
 //Start Template Code: Includes
 #include "ros/ros.h"
 #include "std_msgs/String.h"
@@ -22,13 +22,12 @@
 //End Template Code: Includes
 
 //Start User Code: Defines
-#define USE_UART 0
-#define WARN_ON_SOFTWARE_NOT_IMPLEMENTED 0
 //End User Code: Defines
 
 //Start User Code: Includes
 #include <wiringPiI2C.h>
-#include "boardcontroller_node_process.h"
+#include "hatcontroller_node_process.h"
+#include "Driver/ServoHatDriver.h"
 #include <stdio.h>
 #include <string.h>
 #include <serialmessage.h>
@@ -42,26 +41,6 @@
 //End User Code: Includes
 
 //Start User Code: Data Structures
-struct Task
-{
-	std::string Task_Name;
-	ros::Time last_diagnostic_received;
-	uint8_t last_diagnostic_level;
-	std::string diagnostic_topic;
-	ros::Subscriber diagnostic_sub;
-};
-struct UsbDevice
-{
-	int device_fid;
-	std::string location;
-	int valid; //0 is no, 1 is yes, 2 is unknown
-	int boardcontrollernode_id;
-	long long bytesreceived;
-	long long bytestransmitted;
-	int index;
-	long long good_checksum_counter;
-	long long bad_checksum_counter;
-};
 //End User Code: Data Structures
 
 //Start Template Code: Function Prototypes
@@ -74,11 +53,7 @@ void PPS1000_Callback(const std_msgs::Bool::ConstPtr& msg);
 double measure_time_diff(ros::Time timer_a, ros::Time tiber_b);
 void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg);
 void Command_Callback(const icarus_rover_v2::command& msg);
-void diagnostic_Callback(const icarus_rover_v2::diagnostic::ConstPtr& msg,const std::string &topicname);
 std::vector<icarus_rover_v2::diagnostic> check_program_variables();
-void signalinterrupt_handler(int sig);
-int checkmessage();
-icarus_rover_v2::diagnostic rescan_topics(icarus_rover_v2::diagnostic diag);
 
 //End Template Code: Function Prototypes
 
@@ -121,7 +96,7 @@ volatile sig_atomic_t kill_node;
 //Start User Code: Define Global Variables
 boost::shared_ptr<ros::NodeHandle> n;
 ros::Time last_message_received_time;
-std::vector<BoardControllerNodeProcess> boardprocesses;
+HatControllerNodeProcess process;
 ros::Publisher digitalinput_pub;
 ros::Subscriber pwmoutput_sub;
 ros::Time last_pwmoutput_sub_time;
@@ -134,7 +109,6 @@ ros::Publisher forcesensorinput_pub;
 ros::Time gpio_comm_test_start;
 bool checking_gpio_comm;
 int message_receive_counter;
-std::vector<UsbDevice> UsbDevices;
 std::vector<boost::thread> threads;
 
 int current_num;
@@ -151,6 +125,8 @@ int packet_length;
 ros::Subscriber armed_state_sub;
 bool ready_to_arm;
 ros::Publisher ready_to_arm_pub;
-std::vector<Task> TaskList;
+
+bool ServoHats_running;
+std::vector<ServoHatDriver> ServoHats;
 //End User Code: Define Global Variables
 #endif

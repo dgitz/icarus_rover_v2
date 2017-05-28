@@ -3,7 +3,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "../ServoHatDriver.h"
+#include "../Driver/ServoHatDriver.h"
 
 using namespace std;
 
@@ -173,10 +173,11 @@ int main(int argc, char* argv[])
     }
     if(mode == "sweep") {    value = start_sweep; }
     bool direction = true;
-    initServoHat(hat_address);
+    ServoHatDriver servohat;
+    servohat.init(hat_address);
 	if(reset == 1)
     {
-        resetAllServo();
+		servohat.resetAllServo();
     }
     else
     {
@@ -185,7 +186,7 @@ int main(int argc, char* argv[])
             if(mode == "oneshot")
             {
                 cout << "Setting ServoHat Address: " << hat_address << " Channel: " << channel << " To Value: " << value << endl;
-                setServoValue(channel,value);
+                servohat.setServoValue(channel,value);
                 usleep(100000);  // wait for 0.1 seconds
 
             }
@@ -204,7 +205,7 @@ int main(int argc, char* argv[])
                 else
                 {
                     cout << "Setting ServoHat Address: " << hat_address << " Channel: " << channel << " To Value: " << value << endl;
-                    setServoValue(channel,value);
+                    servohat.setServoValue(channel,value);
                     usleep(1000);  // wait for 0.1 seconds
                 }
                 if(direction == true)

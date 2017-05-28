@@ -43,8 +43,7 @@ struct OutputChannel
 {
     std::string type;
     std::string topic;
-    int boardID;
-    int shieldID;
+    std::string parentdevice;
     int pinnumber;
     std::string function;
     double maxvalue;

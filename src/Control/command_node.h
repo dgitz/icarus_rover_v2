@@ -48,7 +48,7 @@ void signalinterrupt_handler(int sig);
 
 //Start User Code: Function Prototypes
 void ReadyToArm_Callback(const std_msgs::Bool::ConstPtr& msg,const std::string &topic);
-void User_ArmCommand_Callback(const std_msgs::UInt8::ConstPtr& msg);
+void User_Command_Callback(const icarus_rover_v2::command::ConstPtr& msg);
 //End User Code: Function Prototypes
 
 //Start Template Code: Define Global variables
@@ -87,7 +87,7 @@ ros::Publisher armeddisarmed_state_pub;
 CommandNodeProcess *process;
 ros::Publisher command_pub;
 std::vector<ros::Subscriber> ready_to_arm_subs;
-ros::Subscriber armcommand_sub;
+ros::Subscriber user_command_sub;
 
 uint8_t searchmode;
 //End User Code: Define Global Variables
