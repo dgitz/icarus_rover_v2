@@ -9,7 +9,8 @@ Unit Tests:
 2.  Hat Unit Tests:
   Compile: 
   >>cd ~/catkin_ws/src/icarus_rover_v2/src/Board/unit_tests/
-  >>g++ -lm -lwiringPi ../ServoHatDriver.cpp test_servohat.cpp -o test_servohat
+  >>g++ -lm -lwiringPi ../Driver/ServoHatDriver.cpp test_servohat.cpp -o test_servohat
+  >>g++ -lm -lwiringPi ../Driver/TerminalHatDriver.cpp test_terminalhat.cpp -o test_terminalhat
     
 
 B. gpio_node

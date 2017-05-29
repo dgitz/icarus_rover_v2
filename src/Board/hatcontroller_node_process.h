@@ -39,15 +39,19 @@ public:
     icarus_rover_v2::diagnostic new_commandmsg(icarus_rover_v2::command msg);
     icarus_rover_v2::diagnostic new_pinmsg(icarus_rover_v2::pin msg);
     icarus_rover_v2::diagnostic new_ppsmsg(std_msgs::Bool msg);
-    
+     
+    //Servo Hat Functions
     icarus_rover_v2::diagnostic set_servohat_initialized(uint16_t id);
-    
-    //Functions specific to Hats
     std::vector<icarus_rover_v2::pin> get_servohatpins(uint16_t id);
     std::vector<uint16_t> get_servohataddresses();
     
+    //Terminal Hat Functions
+    icarus_rover_v2::diagnostic set_terminalhat_initialized();
+    std::vector<icarus_rover_v2::pin> get_terminalhatpins(std::string Function);
+    
 protected:
 private:
+    bool board_present(icarus_rover_v2::device device);
     bool initialized;
     bool ready;
     std::string hostname;
@@ -59,5 +63,6 @@ private:
     std::vector<bool> hats_running;
     uint64_t pps_counter;
     double time_sincelast_pps;
+
 };
 #endif

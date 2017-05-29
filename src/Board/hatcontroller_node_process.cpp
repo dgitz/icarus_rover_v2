@@ -99,9 +99,69 @@ icarus_rover_v2::diagnostic HatControllerNodeProcess::new_devicemsg(icarus_rover
         {
             if(newdevice.DeviceParent == hostname)
             {
+                if(board_present(newdevice) == true)
+                {
+                    diag.Level = WARN;
+                    diag.Diagnostic_Type = SOFTWARE;
+                    diag.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
+                    char tempstr[512];
+                    sprintf(tempstr,"Hat: %s already loaded.",
+                        newdevice.DeviceName.c_str());
+                    diag.Description = std::string(tempstr);
+                    return diag;
+                }
                 std::size_t hat_message = newdevice.DeviceType.find("Hat");
                 if(hat_message != std::string::npos)
                 {
+                    if(newdevice.DeviceType == "ServoHat")
+                    {
+                        for(std::size_t i = 0; i < newdevice.pins.size(); i++)
+                        {
+                            if((newdevice.pins.at(i).Function == "PWMOutput") or 
+                               (newdevice.pins.at(i).Function == "PWMOutput-NonActuator")) {}
+                            else
+                            {
+                                diag.Level = ERROR;
+                                diag.Diagnostic_Type = SOFTWARE;
+                                diag.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
+                                char tempstr[512];
+                                sprintf(tempstr,"Hat Type: %s Pin Function: %s Not supported.",
+                                    newdevice.DeviceType.c_str(),newdevice.pins.at(i).Function.c_str());
+                                diag.Description = std::string(tempstr);
+                                return diag;
+                            }
+                        }
+                    }
+                    else if(newdevice.DeviceType == "TerminalHat")
+                    {
+                        for(std::size_t i = 0; i < newdevice.pins.size(); i++)
+                        {
+                            if((newdevice.pins.at(i).Function == "DigitalInput") or 
+                               (newdevice.pins.at(i).Function == "DigitalOutput-NonActuator") or 
+                               (newdevice.pins.at(i).Function == "DigitalOutput")) {}
+                            else
+                            {
+                                diag.Level = ERROR;
+                                diag.Diagnostic_Type = SOFTWARE;
+                                diag.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
+                                char tempstr[512];
+                                sprintf(tempstr,"Hat Type: %s Pin Function: %s Not supported.",
+                                    newdevice.DeviceType.c_str(),newdevice.pins.at(i).Function.c_str());
+                                diag.Description = std::string(tempstr);
+                                return diag;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        diag.Level = ERROR;
+                        diag.Diagnostic_Type = SOFTWARE;
+                        diag.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
+                        char tempstr[512];
+                        sprintf(tempstr,"Hat Type: %s Not supported.",newdevice.DeviceType.c_str());
+                        diag.Description = std::string(tempstr);
+                        return diag;
+                    }
                     hats.push_back(newdevice);
                     hats_running.push_back(false);
                     if(hats.size() == mydevice.BoardCount) { ready = true; }
@@ -113,7 +173,7 @@ icarus_rover_v2::diagnostic HatControllerNodeProcess::new_devicemsg(icarus_rover
 
         }
     }
-    diag.Level = DEBUG;
+    diag.Level = INFO;
     diag.Diagnostic_Type = COMMUNICATIONS;
     diag.Diagnostic_Message = NOERROR;
     char tempstr[512];
@@ -225,6 +285,39 @@ icarus_rover_v2::diagnostic HatControllerNodeProcess::set_servohat_initialized(u
     }
     return diag;
 }
+icarus_rover_v2::diagnostic HatControllerNodeProcess::set_terminalhat_initialized()
+{
+    icarus_rover_v2::diagnostic diag = diagnostic;
+    bool found = false;
+    for(std::size_t i = 0; i < hats.size(); i++)
+    {
+        if((hats.at(i).DeviceType == "TerminalHat"))
+        {
+            found = true;
+            hats_running.at(i) = true;
+            break; //Only 1 Terminal Hat supported.
+        }
+    }
+    if(found == false)
+    {
+        diag.Level = WARN;
+		diag.Diagnostic_Type = SOFTWARE;
+		diag.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
+		char tempstr[512];
+		sprintf(tempstr,"TerminalHat Not Found");
+		diag.Description = std::string(tempstr);
+    }
+    else
+    {
+        diag.Level = INFO;
+		diag.Diagnostic_Type = SOFTWARE;
+		diag.Diagnostic_Message = NOERROR;
+		char tempstr[512];
+		sprintf(tempstr,"TerminalHat is now Initialized");
+		diag.Description = std::string(tempstr);
+    }
+    return diag;
+}
 std::vector<uint16_t> HatControllerNodeProcess::get_servohataddresses()
 {
     std::vector<uint16_t> addresses;
@@ -237,6 +330,35 @@ std::vector<uint16_t> HatControllerNodeProcess::get_servohataddresses()
         }
     }
     return addresses;
+}
+std::vector<icarus_rover_v2::pin> HatControllerNodeProcess::get_terminalhatpins(std::string Function)
+{
+    std::vector<icarus_rover_v2::pin> pins;
+    pins.clear();
+    for(std::size_t i = 0; i < hats.size(); i++)
+    {
+        if((hats.at(i).DeviceType == "TerminalHat"))
+        {
+            for(std::size_t j = 0; j < hats.at(i).pins.size(); j++)
+            {
+                icarus_rover_v2::pin pin;
+                if(hats.at(i).pins.at(j).Function == Function)
+                {
+                    pin = hats.at(i).pins.at(j);
+                    if((Function == "DigitalOutput") and (armed_state != ARMEDSTATUS_ARMED))
+                    {
+                        pin.Value = hats.at(i).pins.at(j).DefaultValue;
+                    }
+                    else
+                    {
+                        pin.Value = hats.at(i).pins.at(j).Value;
+                    }
+                    pins.push_back(pin);
+                }                
+            }
+        }
+    }
+    return pins;
 }
 std::vector<icarus_rover_v2::pin> HatControllerNodeProcess::get_servohatpins(uint16_t id)
 {
@@ -251,6 +373,7 @@ std::vector<icarus_rover_v2::pin> HatControllerNodeProcess::get_servohatpins(uin
                 if(hats.at(i).pins.at(j).Function == "PWMOutput-NonActuator")
                 {
                     pin = hats.at(i).pins.at(j);
+                    pins.push_back(pin);
 
                 }
                 else if(armed_state == ARMEDSTATUS_ARMED)
@@ -258,21 +381,34 @@ std::vector<icarus_rover_v2::pin> HatControllerNodeProcess::get_servohatpins(uin
                     if(hats.at(i).pins.at(j).Function == "PWMOutput")
                     {
                     	pin = hats.at(i).pins.at(j);
+                        pins.push_back(pin);
                     }
                     else
                     {
                         pin = hats.at(i).pins.at(j);
                         pin.Value = hats.at(i).pins.at(j).DefaultValue;
+                        pins.push_back(pin);
                     }
                 }
                 else
                 {
                     pin = hats.at(i).pins.at(j);
                     pin.Value = hats.at(i).pins.at(j).DefaultValue;
+                    pins.push_back(pin);
                 }
-                pins.push_back(pin);
             }
         }
     }
     return pins;
+}
+bool HatControllerNodeProcess::board_present(icarus_rover_v2::device device)
+{
+    for(std::size_t i = 0; i < hats.size(); i++)
+    {
+        if((hats.at(i).DeviceName == device.DeviceName))
+        {
+            return true;
+        }
+    }
+    return false;
 }

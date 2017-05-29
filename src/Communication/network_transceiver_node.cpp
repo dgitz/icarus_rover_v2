@@ -12,9 +12,9 @@ bool check_remoteHeartbeats()
 	{
 		gettimeofday(&now2,NULL);
 		double last_beat_time_sec = remote_devices.at(i).current_beatepoch_sec + remote_devices.at(i).offset_sec;
-		float now_sec = (float)now2.tv_sec;// + (float)(now2.tv_usec)/1000000.0;
+		double now_sec = (double)now2.tv_sec + (double)(now2.tv_usec)/1000000.0;
 		double time_since_last = now_sec - last_beat_time_sec;
-		//printf("%f %f %f\n",time_since_last,now_sec,last_beat_time_sec);
+		printf("%f %f %f\n",time_since_last,now_sec,last_beat_time_sec);
 		if(time_since_last > 1.0)
 		{
 			heartbeat_pass = false;
@@ -27,7 +27,7 @@ bool check_remoteHeartbeats()
 			diagnostic_status.Diagnostic_Message = MISSING_HEARTBEATS;
 			diagnostic_status.Description = tempstr;
 			logger->log_diagnostic(diagnostic_status);
-			//diagnostic_pub.publish(diagnostic_status); Bypassed out until Bug fix: #77
+			diagnostic_pub.publish(diagnostic_status);
 
 		}
 	}
@@ -37,12 +37,11 @@ bool check_remoteHeartbeats()
 		diagnostic_status.Level = WARN;
 		diagnostic_status.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
 		diagnostic_status.Description = "No Remote UI Devices Found Yet.";
-		//diagnostic_pub.publish(diagnostic_status); Bypassed out until Bug fix: #77
+		diagnostic_pub.publish(diagnostic_status);
 		logger->log_diagnostic(diagnostic_status);
 		heartbeat_pass = false;
 
 	}
-	heartbeat_pass = true; //Bypassed out until Bug fix: #77
 	return heartbeat_pass;
 }
 icarus_rover_v2::diagnostic rescan_topics(icarus_rover_v2::diagnostic diag)

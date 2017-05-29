@@ -28,6 +28,7 @@
 #include <wiringPiI2C.h>
 #include "hatcontroller_node_process.h"
 #include "Driver/ServoHatDriver.h"
+#include "Driver/TerminalHatDriver.h"
 #include <stdio.h>
 #include <string.h>
 #include <serialmessage.h>
@@ -128,5 +129,8 @@ ros::Publisher ready_to_arm_pub;
 
 bool ServoHats_running;
 std::vector<ServoHatDriver> ServoHats;
+
+TerminalHatDriver TerminalHat;
+bool TerminalHat_running;
 //End User Code: Define Global Variables
 #endif
