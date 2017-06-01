@@ -174,7 +174,8 @@ int main(int argc, char* argv[])
     if(mode == "sweep") {    value = start_sweep; }
     bool direction = true;
     ServoHatDriver servohat;
-    servohat.init(hat_address);
+    int status = servohat.init(hat_address);
+    printf("status: %d\n",status);
 	if(reset == 1)
     {
 		servohat.resetAllServo();

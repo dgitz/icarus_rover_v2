@@ -14,7 +14,6 @@ bool check_remoteHeartbeats()
 		double last_beat_time_sec = remote_devices.at(i).current_beatepoch_sec + remote_devices.at(i).offset_sec;
 		double now_sec = (double)now2.tv_sec + (double)(now2.tv_usec)/1000000.0;
 		double time_since_last = now_sec - last_beat_time_sec;
-		printf("%f %f %f\n",time_since_last,now_sec,last_beat_time_sec);
 		if(time_since_last > 1.0)
 		{
 			heartbeat_pass = false;

@@ -1,0 +1,22 @@
+<!--xml-->
+<launch>
+    <node name="$(env ROS_HOSTNAME)_master_node" pkg="icarus_rover_v2" type="master_node"  output="screen" clear_params="true">
+	    <param name="verbosity_level"       value="DEBUG"/>
+        <param name="require_pps_to_start"  value="false"/>    
+    </node>
+    <node name="$(env ROS_HOSTNAME)_hatcontroller_node" pkg="icarus_rover_v2" type="hatcontroller_node" output="screen" clear_params="true">  
+	    <param name="verbosity_level"       value="DEBUG"/>
+        <param name="require_pps_to_start"  value="false"/>
+    </node>
+    <!--
+    <node name="$(env ROS_HOSTNAME)_cameracapture_node" pkg="icarus_rover_v2" type="cameracapture_node"  output="screen">
+        <param name="verbosity_level"       value="DEBUG"/>
+        <param name="require_pps_to_start"  value="false"/> 
+        <param name="operation_mode"        value="capture"/>
+        <param name="video_device"          value="0"/>
+        <param name="image_width"           value="300"/>
+        <param name="image_height"          value="300"/>
+        <param name="storage_location"      value="/home/robot/external/Unsorted-Pictures"/> 
+    </node>
+    -->
+</launch>

@@ -218,7 +218,7 @@ int main(int argc, char **argv)
     		mtime = measure_time_diff(now,pps1000_timer);
     		if(mtime > .001)
     		{
-    			run_1000Hz_code();
+    			//run_1000Hz_code();
     			pps1000_timer = ros::Time::now();
     		}
 

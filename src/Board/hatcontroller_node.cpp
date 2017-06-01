@@ -43,8 +43,10 @@ void PPS10_Callback(const std_msgs::Bool::ConstPtr& msg)
 }
 void PPS100_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
+
 	diagnostic_status = process.update(0.01);
     bool process_ready = process.is_ready();
+
     if(process_ready == true)
     {
     	 if(ServoHats_running == false)
@@ -65,6 +67,7 @@ void PPS100_Callback(const std_msgs::Bool::ConstPtr& msg)
     	 }
     	 else
     	 {
+
     		 std::vector<uint16_t> servohats = process.get_servohataddresses();
     		 for(std::size_t i = 0; i < servohats.size(); i++)
     		 {
@@ -87,8 +90,10 @@ void PPS100_Callback(const std_msgs::Bool::ConstPtr& msg)
     				 logger->log_diagnostic(diagnostic_status);
     			 }
     		 }
+
     	 }
-         if(TerminalHat_running == false)
+    	 /*
+         if(TerminalHat_running == false) !!!THIS IS CAUSING NODE TO FREEZE
          {
              logger->log_notice("Initializing Terminal Hat.");
              TerminalHat.init();
@@ -189,7 +194,9 @@ void PPS100_Callback(const std_msgs::Bool::ConstPtr& msg)
                 if(diagnostic_status.Level > INFO) {   diagnostic_pub.publish(diagnostic_status); }
                 digitalinput_pub.publish(input_pins.at(i));
             }
+
         }
+        */
          
     }
     if(diagnostic_status.Level > INFO)
@@ -197,7 +204,6 @@ void PPS100_Callback(const std_msgs::Bool::ConstPtr& msg)
     	diagnostic_pub.publish(diagnostic_status);
     	logger->log_diagnostic(diagnostic_status);
     }
-    
     bool ready_to_arm = process.get_ready_to_arm();
 	std_msgs::Bool bool_ready_to_arm;
     bool_ready_to_arm.data = ready_to_arm;
@@ -222,7 +228,7 @@ void DigitalOutput_Callback(const icarus_rover_v2::pin::ConstPtr& msg)
 	pinmsg.DefaultValue = msg->DefaultValue;
 	pinmsg.ConnectedDevice = msg->ConnectedDevice;
 	pinmsg.Value = msg->Value;
-	diagnostic_status = process.new_pinmsg(pinmsg);
+	//diagnostic_status = process.new_pinmsg(pinmsg);
     logger->log_diagnostic(diagnostic_status);
     if(diagnostic_status.Level > INFO) {   diagnostic_pub.publish(diagnostic_status); }
     
@@ -313,6 +319,7 @@ int main(int argc, char **argv)
     now = ros::Time::now();
     while (ros::ok() && (kill_node == 0))
     {
+    	printf("Running\n");
     	bool ok_to_start = false;
 		if(require_pps_to_start == false) { ok_to_start = true;}
 		else if(require_pps_to_start == true && received_pps == true) { ok_to_start = true; }

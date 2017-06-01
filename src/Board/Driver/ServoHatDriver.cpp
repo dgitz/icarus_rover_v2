@@ -10,7 +10,7 @@ ServoHatDriver::~ServoHatDriver()
 }
 
 
-void ServoHatDriver::init(int address_)
+int ServoHatDriver::init(int address_)
 {
 	address = address_;
     ServoHatfd = wiringPiI2CSetup(address);
@@ -27,6 +27,7 @@ void ServoHatDriver::init(int address_)
     wiringPiI2CWriteReg8(ServoHatfd, __MODE1, mode1);
 
     setPWMFreq(60);
+    return ServoHatfd;
 }
 
 void ServoHatDriver::setPWMFreq(int freq)

@@ -39,6 +39,10 @@ void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg)
 }
 void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
+	if(process->get_currentcommand().Command == ROVERCOMMAND_ARM)
+	{
+		command_pub.publish(process->get_currentcommand());
+	}
 	received_pps = true;
     if(device_initialized == true)
 	{
@@ -63,6 +67,7 @@ void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 }
 void PPS10_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
+
     beat.stamp = ros::Time::now();
 	heartbeat_pub.publish(beat);
 
@@ -76,7 +81,7 @@ void PPS100_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
    	//logger->log_debug("Running fast rate code.");
 	diagnostic_status = process->update(.02);
-	if(process->get_currentcommand().Command != ROVERCOMMAND_NONE)
+	if(process->get_currentcommand().Command == ROVERCOMMAND_DISARM)
 	{
 		command_pub.publish(process->get_currentcommand());
 	}
