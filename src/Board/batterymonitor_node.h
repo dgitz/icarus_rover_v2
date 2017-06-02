@@ -1,3 +1,4 @@
+OBSOLETE!!!
 #ifndef BATTERYMONITORNODE_H
 #define BATTERYMONITORNODE_H
 //Start Template Code: Includes

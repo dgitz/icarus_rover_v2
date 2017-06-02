@@ -1,3 +1,4 @@
+OBSOLETE!!!
 #include "batterymonitor_node.h"
 //Start User Code: Firmware Definition
 #define BATTERYMONITORNODE_MAJOR_RELEASE 0

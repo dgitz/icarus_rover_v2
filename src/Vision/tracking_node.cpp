@@ -1,3 +1,4 @@
+OBSOLETE!!!
 #include "tracking_node.h"
 //Start User Code: Firmware Definition
 #define TRACKINGNODE_MAJOR_RELEASE 1

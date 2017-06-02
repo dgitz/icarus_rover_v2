@@ -1,3 +1,4 @@
+OBSOLETE!!!
 #include "armcontroller_node.h"
 //Start User Code: Firmware Definition
 #define ARMCONTROLLERNODE_MAJOR_RELEASE 1
@@ -5,6 +6,18 @@
 #define ARMCONTROLLERNODE_BUILD_NUMBER 0
 //End User Code: Firmware Definition
 //Start User Code: Functions
+bool run_loop1_code()
+{
+	return true;
+}
+bool run_loop2_code()
+{
+ 	return true;
+}
+bool run_loop3_code()
+{
+ 	return true;
+}
 void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
     logger->log_info("Node Running.");

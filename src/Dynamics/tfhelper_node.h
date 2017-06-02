@@ -35,13 +35,14 @@
 bool initialize(ros::NodeHandle nh);
 void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg);
 void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg);
-void PPS10_Callback(const std_msgs::Bool::ConstPtr& msg);
-void PPS100_Callback(const std_msgs::Bool::ConstPtr& msg);
-void PPS1000_Callback(const std_msgs::Bool::ConstPtr& msg);
 double measure_time_diff(ros::Time timer_a, ros::Time tiber_b);
 void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg);
 void Command_Callback(const icarus_rover_v2::command& msg);
 std::vector<icarus_rover_v2::diagnostic> check_program_variables();
+bool run_loop3_code();
+bool run_loop2_code();
+bool run_loop1_code();
+bool run_10Hz_code();
 void signalinterrupt_handler(int sig);
 //End Template Code: Function Prototypes
 
@@ -55,9 +56,6 @@ std::string node_name;
 std::string verbosity_level;
 ros::Subscriber pps01_sub;
 ros::Subscriber pps1_sub;
-ros::Subscriber pps10_sub;
-ros::Subscriber pps100_sub;
-ros::Subscriber pps1000_sub;  
 ros::Subscriber device_sub;
 ros::Publisher diagnostic_pub;
 ros::Publisher resource_pub;
@@ -72,12 +70,22 @@ bool require_pps_to_start;
 bool received_pps;
 ros::Time now;
 ros::Time boot_time;
-double mtime;
 bool device_initialized;
 char hostname[1024];
 ros::Publisher heartbeat_pub;
 icarus_rover_v2::heartbeat beat;
 volatile sig_atomic_t kill_node;
+ros::Time last_10Hz_timer;
+double loop1_rate;
+double loop2_rate;
+double loop3_rate;
+bool run_loop1;
+bool run_loop2;
+bool run_loop3;
+ros::Time last_loop1_timer;
+ros::Time last_loop2_timer;
+ros::Time last_loop3_timer;
+double ros_rate;
 //End Template Code: Define Global Variables
 
 //Start User Code: Define Global Variables

@@ -1,3 +1,4 @@
+OBSOLETE!!!
 #ifndef GPIONODE_H
 #define GPIONODE_H
 //Start Template Code: Includes

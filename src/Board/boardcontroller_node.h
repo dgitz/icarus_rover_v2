@@ -1,3 +1,4 @@
+OBSOLETE!!!
 #ifndef BOARDCONTROLLERNODE_H
 #define BOARDCONTROLLERNODE_H
 //Start Template Code: Includes

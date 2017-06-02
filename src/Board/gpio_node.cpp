@@ -1,3 +1,4 @@
+OBSOLETE!!!
 #include "gpio_node.h"
 //Start User Code: Firmware Definition
 #define GPIONODE_MAJOR_RELEASE 3

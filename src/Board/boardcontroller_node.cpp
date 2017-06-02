@@ -1,3 +1,4 @@
+OBSOLETE!!!
 #include "boardcontroller_node.h"
 //Start User Code: Firmware Definition
 #define BOARDCONTROLLERNODE_MAJOR_RELEASE 0

@@ -1,3 +1,4 @@
+OBSOLETE!!!
 #include "teleop_node.h"
 //Start User Code: Firmware Definition
 #define TELEOPNODE_MAJOR_RELEASE 1

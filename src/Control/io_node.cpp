@@ -1,3 +1,4 @@
+OBSOLETE!!!
 #include "io_node.h"
 //Start User Code: Firmware Definition
 #define IONODE_MAJOR_RELEASE 2

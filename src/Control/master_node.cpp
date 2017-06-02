@@ -5,60 +5,9 @@
 #define MASTERNODE_BUILD_NUMBER 0
 //End User Code: Firmware Definition
 //Start User Code: Functions
-double read_device_temperature()
+bool run_loop1_code()
 {
-	double temp = -100.0;
-	ifstream temp_file ("/sys/class/thermal/thermal_zone0/temp");
-	std::string line;
-	if (temp_file.is_open())
-	{
-		getline (temp_file,line);
-		int t = atoi(line.c_str());
-		temp = (double)(t/1000.0); //In Degrees Celcius
-		temp = temp*(9.0/5.0) + 32.0;  //To Degrees Farenheit
-		temp_file.close();
-	}
-	else
-	{
-		logger->log_error("Unable to read system temperature.");
-	}
-	return temp;
-}
-void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg)
-{
-    logger->log_info("Node Running.");
-	icarus_rover_v2::firmware fw;
-	fw.Generic_Node_Name = "master_node";
-	fw.Node_Name = node_name;
-	fw.Description = "Latest Rev: 27-May-2017";
-	fw.Major_Release = MASTERNODE_MAJOR_RELEASE;
-	fw.Minor_Release = MASTERNODE_MINOR_RELEASE;
-	fw.Build_Number = MASTERNODE_BUILD_NUMBER;
-	firmware_pub.publish(fw);
-}
-void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
-{
-    received_pps = true;
     publish_deviceinfo();
-	icarus_rover_v2::diagnostic resource_diagnostic;
-
-	resource_diagnostic = resourcemonitor->update();
-	if(resource_diagnostic.Diagnostic_Message == DEVICE_NOT_AVAILABLE)
-	{
-		diagnostic_pub.publish(resource_diagnostic);
-		logger->log_warn("Couldn't read resources used.");
-	}
-	else if(resource_diagnostic.Level >= WARN)
-	{
-		resources_used = resourcemonitor->get_resourceused();
-		resource_pub.publish(resources_used);
-		diagnostic_pub.publish(resource_diagnostic);
-	}
-	else if(resource_diagnostic.Level <= NOTICE)
-	{
-		resources_used = resourcemonitor->get_resourceused();
-		resource_pub.publish(resources_used);
-	}
 	icarus_rover_v2::resource device_resource_available;
 	device_resource_available.Node_Name = myDevice.DeviceName;
 	device_resource_available.PID = 0;
@@ -93,25 +42,68 @@ void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 			diagnostic_pub.publish(diagnostic_status);
 		}
 	}
+	return true;
 }
-void PPS10_Callback(const std_msgs::Bool::ConstPtr& msg)
+bool run_loop2_code()
 {
-    beat.stamp = ros::Time::now();
-	heartbeat_pub.publish(beat);
-
-	diagnostic_status.Diagnostic_Type = SOFTWARE;
-	diagnostic_status.Level = INFO;
-	diagnostic_status.Diagnostic_Message = NOERROR;
-	diagnostic_status.Description = "Node Executing.";
-	diagnostic_pub.publish(diagnostic_status);
+ 	return true;
 }
-void PPS100_Callback(const std_msgs::Bool::ConstPtr& msg)
+bool run_loop3_code()
 {
-    //diagnostic_status = process->update(0.01);
-    //diagnostic_pub.publish(diagnostic_status);
+ 	return true;
 }
-void PPS1000_Callback(const std_msgs::Bool::ConstPtr& msg)
+double read_device_temperature()
 {
+	double temp = -100.0;
+	ifstream temp_file ("/sys/class/thermal/thermal_zone0/temp");
+	std::string line;
+	if (temp_file.is_open())
+	{
+		getline (temp_file,line);
+		int t = atoi(line.c_str());
+		temp = (double)(t/1000.0); //In Degrees Celcius
+		temp = temp*(9.0/5.0) + 32.0;  //To Degrees Farenheit
+		temp_file.close();
+	}
+	else
+	{
+		logger->log_error("Unable to read system temperature.");
+	}
+	return temp;
+}
+void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg)
+{
+    logger->log_info("Node Running.");
+	icarus_rover_v2::firmware fw;
+	fw.Generic_Node_Name = "master_node";
+	fw.Node_Name = node_name;
+	fw.Description = "Latest Rev: 27-May-2017";
+	fw.Major_Release = MASTERNODE_MAJOR_RELEASE;
+	fw.Minor_Release = MASTERNODE_MINOR_RELEASE;
+	fw.Build_Number = MASTERNODE_BUILD_NUMBER;
+	firmware_pub.publish(fw);
+}
+void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
+{
+    received_pps = true;
+	icarus_rover_v2::diagnostic resource_diagnostic;
+	resource_diagnostic = resourcemonitor->update();
+	if(resource_diagnostic.Diagnostic_Message == DEVICE_NOT_AVAILABLE)
+	{
+		diagnostic_pub.publish(resource_diagnostic);
+		logger->log_warn("Couldn't read resources used.");
+	}
+	else if(resource_diagnostic.Level >= WARN)
+	{
+		resources_used = resourcemonitor->get_resourceused();
+		resource_pub.publish(resources_used);
+		diagnostic_pub.publish(resource_diagnostic);
+	}
+	else if(resource_diagnostic.Level <= NOTICE)
+	{
+		resources_used = resourcemonitor->get_resourceused();
+		resource_pub.publish(resources_used);
+	}
 }
 std::vector<icarus_rover_v2::diagnostic> check_program_variables()
 {
@@ -176,7 +168,17 @@ void Command_Callback(const icarus_rover_v2::command::ConstPtr& msg)
 	}
 }
 //End User Code: Functions
+bool run_10Hz_code()
+{
+    beat.stamp = ros::Time::now();
+	heartbeat_pub.publish(beat);
 
+    if(diagnostic_status.Level > NOTICE)
+    {
+        diagnostic_pub.publish(diagnostic_status);
+    }
+    return true;
+}
 int main(int argc, char **argv)
 {
 	node_name = "master_node";
@@ -194,9 +196,11 @@ int main(int argc, char **argv)
 		diagnostic_pub.publish(diagnostic_status);
 		kill_node = 1;
     }
-    ros::Rate loop_rate(1);
+    ros::Rate loop_rate(ros_rate);
 	boot_time = ros::Time::now();
     now = ros::Time::now();
+    last_10Hz_timer = ros::Time::now();
+    double mtime;
     while (ros::ok() && (kill_node == 0))
     {
     	bool ok_to_start = false;
@@ -205,7 +209,41 @@ int main(int argc, char **argv)
     	if(ok_to_start == true)
     	{
     		now = ros::Time::now();
-		}
+            if(run_loop1 == true)
+            {
+                mtime = measure_time_diff(now,last_loop1_timer);
+                if(mtime >= (1.0/loop1_rate))
+                {
+                    run_loop1_code();
+                    last_loop1_timer = ros::Time::now();
+                }
+            }
+            if(run_loop2 == true)
+            {
+                mtime = measure_time_diff(now,last_loop2_timer);
+                if(mtime >= (1.0/loop2_rate))
+                {
+                    run_loop2_code();
+                    last_loop2_timer = ros::Time::now();
+                }
+            }
+            if(run_loop3 == true)
+            {
+                mtime = measure_time_diff(now,last_loop3_timer);
+                if(mtime >= (1.0/loop3_rate))
+                {
+                    run_loop3_code();
+                    last_loop3_timer = ros::Time::now();
+                }
+            }
+            
+            mtime = measure_time_diff(now,last_10Hz_timer);
+            if(mtime >= 0.1)
+            {
+                run_10Hz_code();
+                last_10Hz_timer = ros::Time::now();
+            }
+    	}
 		else
 		{
 			logger->log_warn("Waiting on PPS to Start.");
@@ -216,7 +254,6 @@ int main(int argc, char **argv)
     logger->log_notice("Node Finished Safely.");
     return 0;
 }
-
 bool initialize(ros::NodeHandle nh)
 {
     //Start Template Code: Initialization, Parameters and Topics
@@ -265,9 +302,6 @@ bool initialize(ros::NodeHandle nh)
     beat.Node_Name = node_name;
     pps01_sub = nh.subscribe<std_msgs::Bool>("/01PPS",1000,PPS01_Callback); 
     pps1_sub = nh.subscribe<std_msgs::Bool>("/1PPS",1000,PPS1_Callback); 
-    pps10_sub = nh.subscribe<std_msgs::Bool>("/10PPS",1000,PPS10_Callback); 
-    pps100_sub = nh.subscribe<std_msgs::Bool>("/100PPS",1000,PPS100_Callback); 
-    pps1000_sub = nh.subscribe<std_msgs::Bool>("/1000PPS",1000,PPS1000_Callback); 
     command_sub = nh.subscribe<icarus_rover_v2::command>("/command",1000,Command_Callback);
     std::string param_require_pps_to_start = node_name +"/require_pps_to_start";
     if(nh.getParam(param_require_pps_to_start,require_pps_to_start) == false)
@@ -277,6 +311,51 @@ bool initialize(ros::NodeHandle nh)
 	}
     std::string firmware_topic = "/" + node_name + "/firmware";
     firmware_pub =  nh.advertise<icarus_rover_v2::firmware>(firmware_topic,1000);
+
+	double max_rate = 0.0;
+    std::string param_loop1_rate = node_name + "/loop1_rate";
+    if(nh.getParam(param_loop1_rate,loop1_rate) == false)
+    {
+        logger->log_warn("Missing parameter: loop1_rate.  Not running loop1 code.");
+        run_loop1 = false;
+    }
+    else 
+    { 
+        last_loop1_timer = ros::Time::now();
+        run_loop1 = true; 
+        if(loop1_rate > max_rate) { max_rate = loop1_rate; }
+    }
+    
+    std::string param_loop2_rate = node_name + "/loop2_rate";
+    if(nh.getParam(param_loop2_rate,loop2_rate) == false)
+    {
+        logger->log_warn("Missing parameter: loop2_rate.  Not running loop2 code.");
+        run_loop2 = false;
+    }
+    else 
+    { 
+        last_loop2_timer = ros::Time::now();
+        run_loop2 = true; 
+        if(loop2_rate > max_rate) { max_rate = loop2_rate; }
+    }
+    
+    std::string param_loop3_rate = node_name + "/loop3_rate";
+    if(nh.getParam(param_loop3_rate,loop3_rate) == false)
+    {
+        logger->log_warn("Missing parameter: loop3_rate.  Not running loop3 code.");
+        run_loop3 = false;
+    }
+    else 
+    { 
+        last_loop3_timer = ros::Time::now();
+        run_loop3 = true; 
+        if(loop3_rate > max_rate) { max_rate = loop3_rate; }
+    }
+    ros_rate = max_rate * 50.0;
+    if(ros_rate < 100.0) { ros_rate = 100.0; }
+    char tempstr[512];
+    sprintf(tempstr,"Running Node at Rate: %f",ros_rate);
+    logger->log_notice(std::string(tempstr));
     //End Template Code: Initialization and Parameters
 
     //Start User Code: Initialization and Parameters
