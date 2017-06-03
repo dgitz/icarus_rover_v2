@@ -54,6 +54,8 @@ void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 }
 void Joystick_Callback(const sensor_msgs::Joy::ConstPtr& msg,const std::string &topic)
 {
+    //icarus_rover_v2::iopins p_pwmoutputs;
+    //icarus_rover_v2::iopins p_digitaloutputs;
 	for(int i = 0; i < TopicMaps.size();i++)
 	{
         TopicMap map = TopicMaps.at(i);
@@ -65,25 +67,30 @@ void Joystick_Callback(const sensor_msgs::Joy::ConstPtr& msg,const std::string &
                 double in_value = msg->axes[map.in.index];
                 double out = scale_value(in_value,map.out.neutralvalue,map.in.minvalue,map.in.maxvalue,map.out.minvalue,map.out.maxvalue,map.out.deadband);
                 icarus_rover_v2::pin newpin;
+                newpin.stamp = msg->header.stamp;
                 newpin.ParentDevice = map.out.parentdevice;
                 newpin.DefaultValue = (int)map.out.neutralvalue;
                 newpin.Function = map.out.function;
                 newpin.Number = map.out.pinnumber;
                 newpin.Value = (int)out;
+                //p_pwmoutputs.pins.push_back(newpin);
                 map.pub.publish(newpin);
             }
             if(map.in.name == "button")
             {
             	icarus_rover_v2::pin newpin;
+                newpin.stamp = msg->header.stamp;
             	newpin.ParentDevice = map.out.parentdevice;
             	newpin.Function = map.out.function;
             	newpin.Number = map.out.pinnumber;
             	newpin.Value = msg->buttons[map.in.index];
+                //p_digitaloutputs.pins.push_back(newpin);
             	map.pub.publish(newpin);
             }
 		}
 	}
-
+    //pwmoutput_pub.publish(p_pwmoutputs);
+    //digitaloutput_pub.publish(p_digitaloutputs);
 }
 int parse_topicmapfile(TiXmlDocument doc)
 {
@@ -564,14 +571,21 @@ bool initialize(ros::NodeHandle nh)
                 logger->log_info(tempstr);
 				TopicMaps.at(i).sub = sub;
             }
+
 			if(TopicMaps.at(i).out.type == "icarus_rover_v2/pin")
 			{
 				ros::Publisher pub = nh.advertise<icarus_rover_v2::pin>(TopicMaps.at(i).out.topic,1000);
                 TopicMaps.at(i).pub = pub;
 			}
+
 		}
-       
+		/*
+        std::string pwmoutput_topic = "/" + node_name + "/PWMOutput";
+        pwmoutput_pub = nh.advertise<icarus_rover_v2::iopins>(pwmoutput_topic,1);
+        std::string digitaloutput_topic = "/" + node_name + "/DigitalOutput";
+        digitaloutput_pub = nh.advertise<icarus_rover_v2::iopins>(digitaloutput_topic,1);
 		resourcemonitor = new ResourceMonitor(diagnostic_status,myDevice.Architecture,myDevice.DeviceName,node_name);
+		*/
 	}
 	else
 	{

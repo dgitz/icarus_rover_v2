@@ -85,7 +85,6 @@ Logger *logger;
 ResourceMonitor *resourcemonitor;
 bool require_pps_to_start;
 bool received_pps;
-ros::Time now;
 ros::Time boot_time;
 bool device_initialized;
 char hostname[1024];

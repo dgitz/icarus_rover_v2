@@ -18,6 +18,7 @@ void HatControllerNodeProcess::init(std::string name,icarus_rover_v2::diagnostic
     hostname = name;
     time_sincelast_pps = 0.0;
     pps_counter = 0;
+    analyze_timing = false;
 }
 icarus_rover_v2::diagnostic HatControllerNodeProcess::new_ppsmsg(std_msgs::Bool msg)
 {
@@ -36,22 +37,94 @@ icarus_rover_v2::diagnostic HatControllerNodeProcess::new_pinmsg(icarus_rover_v2
 {
     icarus_rover_v2::diagnostic diag = diagnostic;
     int found = -1;
-    for(std::size_t i = 0; i < hats.size(); i++)
+	for(std::size_t i = 0; i < hats.size(); i++)
+	{
+		if(hats.at(i).DeviceName == msg.ParentDevice)
+		{
+			found = 0;
+			for(std::size_t j = 0; j < hats.at(i).pins.size(); j++)
+			{
+				if(hats.at(i).pins.at(j).Number == msg.Number)
+				{
+					found = 1;
+					hats.at(i).pins.at(j) = msg;
+					found = true;
+					break;
+				}
+			}
+		}
+	}
+
+
+    if(found == -1)
     {
-        if(hats.at(i).DeviceName == msg.ParentDevice)
+        diag.Level = INFO;
+        diag.Diagnostic_Type = COMMUNICATIONS;
+        diag.Diagnostic_Message = NOERROR;
+        char tempstr[512];
+        sprintf(tempstr,"Pin Msg for Device: %s but not for me.",msg.ParentDevice.c_str());
+        diag.Description = std::string(tempstr);
+    }
+    else if(found == 0)
+    {
+        diag.Level = WARN;
+        diag.Diagnostic_Type = COMMUNICATIONS;
+        diag.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
+        char tempstr[512];
+        sprintf(tempstr,"Pin Msg for My Hat but Pin not found: %s:%d",msg.ParentDevice.c_str(),msg.Number);
+        diag.Description = std::string(tempstr);
+    }
+    else
+    {
+        if(analyze_timing == true)
         {
-            found = 0;
-            for(std::size_t j = 0; j < hats.at(i).pins.size(); j++)
+            struct timeval now;
+            gettimeofday(&now,NULL);           
+            diag.Level = INFO;
+            diag.Diagnostic_Type = COMMUNICATIONS;
+            diag.Diagnostic_Message = NOERROR;
+            char tempstr[512];
+            sprintf(tempstr,"Updated Pin %s:%d to value: %d. Elap Time: %f",msg.ParentDevice.c_str(),msg.Number,msg.Value,measure_time_diff(msg.stamp,now));
+            diag.Description = std::string(tempstr);
+        }
+        else
+        {
+            diag.Level = INFO;
+            diag.Diagnostic_Type = COMMUNICATIONS;
+            diag.Diagnostic_Message = NOERROR;
+            char tempstr[512];
+            sprintf(tempstr,"Updated Pin %s:%d to value: %d.",msg.ParentDevice.c_str(),msg.Number,msg.Value);
+            diag.Description = std::string(tempstr);
+        }
+    }
+    return diag;
+
+}
+icarus_rover_v2::diagnostic HatControllerNodeProcess::new_pinsmsg(icarus_rover_v2::iopins msg)
+{
+    icarus_rover_v2::diagnostic diag = diagnostic;
+    int found = -1;
+    for(std::size_t k = 0; k < msg.pins.size(); k++)
+    {
+        for(std::size_t i = 0; i < hats.size(); i++)
+        {
+            if(hats.at(i).DeviceName == msg.pins.at(k).ParentDevice)
             {
-                if(hats.at(i).pins.at(j).Number == msg.Number)
+                found = 0;
+                for(std::size_t j = 0; j < hats.at(i).pins.size(); j++)
                 {
-                    found = 1;
-                    hats.at(i).pins.at(j) = msg;
-                    found = true;
+                    if(hats.at(i).pins.at(j).Number == msg.pins.at(k).Number)
+                    {
+                        found = 1;
+                        hats.at(i).pins.at(j) = msg.pins.at(k);
+                        found = true;
+                        break;
+                    }
                 }
             }
         }
     }
+    /*
     if(found == -1)
     {
         diag.Level = INFO;
@@ -79,6 +152,13 @@ icarus_rover_v2::diagnostic HatControllerNodeProcess::new_pinmsg(icarus_rover_v2
         sprintf(tempstr,"Updated Pin %s:%d to value: %d.",msg.ParentDevice.c_str(),msg.Number,msg.Value);
         diag.Description = std::string(tempstr);
     }
+    */
+    diag.Level = INFO;
+    diag.Diagnostic_Type = COMMUNICATIONS;
+    diag.Diagnostic_Message = NOERROR;
+    char tempstr[512];
+    sprintf(tempstr,"Updated Pins %d",(int)msg.pins.size());
+    diag.Description = std::string(tempstr);
     return diag;
     
 }
@@ -411,4 +491,37 @@ bool HatControllerNodeProcess::board_present(icarus_rover_v2::device device)
         }
     }
     return false;
+}
+double HatControllerNodeProcess::measure_time_diff(struct timeval start, struct timeval end)
+{
+    double t1 = (double)(start.tv_sec)+((double)(start.tv_usec)/1000000.0);
+    double t2 = (double)(end.tv_sec)+((double)(end.tv_usec)/1000000.0);
+    return t2-t1;
+}
+double HatControllerNodeProcess::measure_time_diff(ros::Time start, struct timeval end)
+{
+    double t1 = (double)start.sec + (double)(start.nsec)/1000000000.0;
+    double t2 = (double)(end.tv_sec)+((double)(end.tv_usec)/1000000.0);
+    return t2-t1;
+}
+double HatControllerNodeProcess::measure_time_diff(double start, struct timeval end)
+{
+    double t2 = (double)(end.tv_sec)+((double)(end.tv_usec)/1000000.0);
+    return t2-start;
+}
+double HatControllerNodeProcess::measure_time_diff(struct timeval start, double end)
+{
+    double t1 = (double)(start.tv_sec)+((double)(start.tv_usec)/1000000.0);
+    return end-t1;
+}
+double HatControllerNodeProcess::measure_time_diff(double start, double end)
+{
+    return end-start;
+}
+ros::Time HatControllerNodeProcess::convert_time(struct timeval t_)
+{
+    ros::Time t;
+    t.sec = t_.tv_sec;
+    t.nsec = t_.tv_usec*1000;
+    return t;
 }

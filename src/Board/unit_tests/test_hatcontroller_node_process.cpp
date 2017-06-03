@@ -41,6 +41,7 @@ TEST(DeviceInitialization,DeviceInitialization_TerminalHat)
     std::string log_output = Node_Name + boost::lexical_cast<std::string>(1);
     logger = new Logger("DEBUG","UNIT_TESTS",log_output);
     process.init(Host_Name,diagnostic);
+    process.set_analyzetiming(true);
     EXPECT_EQ(process.get_armedstate(),ARMEDSTATUS_DISARMED_CANNOTARM);
     EXPECT_EQ(process.get_ready_to_arm(),false);
     
@@ -144,16 +145,24 @@ TEST(DeviceInitialization,DeviceInitialization_TerminalHat)
     
     
     int value = 0;
+    //icarus_rover_v2::iopins p;
     for(std::size_t i = 0; i < input_pins.size(); i++)
     {
         icarus_rover_v2::pin pin = input_pins.at(i);
         pin.Value = value;
         value = !value;
         gpio_input_pins.at(i) = pin;
+        struct timeval now;
+        gettimeofday(&now,NULL);
+        pin.stamp = process.convert_time(now);
+        usleep(10000);
         diagnostic = process.new_pinmsg(pin);
         EXPECT_TRUE(diagnostic.Level <= NOTICE);
+        //p.pins.push_back(pin);
+       
     }
     
+
     input_pins.clear();
     input_pins = process.get_terminalhatpins("DigitalInput");
     EXPECT_TRUE(input_pins.size() == gpio_input_pins.size());
@@ -189,6 +198,7 @@ TEST(DeviceInitialization,DeviceInitialization_ServoHat)
     std::string log_output = Node_Name + boost::lexical_cast<std::string>(1);
     logger = new Logger("DEBUG","UNIT_TESTS",log_output);
     process.init(Host_Name,diagnostic);
+    process.set_analyzetiming(true);
     EXPECT_EQ(process.get_armedstate(),ARMEDSTATUS_DISARMED_CANNOTARM);
     EXPECT_EQ(process.get_ready_to_arm(),false);
     
@@ -305,17 +315,23 @@ TEST(DeviceInitialization,DeviceInitialization_ServoHat)
         }
     }
     
-    
+    //icarus_rover_v2::iopins p;
     for(std::size_t i = 0; i < hat1.pins.size(); i++)
     {
         icarus_rover_v2::pin pin = hat1.pins.at(i);
         pin.Value = 1000 + i*5;
         hat1.pins.at(i).Value = pin.Value;
+        struct timeval now;
+        gettimeofday(&now,NULL);
+        pin.stamp = process.convert_time(now);
+        usleep(10000);
         diagnostic = process.new_pinmsg(pin);
         EXPECT_TRUE(diagnostic.Level <= NOTICE);
+       
     }
     
     
+
     pins.clear();
     pins = process.get_servohatpins(servohats.at(0));
     EXPECT_TRUE(pins.size() == hat1.pins.size());

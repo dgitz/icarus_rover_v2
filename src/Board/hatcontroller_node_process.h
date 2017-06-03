@@ -14,14 +14,14 @@
 #include "icarus_rover_v2/device.h"
 #include "icarus_rover_v2/command.h"
 #include "icarus_rover_v2/pin.h"
+#include "icarus_rover_v2/iopins.h"
 #include "icarus_rover_v2/firmware.h"
 #include <std_msgs/Bool.h>
 #include <std_msgs/UInt8.h>
-#include <serialmessage.h>
 #include "logger.h"
 #include <math.h>
 #include <sys/time.h>
-
+#include "ros/time.h"
 using std::string;
 using namespace std;
 class HatControllerNodeProcess
@@ -35,8 +35,10 @@ public:
     bool get_ready_to_arm() { return ready_to_arm; }
     bool is_initialized() { return initialized; }
     bool is_ready() { return ready; }
+    bool set_analyzetiming(bool v) { analyze_timing = v; }
     icarus_rover_v2::diagnostic update(double dt);
     icarus_rover_v2::diagnostic new_commandmsg(icarus_rover_v2::command msg);
+    icarus_rover_v2::diagnostic new_pinsmsg(icarus_rover_v2::iopins msg);
     icarus_rover_v2::diagnostic new_pinmsg(icarus_rover_v2::pin msg);
     icarus_rover_v2::diagnostic new_ppsmsg(std_msgs::Bool msg);
      
@@ -48,10 +50,17 @@ public:
     //Terminal Hat Functions
     icarus_rover_v2::diagnostic set_terminalhat_initialized();
     std::vector<icarus_rover_v2::pin> get_terminalhatpins(std::string Function);
+    ros::Time convert_time(struct timeval t);
     
 protected:
 private:
     bool board_present(icarus_rover_v2::device device);
+    double measure_time_diff(struct timeval start, struct timeval end);
+    double measure_time_diff(ros::Time start, struct timeval end);
+    double measure_time_diff(double start, struct timeval end);
+    double measure_time_diff(double start, double end);
+    double measure_time_diff(struct timeval start, double end);
+    
     bool initialized;
     bool ready;
     std::string hostname;
@@ -63,6 +72,7 @@ private:
     std::vector<bool> hats_running;
     uint64_t pps_counter;
     double time_sincelast_pps;
+    bool analyze_timing;
 
 };
 #endif

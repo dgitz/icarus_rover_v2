@@ -202,9 +202,7 @@ void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg)
 }
 void DigitalOutput_Callback(const icarus_rover_v2::pin::ConstPtr& msg)
 {
-	ros::Time now = ros::Time::now();
-
-	double dt = measure_time_diff(now,last_digitaloutput_time);
+	double dt = measure_time_diff(ros::Time::now(),last_digitaloutput_time);
 	//if(dt < .05) { return; } //Only update at 20 Hz
 	last_digitaloutput_time = ros::Time::now();
 	icarus_rover_v2::pin pinmsg;
@@ -228,6 +226,7 @@ void PwmOutput_Callback(const icarus_rover_v2::pin::ConstPtr& msg)
 	//last_pwmoutput_sub_time = ros::Time::now();
 
 	icarus_rover_v2::pin pinmsg;
+    pinmsg.stamp = msg->stamp;
 	pinmsg.ParentDevice = msg->ParentDevice;
 	pinmsg.Number = msg->Number;
 	pinmsg.Function = msg->Function;
@@ -238,6 +237,35 @@ void PwmOutput_Callback(const icarus_rover_v2::pin::ConstPtr& msg)
     logger->log_diagnostic(diagnostic_status);
     if(diagnostic_status.Level > INFO) {   diagnostic_pub.publish(diagnostic_status); }
 	
+}
+void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
+{
+	received_pps = true;
+    std_msgs::Bool pps;
+    pps.data = msg->data;
+    diagnostic_status = process.new_ppsmsg(pps);
+    if(diagnostic_status.Level > NOTICE) {   diagnostic_pub.publish(diagnostic_status); }
+    if(device_initialized == true)
+	{
+		icarus_rover_v2::diagnostic resource_diagnostic;
+		resource_diagnostic = resourcemonitor->update();
+		if(resource_diagnostic.Diagnostic_Message == DEVICE_NOT_AVAILABLE)
+		{
+			diagnostic_pub.publish(resource_diagnostic);
+			logger->log_warn("Couldn't read resources used.");
+		}
+		else if(resource_diagnostic.Level >= WARN)
+		{
+			resources_used = resourcemonitor->get_resourceused();
+			resource_pub.publish(resources_used);
+			diagnostic_pub.publish(resource_diagnostic);
+		}
+		else if(resource_diagnostic.Level <= NOTICE)
+		{
+			resources_used = resourcemonitor->get_resourceused();
+			resource_pub.publish(resources_used);
+		}
+	}
 }
 std::vector<icarus_rover_v2::diagnostic> check_program_variables()
 {
@@ -281,6 +309,16 @@ void Command_Callback(const icarus_rover_v2::command::ConstPtr& msg)
 	
 }
 //End User Code: Functions
+bool run_10Hz_code()
+{
+    beat.stamp = ros::Time::now();
+	heartbeat_pub.publish(beat);
+    if(diagnostic_status.Level > NOTICE)
+    {
+        diagnostic_pub.publish(diagnostic_status);
+    }
+    return true;
+}
 int main(int argc, char **argv)
 {
 	node_name = "hatcontroller_node";
@@ -301,9 +339,9 @@ int main(int argc, char **argv)
     }
     ros::Rate loop_rate(ros_rate);
 	boot_time = ros::Time::now();
-    now = ros::Time::now();
     last_10Hz_timer = ros::Time::now();
     double mtime;
+    double loop1_t, loop2_t = 0.0;
     while (ros::ok() && (kill_node == 0))
     {
     	bool ok_to_start = false;
@@ -311,28 +349,33 @@ int main(int argc, char **argv)
 		else if(require_pps_to_start == true && received_pps == true) { ok_to_start = true; }
     	if(ok_to_start == true)
     	{
-    		now = ros::Time::now();
             if(run_loop1 == true)
             {
-                mtime = measure_time_diff(now,last_loop1_timer);
+            	ros::Time start = ros::Time::now();
+                mtime = measure_time_diff(ros::Time::now(),last_loop1_timer);
                 if(mtime >= (1.0/loop1_rate))
                 {
                     run_loop1_code();
+                    loop1_t = measure_time_diff(ros::Time::now(),start);
                     last_loop1_timer = ros::Time::now();
                 }
+
             }
             if(run_loop2 == true)
             {
-                mtime = measure_time_diff(now,last_loop2_timer);
+                mtime = measure_time_diff(ros::Time::now(),last_loop2_timer);
+                ros::Time start = ros::Time::now();
                 if(mtime >= (1.0/loop2_rate))
                 {
                     run_loop2_code();
+                    loop2_t = measure_time_diff(ros::Time::now(),start);
                     last_loop2_timer = ros::Time::now();
                 }
+
             }
             if(run_loop3 == true)
             {
-                mtime = measure_time_diff(now,last_loop3_timer);
+                mtime = measure_time_diff(ros::Time::now(),last_loop3_timer);
                 if(mtime >= (1.0/loop3_rate))
                 {
                     run_loop3_code();
@@ -340,9 +383,10 @@ int main(int argc, char **argv)
                 }
             }
             
-            mtime = measure_time_diff(now,last_10Hz_timer);
+            mtime = measure_time_diff(ros::Time::now(),last_10Hz_timer);
             if(mtime >= 0.1)
             {
+            	//printf("beat: %f %f %f\n",mtime,loop1_t,loop2_t);
                 run_10Hz_code();
                 last_10Hz_timer = ros::Time::now();
             }
@@ -400,14 +444,14 @@ bool initializenode()
     }
     
     std::string heartbeat_topic = "/" + node_name + "/heartbeat";
-    heartbeat_pub = n->advertise<icarus_rover_v2::heartbeat>(heartbeat_topic,1000);
+    heartbeat_pub = n->advertise<icarus_rover_v2::heartbeat>(heartbeat_topic,1);
     beat.Node_Name = node_name;
     std::string device_topic = "/" + std::string(hostname) +"_master_node/device";
-    device_sub = n->subscribe<icarus_rover_v2::device>(device_topic,1000,Device_Callback);
+    device_sub = n->subscribe<icarus_rover_v2::device>(device_topic,1,Device_Callback);
 
     pps01_sub = n->subscribe<std_msgs::Bool>("/01PPS",1000,PPS01_Callback);
     pps1_sub = n->subscribe<std_msgs::Bool>("/1PPS",1000,PPS1_Callback);  
-    command_sub = n->subscribe<icarus_rover_v2::command>("/command",1000,Command_Callback);
+    command_sub = n->subscribe<icarus_rover_v2::command>("/command",1,Command_Callback);
     std::string param_require_pps_to_start = node_name +"/require_pps_to_start";
     if(n->getParam(param_require_pps_to_start,require_pps_to_start) == false)
 	{
@@ -415,11 +459,11 @@ bool initializenode()
 		return false;
 	}
     std::string firmware_topic = "/" + node_name + "/firmware";
-    firmware_pub =  n->advertise<icarus_rover_v2::firmware>(firmware_topic,1000);
+    firmware_pub =  n->advertise<icarus_rover_v2::firmware>(firmware_topic,1);
 
 	double max_rate = 0.0;
     std::string param_loop1_rate = node_name + "/loop1_rate";
-    if(nh.getParam(param_loop1_rate,loop1_rate) == false)
+    if(n->getParam(param_loop1_rate,loop1_rate) == false)
     {
         logger->log_warn("Missing parameter: loop1_rate.  Not running loop1 code.");
         run_loop1 = false;
@@ -432,7 +476,7 @@ bool initializenode()
     }
     
     std::string param_loop2_rate = node_name + "/loop2_rate";
-    if(nh.getParam(param_loop2_rate,loop2_rate) == false)
+    if(n->getParam(param_loop2_rate,loop2_rate) == false)
     {
         logger->log_warn("Missing parameter: loop2_rate.  Not running loop2 code.");
         run_loop2 = false;
@@ -445,7 +489,7 @@ bool initializenode()
     }
     
     std::string param_loop3_rate = node_name + "/loop3_rate";
-    if(nh.getParam(param_loop3_rate,loop3_rate) == false)
+    if(n->getParam(param_loop3_rate,loop3_rate) == false)
     {
         logger->log_warn("Missing parameter: loop3_rate.  Not running loop3 code.");
         run_loop3 = false;
@@ -467,18 +511,32 @@ bool initializenode()
     ready_to_arm  = false;
     std::string sensor_spec_path;
     std::string armed_state_topic = "/armed_state";
-    armed_state_sub = n->subscribe<std_msgs::UInt8>(armed_state_topic,1000,ArmedState_Callback);
+    armed_state_sub = n->subscribe<std_msgs::UInt8>(armed_state_topic,1,ArmedState_Callback);
 
     //process = new BoardControllerNodeProcess;
 	//diagnostic_status = process->init(diagnostic_status,logger,std::string(hostname),sensor_spec_path,extrapolate);
+    bool analyze_timing;
     process.init(hostname,diagnostic_status);
+    std::string param_analyze_timing = node_name + "/loop3_rate";
+    if(n->getParam(param_analyze_timing,analyze_timing) == false)
+    {
+        logger->log_notice("Missing parameter: analyze_timing.  Not analyzing timing.");
+    }
+    else 
+    {
+        if(analyze_timing == true)
+        {
+            logger->log_notice("Analyzing Timing.");
+        }
+        process.set_analyzetiming(analyze_timing);
+    }
     last_message_received_time = ros::Time::now();
     std::string digitalinput_topic = "/" + node_name + "/DigitalInput";
-    digitalinput_pub = n->advertise<icarus_rover_v2::pin>(digitalinput_topic,1000);
+    digitalinput_pub = n->advertise<icarus_rover_v2::pin>(digitalinput_topic,1);
     std::string analoginput_topic = "/" + node_name + "/AnalogInput";
-	analoginput_pub = n->advertise<icarus_rover_v2::pin>(analoginput_topic,1000);
+	analoginput_pub = n->advertise<icarus_rover_v2::pin>(analoginput_topic,1);
 	std::string forcesensorinput_topic = "/" + node_name + "/ForceSensorInput";
-	forcesensorinput_pub = n->advertise<icarus_rover_v2::pin>(forcesensorinput_topic,1000);
+	forcesensorinput_pub = n->advertise<icarus_rover_v2::pin>(forcesensorinput_topic,1);
 	std::string digitaloutput_topic = "/" + node_name + "/DigitalOutput";
 	digitaloutput_sub = n->subscribe<icarus_rover_v2::pin>(digitaloutput_topic,5,DigitalOutput_Callback);
 	last_digitaloutput_time = ros::Time::now();
@@ -488,7 +546,7 @@ bool initializenode()
 
 
 	std::string ready_to_arm_topic = node_name + "/ready_to_arm";
-	ready_to_arm_pub = n->advertise<std_msgs::Bool>(ready_to_arm_topic,1000);
+	ready_to_arm_pub = n->advertise<std_msgs::Bool>(ready_to_arm_topic,1);
 
 	ServoHats_running = false;
 	ServoHats.clear();

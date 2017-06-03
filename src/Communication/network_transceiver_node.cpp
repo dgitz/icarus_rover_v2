@@ -301,12 +301,14 @@ void process_udp_receive()
 				break;
 			case UDPMessageHandler::UDP_RemoteControl_ID:
 
-				success = udpmessagehandler->decode_RemoteControlUDP(items,&axis1,&axis2,&axis3,&axis4,&axis5,&axis6,&axis7,&axis8,
+				success = udpmessagehandler->decode_RemoteControlUDP(items,&t,&axis1,&axis2,&axis3,&axis4,&axis5,&axis6,&axis7,&axis8,
 																	&button1,&button2,&button3,&button4,&button5,&button6,&button7,&button8);
 				if(success == 1)
 				{
 					sensor_msgs::Joy newjoy;
-					newjoy.header.stamp = ros::Time::now();
+                    double send_time = t/1000.0;
+					newjoy.header.stamp.sec = floor(t);
+                    newjoy.header.stamp.nsec = (send_time-newjoy.header.stamp.sec)*1000000000;
 					newjoy.header.frame_id = "/world";
 					newjoy.axes.push_back((float)(axis1/32768.0));
 					newjoy.axes.push_back((float)(axis2/32768.0));

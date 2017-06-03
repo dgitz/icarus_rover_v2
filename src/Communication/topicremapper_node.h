@@ -27,6 +27,7 @@
 //Start User Code: Includes
 #include <tinyxml.h>
 #include <sensor_msgs/Joy.h>
+#include <icarus_rover_v2/iopins.h>
 //End User Code: Includes
 
 //Start User Code: Data Structures
@@ -121,6 +122,8 @@ double ros_rate;
 //Start User Code: Define Global Variables
 
 std::vector<TopicMap> TopicMaps;
+//ros::Publisher pwmoutput_pub;
+//ros::Publisher digitaloutput_pub;
 ros::Subscriber joy_sub;
 //End User Code: Define Global Variables
 #endif
