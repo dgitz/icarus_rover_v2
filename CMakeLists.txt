@@ -74,6 +74,7 @@ add_message_files(
   usermessage.msg
   battery.msg
   iopins.msg
+  estop.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -226,6 +227,7 @@ add_library(sample_node_process src_templates/sample_node_process.cpp)
 add_library(speaker_node_process src/Communication/speaker_node_process.cpp)
 add_library(command_node_process src/Control/command_node_process.cpp)
 add_library(hatcontroller_node_process src/Board/hatcontroller_node_process.cpp)
+add_library(safety_node_process src/Diagnostics/safety_node_process.cpp)
 #add_library(powermonitor_node_process src/Control/powermonitor_node_process.cpp)
 
 add_executable(sample_node src_templates/sample_node.cpp)
@@ -271,3 +273,6 @@ target_link_libraries(test_speaker_node_process ${catkin_LIBRARIES} ${Boost_LIBR
 #target_link_libraries(hatcontroller_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor hatcontroller_node_process)
 catkin_add_gtest(test_hatcontroller_node_process src/Board/unit_tests/test_hatcontroller_node_process.cpp)
 target_link_libraries(test_hatcontroller_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} hatcontroller_node_process logger)
+
+catkin_add_gtest(test_safety_node_process src/Diagnostics/unit_tests/test_safety_node_process.cpp)
+target_link_libraries(test_safety_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} safety_node_process logger)

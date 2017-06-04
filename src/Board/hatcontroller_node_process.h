@@ -22,6 +22,7 @@
 #include <math.h>
 #include <sys/time.h>
 #include "ros/time.h"
+#define TIMING_BUFFER_LENGTH 100
 using std::string;
 using namespace std;
 class HatControllerNodeProcess
@@ -35,7 +36,9 @@ public:
     bool get_ready_to_arm() { return ready_to_arm; }
     bool is_initialized() { return initialized; }
     bool is_ready() { return ready; }
-    bool set_analyzetiming(bool v) { analyze_timing = v; }
+    void set_analyzetiming(bool v) { analyze_timing = v; }
+    bool get_analyzetiming() { return analyze_timing; }
+    double get_timedelay();
     icarus_rover_v2::diagnostic update(double dt);
     icarus_rover_v2::diagnostic new_commandmsg(icarus_rover_v2::command msg);
     icarus_rover_v2::diagnostic new_pinsmsg(icarus_rover_v2::iopins msg);
@@ -73,6 +76,6 @@ private:
     uint64_t pps_counter;
     double time_sincelast_pps;
     bool analyze_timing;
-
+    std::vector<double> timing_diff;
 };
 #endif

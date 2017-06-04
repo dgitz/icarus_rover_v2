@@ -240,12 +240,6 @@ void PwmOutput_Callback(const icarus_rover_v2::pin::ConstPtr& msg)
 }
 void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
-	if(process.get_analyzetiming() == true)
-	{
-		char tempstr[512];
-		sprintf(tempstr,"Average Time delay for pin update: %f (sec)",process.get_timedelay());
-		logger->log_info(std::string(tempstr));
-	}
 	received_pps = true;
     std_msgs::Bool pps;
     pps.data = msg->data;
@@ -523,7 +517,7 @@ bool initializenode()
 	//diagnostic_status = process->init(diagnostic_status,logger,std::string(hostname),sensor_spec_path,extrapolate);
     bool analyze_timing;
     process.init(hostname,diagnostic_status);
-    std::string param_analyze_timing = node_name + "/analyze_timing";
+    std::string param_analyze_timing = node_name + "/loop3_rate";
     if(n->getParam(param_analyze_timing,analyze_timing) == false)
     {
         logger->log_notice("Missing parameter: analyze_timing.  Not analyzing timing.");

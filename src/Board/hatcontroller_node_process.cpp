@@ -19,6 +19,7 @@ void HatControllerNodeProcess::init(std::string name,icarus_rover_v2::diagnostic
     time_sincelast_pps = 0.0;
     pps_counter = 0;
     analyze_timing = false;
+    timing_diff.clear();
 }
 icarus_rover_v2::diagnostic HatControllerNodeProcess::new_ppsmsg(std_msgs::Bool msg)
 {
@@ -76,29 +77,41 @@ icarus_rover_v2::diagnostic HatControllerNodeProcess::new_pinmsg(icarus_rover_v2
     }
     else
     {
-        if(analyze_timing == true)
-        {
-            struct timeval now;
-            gettimeofday(&now,NULL);           
-            diag.Level = INFO;
-            diag.Diagnostic_Type = COMMUNICATIONS;
-            diag.Diagnostic_Message = NOERROR;
-            char tempstr[512];
-            sprintf(tempstr,"Updated Pin %s:%d to value: %d. Elap Time: %f",msg.ParentDevice.c_str(),msg.Number,msg.Value,measure_time_diff(msg.stamp,now));
-            diag.Description = std::string(tempstr);
-        }
-        else
-        {
-            diag.Level = INFO;
-            diag.Diagnostic_Type = COMMUNICATIONS;
-            diag.Diagnostic_Message = NOERROR;
+    	if(analyze_timing == true)
+    	{
+    		struct timeval now;
+    		gettimeofday(&now,NULL);
+    		timing_diff.push_back(measure_time_diff(msg.stamp,now));
+    		if(timing_diff.size() > TIMING_BUFFER_LENGTH)
+    		{
+    			timing_diff.erase(timing_diff.begin());
+    		}
+    	}
+
+    	diag.Level = INFO;
+    	diag.Diagnostic_Type = COMMUNICATIONS;
+    	diag.Diagnostic_Message = NOERROR;
             char tempstr[512];
             sprintf(tempstr,"Updated Pin %s:%d to value: %d.",msg.ParentDevice.c_str(),msg.Number,msg.Value);
             diag.Description = std::string(tempstr);
-        }
+
     }
     return diag;
 
+}
+double HatControllerNodeProcess::get_timedelay()
+{
+	std::vector<double> temp = timing_diff;
+	double t = 0.0;
+	if(temp.size() <= (TIMING_BUFFER_LENGTH/2))
+	{
+		return 0.0;
+	}
+	for(std::size_t i = 0; i < temp.size(); i++)
+	{
+		t += temp.at(i);
+	}
+	return t/(double)(temp.size());
 }
 icarus_rover_v2::diagnostic HatControllerNodeProcess::new_pinsmsg(icarus_rover_v2::iopins msg)
 {

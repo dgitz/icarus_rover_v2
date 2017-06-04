@@ -307,7 +307,7 @@ void process_udp_receive()
 				{
 					sensor_msgs::Joy newjoy;
                     double send_time = t/1000.0;
-					newjoy.header.stamp.sec = floor(t);
+					newjoy.header.stamp.sec = floor(send_time);
                     newjoy.header.stamp.nsec = (send_time-newjoy.header.stamp.sec)*1000000000;
 					newjoy.header.frame_id = "/world";
 					newjoy.axes.push_back((float)(axis1/32768.0));

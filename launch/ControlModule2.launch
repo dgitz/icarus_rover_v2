@@ -8,6 +8,7 @@
     <node name="$(env ROS_HOSTNAME)_hatcontroller_node" pkg="icarus_rover_v2" type="hatcontroller_node" output="screen" clear_params="true">  
 	    <param name="verbosity_level"       value="DEBUG"/>
         <param name="require_pps_to_start"  value="false"/>
+        <param name="analyze_timing"        value="true"/>
         <param name="loop1_rate"            value="50.0"/> <!-- Process Update, Hat Update (Pins) -->    
         <param name="loop2_rate"            value="10"/> <!-- Ready To Arm -->
     </node>
