@@ -20,6 +20,7 @@
         <param name="require_pps_to_start"  value="false"/>  
         <param name="ready_to_arm_topic1"   value="/ControlModule2_hatcontroller_node/ready_to_arm"/>
         <param name="ready_to_arm_topic2"   value="/ComputeModule1_diagnostic_node/ready_to_arm" />
+        <param name="ready_to_arm_topic3"   value="/ControlModule2_safety_node/ready_to_arm" />
         <param name="user_command_topic" value="/DriverStation/user_command"/>
         <param name="loop1_rate"            value="10"/> <!-- armed_state -->
         <param name="loop2_rate"            value="20"/> <!-- process update -->

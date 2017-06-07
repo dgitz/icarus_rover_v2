@@ -228,6 +228,7 @@ add_library(speaker_node_process src/Communication/speaker_node_process.cpp)
 add_library(command_node_process src/Control/command_node_process.cpp)
 add_library(hatcontroller_node_process src/Board/hatcontroller_node_process.cpp)
 add_library(safety_node_process src/Diagnostics/safety_node_process.cpp)
+add_library(network_transceiver_node_process src/Communication/network_transceiver_node_process.cpp)
 #add_library(powermonitor_node_process src/Control/powermonitor_node_process.cpp)
 
 add_executable(sample_node src_templates/sample_node.cpp)
@@ -243,7 +244,7 @@ add_executable(diagnostic_node src/Diagnostics/diagnostic_node.cpp)
 target_link_libraries(diagnostic_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} logger resourcemonitor)
 
 add_executable(network_transceiver_node src/Communication/network_transceiver_node.cpp)
-target_link_libraries(network_transceiver_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} logger udpmessage resourcemonitor)
+target_link_libraries(network_transceiver_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} logger udpmessage resourcemonitor network_transceiver_node_process)
 
 add_executable(command_node src/Control/command_node.cpp)
 target_link_libraries(command_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor command_node_process)

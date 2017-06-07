@@ -36,7 +36,10 @@ public:
     bool is_initialized() { return initialized; }
     icarus_rover_v2::estop get_estop() { return estop; }
     icarus_rover_v2::diagnostic new_pinmsg(icarus_rover_v2::pin msg);
+    icarus_rover_v2::diagnostic new_pinvalue(int v);
     bool get_ready_to_arm() { return ready_to_arm; }
+    icarus_rover_v2::diagnostic update();
+    int get_estop_pinnumber() { return PIN_ESTOP; }
     
 protected:
 private:
@@ -45,5 +48,6 @@ private:
     bool initialized;
     std::string hostname;
     icarus_rover_v2::device mydevice;
+    bool ready_to_arm;
 };
 #endif

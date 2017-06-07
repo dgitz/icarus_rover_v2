@@ -25,8 +25,10 @@
 //End User Code: Defines
 
 //Start User Code: Includes
+#include "network_transceiver_node_process.h"
 #include "sensor_msgs/Joy.h"
 #include "std_msgs/UInt8.h"
+#include <icarus_rover_v2/estop.h>
 #include "udpmessage.h"
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -68,6 +70,7 @@ void diagnostic_Callback(const icarus_rover_v2::diagnostic::ConstPtr& msg);
 void device_Callback(const icarus_rover_v2::device::ConstPtr& msg);
 void resource_Callback(const icarus_rover_v2::resource::ConstPtr& msg);
 void ArmedState_Callback(const std_msgs::UInt8::ConstPtr& msg);
+void estop_Callback(const icarus_rover_v2::estop::ConstPtr& msg);
 bool check_remoteHeartbeats();
 //End User Code: Function Prototypes
 
@@ -89,7 +92,6 @@ Logger *logger;
 ResourceMonitor *resourcemonitor;
 bool require_pps_to_start;
 bool received_pps;
-ros::Time now;
 ros::Time boot_time;
 bool device_initialized;
 char hostname[1024];
@@ -141,9 +143,11 @@ std::vector<ros::Subscriber> device_subs;
 std::vector<ros::Subscriber> resource_subs;
 std::vector<ros::Subscriber> diagnostic_subs;
 ros::Subscriber armed_disarmed_state_sub;
+ros::Subscriber estop_sub;
 ros::Publisher user_command_pub;
 ros::Publisher ready_to_arm_pub;
 std::vector<RemoteDevice> remote_devices;
 struct timeval now2;
+NetworkTransceiverNodeProcess process;
 //End User Code: Define Global Variables
 #endif

@@ -1,5 +1,5 @@
-#ifndef HATCONTROLLERNODE_H
-#define HATCONTROLLERNODE_H
+#ifndef SAFETYNODE_H
+#define SAFETYNODE_H
 //Start Template Code: Includes
 #include "ros/ros.h"
 #include "std_msgs/String.h"
@@ -25,10 +25,10 @@
 //End User Code: Defines
 
 //Start User Code: Includes
+#include <icarus_rover_v2/estop.h>
 #include <wiringPiI2C.h>
-#include "hatcontroller_node_process.h"
-#include "Driver/ServoHatDriver.h"
-#include "Driver/TerminalHatDriver.h"
+#include "safety_node_process.h"
+#include "../Board/Driver/TerminalHatDriver.h"
 #include <stdio.h>
 #include <string.h>
 #include <serialmessage.h>
@@ -107,7 +107,7 @@ double ros_rate;
 //Start User Code: Define Global Variables
 boost::shared_ptr<ros::NodeHandle> n;
 ros::Time last_message_received_time;
-HatControllerNodeProcess process;
+SafetyNodeProcess process;
 ros::Publisher digitalinput_pub;
 ros::Subscriber pwmoutput_sub;
 ros::Time last_pwmoutput_sub_time;
@@ -136,9 +136,7 @@ int packet_length;
 ros::Subscriber armed_state_sub;
 bool ready_to_arm;
 ros::Publisher ready_to_arm_pub;
-
-bool ServoHats_running;
-std::vector<ServoHatDriver> ServoHats;
+ros::Publisher estop_pub;
 
 TerminalHatDriver TerminalHat;
 bool TerminalHat_running;

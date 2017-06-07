@@ -1,7 +1,7 @@
 #include "network_transceiver_node.h"
 //Start User Code: Firmware Definition
 #define NETWORKTRANSCEIVERNODE_MAJOR_RELEASE 3
-#define NETWORKTRANSCEIVERNODE_MINOR_RELEASE 0
+#define NETWORKTRANSCEIVERNODE_MINOR_RELEASE 1
 #define NETWORKTRANSCEIVERNODE_BUILD_NUMBER 0
 //End User Code: Firmware Definition
 //Start User Code: Functions
@@ -9,10 +9,13 @@ bool run_loop1_code()
 {
 	diagnostic_status = rescan_topics(diagnostic_status);
 	diagnostic_pub.publish(diagnostic_status);
-	return true;
+    logger->log_info(process.get_messageinfo(false));
+ 	return true;
 }
 bool run_loop2_code()
 {
+       
+
 	if((remote_heartbeat_pass == true) and
 	   (1 == 1)) //Others??
 	{
@@ -29,6 +32,7 @@ bool run_loop2_code()
 }
 bool run_loop3_code()
 {
+    process.update(measure_time_diff(ros::Time::now(),last_loop3_timer));
  	return true;
 }
 bool check_remoteHeartbeats()
@@ -162,6 +166,15 @@ icarus_rover_v2::diagnostic rescan_topics(icarus_rover_v2::diagnostic diag)
 	diag.Description = tempstr;
 	return diag;
 }
+void estop_Callback(const icarus_rover_v2::estop::ConstPtr& msg)
+{
+	std::string send_string = udpmessagehandler->encode_EStopUDP(msg->name,msg->state);
+	if(sendto(senddevice_sock, send_string.c_str(), send_string.size(), 0, (struct sockaddr *)&senddevice_addr, sizeof(senddevice_addr))!=send_string.size())
+	{
+		logger->log_warn("Mismatch in number of bytes sent");
+	}
+    else { process.new_message_sent(ESTOP_ID); }
+}
 void ArmedState_Callback(const std_msgs::UInt8::ConstPtr& msg)
 {
 	std::string send_string = udpmessagehandler->encode_Arm_StatusUDP(
@@ -169,14 +182,14 @@ void ArmedState_Callback(const std_msgs::UInt8::ConstPtr& msg)
 	if(sendto(senddevice_sock, send_string.c_str(), send_string.size(), 0, (struct sockaddr *)&senddevice_addr, sizeof(senddevice_addr))!=send_string.size())
 	{
 		logger->log_warn("Mismatch in number of bytes sent");
-
 	}
+    else { process.new_message_sent(ARM_STATUS_ID); }
 }
 void diagnostic_Callback(const icarus_rover_v2::diagnostic::ConstPtr& msg)
 {
-	char tempstr[255];
-	sprintf(tempstr,"Got Diagnostic from Task: %s with System: %d Level: %d",msg->Node_Name.c_str(),msg->Level,msg->System);
-	logger->log_info(tempstr);
+	//char tempstr[255];
+	//sprintf(tempstr,"Got Diagnostic from Task: %s with System: %d Level: %d",msg->Node_Name.c_str(),msg->Level,msg->System);
+	//logger->log_info(tempstr);
 	std::string send_string = udpmessagehandler->encode_DiagnosticUDP(
 																		msg->DeviceName,
 																		msg->Node_Name,
@@ -190,28 +203,28 @@ void diagnostic_Callback(const icarus_rover_v2::diagnostic::ConstPtr& msg)
 	if(sendto(senddevice_sock, send_string.c_str(), send_string.size(), 0, (struct sockaddr *)&senddevice_addr, sizeof(senddevice_addr))!=send_string.size())
 	{
 		  logger->log_warn("Mismatch in number of bytes sent");
-
 	}
+    else { process.new_message_sent(DIAGNOSTIC_ID); }
 }
 void resource_Callback(const icarus_rover_v2::resource::ConstPtr& msg)
 {
-	char tempstr[240];
-	sprintf(tempstr,"Got Resource from Task: %s",msg->Node_Name.c_str());
-	logger->log_info(tempstr);
+	//char tempstr[240];
+	//sprintf(tempstr,"Got Resource from Task: %s",msg->Node_Name.c_str());
+	//logger->log_info(tempstr);
 	std::string send_string = udpmessagehandler->encode_ResourceUDP(msg->Node_Name,
 																	msg->RAM_MB,
 																	msg->CPU_Perc);
 	if(sendto(senddevice_sock, send_string.c_str(), send_string.size(), 0, (struct sockaddr *)&senddevice_addr, sizeof(senddevice_addr))!=send_string.size())
 	{
 		  logger->log_warn("Mismatch in number of bytes sent");
-
 	}
+    else { process.new_message_sent(RESOURCE_ID); }    
 }
 void device_Callback(const icarus_rover_v2::device::ConstPtr& msg)
 {
-	char tempstr[240];
-	sprintf(tempstr,"Got Device from Task: %s",msg->DeviceName.c_str());
-	logger->log_info(tempstr);
+	//char tempstr[240];
+	//sprintf(tempstr,"Got Device from Task: %s",msg->DeviceName.c_str());
+	//logger->log_info(tempstr);
 	std::string send_string = udpmessagehandler->encode_DeviceUDP(msg->DeviceParent,
 																msg->DeviceName,
 																msg->DeviceType,
@@ -219,9 +232,8 @@ void device_Callback(const icarus_rover_v2::device::ConstPtr& msg)
 	if(sendto(senddevice_sock, send_string.c_str(), send_string.size(), 0, (struct sockaddr *)&senddevice_addr, sizeof(senddevice_addr))!=send_string.size())
 	{
 		  logger->log_warn("Mismatch in number of bytes sent");
-
-
 	}
+    else { process.new_message_sent(DEVICE_ID); }    
 }
 void process_udp_receive()
 {
@@ -246,6 +258,7 @@ void process_udp_receive()
 		uint8_t button1,button2,button3,button4,button5,button6,button7,button8;
 		std::string tempstr1,tempstr2;
 		uint64_t t,t2;
+        process.new_message_recv(id);
 		switch (id)
 		{
 
@@ -420,7 +433,7 @@ void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg)
 	icarus_rover_v2::firmware fw;
 	fw.Generic_Node_Name = "network_transceiver_Node";
 	fw.Node_Name = node_name;
-	fw.Description = "Latest Rev: 27-May-2017";
+	fw.Description = "Latest Rev: 5-June-2017";
 	fw.Major_Release = NETWORKTRANSCEIVERNODE_MAJOR_RELEASE;
 	fw.Minor_Release = NETWORKTRANSCEIVERNODE_MINOR_RELEASE;
 	fw.Build_Number = NETWORKTRANSCEIVERNODE_BUILD_NUMBER;
@@ -535,7 +548,6 @@ int main(int argc, char **argv)
     }
     ros::Rate loop_rate(ros_rate);
 	boot_time = ros::Time::now();
-    now = ros::Time::now();
     double mtime;
 	int counter = 0;
 	boost::thread process_udpreceive_thread(&process_udp_receive);
@@ -546,10 +558,9 @@ int main(int argc, char **argv)
 		else if(require_pps_to_start == true && received_pps == true) { ok_to_start = true; }
     	if(ok_to_start == true)
     	{
-    		now = ros::Time::now();
             if(run_loop1 == true)
             {
-                mtime = measure_time_diff(now,last_loop1_timer);
+                mtime = measure_time_diff(ros::Time::now(),last_loop1_timer);
                 if(mtime >= (1.0/loop1_rate))
                 {
                     run_loop1_code();
@@ -558,7 +569,7 @@ int main(int argc, char **argv)
             }
             if(run_loop2 == true)
             {
-                mtime = measure_time_diff(now,last_loop2_timer);
+                mtime = measure_time_diff(ros::Time::now(),last_loop2_timer);
                 if(mtime >= (1.0/loop2_rate))
                 {
                     run_loop2_code();
@@ -567,7 +578,7 @@ int main(int argc, char **argv)
             }
             if(run_loop3 == true)
             {
-                mtime = measure_time_diff(now,last_loop3_timer);
+                mtime = measure_time_diff(ros::Time::now(),last_loop3_timer);
                 if(mtime >= (1.0/loop3_rate))
                 {
                     run_loop3_code();
@@ -575,7 +586,7 @@ int main(int argc, char **argv)
                 }
             }
             
-            mtime = measure_time_diff(now,last_10Hz_timer);
+            mtime = measure_time_diff(ros::Time::now(),last_10Hz_timer);
             if(mtime >= 0.1)
             {
                 run_10Hz_code();
@@ -771,6 +782,10 @@ bool initializenode()
 	}
 	std::string ready_to_arm_topic = node_name + "/ready_to_arm";
 	ready_to_arm_pub = n->advertise<std_msgs::Bool>(ready_to_arm_topic,1000);
+
+	estop_sub = n->subscribe<icarus_rover_v2::estop>("/estop",5,estop_Callback);
+
+    process.init(diagnostic_status,std::string(hostname));
 	udpmessagehandler = new UDPMessageHandler();
 
 
