@@ -62,7 +62,12 @@ public:
 	int get_timeout_ms() { return timeout_value_ms; }
 	long get_timer_ms() { return ms_timer; }
 	bool reset_timer() { ms_timer = 0; timer_timeout = false; return true;}
-	icarus_rover_v2::command get_currentcommand() { return current_command; }
+	icarus_rover_v2::command get_currentcommand()
+	{
+		icarus_rover_v2::command c = current_command;
+		current_command.Command = ROVERCOMMAND_NONE;
+		return c;
+	}
 	int get_currentstate() { return node_state; }
 	void set_batterylevel_perc(double v) { batterylevel_perc = v; }
 	double get_batterylevel_perc() { return batterylevel_perc; }

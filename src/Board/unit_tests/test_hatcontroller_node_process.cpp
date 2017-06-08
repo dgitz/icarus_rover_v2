@@ -15,6 +15,7 @@ std::string ros_DeviceType = "ControlModule";
 
 HatControllerNodeProcess initialized_process;
 HatControllerNodeProcess configured_process;
+/*
 TEST(DeviceInitialization,DeviceInitialization_TerminalHat)
 {
     HatControllerNodeProcess process;
@@ -114,9 +115,7 @@ TEST(DeviceInitialization,DeviceInitialization_TerminalHat)
     }   
     
     
-    icarus_rover_v2::command armdisarm_command;
-    armdisarm_command.Command = ROVERCOMMAND_ARM;
-    diagnostic = process.new_commandmsg(armdisarm_command);
+    diagnostic = process.new_armedstatemsg(ARMEDSTATUS_ARMED);
     EXPECT_TRUE(diagnostic.Level <= NOTICE);
     EXPECT_TRUE(process.get_armedstate() == ARMEDSTATUS_ARMED);
     
@@ -128,8 +127,6 @@ TEST(DeviceInitialization,DeviceInitialization_TerminalHat)
         EXPECT_TRUE(output_actuator_pins.at(i).Value == gpio_output_actuator_pins.at(i).Value);
     }
     
-    armdisarm_command.Command = ROVERCOMMAND_DISARM;
-    diagnostic = process.new_commandmsg(armdisarm_command);
     EXPECT_TRUE(diagnostic.Level <= NOTICE);
     diagnostic = process.update(0.02);
     EXPECT_TRUE(diagnostic.Level <= NOTICE);
@@ -171,7 +168,7 @@ TEST(DeviceInitialization,DeviceInitialization_TerminalHat)
         EXPECT_TRUE(input_pins.at(i).Value == gpio_input_pins.at(i).Value);
     }
 }
-
+*/
 TEST(DeviceInitialization,DeviceInitialization_ServoHat)
 {
     HatControllerNodeProcess process;
@@ -232,27 +229,22 @@ TEST(DeviceInitialization,DeviceInitialization_ServoHat)
         newpin.ParentDevice = hat1.DeviceName;
         hat1.pins.push_back(newpin);
    	}
-    
     diagnostic = process.update(0.02);
     EXPECT_TRUE(diagnostic.Level <= NOTICE);
     
     diagnostic = process.new_devicemsg(hat1);
     EXPECT_TRUE(diagnostic.Level <= NOTICE);
     EXPECT_TRUE(process.is_ready() == true);
-    
     diagnostic = process.set_servohat_initialized(0);
     EXPECT_TRUE(diagnostic.Level > NOTICE);
     
     diagnostic = process.set_servohat_initialized(hat1.ID);
     EXPECT_TRUE(diagnostic.Level <= NOTICE);
-    
     diagnostic = process.update(0.02);
     EXPECT_TRUE(diagnostic.Level <= NOTICE);
-    
     EXPECT_EQ(process.get_ready_to_arm(),true);
     std::vector<icarus_rover_v2::pin> pins = process.get_servohatpins(hat1.ID);
     EXPECT_TRUE(pins.size() == hat1.pins.size());
-    
     for(std::size_t i = 0; i < hat1.pins.size(); i++)
     {
         EXPECT_TRUE(hat1.pins.at(i).Number == pins.at(i).Number);
@@ -269,10 +261,7 @@ TEST(DeviceInitialization,DeviceInitialization_ServoHat)
             EXPECT_TRUE(1 == 0); //Shouldn't get here
         }
     }
-    
-    icarus_rover_v2::command armdisarm_command;
-    armdisarm_command.Command = ROVERCOMMAND_ARM;
-    diagnostic = process.new_commandmsg(armdisarm_command);
+    diagnostic = process.new_armedstatemsg((uint8_t)(ARMEDSTATUS_ARMED));
     EXPECT_TRUE(diagnostic.Level <= NOTICE);
     
     pins.clear();
@@ -287,13 +276,12 @@ TEST(DeviceInitialization,DeviceInitialization_ServoHat)
         EXPECT_TRUE(hat1.pins.at(i).Value == pins.at(i).Value);
     }
     
-    armdisarm_command.Command = ROVERCOMMAND_DISARM;
-    diagnostic = process.new_commandmsg(armdisarm_command);
+    diagnostic = process.new_armedstatemsg(ARMEDSTATUS_DISARMED);
     EXPECT_TRUE(diagnostic.Level <= NOTICE);
     diagnostic = process.update(0.02);
     EXPECT_TRUE(diagnostic.Level <= NOTICE);
     EXPECT_TRUE(process.get_armedstate() == ARMEDSTATUS_DISARMED);
-    
+
     pins.clear();
     pins = process.get_servohatpins(servohats.at(0));
     EXPECT_TRUE(pins.size() == hat1.pins.size());
@@ -314,7 +302,6 @@ TEST(DeviceInitialization,DeviceInitialization_ServoHat)
             EXPECT_TRUE(1 == 0); //Shouldn't get here
         }
     }
-    
     //icarus_rover_v2::iopins p;
     for(std::size_t i = 0; i < hat1.pins.size(); i++)
     {
@@ -331,7 +318,6 @@ TEST(DeviceInitialization,DeviceInitialization_ServoHat)
     }
     
     
-
     pins.clear();
     pins = process.get_servohatpins(servohats.at(0));
     EXPECT_TRUE(pins.size() == hat1.pins.size());
@@ -352,8 +338,7 @@ TEST(DeviceInitialization,DeviceInitialization_ServoHat)
         }
     }
     
-    armdisarm_command.Command = ROVERCOMMAND_ARM;
-    diagnostic = process.new_commandmsg(armdisarm_command);
+    diagnostic = process.new_armedstatemsg(ARMEDSTATUS_ARMED);
     EXPECT_TRUE(diagnostic.Level <= NOTICE);
     diagnostic = process.update(0.02);
     EXPECT_TRUE(diagnostic.Level <= NOTICE);

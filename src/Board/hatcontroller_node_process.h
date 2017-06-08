@@ -41,6 +41,7 @@ public:
     double get_timedelay();
     icarus_rover_v2::diagnostic update(double dt);
     icarus_rover_v2::diagnostic new_commandmsg(icarus_rover_v2::command msg);
+    icarus_rover_v2::diagnostic new_armedstatemsg(uint8_t msg);
     icarus_rover_v2::diagnostic new_pinsmsg(icarus_rover_v2::iopins msg);
     icarus_rover_v2::diagnostic new_pinmsg(icarus_rover_v2::pin msg);
     icarus_rover_v2::diagnostic new_ppsmsg(std_msgs::Bool msg);

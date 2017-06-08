@@ -137,7 +137,9 @@ icarus_rover_v2::diagnostic CommandNodeProcess::new_user_commandmsg(icarus_rover
 }
 icarus_rover_v2::diagnostic CommandNodeProcess::update(double dt)
 {
-	if(node_state == NODESTATE_RUNNING)
+    node_state = NODESTATE_RUNNING; //Hack
+    batterylevel_perc = 0.0;
+	if((node_state == NODESTATE_RUNNING) && (current_command.Command == ROVERCOMMAND_NONE))
 	{
 		if(batterylevel_perc < BATTERYLEVEL_TO_RECHARGE)
 		{

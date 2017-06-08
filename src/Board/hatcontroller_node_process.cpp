@@ -326,18 +326,21 @@ icarus_rover_v2::diagnostic HatControllerNodeProcess::update(double dt)
     if(status == false) { armed_state = ARMEDSTATUS_DISARMED_CANNOTARM; }
     return diag;
 }
+icarus_rover_v2::diagnostic HatControllerNodeProcess::new_armedstatemsg(uint8_t msg)
+{
+	icarus_rover_v2::diagnostic diag = diagnostic;
+	armed_state = msg;
+	diag.Level = INFO;
+	diag.Diagnostic_Type = SOFTWARE;
+	diag.Diagnostic_Message = NOERROR;
+	char tempstr[512];
+	sprintf(tempstr,"Rover Armed State: %d Processed.",msg);
+	diag.Description = std::string(tempstr);
+	return diag;
+}
 icarus_rover_v2::diagnostic HatControllerNodeProcess::new_commandmsg(icarus_rover_v2::command msg)
 {
 	icarus_rover_v2::diagnostic diag = diagnostic;
-    if(msg.Command == ROVERCOMMAND_ARM)
-    {
-        armed_state = ARMEDSTATUS_ARMED;
-    }
-    else if(msg.Command == ROVERCOMMAND_DISARM)
-    {
-        armed_state = ARMEDSTATUS_DISARMED;
-    }
-    
     diag.Level = INFO;
     diag.Diagnostic_Type = SOFTWARE;
     diag.Diagnostic_Message = NOERROR;

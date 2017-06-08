@@ -35,8 +35,8 @@ search_for_target = 1
 import pdb
 def command_callback(data):
     global search_for_target
-    if(data.Command == FINDTARGET_ID):
-        search_for_target = data.Option1
+    if(data.Command == ROVERCOMMAND_SEARCHFOR_RECHARGE_FACILITY):
+        search_for_target = 1
 def image_callback(data):
     try:
         global cv_image
@@ -107,8 +107,10 @@ def runnode():
             heartbeat_pub.publish(beat)
             #if(received_image == 0):
             #    a = 1;#print "Waiting on image"
+            #search_for_target = 1
+            #print received_image_counter
             if(search_for_target == 1):
-                if(received_image_counter == 10):
+                if(received_image_counter >= 10):
                     received_image_counter = 0;
                     start = time.time()
                     v = cv_image.reshape(image_height,image_width,image_channels)
@@ -118,7 +120,7 @@ def runnode():
                     received_image = 0;
                     #rospy.loginfo("Duration: %.5f",end-start)
                     top_score  = predictions[0][top_k[0]]
-                    #print top_score
+                    print top_score
                     if(top_score > 0.7):
                         diag.Diagnostic_Type = SENSORS
                         diag.Level = NOTICE

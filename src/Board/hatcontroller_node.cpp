@@ -183,7 +183,7 @@ bool run_loop3_code()
 }
 void ArmedState_Callback(const std_msgs::UInt8::ConstPtr& msg)
 {
-	//diagnostic_status = process->new_armedstatemsg(msg->data);
+	diagnostic_status = process.new_armedstatemsg((uint8_t)msg->data);
 	if(diagnostic_status.Level > NOTICE)
 	{
 		diagnostic_pub.publish(diagnostic_status);

@@ -23,7 +23,7 @@
 #include <sys/time.h>
 #include "ros/time.h"
 
-#define PIN_ESTOP 3 //ControlModule 40-pin Connector
+#define PIN_ESTOP 11 //ControlModule 40-pin Connector
 using std::string;
 using namespace std;
 class SafetyNodeProcess

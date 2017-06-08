@@ -23,6 +23,13 @@ bool run_loop2_code()
 }
 bool run_loop3_code()
 {
+	if((process->get_currentcommand().Command == ROVERCOMMAND_ARM) ||
+			(process->get_currentcommand().Command == ROVERCOMMAND_DISARM) ||
+			(process->get_currentcommand().Command == ROVERCOMMAND_SEARCHFOR_RECHARGE_FACILITY))
+	{
+
+		command_pub.publish(process->get_currentcommand());
+	}
  	return true;
 }
 
@@ -61,11 +68,7 @@ void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg)
 }
 void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
-	if((process->get_currentcommand().Command == ROVERCOMMAND_ARM) ||
-	   (process->get_currentcommand().Command == ROVERCOMMAND_DISARM))
-	{
-		command_pub.publish(process->get_currentcommand());
-	}
+
 	received_pps = true;
     if(device_initialized == true)
 	{
