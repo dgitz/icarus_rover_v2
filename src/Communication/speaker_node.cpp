@@ -104,7 +104,10 @@ void diagnostic_Callback(const icarus_rover_v2::diagnostic::ConstPtr& msg)
 		tempstr += " is ";
 		tempstr += msg->Description;
 		//speak(tempstr,true);
-
+        icarus_rover_v2::usermessage usermsg;
+        usermsg.Level = msg->Level;
+        usermsg.message = tempstr;
+        //diagnostic_status = speakernodeprocess->new_usermessage(usermsg);
 	}
 }
 void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg)

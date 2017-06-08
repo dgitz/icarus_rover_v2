@@ -36,6 +36,20 @@ bool TerminalHatDriver::configure_pin(int pinnumber,std::string mode)
         }
         setdirgpio << "in"; //write direction to direction file
         setdirgpio.close(); // close direction file
+        char tempstr[128];
+        sprintf(tempstr,"raspi-gpio set %d pu\n",map_connectorpin_to_pinfile(pinnumber));
+        int v = system(tempstr);
+        printf("v: %d\n",v);
+        /*
+        std::ostringstream pullupdown_str;
+        pullupdown_str << "raspi-gpio set " << map_connectorpin_to_pinfile(pinnumber) << "pu";
+        std::ofstream setpullupdown(pullupdown_str.str().c_str()); //
+        if (setpullupdown < 0)
+        {
+        	printf(" OPERATION FAILED: Unable to set Pullup/down of GPIO %d/%d\n",pinnumber,map_connectorpin_to_pinfile(pinnumber));
+        	return false;
+        }
+        */
         return true;
     }
     else if((mode == "DigitalOutput") || (mode == "DigitalOutput-NonActuator"))
