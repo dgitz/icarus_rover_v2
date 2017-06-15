@@ -458,12 +458,29 @@ bool initialize(ros::NodeHandle nh)
 			logger->log_error(tempstr);
 			return false;
 		}
+		std::string folder;
 		std::string param_storage_location = node_name +"/storage_location";
-		if(nh.getParam(param_storage_location,storage_location) == false)
+		if(nh.getParam(param_storage_location,folder) == false)
 		{
+			logger->log_notice("Didn't find: storage_location. Not saving images.");
 		}
 		else
 		{
+			time_t rawtime;
+			struct tm * timeinfo;
+			char datebuffer[80];
+			time (&rawtime);
+			timeinfo = localtime(&rawtime);
+			strftime(datebuffer,80,"%Y_%m_%d",timeinfo);
+			char tempstr[256];
+			sprintf(tempstr,"%s/%s",folder.c_str(),datebuffer);
+			struct stat st = {0};
+
+			if (stat(tempstr, &st) == -1)
+			{
+			    mkdir(tempstr, 0700);
+			}
+			storage_location = std::string(tempstr);
 			save_images = true;
 		}
 		int video_device;
@@ -487,8 +504,11 @@ bool initialize(ros::NodeHandle nh)
 		capture.open(video_device);
 		capture.set(CV_CAP_PROP_FRAME_WIDTH, image_width);
 		capture.set(CV_CAP_PROP_FRAME_HEIGHT, image_height);
-		compression_params.push_back(CV_IMWRITE_PNG_COMPRESSION); //CV_IMWRITE_PNG_COMPRESSION
-		compression_params.push_back(9);  //3
+		//printf("Auto exposure: %f\n",capture.get(CV_CAP_PROP_AUTO_EXPOSURE));
+		//printf("Exposure: %f\n",capture.get(CV_CAP_PROP_EXPOSURE));
+		//printf("Frame rate: %f\n",capture.get(CV_CAP_PROP_FPS));
+		//compression_params.push_back(CV_IMWRITE_PNG_COMPRESSION); //CV_IMWRITE_PNG_COMPRESSION
+		//compression_params.push_back(9);  //3
 		if(!capture.isOpened())  // check if we succeeded
 		{
 			logger->log_fatal("Can't initialize camera. Exiting.");
