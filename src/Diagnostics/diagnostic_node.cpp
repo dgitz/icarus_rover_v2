@@ -1,10 +1,36 @@
 #include "diagnostic_node.h"
 //Start User Code: Firmware Definition
 #define DIAGNOSTICNODE_MAJOR_RELEASE 2
-#define DIAGNOSTICNODE_MINOR_RELEASE 2
-#define DIAGNOSTICNODE_BUILD_NUMBER 2
+#define DIAGNOSTICNODE_MINOR_RELEASE 3
+#define DIAGNOSTICNODE_BUILD_NUMBER 0
 //End User Code: Firmware Definition
 //Start User Code: Functions
+bool run_loop1_code()
+{
+	if(check_tasks() == false)
+	{
+		logger->log_warn("Not able to check Tasks.");
+	}
+	return true;
+}
+bool run_loop2_code()
+{
+	if(Log_Resources_Used == 1)
+	{
+		if(measure_time_diff(ros::Time::now(),boot_time) > 20.0) //Wait 5 seconds for all Nodes to start.
+		{
+			log_resources();
+		}
+	}
+	std_msgs::Bool bool_ready_to_arm;
+	bool_ready_to_arm.data = ready_to_arm;
+    ready_to_arm_pub.publish(bool_ready_to_arm);
+ 	return true;
+}
+bool run_loop3_code()
+{
+ 	return true;
+}
 icarus_rover_v2::diagnostic rescan_topics(icarus_rover_v2::diagnostic diag)
 {
 	int found_new_topics = 0;
@@ -63,7 +89,7 @@ icarus_rover_v2::diagnostic rescan_topics(icarus_rover_v2::diagnostic diag)
 	char tempstr[512];
 	if(topics_to_add.size() > 0)
 	{
-		sprintf(tempstr,"Rescanned and found %d new topics.",topics_to_add.size());
+		sprintf(tempstr,"Rescanned and found %d new topics.",(int)topics_to_add.size());
 	}
 	else
 	{
@@ -239,22 +265,22 @@ bool check_tasks()
 			char tempstr[512];
 			sprintf(tempstr,"Task: %s is using high CPU resource: %d/%d %",
 					newTask.Task_Name.c_str(),newTask.CPU_Perc,CPU_usage_threshold_percent);
-			logger->log_warn(tempstr);
 			diagnostic_status.Diagnostic_Message = HIGH_RESOURCE_USAGE;
 			diagnostic_status.Level = WARN;
 			diagnostic_status.Description = tempstr;
+			logger->log_diagnostic(diagnostic_status);
 			diagnostic_pub.publish(diagnostic_status);
 		}
 		if(newTask.RAM_MB > RAM_usage_threshold_MB)
 		{
 			task_ok = false;
 			char tempstr[512];
-			sprintf(tempstr,"Task: %s is using high RAM resource: %ld/%ld (MB)",
+			sprintf(tempstr,"Task: %s is using high RAM resource: %ld/%d (MB)",
 					newTask.Task_Name.c_str(),newTask.RAM_MB,RAM_usage_threshold_MB);
-			logger->log_warn(tempstr);
 			diagnostic_status.Diagnostic_Message = HIGH_RESOURCE_USAGE;
 			diagnostic_status.Level = WARN;
 			diagnostic_status.Description = tempstr;
+			logger->log_diagnostic(diagnostic_status);
 			diagnostic_pub.publish(diagnostic_status);
 		}
 		/*
@@ -302,10 +328,10 @@ bool check_tasks()
 			task_ok = false;
 			char tempstr[512];
 			sprintf(tempstr,"Task: %s has not reported heartbeats in %.1f seconds",newTask.Task_Name.c_str(),heartbeat_time_duration);
-			logger->log_fatal(tempstr);
 			diagnostic_status.Diagnostic_Message = MISSING_HEARTBEATS;
 			diagnostic_status.Level = FATAL;
 			diagnostic_status.Description = tempstr;
+			logger->log_diagnostic(diagnostic_status);
 			diagnostic_pub.publish(diagnostic_status);
 
 		}
@@ -321,58 +347,57 @@ bool check_tasks()
 		else
 		{
 			ready_to_arm = false;
+			logger->log_fatal("No Tasks to report!");
 		}
 		char tempstr[255];
-		sprintf(tempstr,"%d/%d (All) Tasks Operational.",task_ok_counter,TasksToCheck.size());
+		sprintf(tempstr,"%d/%d (All) Tasks Operational.",task_ok_counter,(int)TasksToCheck.size());
         
 		logger->log_info(tempstr);
+		icarus_rover_v2::diagnostic system_diag;
+		system_diag.Node_Name = node_name;
+		system_diag.System = ROVER;
+		system_diag.SubSystem = ENTIRE_SUBSYSTEM;
+		system_diag.Component = DIAGNOSTIC_NODE;
+		system_diag.Diagnostic_Message = NOERROR;
+		system_diag.Diagnostic_Type = NOERROR;
+		system_diag.Level = NOTICE;
+		system_diag.Description = "System is Operational.";
+		logger->log_diagnostic(system_diag);
+		diagnostic_pub.publish(system_diag);
 	}
 	else
 	{
 		ready_to_arm = false;
 		char tempstr[255];
-		sprintf(tempstr,"%d/%d Tasks are in WARN state or Higher!",TasksToCheck.size()-task_ok_counter,TasksToCheck.size());
+		sprintf(tempstr,"%d/%d Tasks are in WARN state or Higher!",(int)TasksToCheck.size()-task_ok_counter,(int)TasksToCheck.size());
 		logger->log_warn(tempstr);
 		diagnostic_status.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
 		diagnostic_status.Level = WARN;
 		diagnostic_status.Description = tempstr;
+		logger->log_diagnostic(diagnostic_status);
 		diagnostic_pub.publish(diagnostic_status);
 	}
 	return true;
 }
-bool run_fastrate_code()
+void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
-	std_msgs::Bool bool_ready_to_arm;
-	bool_ready_to_arm.data = ready_to_arm;
-    ready_to_arm_pub.publish(bool_ready_to_arm);
-	//logger->log_debug("Running fast rate code.");
-	return true;
-}
-bool run_mediumrate_code()
-{
-	beat.stamp = ros::Time::now();
-	heartbeat_pub.publish(beat);
-	//logger->log_debug("Running medium rate code.");
-	if(measure_time_diff(ros::Time::now(),boot_time) > 20.0) //Wait 5 seconds for all Nodes to start.
-	{
-		if(Log_Resources_Used == 1)
-		{
-			log_resources();
-		}
-	}
-	diagnostic_status.Diagnostic_Type = SOFTWARE;
-	diagnostic_status.Level = INFO;
-	diagnostic_status.Diagnostic_Message = NOERROR;
-	diagnostic_status.Description = "Node Executing.";
+	diagnostic_status = rescan_topics(diagnostic_status);
 	diagnostic_pub.publish(diagnostic_status);
-	return true;
+	icarus_rover_v2::firmware fw;
+	fw.Generic_Node_Name = "diagnostic_node";
+	fw.Node_Name = node_name;
+	fw.Description = "Latest Rev: 8-April-2017";
+	fw.Major_Release = DIAGNOSTICNODE_MAJOR_RELEASE;
+	fw.Minor_Release = DIAGNOSTICNODE_MINOR_RELEASE;
+	fw.Build_Number = DIAGNOSTICNODE_BUILD_NUMBER;
+	firmware_pub.publish(fw);
 }
-bool run_slowrate_code()
+void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
-	if(device_initialized == true)
+	received_pps = true;
+    if(device_initialized == true)
 	{
-		icarus_rover_v2::diagnostic resource_diagnostic;
-		resource_diagnostic = resourcemonitor->update();
+		icarus_rover_v2::diagnostic resource_diagnostic = resourcemonitor->update();
 		if(resource_diagnostic.Diagnostic_Message == DEVICE_NOT_AVAILABLE)
 		{
 			diagnostic_pub.publish(resource_diagnostic);
@@ -390,29 +415,6 @@ bool run_slowrate_code()
 			resource_pub.publish(resources_used);
 		}
 	}
-	if(check_tasks() == false)
-	{
-		logger->log_warn("Not able to check Tasks.");
-	}
-	//logger->log_debug("Running slow rate code.");
-
-	return true;
-}
-bool run_veryslowrate_code()
-{
-	//logger->log_debug("Running very slow rate code.");
-	diagnostic_status = rescan_topics(diagnostic_status);
-	diagnostic_pub.publish(diagnostic_status);
-	logger->log_info("Node Running.");
-	icarus_rover_v2::firmware fw;
-	fw.Generic_Node_Name = "diagnostic_node";
-	fw.Node_Name = node_name;
-	fw.Description = "Latest Rev: 11-Jan-2017";
-	fw.Major_Release = DIAGNOSTICNODE_MAJOR_RELEASE;
-	fw.Minor_Release = DIAGNOSTICNODE_MINOR_RELEASE;
-	fw.Build_Number = DIAGNOSTICNODE_BUILD_NUMBER;
-	firmware_pub.publish(fw);
-	return true;
 }
 void resource_Callback(const icarus_rover_v2::resource::ConstPtr& msg,const std::string &topicname)
 {
@@ -545,7 +547,17 @@ void Command_Callback(const icarus_rover_v2::command::ConstPtr& msg)
 	}
 }
 //End User Code: Functions
+bool run_10Hz_code()
+{
+    beat.stamp = ros::Time::now();
+	heartbeat_pub.publish(beat);
 
+    if(diagnostic_status.Level > NOTICE)
+    {
+        diagnostic_pub.publish(diagnostic_status);
+    }
+    return true;
+}
 int main(int argc, char **argv)
 {
 	node_name = "diagnostic_node";
@@ -563,13 +575,11 @@ int main(int argc, char **argv)
 		diagnostic_pub.publish(diagnostic_status);
 		kill_node = 1;
     }
-    ros::Rate loop_rate(rate);
+    ros::Rate loop_rate(ros_rate);
 	boot_time = ros::Time::now();
     now = ros::Time::now();
-    fast_timer = now;
-    medium_timer = now;
-    slow_timer = now;
-    veryslow_timer = now;
+    last_10Hz_timer = ros::Time::now();
+    double mtime;
     while (ros::ok() && (kill_node == 0))
     {
     	bool ok_to_start = false;
@@ -578,31 +588,41 @@ int main(int argc, char **argv)
     	if(ok_to_start == true)
     	{
     		now = ros::Time::now();
-    		mtime = measure_time_diff(now,fast_timer);
-			if(mtime > .02)
-			{
-				run_fastrate_code();
-				fast_timer = ros::Time::now();
-			}
-			mtime = measure_time_diff(now,medium_timer);
-			if(mtime > 0.1)
-			{
-				run_mediumrate_code();
-				medium_timer = ros::Time::now();
-			}
-			mtime = measure_time_diff(now,slow_timer);
-			if(mtime > 1.0)
-			{
-				run_slowrate_code();
-				slow_timer = ros::Time::now();
-			}
-			mtime = measure_time_diff(now,veryslow_timer);
-			if(mtime > 10.0)
-			{
-				run_veryslowrate_code();
-				veryslow_timer = ros::Time::now();
-			}
-		}
+            if(run_loop1 == true)
+            {
+                mtime = measure_time_diff(now,last_loop1_timer);
+                if(mtime >= (1.0/loop1_rate))
+                {
+                    run_loop1_code();
+                    last_loop1_timer = ros::Time::now();
+                }
+            }
+            if(run_loop2 == true)
+            {
+                mtime = measure_time_diff(now,last_loop2_timer);
+                if(mtime >= (1.0/loop2_rate))
+                {
+                    run_loop2_code();
+                    last_loop2_timer = ros::Time::now();
+                }
+            }
+            if(run_loop3 == true)
+            {
+                mtime = measure_time_diff(now,last_loop3_timer);
+                if(mtime >= (1.0/loop3_rate))
+                {
+                    run_loop3_code();
+                    last_loop3_timer = ros::Time::now();
+                }
+            }
+            
+            mtime = measure_time_diff(now,last_10Hz_timer);
+            if(mtime >= 0.1)
+            {
+                run_10Hz_code();
+                last_10Hz_timer = ros::Time::now();
+            }
+    	}
 		else
 		{
 			logger->log_warn("Waiting on PPS to Start.");
@@ -635,20 +655,17 @@ bool initializenode()
 	{
 		logger = new Logger(verbosity_level,ros::this_node::getName());
 	}
-	std::string param_loop_rate = node_name +"/loop_rate";
-	if(n->getParam(param_loop_rate,rate) == false)
-	{
-		logger->log_fatal("Missing Parameter: loop_rate.  Exiting.");
-		return false;
-	}
+
 	hostname[1023] = '\0';
 	gethostname(hostname,1023);
 	std::string heartbeat_topic = "/" + node_name + "/heartbeat";
 	heartbeat_pub = n->advertise<icarus_rover_v2::heartbeat>(heartbeat_topic,1000);
 	beat.Node_Name = node_name;
+	command_sub = n->subscribe<icarus_rover_v2::command>("/command",1000,Command_Callback);
+	pps01_sub = n->subscribe<std_msgs::Bool>("/01PPS",1000,PPS01_Callback); 
+    pps1_sub = n->subscribe<std_msgs::Bool>("/1PPS",1000,PPS1_Callback); 
 	std::string device_topic = "/" + std::string(hostname) +"_master_node/device";
 	device_sub = n->subscribe<icarus_rover_v2::device>(device_topic,1000,Device_Callback);
-	pps_sub = n->subscribe<std_msgs::Bool>("/pps",1000,PPS_Callback);  //This is a pps consumer.
  	std::string param_require_pps_to_start = node_name +"/require_pps_to_start";
     if(n->getParam(param_require_pps_to_start,require_pps_to_start) == false)
 	{
@@ -657,6 +674,51 @@ bool initializenode()
 	}
 	std::string firmware_topic = "/" + node_name + "/firmware";
     firmware_pub =  n->advertise<icarus_rover_v2::firmware>(firmware_topic,1000);
+
+ 	double max_rate = 0.0;
+    std::string param_loop1_rate = node_name + "/loop1_rate";
+    if(n->getParam(param_loop1_rate,loop1_rate) == false)
+    {
+        logger->log_warn("Missing parameter: loop1_rate.  Not running loop1 code.");
+        run_loop1 = false;
+    }
+    else 
+    { 
+        last_loop1_timer = ros::Time::now();
+        run_loop1 = true; 
+        if(loop1_rate > max_rate) { max_rate = loop1_rate; }
+    }
+    
+    std::string param_loop2_rate = node_name + "/loop2_rate";
+    if(n->getParam(param_loop2_rate,loop2_rate) == false)
+    {
+        logger->log_warn("Missing parameter: loop2_rate.  Not running loop2 code.");
+        run_loop2 = false;
+    }
+    else 
+    { 
+        last_loop2_timer = ros::Time::now();
+        run_loop2 = true; 
+        if(loop2_rate > max_rate) { max_rate = loop2_rate; }
+    }
+    
+    std::string param_loop3_rate = node_name + "/loop3_rate";
+    if(n->getParam(param_loop3_rate,loop3_rate) == false)
+    {
+        logger->log_warn("Missing parameter: loop3_rate.  Not running loop3 code.");
+        run_loop3 = false;
+    }
+    else 
+    { 
+        last_loop3_timer = ros::Time::now();
+        run_loop3 = true; 
+        if(loop3_rate > max_rate) { max_rate = loop3_rate; }
+    }
+    ros_rate = max_rate * 50.0;
+    if(ros_rate < 100.0) { ros_rate = 100.0; }
+    char tempstr[512];
+    sprintf(tempstr,"Running Node at Rate: %f",ros_rate);
+    logger->log_notice(std::string(tempstr));
 	//End Template Code: Initialization, Parameters and Topics
 
 	//Start User Code: Initialization, Parameters and Topics
@@ -696,19 +758,13 @@ bool initializenode()
 	//End User Code: Initialization, Parameters and Topics
     logger->log_info("Initialized!");
     return true;
+    //End Template Code: Finish Initialization.
 }
-//End Initialize Function
-
 //Start Template Code: Functions
 double measure_time_diff(ros::Time timer_a, ros::Time timer_b)
 {
 	ros::Duration etime = timer_a - timer_b;
 	return etime.toSec();
-}
-void PPS_Callback(const std_msgs::Bool::ConstPtr& msg)
-{
-	//logger->log_info("Got pps");
-	received_pps = true;
 }
 void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg)
 {

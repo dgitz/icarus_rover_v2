@@ -1,10 +1,39 @@
 #include "command_node.h"
 //Start User Code: Firmware Definition
 #define COMMANDNODE_MAJOR_RELEASE 3
-#define COMMANDNODE_MINOR_RELEASE 0
+#define COMMANDNODE_MINOR_RELEASE 1
 #define COMMANDNODE_BUILD_NUMBER 0
 //End User Code: Firmware Definition
 //Start User Code: Functions
+bool run_loop1_code()
+{
+	std_msgs::UInt8 state;
+	state.data = process->get_armeddisarmed_state();
+	armeddisarmed_state_pub.publish(state);
+	return true;
+}
+bool run_loop2_code()
+{
+	diagnostic_status = process->update(0.05);
+	if(diagnostic_status.Level > NOTICE)
+	{
+		diagnostic_pub.publish(diagnostic_status);
+	}
+ 	return true;
+}
+bool run_loop3_code()
+{
+	if((process->get_currentcommand().Command == ROVERCOMMAND_ARM) ||
+			(process->get_currentcommand().Command == ROVERCOMMAND_DISARM) ||
+			(process->get_currentcommand().Command == ROVERCOMMAND_SEARCHFOR_RECHARGE_FACILITY))
+	{
+
+		command_pub.publish(process->get_currentcommand());
+	}
+ 	return true;
+}
+
+
 void ReadyToArm_Callback(const std_msgs::Bool::ConstPtr& msg,const std::string &topic)
 {
     diagnostic_status = process->new_readytoarmmsg(topic,msg->data);
@@ -13,52 +42,48 @@ void ReadyToArm_Callback(const std_msgs::Bool::ConstPtr& msg,const std::string &
     	diagnostic_pub.publish(diagnostic_status);
     }
 }
-void User_ArmCommand_Callback(const std_msgs::UInt8::ConstPtr& msg)
+void User_Command_Callback(const icarus_rover_v2::command::ConstPtr& msg)
 {
-    diagnostic_status = process->new_user_armcommandmsg(msg->data);
+	icarus_rover_v2::command command;
+	command.Command = msg->Command;
+	command.Option1 = msg->Option1;
+	command.Option2 = msg->Option2;
+	command.Option3 = msg->Option3;
+	command.CommandText = msg->CommandText;
+	command.Description = msg->Description;
+    diagnostic_status = process->new_user_commandmsg(command);
+    logger->log_diagnostic(diagnostic_status);
     diagnostic_pub.publish(diagnostic_status);
 }
-bool run_fastrate_code()
+void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
-	//logger->log_debug("Running fast rate code.");
-	diagnostic_status = process->update(.02);
-	if(process->get_currentcommand().Command != ROVERCOMMAND_NONE)
-	{
-		command_pub.publish(process->get_currentcommand());
-	}
-	std_msgs::UInt8 state;
-	state.data = process->get_armeddisarmed_state();
-	armeddisarmed_state_pub.publish(state);
-	return true;
+	icarus_rover_v2::firmware fw;
+	fw.Generic_Node_Name = "command_node";
+	fw.Node_Name = node_name;
+	fw.Description = "Latest Rev: 7-Aril-2017";
+	fw.Major_Release = COMMANDNODE_MAJOR_RELEASE;
+	fw.Minor_Release = COMMANDNODE_MINOR_RELEASE;
+	fw.Build_Number = COMMANDNODE_BUILD_NUMBER;
+	firmware_pub.publish(fw);
 }
-bool run_mediumrate_code()
+void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
-	beat.stamp = ros::Time::now();
-	heartbeat_pub.publish(beat);
-	//logger->log_debug("Running medium rate code.");
-	diagnostic_status.Diagnostic_Type = SOFTWARE;
-	diagnostic_status.Level = INFO;
-	diagnostic_status.Diagnostic_Message = NOERROR;
-	diagnostic_status.Description = "Node Executing.";
-	diagnostic_pub.publish(diagnostic_status);
-	return true;
-}
-bool run_slowrate_code()
-{
-	if(device_initialized == true)
+
+	received_pps = true;
+    if(device_initialized == true)
 	{
-		icarus_rover_v2::diagnostic resource_diagnostic;
-		resource_diagnostic = resourcemonitor->update();
+		icarus_rover_v2::diagnostic resource_diagnostic = resourcemonitor->update();
 		if(resource_diagnostic.Diagnostic_Message == DEVICE_NOT_AVAILABLE)
 		{
 			diagnostic_pub.publish(resource_diagnostic);
-			logger->log_warn("Couldn't read resources used.");
+			logger->log_diagnostic(resource_diagnostic);
 		}
 		else if(resource_diagnostic.Level >= WARN)
 		{
 			resources_used = resourcemonitor->get_resourceused();
 			resource_pub.publish(resources_used);
 			diagnostic_pub.publish(resource_diagnostic);
+			logger->log_diagnostic(resource_diagnostic);
 		}
 		else if(resource_diagnostic.Level <= NOTICE)
 		{
@@ -66,23 +91,7 @@ bool run_slowrate_code()
 			resource_pub.publish(resources_used);
 		}
 	}
-	//logger->log_debug("Running slow rate code.");
-
-	return true;
 }
-bool run_veryslowrate_code()
-{
-	icarus_rover_v2::firmware fw;
-	fw.Generic_Node_Name = "command_node";
-	fw.Node_Name = node_name;
-	fw.Description = "Latest Rev: 31-Jan-2017";
-	fw.Major_Release = COMMANDNODE_MAJOR_RELEASE;
-	fw.Minor_Release = COMMANDNODE_MINOR_RELEASE;
-	fw.Build_Number = COMMANDNODE_BUILD_NUMBER;
-	firmware_pub.publish(fw);
-	return true;
-}
-
 std::vector<icarus_rover_v2::diagnostic> check_program_variables()
 {
 	std::vector<icarus_rover_v2::diagnostic> diaglist;
@@ -110,7 +119,17 @@ std::vector<icarus_rover_v2::diagnostic> check_program_variables()
 	return diaglist;
 }
 //End User Code: Functions
+bool run_10Hz_code()
+{
+    beat.stamp = ros::Time::now();
+	heartbeat_pub.publish(beat);
 
+    if(diagnostic_status.Level > NOTICE)
+    {
+        diagnostic_pub.publish(diagnostic_status);
+    }
+    return true;
+}
 int main(int argc, char **argv)
 {
 	node_name = "command_node";
@@ -128,13 +147,11 @@ int main(int argc, char **argv)
 		diagnostic_pub.publish(diagnostic_status);
 		kill_node = 1;
     }
-    ros::Rate loop_rate(rate);
+    ros::Rate loop_rate(ros_rate);
 	boot_time = ros::Time::now();
     now = ros::Time::now();
-    fast_timer = now;
-    medium_timer = now;
-    slow_timer = now;
-    veryslow_timer = now;
+    last_10Hz_timer = ros::Time::now();
+    double mtime;
     while (ros::ok() && (kill_node == 0))
     {
     	bool ok_to_start = false;
@@ -143,31 +160,41 @@ int main(int argc, char **argv)
     	if(ok_to_start == true)
     	{
     		now = ros::Time::now();
-    		mtime = measure_time_diff(now,fast_timer);
-			if(mtime > .02)
-			{
-				run_fastrate_code();
-				fast_timer = ros::Time::now();
-			}
-			mtime = measure_time_diff(now,medium_timer);
-			if(mtime > 0.1)
-			{
-				run_mediumrate_code();
-				medium_timer = ros::Time::now();
-			}
-			mtime = measure_time_diff(now,slow_timer);
-			if(mtime > 1.0)
-			{
-				run_slowrate_code();
-				slow_timer = ros::Time::now();
-			}
-			mtime = measure_time_diff(now,veryslow_timer);
-			if(mtime > 10.0)
-			{
-				run_veryslowrate_code();
-				veryslow_timer = ros::Time::now();
-			}
-		}
+            if(run_loop1 == true)
+            {
+                mtime = measure_time_diff(now,last_loop1_timer);
+                if(mtime >= (1.0/loop1_rate))
+                {
+                    run_loop1_code();
+                    last_loop1_timer = ros::Time::now();
+                }
+            }
+            if(run_loop2 == true)
+            {
+                mtime = measure_time_diff(now,last_loop2_timer);
+                if(mtime >= (1.0/loop2_rate))
+                {
+                    run_loop2_code();
+                    last_loop2_timer = ros::Time::now();
+                }
+            }
+            if(run_loop3 == true)
+            {
+                mtime = measure_time_diff(now,last_loop3_timer);
+                if(mtime >= (1.0/loop3_rate))
+                {
+                    run_loop3_code();
+                    last_loop3_timer = ros::Time::now();
+                }
+            }
+            
+            mtime = measure_time_diff(now,last_10Hz_timer);
+            if(mtime >= 0.1)
+            {
+                run_10Hz_code();
+                last_10Hz_timer = ros::Time::now();
+            }
+    	}
 		else
 		{
 			logger->log_warn("Waiting on PPS to Start.");
@@ -178,7 +205,6 @@ int main(int argc, char **argv)
     logger->log_notice("Node Finished Safely.");
     return 0;
 }
-
 bool initialize(ros::NodeHandle nh)
 {
     //Start Template Code: Initialization, Parameters and Topics
@@ -217,20 +243,14 @@ bool initialize(ros::NodeHandle nh)
     {
         logger = new Logger(verbosity_level,ros::this_node::getName());      
     }
-    std::string param_loop_rate = node_name +"/loop_rate";
-    if(nh.getParam(param_loop_rate,rate) == false)
-    {
-        logger->log_warn("Missing Parameter: loop_rate.");
-        return false;
-    }
     
     std::string heartbeat_topic = "/" + node_name + "/heartbeat";
     heartbeat_pub = nh.advertise<icarus_rover_v2::heartbeat>(heartbeat_topic,1000);
     beat.Node_Name = node_name;
     std::string device_topic = "/" + std::string(hostname) +"_master_node/device";
     device_sub = nh.subscribe<icarus_rover_v2::device>(device_topic,1000,Device_Callback);
-
-    pps_sub = nh.subscribe<std_msgs::Bool>("/pps",1000,PPS_Callback);  //This is a pps consumer.
+    pps01_sub = nh.subscribe<std_msgs::Bool>("/01PPS",1000,PPS01_Callback); 
+    pps1_sub = nh.subscribe<std_msgs::Bool>("/1PPS",1000,PPS1_Callback); 
     std::string param_require_pps_to_start = node_name +"/require_pps_to_start";
     if(nh.getParam(param_require_pps_to_start,require_pps_to_start) == false)
 	{
@@ -239,6 +259,53 @@ bool initialize(ros::NodeHandle nh)
 	}
     std::string firmware_topic = "/" + node_name + "/firmware";
     firmware_pub =  nh.advertise<icarus_rover_v2::firmware>(firmware_topic,1000);
+	
+	double max_rate = 0.0;
+    std::string param_loop1_rate = node_name + "/loop1_rate";
+    if(nh.getParam(param_loop1_rate,loop1_rate) == false)
+    {
+        logger->log_warn("Missing parameter: loop1_rate.  Not running loop1 code.");
+        run_loop1 = false;
+    }
+    else 
+    { 
+        last_loop1_timer = ros::Time::now();
+        run_loop1 = true; 
+        if(loop1_rate > max_rate) { max_rate = loop1_rate; }
+    }
+    
+    std::string param_loop2_rate = node_name + "/loop2_rate";
+    if(nh.getParam(param_loop2_rate,loop2_rate) == false)
+    {
+        logger->log_warn("Missing parameter: loop2_rate.  Not running loop2 code.");
+        run_loop2 = false;
+    }
+    else 
+    { 
+        last_loop2_timer = ros::Time::now();
+        run_loop2 = true; 
+        if(loop2_rate > max_rate) { max_rate = loop2_rate; }
+    }
+    
+    std::string param_loop3_rate = node_name + "/loop3_rate";
+    if(nh.getParam(param_loop3_rate,loop3_rate) == false)
+    {
+        logger->log_warn("Missing parameter: loop3_rate.  Not running loop3 code.");
+        run_loop3 = false;
+    }
+    else 
+    { 
+        last_loop3_timer = ros::Time::now();
+        run_loop3 = true; 
+        if(loop3_rate > max_rate) { max_rate = loop3_rate; }
+    }
+    ros_rate = max_rate * 50.0;
+    if(ros_rate < 100.0) { ros_rate = 100.0; }
+    char tempstr[512];
+    sprintf(tempstr,"Running Node at Rate: %f",ros_rate);
+    logger->log_notice(std::string(tempstr));
+
+
     //End Template Code: Initialization and Parameters
 
     //Start User Code: Initialization and Parameters
@@ -288,14 +355,14 @@ bool initialize(ros::NodeHandle nh)
         return false;
     }
 
-    std::string param_user_armcommand_topic = node_name +"/user_armcommand_topic";
-    std::string armcommand_topic;
-    if(nh.getParam(param_user_armcommand_topic,armcommand_topic) == false)
+    std::string param_user_command_topic = node_name +"/user_command_topic";
+    std::string user_command_topic;
+    if(nh.getParam(param_user_command_topic,user_command_topic) == false)
     {
-        logger->log_error("Missing parameter: user_armcommand_topic. Exiting.");
+        logger->log_error("Missing parameter: user_command_topic. Exiting.");
         return false;
     }
-    armcommand_sub = nh.subscribe<std_msgs::UInt8>(armcommand_topic,1000,User_ArmCommand_Callback);
+    user_command_sub = nh.subscribe<icarus_rover_v2::command>(user_command_topic,1000,User_Command_Callback);
     
     std::string armeddisarmed_state_topic = "/armed_state";
     armeddisarmed_state_pub = nh.advertise<std_msgs::UInt8>(armeddisarmed_state_topic,1000);
@@ -352,11 +419,6 @@ double measure_time_diff(ros::Time timer_a, ros::Time timer_b)
 	ros::Duration etime = timer_a - timer_b;
 	return etime.toSec();
 }
-void PPS_Callback(const std_msgs::Bool::ConstPtr& msg)
-{
-	//logger->log_info("Got pps");
-	received_pps = true;
-}
 void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg)
 {
 	icarus_rover_v2::device newdevice;
@@ -376,7 +438,6 @@ void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg)
 		myDevice = process->get_mydevice();
 		resourcemonitor = new ResourceMonitor(diagnostic_status,myDevice.Architecture,myDevice.DeviceName,node_name);
 		device_initialized = true;
-
 	}
 }
 void signalinterrupt_handler(int sig)

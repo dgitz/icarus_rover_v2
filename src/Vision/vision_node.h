@@ -1,3 +1,4 @@
+OBSOLETE!!!
 #ifndef VISIONNODE_H
 #define VISIONNODE_H
 //Start Template Code: Includes

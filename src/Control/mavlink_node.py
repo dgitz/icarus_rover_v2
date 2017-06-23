@@ -8,8 +8,8 @@ import icarus_rover_v2.msg
 import sys,struct,time,os
 
 #sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), '../mavlink/pymavlink'))
-sys.path.append("/usr/local/lib/python2.7/dist-packages/pymavlink")
-
+#sys.path.append("/usr/local/lib/python2.7/dist-packages/pymavlink")
+sys.path.append("/home/robot/catkin_ws/src/icarus_rover_v2/mavlink/pymavlink")
 from optparse import OptionParser
 parser = OptionParser("mavlink_node.py [options]")
 

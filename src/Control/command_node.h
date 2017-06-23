@@ -34,28 +34,29 @@
 
 //Start Template Code: Function Prototypes
 bool initialize(ros::NodeHandle nh);
-bool run_fastrate_code();
-bool run_mediumrate_code();
-bool run_slowrate_code();
-bool run_veryslowrate_code();
+void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg);
+void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg);
 double measure_time_diff(ros::Time timer_a, ros::Time tiber_b);
-void PPS_Callback(const std_msgs::Bool::ConstPtr& msg);
 void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg);
 void Command_Callback(const icarus_rover_v2::command& msg);
 std::vector<icarus_rover_v2::diagnostic> check_program_variables();
+bool run_loop3_code();
+bool run_loop2_code();
+bool run_loop1_code();
+bool run_10Hz_code();
 void signalinterrupt_handler(int sig);
 //End Template Code: Function Prototypes
 
 //Start User Code: Function Prototypes
 void ReadyToArm_Callback(const std_msgs::Bool::ConstPtr& msg,const std::string &topic);
-void User_ArmCommand_Callback(const std_msgs::UInt8::ConstPtr& msg);
+void User_Command_Callback(const icarus_rover_v2::command::ConstPtr& msg);
 //End User Code: Function Prototypes
 
 //Start Template Code: Define Global variables
 std::string node_name;
-int rate;
 std::string verbosity_level;
-ros::Subscriber pps_sub;  
+ros::Subscriber pps01_sub;
+ros::Subscriber pps1_sub;
 ros::Subscriber device_sub;
 ros::Publisher diagnostic_pub;
 ros::Publisher resource_pub;
@@ -68,18 +69,24 @@ Logger *logger;
 ResourceMonitor *resourcemonitor;
 bool require_pps_to_start;
 bool received_pps;
-ros::Time fast_timer;
-ros::Time medium_timer;
-ros::Time slow_timer;
-ros::Time veryslow_timer;
 ros::Time now;
 ros::Time boot_time;
-double mtime;
 bool device_initialized;
 char hostname[1024];
 ros::Publisher heartbeat_pub;
 icarus_rover_v2::heartbeat beat;
 volatile sig_atomic_t kill_node;
+ros::Time last_10Hz_timer;
+double loop1_rate;
+double loop2_rate;
+double loop3_rate;
+bool run_loop1;
+bool run_loop2;
+bool run_loop3;
+ros::Time last_loop1_timer;
+ros::Time last_loop2_timer;
+ros::Time last_loop3_timer;
+double ros_rate;
 //End Template Code: Define Global Variables
 
 //Start User Code: Define Global Variables
@@ -88,7 +95,7 @@ ros::Publisher armeddisarmed_state_pub;
 CommandNodeProcess *process;
 ros::Publisher command_pub;
 std::vector<ros::Subscriber> ready_to_arm_subs;
-ros::Subscriber armcommand_sub;
+ros::Subscriber user_command_sub;
 
 uint8_t searchmode;
 //End User Code: Define Global Variables

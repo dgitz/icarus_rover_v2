@@ -19,6 +19,7 @@
 #include <serialmessage.h>
 #include "logger.h"
 #include <math.h>
+#include <sys/time.h>
 #define INITIAL_TIMEOUT_VALUE_MS 1000
 #define PORT_SIZE 8 //Number of pins in 1 port
 using std::string;
@@ -89,9 +90,12 @@ public:
 	icarus_rover_v2::diagnostic new_devicemsg(icarus_rover_v2::device devicemsg);
 	icarus_rover_v2::diagnostic new_commandmsg(icarus_rover_v2::command commandmsg);
 	icarus_rover_v2::diagnostic new_pinmsg(icarus_rover_v2::pin pinmsg);
+    icarus_rover_v2::diagnostic new_diagnosticmsg(icarus_rover_v2::diagnostic diagnosticmsg);
+    icarus_rover_v2::diagnostic new_pps_transmit();
 	icarus_rover_v2::device get_mydevice() { return mydevice; }
 	std::vector<icarus_rover_v2::device> get_myshields() { return myshields; }
 	std::vector<int> get_portlist(int ShieldID);
+    int get_portcount(int ShieldID);
 	bool is_finished_initializing(){ return all_device_info_received; }
 	bool initialize_Ports();
     bool get_ready_to_arm() { return ready_to_arm; }
@@ -131,6 +135,7 @@ public:
 	icarus_rover_v2::diagnostic new_serialmessage_Get_DIO_Port(int packet_type,unsigned char* inpacket);
 	icarus_rover_v2::diagnostic new_serialmessage_Get_Mode(int packet_type,unsigned char* inpacket);
 	icarus_rover_v2::diagnostic new_serialmessage_UserMessage(int packet_type,unsigned char* inpacket);
+    icarus_rover_v2::diagnostic new_serialmessage_PPS(int packet_type,unsigned char* inpacket);
 	icarus_rover_v2::diagnostic get_diagnostic() { return diagnostic; }
     icarus_rover_v2::firmware get_boardfirmware() { return board_firmware; }
     bool get_firmwarereceived() { return firmware_received; }
@@ -147,6 +152,11 @@ public:
 	int get_usbdevice_id() { return UsbDevice_id; }
 	std::string get_boardname() { return my_boardname; }
 	double get_runtime() { return run_time; }
+    double compute_delay(uint8_t rx_id);
+    double measure_time_diff(struct timeval timer_a, struct timeval timer_b);
+    double get_delay_sec() { return current_delay_sec; }
+    std::vector<icarus_rover_v2::device> get_shields() { return myshields; }
+    
 protected:
 	state_ack send_configure_DIO_Ports;
 	state_ack send_defaultvalue_DIO_Port;
@@ -156,6 +166,8 @@ protected:
 	state_ack send_set_DIO_Port;
 	state_ack send_armedcommand;
 	state_ack send_armedstate;
+    state_ack send_diagnostic;
+    state_ack send_pps;
 private:
 
 	std::string location;
@@ -202,8 +214,12 @@ private:
 	double run_time;
 	double find_slope(std::vector<double> x,std::vector<double> y);
 	double find_intercept(double slope,std::vector<double> x,std::vector<double> y);
-
+    std::vector<icarus_rover_v2::diagnostic> diagnostics_to_send;
+    uint8_t pps_counter;
+    double current_delay_sec;
+    Port_Info ANA_Port;
 
 	std::vector<message_info> messages;
+    std::vector<struct timeval> pps_history;
 };
 #endif

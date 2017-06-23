@@ -1,29 +1,61 @@
 #include "network_transceiver_node.h"
 //Start User Code: Firmware Definition
-#define NETWORKTRANSCEIVERNODE_MAJOR_RELEASE 2
+#define NETWORKTRANSCEIVERNODE_MAJOR_RELEASE 3
 #define NETWORKTRANSCEIVERNODE_MINOR_RELEASE 1
-#define NETWORKTRANSCEIVERNODE_BUILD_NUMBER 2
+#define NETWORKTRANSCEIVERNODE_BUILD_NUMBER 0
 //End User Code: Firmware Definition
 //Start User Code: Functions
+bool run_loop1_code()
+{
+	diagnostic_status = rescan_topics(diagnostic_status);
+	diagnostic_pub.publish(diagnostic_status);
+    logger->log_info(process.get_messageinfo(false));
+ 	return true;
+}
+bool run_loop2_code()
+{
+       
+
+	if((remote_heartbeat_pass == true) and
+	   (1 == 1)) //Others??
+	{
+		ready_to_arm = true;
+	}
+	else
+	{
+		ready_to_arm = false;
+	}
+	std_msgs::Bool bool_ready_to_arm;
+	bool_ready_to_arm.data = ready_to_arm;
+	ready_to_arm_pub.publish(bool_ready_to_arm);
+ 	return true;
+}
+bool run_loop3_code()
+{
+    process.update(measure_time_diff(ros::Time::now(),last_loop3_timer));
+ 	return true;
+}
 bool check_remoteHeartbeats()
 {
 	bool heartbeat_pass = true;
 	for(int i = 0; i < remote_devices.size();i++)
 	{
+		gettimeofday(&now2,NULL);
 		double last_beat_time_sec = remote_devices.at(i).current_beatepoch_sec + remote_devices.at(i).offset_sec;
-		double now_sec = ros::Time::now().sec + ros::Time::now().nsec/1000000000.0;
+		double now_sec = (double)now2.tv_sec + (double)(now2.tv_usec)/1000000.0;
 		double time_since_last = now_sec - last_beat_time_sec;
 		if(time_since_last > 1.0)
 		{
 			heartbeat_pass = false;
 			char tempstr[255];
-			sprintf(tempstr,"Haven't received Heartbeat from: %s in %f Seconds. Disarming."
-					,time_since_last,remote_devices.at(i).Name.c_str());
+			sprintf(tempstr,"Haven't received Heartbeat from: %s in %f Seconds. Disarming.",
+					remote_devices.at(i).Name.c_str(),time_since_last);
 			logger->log_error(tempstr);
 			diagnostic_status.Diagnostic_Type = COMMUNICATIONS;
 			diagnostic_status.Level = ERROR;
 			diagnostic_status.Diagnostic_Message = MISSING_HEARTBEATS;
 			diagnostic_status.Description = tempstr;
+			logger->log_diagnostic(diagnostic_status);
 			diagnostic_pub.publish(diagnostic_status);
 
 		}
@@ -35,6 +67,7 @@ bool check_remoteHeartbeats()
 		diagnostic_status.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
 		diagnostic_status.Description = "No Remote UI Devices Found Yet.";
 		diagnostic_pub.publish(diagnostic_status);
+		logger->log_diagnostic(diagnostic_status);
 		heartbeat_pass = false;
 
 	}
@@ -133,6 +166,15 @@ icarus_rover_v2::diagnostic rescan_topics(icarus_rover_v2::diagnostic diag)
 	diag.Description = tempstr;
 	return diag;
 }
+void estop_Callback(const icarus_rover_v2::estop::ConstPtr& msg)
+{
+	std::string send_string = udpmessagehandler->encode_EStopUDP(msg->name,msg->state);
+	if(sendto(senddevice_sock, send_string.c_str(), send_string.size(), 0, (struct sockaddr *)&senddevice_addr, sizeof(senddevice_addr))!=send_string.size())
+	{
+		logger->log_warn("Mismatch in number of bytes sent");
+	}
+    else { process.new_message_sent(ESTOP_ID); }
+}
 void ArmedState_Callback(const std_msgs::UInt8::ConstPtr& msg)
 {
 	std::string send_string = udpmessagehandler->encode_Arm_StatusUDP(
@@ -140,14 +182,14 @@ void ArmedState_Callback(const std_msgs::UInt8::ConstPtr& msg)
 	if(sendto(senddevice_sock, send_string.c_str(), send_string.size(), 0, (struct sockaddr *)&senddevice_addr, sizeof(senddevice_addr))!=send_string.size())
 	{
 		logger->log_warn("Mismatch in number of bytes sent");
-
 	}
+    else { process.new_message_sent(ARM_STATUS_ID); }
 }
 void diagnostic_Callback(const icarus_rover_v2::diagnostic::ConstPtr& msg)
 {
-	char tempstr[255];
-	sprintf(tempstr,"Got Diagnostic from Task: %s with System: %d Level: %d",msg->Node_Name.c_str(),msg->Level,msg->System);
-	logger->log_info(tempstr);
+	//char tempstr[255];
+	//sprintf(tempstr,"Got Diagnostic from Task: %s with System: %d Level: %d",msg->Node_Name.c_str(),msg->Level,msg->System);
+	//logger->log_info(tempstr);
 	std::string send_string = udpmessagehandler->encode_DiagnosticUDP(
 																		msg->DeviceName,
 																		msg->Node_Name,
@@ -161,28 +203,28 @@ void diagnostic_Callback(const icarus_rover_v2::diagnostic::ConstPtr& msg)
 	if(sendto(senddevice_sock, send_string.c_str(), send_string.size(), 0, (struct sockaddr *)&senddevice_addr, sizeof(senddevice_addr))!=send_string.size())
 	{
 		  logger->log_warn("Mismatch in number of bytes sent");
-
 	}
+    else { process.new_message_sent(DIAGNOSTIC_ID); }
 }
 void resource_Callback(const icarus_rover_v2::resource::ConstPtr& msg)
 {
-	char tempstr[240];
-	sprintf(tempstr,"Got Resource from Task: %s",msg->Node_Name.c_str());
-	logger->log_info(tempstr);
+	//char tempstr[240];
+	//sprintf(tempstr,"Got Resource from Task: %s",msg->Node_Name.c_str());
+	//logger->log_info(tempstr);
 	std::string send_string = udpmessagehandler->encode_ResourceUDP(msg->Node_Name,
 																	msg->RAM_MB,
 																	msg->CPU_Perc);
 	if(sendto(senddevice_sock, send_string.c_str(), send_string.size(), 0, (struct sockaddr *)&senddevice_addr, sizeof(senddevice_addr))!=send_string.size())
 	{
 		  logger->log_warn("Mismatch in number of bytes sent");
-
 	}
+    else { process.new_message_sent(RESOURCE_ID); }    
 }
 void device_Callback(const icarus_rover_v2::device::ConstPtr& msg)
 {
-	char tempstr[240];
-	sprintf(tempstr,"Got Device from Task: %s",msg->DeviceName.c_str());
-	logger->log_info(tempstr);
+	//char tempstr[240];
+	//sprintf(tempstr,"Got Device from Task: %s",msg->DeviceName.c_str());
+	//logger->log_info(tempstr);
 	std::string send_string = udpmessagehandler->encode_DeviceUDP(msg->DeviceParent,
 																msg->DeviceName,
 																msg->DeviceType,
@@ -190,9 +232,8 @@ void device_Callback(const icarus_rover_v2::device::ConstPtr& msg)
 	if(sendto(senddevice_sock, send_string.c_str(), send_string.size(), 0, (struct sockaddr *)&senddevice_addr, sizeof(senddevice_addr))!=send_string.size())
 	{
 		  logger->log_warn("Mismatch in number of bytes sent");
-
-
 	}
+    else { process.new_message_sent(DEVICE_ID); }    
 }
 void process_udp_receive()
 {
@@ -211,23 +252,28 @@ void process_udp_receive()
 		char tempstr[8];
 		sprintf(tempstr,"0x%s",items.at(0).c_str());
 		int id = (int)strtol(tempstr,NULL,0);
-		//printf("Got ID: %0X\n",id);
-
 		uint8_t device,armcommand;
 		int axis1,axis2,axis3,axis4,axis5,axis6,axis7,axis8;
+		uint8_t command,option1,option2,option3;
 		uint8_t button1,button2,button3,button4,button5,button6,button7,button8;
-		std::string tempstr1;
+		std::string tempstr1,tempstr2;
 		uint64_t t,t2;
+        process.new_message_recv(id);
 		switch (id)
 		{
-			printf("Got ID: %d\n",id);
-			case UDPMessageHandler::UDP_Arm_Command_ID:
-				success = udpmessagehandler->decode_Arm_CommandUDP(items,&armcommand);
+
+			case UDPMessageHandler::UDP_Command_ID:
+				success = udpmessagehandler->decode_CommandUDP(items,&command,&option1,&option2,&option3,&tempstr1,&tempstr2);
 				if(success == 1)
 				{
-					std_msgs::UInt8 int_arm_command;
-					int_arm_command.data = armcommand;
-					arm_command_pub.publish(int_arm_command);
+					icarus_rover_v2::command newcommand;
+					newcommand.Command = command;
+					newcommand.Option1 = option1;
+					newcommand.Option2 = option2;
+					newcommand.Option3 = option3;
+					newcommand.CommandText = tempstr1;
+					newcommand.Description = tempstr2;
+					user_command_pub.publish(newcommand);
 				}
 				else
 				{
@@ -268,12 +314,14 @@ void process_udp_receive()
 				break;
 			case UDPMessageHandler::UDP_RemoteControl_ID:
 
-				success = udpmessagehandler->decode_RemoteControlUDP(items,&axis1,&axis2,&axis3,&axis4,&axis5,&axis6,&axis7,&axis8,
+				success = udpmessagehandler->decode_RemoteControlUDP(items,&t,&axis1,&axis2,&axis3,&axis4,&axis5,&axis6,&axis7,&axis8,
 																	&button1,&button2,&button3,&button4,&button5,&button6,&button7,&button8);
 				if(success == 1)
 				{
 					sensor_msgs::Joy newjoy;
-					newjoy.header.stamp = ros::Time::now();
+                    double send_time = t/1000.0;
+					newjoy.header.stamp.sec = floor(send_time);
+                    newjoy.header.stamp.nsec = (send_time-newjoy.header.stamp.sec)*1000000000;
 					newjoy.header.frame_id = "/world";
 					newjoy.axes.push_back((float)(axis1/32768.0));
 					newjoy.axes.push_back((float)(axis2/32768.0));
@@ -326,7 +374,11 @@ void process_udp_receive()
 				}
 				break;
 			default:
-				printf("Message: %d Not Supported.\n",id);
+				char tempstr[512];
+
+				sprintf(tempstr,"Message: %d Not Supported.",id);
+				printf("%s\n",tempstr);
+				logger->log_warn(std::string(tempstr));
 				break;
 		}
 
@@ -376,40 +428,21 @@ bool initialize_sendsocket()
 	senddevice_addr.sin_port=htons(send_multicast_port);
 	return true;
 }
-bool run_fastrate_code()
+void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
-	if((remote_heartbeat_pass == true) and
-	   (1 == 1)) //Others??
-	{
-		ready_to_arm = true;
-	}
-	else
-	{
-		ready_to_arm = false;
-	}
-	std_msgs::Bool bool_ready_to_arm;
-	bool_ready_to_arm.data = ready_to_arm;
-	ready_to_arm_pub.publish(bool_ready_to_arm);
-	//logger->log_debug("Running fast rate code.");
-	return true;
+	icarus_rover_v2::firmware fw;
+	fw.Generic_Node_Name = "network_transceiver_Node";
+	fw.Node_Name = node_name;
+	fw.Description = "Latest Rev: 5-June-2017";
+	fw.Major_Release = NETWORKTRANSCEIVERNODE_MAJOR_RELEASE;
+	fw.Minor_Release = NETWORKTRANSCEIVERNODE_MINOR_RELEASE;
+	fw.Build_Number = NETWORKTRANSCEIVERNODE_BUILD_NUMBER;
+	firmware_pub.publish(fw);
 }
-bool run_mediumrate_code()
+void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
-	remote_heartbeat_pass = check_remoteHeartbeats();
-	beat.stamp = ros::Time::now();
-	heartbeat_pub.publish(beat);
-
-	diagnostic_status.Diagnostic_Type = SOFTWARE;
-	diagnostic_status.Level = INFO;
-	diagnostic_status.Diagnostic_Message = NOERROR;
-	diagnostic_status.Description = "Node Executing.";
-	diagnostic_pub.publish(diagnostic_status);
-	return true;
-}
-bool run_slowrate_code()
-{
-
-	if(device_initialized == true)
+	received_pps = true;
+    if(device_initialized == true)
 	{
 		icarus_rover_v2::diagnostic resource_diagnostic;
 		resource_diagnostic = resourcemonitor->update();
@@ -430,25 +463,6 @@ bool run_slowrate_code()
 			resource_pub.publish(resources_used);
 		}
 	}
-	//logger->log_debug("Running slow rate code.");
-
-	return true;
-}
-bool run_veryslowrate_code()
-{
-	//logger->log_debug("Running very slow rate code.");
-	diagnostic_status = rescan_topics(diagnostic_status);
-	diagnostic_pub.publish(diagnostic_status);
-	logger->log_info("Node Running.");
-	icarus_rover_v2::firmware fw;
-	fw.Generic_Node_Name = "network_transceiver_Node";
-	fw.Node_Name = node_name;
-	fw.Description = "Latest Rev: 30-Nov-2016";
-	fw.Major_Release = NETWORKTRANSCEIVERNODE_MAJOR_RELEASE;
-	fw.Minor_Release = NETWORKTRANSCEIVERNODE_MINOR_RELEASE;
-	fw.Build_Number = NETWORKTRANSCEIVERNODE_BUILD_NUMBER;
-	firmware_pub.publish(fw);
-	return true;
 }
 std::vector<icarus_rover_v2::diagnostic> check_program_variables()
 {
@@ -504,7 +518,17 @@ void Command_Callback(const icarus_rover_v2::command::ConstPtr& msg)
 	}
 }
 //End User Code: Functions
+bool run_10Hz_code()
+{
+    beat.stamp = ros::Time::now();
+	heartbeat_pub.publish(beat);
 
+    if(diagnostic_status.Level > NOTICE)
+    {
+        diagnostic_pub.publish(diagnostic_status);
+    }
+    return true;
+}
 int main(int argc, char **argv)
 {
 	node_name = "network_transceiver_node";
@@ -522,13 +546,9 @@ int main(int argc, char **argv)
 		diagnostic_pub.publish(diagnostic_status);
         kill_node = 1;
     }
-    ros::Rate loop_rate(rate);
+    ros::Rate loop_rate(ros_rate);
 	boot_time = ros::Time::now();
-    now = ros::Time::now();
-    fast_timer = now;
-    medium_timer = now;
-    slow_timer = now;
-    veryslow_timer = now;
+    double mtime;
 	int counter = 0;
 	boost::thread process_udpreceive_thread(&process_udp_receive);
     while (ros::ok() && (kill_node == 0))
@@ -538,32 +558,41 @@ int main(int argc, char **argv)
 		else if(require_pps_to_start == true && received_pps == true) { ok_to_start = true; }
     	if(ok_to_start == true)
     	{
-    		now = ros::Time::now();
-    		mtime = measure_time_diff(now,fast_timer);
-			if(mtime > .02)
-			{
-				run_fastrate_code();
-				fast_timer = ros::Time::now();
-			}
-			mtime = measure_time_diff(now,medium_timer);
-			if(mtime > 0.1)
-			{
-				run_mediumrate_code();
-				medium_timer = ros::Time::now();
-			}
-			mtime = measure_time_diff(now,slow_timer);
-			if(mtime > 1.0)
-			{
-				run_slowrate_code();
-				slow_timer = ros::Time::now();
-			}
-			mtime = measure_time_diff(now,veryslow_timer);
-			if(mtime > 10.0)
-			{
-				run_veryslowrate_code();
-				veryslow_timer = ros::Time::now();
-			}
-		}
+            if(run_loop1 == true)
+            {
+                mtime = measure_time_diff(ros::Time::now(),last_loop1_timer);
+                if(mtime >= (1.0/loop1_rate))
+                {
+                    run_loop1_code();
+                    last_loop1_timer = ros::Time::now();
+                }
+            }
+            if(run_loop2 == true)
+            {
+                mtime = measure_time_diff(ros::Time::now(),last_loop2_timer);
+                if(mtime >= (1.0/loop2_rate))
+                {
+                    run_loop2_code();
+                    last_loop2_timer = ros::Time::now();
+                }
+            }
+            if(run_loop3 == true)
+            {
+                mtime = measure_time_diff(ros::Time::now(),last_loop3_timer);
+                if(mtime >= (1.0/loop3_rate))
+                {
+                    run_loop3_code();
+                    last_loop3_timer = ros::Time::now();
+                }
+            }
+            
+            mtime = measure_time_diff(ros::Time::now(),last_10Hz_timer);
+            if(mtime >= 0.1)
+            {
+                run_10Hz_code();
+                last_10Hz_timer = ros::Time::now();
+            }
+    	}
 		else
 		{
 			logger->log_warn("Waiting on PPS to Start.");
@@ -615,19 +644,13 @@ bool initializenode()
     {
         logger = new Logger(verbosity_level,ros::this_node::getName());      
     }
-    std::string param_loop_rate = node_name +"/loop_rate";
-    if(n->getParam(param_loop_rate,rate) == false)
-    {
-        logger->log_warn("Missing Parameter: loop_rate.");
-        return false;
-    }
 	std::string heartbeat_topic = "/" + node_name + "/heartbeat";
 	heartbeat_pub = n->advertise<icarus_rover_v2::heartbeat>(heartbeat_topic,1000);
 	beat.Node_Name = node_name;
     std::string device_topic = "/" + std::string(hostname) +"_master_node/device";
     device_sub = n->subscribe<icarus_rover_v2::device>(device_topic,1000,Device_Callback);
-
-    pps_sub = n->subscribe<std_msgs::Bool>("/pps",1000,PPS_Callback);  //This is a pps consumer.
+    pps01_sub = n->subscribe<std_msgs::Bool>("/01PPS",1000,PPS01_Callback); 
+    pps1_sub = n->subscribe<std_msgs::Bool>("/1PPS",1000,PPS1_Callback); 
 	command_sub = n->subscribe<icarus_rover_v2::command>("/command",1000,Command_Callback);
     std::string param_require_pps_to_start = node_name +"/require_pps_to_start";
     if(n->getParam(param_require_pps_to_start,require_pps_to_start) == false)
@@ -637,9 +660,55 @@ bool initializenode()
 	}
     std::string firmware_topic = "/" + node_name + "/firmware";
     firmware_pub =  n->advertise<icarus_rover_v2::firmware>(firmware_topic,1000);
+
+	double max_rate = 0.0;
+    std::string param_loop1_rate = node_name + "/loop1_rate";
+    if(n->getParam(param_loop1_rate,loop1_rate) == false)
+    {
+        logger->log_warn("Missing parameter: loop1_rate.  Not running loop1 code.");
+        run_loop1 = false;
+    }
+    else 
+    { 
+        last_loop1_timer = ros::Time::now();
+        run_loop1 = true; 
+        if(loop1_rate > max_rate) { max_rate = loop1_rate; }
+    }
+    
+    std::string param_loop2_rate = node_name + "/loop2_rate";
+    if(n->getParam(param_loop2_rate,loop2_rate) == false)
+    {
+        logger->log_warn("Missing parameter: loop2_rate.  Not running loop2 code.");
+        run_loop2 = false;
+    }
+    else 
+    { 
+        last_loop2_timer = ros::Time::now();
+        run_loop2 = true; 
+        if(loop2_rate > max_rate) { max_rate = loop2_rate; }
+    }
+    
+    std::string param_loop3_rate = node_name + "/loop3_rate";
+    if(n->getParam(param_loop3_rate,loop3_rate) == false)
+    {
+        logger->log_warn("Missing parameter: loop3_rate.  Not running loop3 code.");
+        run_loop3 = false;
+    }
+    else 
+    { 
+        last_loop3_timer = ros::Time::now();
+        run_loop3 = true; 
+        if(loop3_rate > max_rate) { max_rate = loop3_rate; }
+    }
+    ros_rate = max_rate * 50.0;
+    if(ros_rate < 100.0) { ros_rate = 100.0; }
+    char tempstr[512];
+    sprintf(tempstr,"Running Node at Rate: %f",ros_rate);
+    logger->log_notice(std::string(tempstr));
     //End Template Code: Initialization and Parameters
 
     //Start User Code: Initialization and Parameters
+    ros::Time::init();
     ready_to_arm = false;
     remote_heartbeat_pass = false;
     std::string armed_disarmed_state_topic = "/armed_state";
@@ -690,13 +759,33 @@ bool initializenode()
 		std::string arm2_joystick_topic = "/" + Mode + "/arm2_joystick";
 		arm2_joy_pub =  n->advertise<sensor_msgs::Joy>(arm2_joystick_topic,1000);
 
-		std::string arm_command_topic = "/" + Mode + "/user_armcommand";
-		arm_command_pub = n->advertise<std_msgs::UInt8>(arm_command_topic,1000);
+		//std::string arm_command_topic = "/" + Mode + "/user_command";
+		//arm_command_pub = n->advertise<icarus_rover_v2::command>(arm_command_topic,1000);
+
+
+	}
+	else if(Mode=="DriverStation")
+	{
+		std::string joystick_topic = "/" + Mode + "/joystick";
+		joy_pub =  n->advertise<sensor_msgs::Joy>(joystick_topic,1000);
+
+		std::string arm1_joystick_topic = "/" + Mode + "/arm1_joystick";
+		arm1_joy_pub =  n->advertise<sensor_msgs::Joy>(arm1_joystick_topic,1000);
+
+		std::string arm2_joystick_topic = "/" + Mode + "/arm2_joystick";
+		arm2_joy_pub =  n->advertise<sensor_msgs::Joy>(arm2_joystick_topic,1000);
+
+		std::string user_command_topic = "/" + Mode + "/user_command";
+		user_command_pub = n->advertise<icarus_rover_v2::command>(user_command_topic,1000);
 
 
 	}
 	std::string ready_to_arm_topic = node_name + "/ready_to_arm";
 	ready_to_arm_pub = n->advertise<std_msgs::Bool>(ready_to_arm_topic,1000);
+
+	estop_sub = n->subscribe<icarus_rover_v2::estop>("/estop",5,estop_Callback);
+
+    process.init(diagnostic_status,std::string(hostname));
 	udpmessagehandler = new UDPMessageHandler();
 
 
@@ -717,11 +806,6 @@ double measure_time_diff(ros::Time timer_a, ros::Time timer_b)
 {
 	ros::Duration etime = timer_a - timer_b;
 	return etime.toSec();
-}
-void PPS_Callback(const std_msgs::Bool::ConstPtr& msg)
-{
-	//logger->log_info("Got pps");
-	received_pps = true;
 }
 void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg)
 {

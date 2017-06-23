@@ -1,3 +1,4 @@
+OBSOLETE!!!
 #include "vision_node.h"
 //Start Template Code: Firmware Definition
 #define VISIONNODE_MAJOR_RELEASE 1

@@ -1,3 +1,4 @@
+OBSOLETE!!!
 #ifndef BOARDCONTROLLERNODE_H
 #define BOARDCONTROLLERNODE_H
 //Start Template Code: Includes
@@ -41,6 +42,14 @@
 //End User Code: Includes
 
 //Start User Code: Data Structures
+struct Task
+{
+	std::string Task_Name;
+	ros::Time last_diagnostic_received;
+	uint8_t last_diagnostic_level;
+	std::string diagnostic_topic;
+	ros::Subscriber diagnostic_sub;
+};
 struct UsbDevice
 {
 	int device_fid;
@@ -56,18 +65,21 @@ struct UsbDevice
 //End User Code: Data Structures
 
 //Start Template Code: Function Prototypes
-bool initialize(ros::NodeHandle nh);
-bool run_fastrate_code();
-bool run_mediumrate_code();
-bool run_slowrate_code();
-bool run_veryslowrate_code();
+bool initializenode();
+void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg);
+void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg);
+void PPS10_Callback(const std_msgs::Bool::ConstPtr& msg);
+void PPS100_Callback(const std_msgs::Bool::ConstPtr& msg);
+void PPS1000_Callback(const std_msgs::Bool::ConstPtr& msg);
 double measure_time_diff(ros::Time timer_a, ros::Time tiber_b);
-void PPS_Callback(const std_msgs::Bool::ConstPtr& msg);
 void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg);
 void Command_Callback(const icarus_rover_v2::command& msg);
+void diagnostic_Callback(const icarus_rover_v2::diagnostic::ConstPtr& msg,const std::string &topicname);
 std::vector<icarus_rover_v2::diagnostic> check_program_variables();
 void signalinterrupt_handler(int sig);
 int checkmessage();
+icarus_rover_v2::diagnostic rescan_topics(icarus_rover_v2::diagnostic diag);
+
 //End Template Code: Function Prototypes
 
 //Start User Code: Function Prototypes
@@ -78,9 +90,12 @@ void signalinterrupt_handler(int sig);
 
 //Start Template Code: Define Global variables
 std::string node_name;
-int rate;
 std::string verbosity_level;
-ros::Subscriber pps_sub;  
+ros::Subscriber pps01_sub;
+ros::Subscriber pps1_sub;
+ros::Subscriber pps10_sub;
+ros::Subscriber pps100_sub;
+ros::Subscriber pps1000_sub;
 ros::Subscriber device_sub;
 ros::Publisher diagnostic_pub;
 ros::Publisher resource_pub;
@@ -93,10 +108,6 @@ Logger *logger;
 ResourceMonitor *resourcemonitor;
 bool require_pps_to_start;
 bool received_pps;
-ros::Time fast_timer;
-ros::Time medium_timer;
-ros::Time slow_timer;
-ros::Time veryslow_timer;
 ros::Time now;
 ros::Time boot_time;
 double mtime;
@@ -108,11 +119,14 @@ volatile sig_atomic_t kill_node;
 //End Template Code: Define Global Variables
 
 //Start User Code: Define Global Variables
+boost::shared_ptr<ros::NodeHandle> n;
 ros::Time last_message_received_time;
 std::vector<BoardControllerNodeProcess> boardprocesses;
 ros::Publisher digitalinput_pub;
 ros::Subscriber pwmoutput_sub;
 ros::Time last_pwmoutput_sub_time;
+std::vector<ros::Subscriber> diagnostic_subs;
+ros::Time last_diagnostic_sub_time;
 ros::Subscriber digitaloutput_sub;
 ros::Time last_digitaloutput_time;
 ros::Publisher analoginput_pub;
@@ -137,5 +151,6 @@ int packet_length;
 ros::Subscriber armed_state_sub;
 bool ready_to_arm;
 ros::Publisher ready_to_arm_pub;
+std::vector<Task> TaskList;
 //End User Code: Define Global Variables
 #endif

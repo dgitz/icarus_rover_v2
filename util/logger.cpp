@@ -68,6 +68,30 @@ void Logger::log_fatal(std::string tempstr)
 {
     print_log(FATAL,tempstr);
 }
+void Logger::log_diagnostic(icarus_rover_v2::diagnostic diagnostic)
+{
+	switch(diagnostic.Level)
+	{
+		case DEBUG:
+			log_debug(diagnostic.Description);
+			break;
+		case INFO:
+			log_info(diagnostic.Description);
+			break;
+		case NOTICE:
+			log_notice(diagnostic.Description);
+			break;
+		case WARN:
+			log_warn(diagnostic.Description);
+			break;
+		case ERROR:
+			log_error(diagnostic.Description);
+			break;
+		case FATAL:
+			log_fatal(diagnostic.Description);
+			break;
+	}
+}
 void Logger::print_log(int level,std::string tempstr)
 {
     time_t rawtime;

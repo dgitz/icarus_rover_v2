@@ -11,22 +11,18 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   std_msgs
   roslaunch
-    message_generation
+  message_generation
   sensor_msgs
   cv_bridge
   roslib
-  #urdf
   tf
-  #moveit_ros_planning_interface
- # moveit_ros_planning
- # moveit_core
 )
 
 ## System dependencies are found with CMake's conventions
 find_package(Boost REQUIRED COMPONENTS system thread)
 find_package(TinyXML REQUIRED)
 find_package(OpenCV)
- 
+find_package(Eigen REQUIRED) 
 #rosbuild_add_boost_directories()
 #rosbuild_link_boost(icarus_rover_v2 thread signals system)
 
@@ -73,6 +69,8 @@ add_message_files(
   imu.msg
   usermessage.msg
   battery.msg
+  iopins.msg
+  estop.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -128,7 +126,8 @@ catkin_package(
   INCLUDE_DIRS include
   LIBRARIES icarus_rover_v2
   CATKIN_DEPENDS roscpp rospy std_msgs roslib
-  DEPENDS system_lib message_runtime TinyXML
+  DEPENDS system_lib message_runtime TinyXML Eigen
+  
 )
 
 ###########
@@ -143,6 +142,7 @@ include_directories(
   ${Boost_INCLUDE_DIRS}
   ${TinyXML_INCLUDE_DIRS}
   ${OpenCV_INCLUDE_DIRS}
+  ${Eigen_INCLUDE_DIRS}
 )
 
 
@@ -221,17 +221,29 @@ add_library(udpmessage util/udpmessage.cpp)
 add_library(serialmessage util/serialmessage.cpp)
 add_library(resourcemonitor util/resourcemonitor.cpp)
 add_library(visionhelper util/visionhelper.cpp)
+add_library(sample_node_process src_templates/sample_node_process.cpp)
 add_library(speaker_node_process src/Communication/speaker_node_process.cpp)
-add_library(boardcontroller_node_process src/Board/boardcontroller_node_process.cpp)
 add_library(command_node_process src/Control/command_node_process.cpp)
-add_library(powermonitor_node_process src/Control/powermonitor_node_process.cpp)
-add_library(tf_broadcaster_node_process src/Pose/tf_broadcaster_node_process.cpp)
+add_library(hatcontroller_node_process src/Board/hatcontroller_node_process.cpp)
+add_library(safety_node_process src/Diagnostics/safety_node_process.cpp)
+add_library(network_transceiver_node_process src/Communication/network_transceiver_node_process.cpp)
+add_library(pose_node_process src/Pose/pose_node_process.cpp)
+#add_library(powermonitor_node_process src/Control/powermonitor_node_process.cpp)
+
+add_executable(sample_node src_templates/sample_node.cpp)
+target_link_libraries(sample_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor sample_node_process)
+catkin_add_gtest(test_sample_node_process src_templates/unit_tests/test_sample_node_process.cpp)
+target_link_libraries(test_sample_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} sample_node_process)
+
+
+add_executable(timemaster_node src/Timing/timemaster_node.cpp)
+target_link_libraries(timemaster_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor)
 
 add_executable(diagnostic_node src/Diagnostics/diagnostic_node.cpp)
 target_link_libraries(diagnostic_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} logger resourcemonitor)
 
 add_executable(network_transceiver_node src/Communication/network_transceiver_node.cpp)
-target_link_libraries(network_transceiver_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} logger udpmessage resourcemonitor)
+target_link_libraries(network_transceiver_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} logger udpmessage resourcemonitor network_transceiver_node_process)
 
 add_executable(command_node src/Control/command_node.cpp)
 target_link_libraries(command_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor command_node_process)
@@ -240,11 +252,6 @@ target_link_libraries(test_command_node_process ${catkin_LIBRARIES} ${Boost_LIBR
 
 add_executable(master_node src/Control/master_node.cpp)
 target_link_libraries(master_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor)
-
-add_executable(boardcontroller_node src/Board/boardcontroller_node.cpp)
-target_link_libraries(boardcontroller_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} boardcontroller_node_process logger serialmessage resourcemonitor)
-catkin_add_gtest(test_boardcontroller_node_process src/Board/unit_tests/test_boardcontroller_node_process.cpp)
-target_link_libraries(test_boardcontroller_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} boardcontroller_node_process logger serialmessage)
 
 add_executable(topicremapper_node src/Communication/topicremapper_node.cpp)
 target_link_libraries(topicremapper_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} logger resourcemonitor)
@@ -257,13 +264,18 @@ target_link_libraries(speaker_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${Tiny
 catkin_add_gtest(test_speaker_node_process src/Communication/unit_tests/test_speaker_node_process.cpp)
 target_link_libraries(test_speaker_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} speaker_node_process logger)
 
-add_executable(powermonitor_node src/Control/powermonitor_node.cpp)
-target_link_libraries(powermonitor_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor powermonitor_node_process)
-catkin_add_gtest(test_powermonitor_node_process src/Control/unit_tests/test_powermonitor_node_process.cpp)
-target_link_libraries(test_powermonitor_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} powermonitor_node_process logger)
+#add_executable(powermonitor_node src/Control/powermonitor_node.cpp)
+#target_link_libraries(powermonitor_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor powermonitor_node_process)
+#catkin_add_gtest(test_powermonitor_node_process src/Control/unit_tests/test_powermonitor_node_process.cpp)
+#target_link_libraries(test_powermonitor_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} powermonitor_node_process logger)
 
-add_executable(tf_broadcaster_node src/Pose/tf_broadcaster_node.cpp)
-target_link_libraries(tf_broadcaster_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor tf_broadcaster_node_process)
-catkin_add_gtest(test_tf_broadcaster_node_process src/Pose/unit_tests/test_tf_broadcaster_node_process.cpp)
-target_link_libraries(test_tf_broadcaster_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} tf_broadcaster_node_process logger)
+#add_executable(hatcontroller_node src/Board/hatcontroller_node.cpp)
+#target_link_libraries(hatcontroller_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor hatcontroller_node_process)
+catkin_add_gtest(test_hatcontroller_node_process src/Board/unit_tests/test_hatcontroller_node_process.cpp)
+target_link_libraries(test_hatcontroller_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} hatcontroller_node_process logger)
 
+catkin_add_gtest(test_safety_node_process src/Diagnostics/unit_tests/test_safety_node_process.cpp)
+target_link_libraries(test_safety_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} safety_node_process logger)
+
+catkin_add_gtest(test_pose_node_process src/Pose/unit_tests/test_pose_node_process.cpp)
+target_link_libraries(test_pose_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${Eigen_LIBRARIES} pose_node_process logger)

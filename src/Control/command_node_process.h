@@ -53,7 +53,7 @@ public:
     icarus_rover_v2::diagnostic new_readytoarmmsg(std::string topic, bool value);
     icarus_rover_v2::diagnostic init_readytoarm_list(std::vector<std::string> topics);
     icarus_rover_v2::diagnostic init_PeriodicCommands(std::vector<PeriodicCommand> commands);
-    icarus_rover_v2::diagnostic new_user_armcommandmsg(uint8_t value);
+    icarus_rover_v2::diagnostic new_user_commandmsg(icarus_rover_v2::command msg);
     icarus_rover_v2::diagnostic new_targetmsg(std::string target);
   //  int get_armcommand() { return armedcommand; }
 	//std::vector<icarus_rover_v2::device> get_myboards() { return myboards;
@@ -62,7 +62,12 @@ public:
 	int get_timeout_ms() { return timeout_value_ms; }
 	long get_timer_ms() { return ms_timer; }
 	bool reset_timer() { ms_timer = 0; timer_timeout = false; return true;}
-	icarus_rover_v2::command get_currentcommand() { return current_command; }
+	icarus_rover_v2::command get_currentcommand()
+	{
+		icarus_rover_v2::command c = current_command;
+		current_command.Command = ROVERCOMMAND_NONE;
+		return c;
+	}
 	int get_currentstate() { return node_state; }
 	void set_batterylevel_perc(double v) { batterylevel_perc = v; }
 	double get_batterylevel_perc() { return batterylevel_perc; }

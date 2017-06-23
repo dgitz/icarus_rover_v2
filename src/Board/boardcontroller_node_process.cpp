@@ -18,7 +18,16 @@ BoardControllerNodeProcess::BoardControllerNodeProcess(std::string loc, int v)
 	shield_count = -1;
 	run_time = 0.0;
     ready_to_arm = false;
-	gettimeofday(&init_time,NULL);
+    diagnostics_to_send.clear();
+	gettimeofday(&init_time,NULL); 
+    pps_counter = 0;
+    current_delay_sec = 0.0;
+    for(int i = 0; i < 100; i++)
+    {
+    	struct timeval now;
+    	gettimeofday(&now,NULL);
+        pps_history.push_back(now);
+    }
 	//init_time = ros::Time::now();
 }
 BoardControllerNodeProcess::BoardControllerNodeProcess()
@@ -53,6 +62,17 @@ bool BoardControllerNodeProcess::initialize_Ports()
 		
 	}
 	*/
+}
+icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_pps_transmit()
+{
+    icarus_rover_v2::diagnostic diag = diagnostic;
+    pps_counter++;
+    if(pps_counter >= 100) { pps_counter = 0; }
+    struct timeval now;
+    gettimeofday(&now,NULL);
+    pps_history.at(pps_counter) = now;
+    send_pps.trigger = true;
+    return diag;
 }
 icarus_rover_v2::diagnostic BoardControllerNodeProcess::init(icarus_rover_v2::diagnostic indiag
 		,std::string hostname,std::string sensorspecpath,bool extrapolate)
@@ -137,7 +157,7 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::update(double dt)
         send_defaultvalue_DIO_Port.trigger = true;
 		send_configure_DIO_Ports.trigger = false;
 	}
-	if((board_state == BOARDMODE_RUNNING) && (node_state == BOARDMODE_INITIALIZED))
+	if((board_state == BOARDMODE_RUNNING) && ((node_state == BOARDMODE_INITIALIZED) || (node_state == BOARDMODE_SHIELDS_CONFIGURED)))
 	{
         armed_state = ARMEDSTATUS_DISARMED;
 		node_state = BOARDMODE_RUNNING;
@@ -162,7 +182,7 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::update(double dt)
     }
     else
     {
-		diagnostic.Level = WARN;
+		diagnostic.Level = NOTICE;
 		diagnostic.Diagnostic_Type = SOFTWARE;
 		diagnostic.Diagnostic_Message = ROVER_DISARMED;
 		char tempstr[512];
@@ -181,6 +201,15 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_armedstatemsg(uint8_
 	armed_state = v;
 	return diagnostic;
 }
+icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_diagnosticmsg(icarus_rover_v2::diagnostic diagnosticmsg)
+{
+    if(diagnosticmsg.Level >= NOTICE)
+    {
+    	send_diagnostic.trigger = true;
+        diagnostics_to_send.push_back(diagnosticmsg);
+    }
+    return diagnostic;
+}
 state_ack BoardControllerNodeProcess::get_stateack(std::string name)
 {
 
@@ -188,6 +217,10 @@ state_ack BoardControllerNodeProcess::get_stateack(std::string name)
 	{
 		return send_configure_DIO_Ports;
 	}
+    else if(name == send_pps.name)
+    {
+        return send_pps;
+    }
 	else if(name == send_configure_shields.name)
 	{
 		return send_configure_shields;
@@ -211,6 +244,10 @@ state_ack BoardControllerNodeProcess::get_stateack(std::string name)
     else if(name == send_armedcommand.name)
     {
         return send_armedcommand;
+    }
+    else if(name == send_diagnostic.name)
+    {
+        return send_diagnostic;
     }
 	else
 	{
@@ -245,6 +282,10 @@ bool BoardControllerNodeProcess::set_stateack(state_ack stateack)
 	{
 		send_defaultvalue_DIO_Port = stateack;
 	}
+    else if(stateack.name == "Send Diagnostic")
+    {
+        send_diagnostic = stateack;
+    }
 	else
 	{
 		return false;
@@ -354,6 +395,53 @@ bool BoardControllerNodeProcess::checkTriggers(std::vector<std::vector<unsigned 
 				gettimeofday(&send_nodemode.orig_send_time,NULL);
 				send_nodemode.retries = 0;
 			}
+		}
+
+	}
+    if(send_diagnostic.trigger == true)
+	{
+		bool send_me = false;
+		if(send_diagnostic.stream_rate < 0) //Normal operation, should send
+		{
+			send_me = true;
+			send_diagnostic.trigger = false;
+		}
+		else
+		{
+			struct timeval now;
+			gettimeofday(&now,NULL);
+			double etime = time_diff(send_diagnostic.orig_send_time,now);
+			double delay = 1.0/(send_diagnostic.stream_rate);
+			if(etime > delay){ send_me = true; }
+			else{ send_me = false; }
+		}
+		if(send_me == true)
+		{
+			nothing_triggered = false;
+			char buffer[16];
+			int length;
+			int computed_checksum;
+			while(!diagnostics_to_send.empty())
+			{
+				icarus_rover_v2::diagnostic diag = diagnostics_to_send.back();
+				diagnostics_to_send.pop_back();
+
+                int tx_status = serialmessagehandler->encode_DiagnosticSerial(buffer,&length,
+                		(unsigned char)diag.System,
+						(unsigned char)diag.SubSystem,
+						(unsigned char)diag.Component,
+						(unsigned char)diag.Diagnostic_Type,
+						(unsigned char)diag.Level,
+						(unsigned char)diag.Diagnostic_Message);
+                bool status = gather_message_info(SERIAL_Diagnostic_ID, "transmit");
+                tx_buffers.push_back(std::vector<unsigned char>(buffer,buffer+sizeof(buffer)/sizeof(buffer[0])));
+                send_diagnostic.state = true;
+                if (send_diagnostic.retrying == false)
+                {
+                    gettimeofday(&send_diagnostic.orig_send_time,NULL);
+                    send_diagnostic.retries = 0;
+                }
+            }
 		}
 
 	}
@@ -566,6 +654,53 @@ bool BoardControllerNodeProcess::checkTriggers(std::vector<std::vector<unsigned 
 		}
 
 	}
+    if(send_pps.trigger == true)
+	{
+    	bool send_me = false;
+		if(send_pps.stream_rate < 0) //Normal operation, should send
+		{
+			send_me = true;
+			send_pps.trigger = false;
+		}
+		else
+		{
+			struct timeval now;
+			gettimeofday(&now,NULL);
+			double etime = time_diff(send_pps.orig_send_time,now);
+			double delay = 1.0/(send_pps.stream_rate);
+			if(etime > delay){ send_me = true; }
+			else{ send_me = false; }
+		}
+		if(send_me == true)
+		{
+			nothing_triggered = false;
+			for(int i = 0; i < myports.size();i++)
+			{
+				char buffer[16];
+				int length;
+				int computed_checksum;
+				int index=0;
+				int tx_status = serialmessagehandler->encode_PPSSerial(buffer,&length,
+						pps_counter);
+
+				bool status = gather_message_info(SERIAL_PPS_ID, "transmit");
+				/*for(int i = 0; i < 16; i++)
+				{
+					printf("%0x ",buffer[i]);
+				}
+				printf("\n");
+				*/
+				tx_buffers.push_back(std::vector<unsigned char>(buffer,buffer+sizeof(buffer)/sizeof(buffer[0])));
+			}
+			send_pps.state = true;
+			if (send_pps.retrying == false)
+			{
+				gettimeofday(&send_pps.orig_send_time,NULL);
+				send_pps.retries = 0;
+			}
+		}
+
+	}
 	if(send_set_DIO_Port.trigger == true)
 	{
 		bool send_me = false;
@@ -678,6 +813,49 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_commandmsg(icarus_ro
 	}
 	return diagnostic;
 }
+icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_serialmessage_PPS(int packet_type,unsigned char* inpacket)
+{
+    bool status = gather_message_info(SERIAL_PPS_ID, "receive");
+	if(status == false)
+	{
+		diagnostic.Level = ERROR;
+		diagnostic.Diagnostic_Type = COMMUNICATIONS;
+		diagnostic.Diagnostic_Message = DROPPING_PACKETS;
+		diagnostic.Description = "PPS not received correctly.";
+	}
+	else
+	{
+        unsigned char rx_count;
+        serialmessagehandler->decode_PPSSerial(inpacket,&rx_count);
+        current_delay_sec = (current_delay_sec + compute_delay(rx_count))/2.0;
+        diagnostic.Level = INFO;
+        diagnostic.Diagnostic_Type = COMMUNICATIONS;
+        diagnostic.Diagnostic_Message = NOERROR;
+        char tempstr[512];
+        sprintf(tempstr,"Board Name: %s UART Delay: %f",my_boardname.c_str(),current_delay_sec);
+        diagnostic.Description = std::string(tempstr);
+        
+	}
+
+	return diagnostic;
+}
+double BoardControllerNodeProcess::measure_time_diff(struct timeval timer_a, struct timeval timer_b)
+{
+	long mseconds, useconds;
+	double mtime;
+	mseconds  = timer_b.tv_sec  - timer_a.tv_sec;
+	useconds = timer_b.tv_usec - timer_a.tv_usec;
+
+	mtime = ((mseconds) * 1000 + useconds/1000.0) + 0.5;
+	return mtime;
+
+}
+double BoardControllerNodeProcess::compute_delay(uint8_t rx_id)
+{
+    struct timeval now;
+    gettimeofday(&now,NULL);
+    return measure_time_diff(now,pps_history.at(rx_id));    
+}
 icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_serialmessage_TestMessageCounter(int packet_type,unsigned char* inpacket)
 {
 	bool status = gather_message_info(SERIAL_TestMessageCounter_ID, "receive");
@@ -760,7 +938,7 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_serialmessage_Diagno
 }
 icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_serialmessage_Get_ANA_Port(int packet_type,unsigned char* inpacket)
 {
-	/*
+	printf("Got ANA Port\n");
 	bool status = gather_message_info(SERIAL_Get_ANA_Port_ID, "receive");
 	if(status == false)
 	{
@@ -774,42 +952,43 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_serialmessage_Get_AN
 		if(packet_type ==SERIAL_Get_ANA_Port_ID)
 		{
 			char tempstr[128];
+			unsigned char ShieldID,PortID;
 			int value1,value2,value3,value4;
-			serialmessagehandler->decode_Get_ANA_PortSerial(inpacket,&value1,&value2,&value3,&value4);
+			serialmessagehandler->decode_Get_ANA_PortSerial(inpacket,&ShieldID,&PortID,&value1,&value2,&value3,&value4);
 			if(ANA_Port.Mode[0] == PINMODE_ANALOG_INPUT)
 			{
 				ANA_Port.Value[0] = value1;
 			}
 			else if(ANA_Port.Mode[0] == PINMODE_FORCESENSOR_INPUT)
 			{
-				ANA_Port.Value[0] = transducer_model(ANA_PORT.Mode[0],ANA_Port.ConnectingDevice.at(0),(double)(value1));
+				//ANA_Port.Value[0] = transducer_model(ANA_PORT.Mode[0],ANA_Port.ConnectingDevice.at(0),(double)(value1));
 			}
 
-			if(ANA_PORT.Mode[1] == PINMODE_ANALOG_INPUT)
+
+			if(ANA_Port.Mode[1] == PINMODE_ANALOG_INPUT)
 			{
-				ANA_PORT.Value[1] = value2;
+				ANA_Port.Value[1] = value2;
 			}
-			else if(ANA_PORT.Mode[1] == PINMODE_FORCESENSOR_INPUT)
+			else if(ANA_Port.Mode[1] == PINMODE_FORCESENSOR_INPUT)
 			{
-				ANA_PORT.Value[1] = transducer_model(ANA_PORT.Mode[1],ANA_PORT.ConnectingDevice.at(1),(double)(value2));
+				//ANA_PORT.Value[1] = transducer_model(ANA_PORT.Mode[1],ANA_PORT.ConnectingDevice.at(1),(double)(value2));
+			}
+			if(ANA_Port.Mode[2] == PINMODE_ANALOG_INPUT)
+			{
+				ANA_Port.Value[2] = value3;
+			}
+			else if(ANA_Port.Mode[2] == PINMODE_FORCESENSOR_INPUT)
+			{
+				//ANA_PORT.Value[2] = transducer_model(ANA_PORT.Mode[2],ANA_PORT.ConnectingDevice.at(2),(double)(value3));
 			}
 
-			if(ANA_PORT.Mode[2] == PINMODE_ANALOG_INPUT)
+			if(ANA_Port.Mode[3] == PINMODE_ANALOG_INPUT)
 			{
-				ANA_PORT.Value[2] = value3;
+				ANA_Port.Value[3] = value4;
 			}
-			else if(ANA_PORT.Mode[2] == PINMODE_FORCESENSOR_INPUT)
+			else if(ANA_Port.Mode[3] == PINMODE_FORCESENSOR_INPUT)
 			{
-				ANA_PORT.Value[2] = transducer_model(ANA_PORT.Mode[2],ANA_PORT.ConnectingDevice.at(2),(double)(value3));
-			}
-
-			if(ANA_PORT.Mode[3] == PINMODE_ANALOG_INPUT)
-			{
-				ANA_PORT.Value[3] = value4;
-			}
-			else if(ANA_PORT.Mode[3] == PINMODE_FORCESENSOR_INPUT)
-			{
-				ANA_PORT.Value[3] = transducer_model(ANA_PORT.Mode[3],ANA_PORT.ConnectingDevice.at(3),(double)(value4));
+				//ANA_Port.Value[3] = transducer_model(ANA_PORT.Mode[3],ANA_PORT.ConnectingDevice.at(3),(double)(value4));
 			}
 		}
 		else
@@ -819,7 +998,6 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_serialmessage_Get_AN
 			diagnostic.Diagnostic_Message = DROPPING_PACKETS;
 		}
 	}
-	*/
 	return diagnostic;
 }
 
@@ -1000,6 +1178,18 @@ bool BoardControllerNodeProcess::configure_port(int ShieldID,std::vector<icarus_
 	}
 	return status;
 }
+int BoardControllerNodeProcess::get_portcount(int ShieldID)
+{
+    int count = 0;
+    for(int i = 0; i < myports.size(); i++)
+    {
+        if(myports.at(i).ShieldID == ShieldID)
+        {
+            count++;
+        }
+    }
+    return count;
+}
 std::vector<int> BoardControllerNodeProcess::get_portlist(int ShieldID)
 {
 	std::vector<int> portlist;
@@ -1048,6 +1238,7 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_devicemsg(icarus_rov
 						(int)newdevice.ID,
 						my_boardname.c_str(),
 						(int)get_boardid());
+				printf("%s\n",tempstr);
 				bool status =  configure_port(newdevice.ID,newdevice.pins);
 				if(status == false)
 				{
@@ -1488,6 +1679,17 @@ void BoardControllerNodeProcess::initialize_stateack_messages()
 	send_configure_DIO_Ports.failed = false;
 	send_configure_DIO_Ports.flag1 = 0; //This flag represents the Board Index
 	send_configure_DIO_Ports.stream_rate = -1.0;  //Don't stream this
+    
+    send_pps.name = "Send PPS";
+	send_pps.trigger = false;
+	send_pps.state = false;
+	gettimeofday(&send_pps.orig_send_time,NULL);
+	send_pps.retries = 0;
+	send_pps.timeout_counter = 0;
+	send_pps.retry_mode = false;
+	send_pps.failed = false;
+	send_pps.flag1 = 0; //This flag represents the Board Index
+	send_pps.stream_rate = -1.0;  //Don't stream this
 
 	send_configure_shields.name = "Send Configure Shields";
 	send_configure_shields.trigger = false;
@@ -1560,6 +1762,17 @@ void BoardControllerNodeProcess::initialize_stateack_messages()
 	send_defaultvalue_DIO_Port.failed = false;
 	send_defaultvalue_DIO_Port.flag1 = 0; //This flag represents the Board Index
 	send_defaultvalue_DIO_Port.stream_rate = -1.0;
+    
+    send_diagnostic.name = "Send Diagnostic";
+	send_diagnostic.trigger = false;
+	send_diagnostic.state = false;
+	gettimeofday(&send_diagnostic.orig_send_time,NULL);
+	send_diagnostic.retries = 0;
+	send_diagnostic.timeout_counter = 0;
+	send_diagnostic.retry_mode = false;
+	send_diagnostic.failed = false;
+	send_diagnostic.flag1 = 0; //This flag represents the Board Index
+	send_diagnostic.stream_rate = -1.0;
 
 }
 bool BoardControllerNodeProcess::gather_message_info(int id, std::string mode)
@@ -1694,6 +1907,13 @@ void BoardControllerNodeProcess::initialize_message_info()
 		newmessage.name = "Configure Shield";
 		messages.push_back(newmessage);
 	}
+    
+    {
+        message_info newmessage;
+        newmessage.id = SERIAL_PPS_ID;
+        newmessage.name = "PPS";
+        messages.push_back(newmessage);
+    }
 
 	for(int i = 0; i < messages.size(); i++)
 	{

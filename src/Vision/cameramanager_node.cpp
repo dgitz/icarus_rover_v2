@@ -1,3 +1,4 @@
+OBSOLETE!!!
 #include "cameramanager_node.h"
 //Start User Code: Firmware Definition
 #define CAMERAMANAGERNODE_MAJOR_RELEASE 1
