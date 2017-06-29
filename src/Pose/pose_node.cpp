@@ -1,16 +1,28 @@
-#include "sample_node.h"
+#include "pose_node.h"
 //Start User Code: Firmware Definition
-#define SAMPLENODE_MAJOR_RELEASE 2
-#define SAMPLENODE_MINOR_RELEASE 0
-#define SAMPLENODE_BUILD_NUMBER 0
+#define POSENODE_MAJOR_RELEASE 0
+#define POSENODE_MINOR_RELEASE 0
+#define POSENODE_BUILD_NUMBER 1
 //End User Code: Firmware Definition
 //Start User Code: Functions
+void attitude_Callback(const roscopter::Attitude::ConstPtr& msg)
+{
+    logger->log_diagnostic(process->new_kalmanfilter_signal("Yaw",msg->yaw));
+    logger->log_diagnostic(process->new_kalmanfilter_signal("Yawrate",msg->yawspeed));
+}
 bool run_loop1_code()
 {
+    logger->log_diagnostic(process->update(measure_time_diff(ros::Time::now(),last_loop1_timer)));
 	return true;
 }
 bool run_loop2_code()
 {
+    if(process->is_poseready() == true)
+    {
+        icarus_rover_v2::pose pose = process->get_pose();
+        pose.header.stamp = ros::Time::now();
+        pose_pub.publish(pose);
+    }
  	return true;
 }
 bool run_loop3_code()
@@ -20,12 +32,12 @@ bool run_loop3_code()
 void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
 	icarus_rover_v2::firmware fw;
-	fw.Generic_Node_Name = "sample_node";
+	fw.Generic_Node_Name = "pose_node";
 	fw.Node_Name = node_name;
-	fw.Description = "Latest Rev: 2-June-2017";
-	fw.Major_Release = SAMPLENODE_MAJOR_RELEASE;
-	fw.Minor_Release = SAMPLENODE_MINOR_RELEASE;
-	fw.Build_Number = SAMPLENODE_BUILD_NUMBER;
+	fw.Description = "Latest Rev: 28-June-2017";
+	fw.Major_Release = POSENODE_MAJOR_RELEASE;
+	fw.Minor_Release = POSENODE_MINOR_RELEASE;
+	fw.Build_Number = POSENODE_BUILD_NUMBER;
 	firmware_pub.publish(fw);
 }
 void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
@@ -119,7 +131,7 @@ bool run_10Hz_code()
 }
 int main(int argc, char **argv)
 {
-	node_name = "sample_node";
+	node_name = "pose_node";
     ros::init(argc, argv, node_name);
     node_name = ros::this_node::getName();
     ros::NodeHandle n;
@@ -293,8 +305,52 @@ bool initialize(ros::NodeHandle nh)
     //End Template Code: Initialization and Parameters
 
     //Start User Code: Initialization and Parameters
-    process = new SampleNodeProcess;
+    process = new PoseNodeProcess;
 	diagnostic_status = process->init(diagnostic_status,std::string(hostname));
+    
+    //KF: Yaw
+    {
+        std::string param_kf_sigmameas = node_name + "/KF_Yaw_sigma_meas";
+        std::string param_kf_sigmamodel = node_name + "/KF_Yaw_sigma_model";
+        double sigma_meas,sigma_model;
+        if(nh.getParam(param_kf_sigmameas,sigma_meas) == false)
+        {
+            logger->log_error("Missing Parameter: KF_Yaw_sigma_meas. Exiting.");
+            return false;
+        }
+        if(nh.getParam(param_kf_sigmamodel,sigma_model) == false)
+        {
+            logger->log_error("Missing Parameter: KF_Yaw_sigma_model. Exiting.");
+            return false;
+        }
+        process->set_kalmanfilter_properties("Yaw",sigma_meas,sigma_model);
+    }
+    //KF: Yawrate
+    {
+        std::string param_kf_sigmameas = node_name + "/KF_Yawrate_sigma_meas";
+        std::string param_kf_sigmamodel = node_name + "/KF_Yawrate_sigma_model";
+        double sigma_meas,sigma_model;
+        if(nh.getParam(param_kf_sigmameas,sigma_meas) == false)
+        {
+            logger->log_error("Missing Parameter: KF_Yawrate_sigma_meas. Exiting.");
+            return false;
+        }
+        if(nh.getParam(param_kf_sigmamodel,sigma_model) == false)
+        {
+            logger->log_error("Missing Parameter: KF_Yawrate_sigma_model. Exiting.");
+            return false;
+        }
+        process->set_kalmanfilter_properties("Yawrate",sigma_meas,sigma_model);
+    }
+    std::string param_attitude_topic = node_name + "/Attitude_topic";
+    std::string attitude_topic;
+    if(nh.getParam(param_attitude_topic,attitude_topic) == false)
+    {
+        logger->log_error("Missing parameter: Attitude_topic. Exiting.");
+        return false;
+    }
+    attitude_sub = nh.subscribe<roscopter::Attitude>(attitude_topic,1,attitude_Callback);
+    pose_pub =  nh.advertise<icarus_rover_v2::pose>("/pose",1);
     //Finish User Code: Initialization and Parameters
 
     //Start Template Code: Final Initialization.

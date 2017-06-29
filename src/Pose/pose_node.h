@@ -1,5 +1,5 @@
-#ifndef SAMPLE_H
-#define SAMPLE_H
+#ifndef POSENODE_H
+#define POSENODE_H
 //Start Template Code: Includes
 #include "ros/ros.h"
 #include "std_msgs/String.h"
@@ -25,7 +25,9 @@
 //End User Code: Defines
 
 //Start User Code: Includes
-#include "sample_node_process.h"
+#include <icarus_rover_v2/pose.h>
+#include <roscopter/Attitude.h>
+#include "pose_node_process.h"
 //End User Code: Includes
 
 //Start User Code: Data Structures
@@ -47,6 +49,7 @@ void signalinterrupt_handler(int sig);
 //End Template Code: Function Prototypes
 
 //Start User Code: Function Prototypes
+void attitude_Callback(const roscopter::Attitude::ConstPtr& msg);
 //End User Code: Function Prototypes
 
 //Start Template Code: Define Global variables
@@ -86,6 +89,8 @@ double ros_rate;
 //End Template Code: Define Global Variables
 
 //Start User Code: Define Global Variables
-SampleNodeProcess *process;
+PoseNodeProcess *process;
+ros::Subscriber attitude_sub;
+ros::Publisher pose_pub;
 //End User Code: Define Global Variables
 #endif

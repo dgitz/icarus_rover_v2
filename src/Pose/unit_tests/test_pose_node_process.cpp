@@ -4,6 +4,7 @@
 #include "icarus_rover_v2/device.h"
 #include "icarus_rover_v2/diagnostic.h"
 #include <sys/time.h>
+#include <math.h>
 #include "../pose_node_process.h"
 #include <Eigen/Dense>
 #define EPS 0.0000001
@@ -50,6 +51,66 @@ TEST(KalmanFilter,ExampleFilter)
     EXPECT_TRUE(diagnostic.Level > NOTICE);
     diagnostic = process->new_kalmanfilter_signal("Example1",0.0);
     EXPECT_TRUE(diagnostic.Level <= NOTICE);
+    diagnostic = process->set_kalmanfilter_properties("Example1", 3.0,0.1);
+    double time_limit = 10.0;
+    double dt = 0.01;
+    double timer = 0.0;
+    double signal_update_rate = 0.1;
+    double next_signal_time = signal_update_rate;
+    double signal = 0.0;
+    while(timer <= time_limit)
+    {
+        
+        if(timer >= next_signal_time) 
+        {
+            next_signal_time += signal_update_rate; 
+            double noise = static_cast <double> (rand()) / static_cast <double> (RAND_MAX);
+            signal = (noise-0.5)+sin(M_PI*timer);
+            
+            diagnostic = process->new_kalmanfilter_signal("Example1",signal);    
+        }
+        diagnostic = process->update(dt);
+        EXPECT_TRUE(diagnostic.Level <= NOTICE);
+        timer += dt;
+    }
+    
+}
+TEST(KalmanFilter,PoseModel)
+{
+    icarus_rover_v2::diagnostic diagnostic;
+    PoseNodeProcess *process = initialized_process;
+    EXPECT_TRUE(process->is_initialized());
+    diagnostic = process->set_kalmanfilter_properties("Yaw", 3.0,0.1);
+    EXPECT_TRUE(diagnostic.Level <= NOTICE);
+    diagnostic = process->set_kalmanfilter_properties("Yawrate", 3.0,0.1);
+    EXPECT_TRUE(diagnostic.Level <= NOTICE);
+    icarus_rover_v2::pose pose;
+    pose = process->get_pose();
+    EXPECT_TRUE(pose.yaw.status == SIGNALSTATE_INITIALIZING);
+    EXPECT_TRUE(pose.yawrate.status == SIGNALSTATE_INITIALIZING);
+    
+    diagnostic = process->update(0.01);
+    EXPECT_TRUE(diagnostic.Level <= NOTICE);
+    pose = process->get_pose();
+    EXPECT_TRUE(pose.yaw.status == SIGNALSTATE_INITIALIZING);
+    EXPECT_TRUE(pose.yawrate.status == SIGNALSTATE_INITIALIZING);
+    
+    diagnostic = process->new_kalmanfilter_signal("Yaw", 0.0);
+    EXPECT_TRUE(diagnostic.Level <= NOTICE);
+    diagnostic = process->update(0.01);
+    EXPECT_TRUE(diagnostic.Level <= NOTICE);
+    pose = process->get_pose();
+    EXPECT_TRUE(pose.yaw.status == SIGNALSTATE_UPDATED);
+    EXPECT_TRUE(pose.yawrate.status == SIGNALSTATE_INITIALIZING);
+    
+    diagnostic = process->new_kalmanfilter_signal("Yawrate", 0.0);
+    EXPECT_TRUE(diagnostic.Level <= NOTICE);
+    diagnostic = process->update(0.01);
+    EXPECT_TRUE(diagnostic.Level <= NOTICE);
+    pose = process->get_pose();
+    EXPECT_TRUE(pose.yaw.status == SIGNALSTATE_UPDATED);
+    EXPECT_TRUE(pose.yawrate.status == SIGNALSTATE_UPDATED);
+    
 }
 TEST(MathOperation,MatrixOperations)
 {
@@ -120,7 +181,7 @@ TEST(MathOperation,MatrixOperations)
             }
             gettimeofday(&stop,NULL);
             double avgtime_operation = measure_timediff(start,stop)/(double)(count);
-            printf("Transpose for Matrix size: (%d,%d): %0.8f Total time: %0.3f\n",i,i,avgtime_operation,measure_timediff(start,stop));
+            //printf("Transpose for Matrix size: (%d,%d): %0.8f Total time: %0.3f\n",i,i,avgtime_operation,measure_timediff(start,stop));
             
         }
     }
@@ -158,7 +219,7 @@ TEST(MathOperation,MatrixOperations)
             }
             gettimeofday(&stop,NULL);
             double avgtime_operation = measure_timediff(start,stop)/(double)(count);
-            printf("Multiplication for Matrix size: (%d,%d): %0.8f Total time: %0.3f\n",i,i,avgtime_operation,measure_timediff(start,stop));
+            //printf("Multiplication for Matrix size: (%d,%d): %0.8f Total time: %0.3f\n",i,i,avgtime_operation,measure_timediff(start,stop));
             
         }
     }
@@ -198,7 +259,7 @@ TEST(MathOperation,MatrixOperations)
             }
             gettimeofday(&stop,NULL);
             double avgtime_operation = measure_timediff(start,stop)/(double)(count);
-            printf("Multiplication for Matrix size: (%d,%d): %0.8f Total time: %0.3f\n",i,i,avgtime_operation,measure_timediff(start,stop));
+            //printf("Multiplication for Matrix size: (%d,%d): %0.8f Total time: %0.3f\n",i,i,avgtime_operation,measure_timediff(start,stop));
             
         }
     }

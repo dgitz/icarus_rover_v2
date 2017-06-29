@@ -71,6 +71,8 @@ add_message_files(
   battery.msg
   iopins.msg
   estop.msg
+  signal.msg
+  pose.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -277,5 +279,7 @@ target_link_libraries(test_hatcontroller_node_process ${catkin_LIBRARIES} ${Boos
 catkin_add_gtest(test_safety_node_process src/Diagnostics/unit_tests/test_safety_node_process.cpp)
 target_link_libraries(test_safety_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} safety_node_process logger)
 
+add_executable(pose_node src/Pose/pose_node.cpp)
+target_link_libraries(pose_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor pose_node_process)
 catkin_add_gtest(test_pose_node_process src/Pose/unit_tests/test_pose_node_process.cpp)
 target_link_libraries(test_pose_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${Eigen_LIBRARIES} pose_node_process logger)
