@@ -1,28 +1,16 @@
-#include "pose_node.h"
+#include "sample_node.h"
 //Start User Code: Firmware Definition
-#define POSENODE_MAJOR_RELEASE 0
-#define POSENODE_MINOR_RELEASE 0
-#define POSENODE_BUILD_NUMBER 1
+#define SAMPLENODE_MAJOR_RELEASE 2
+#define SAMPLENODE_MINOR_RELEASE 0
+#define SAMPLENODE_BUILD_NUMBER 0
 //End User Code: Firmware Definition
 //Start User Code: Functions
-void attitude_Callback(const roscopter::Attitude::ConstPtr& msg)
-{
-    logger->log_diagnostic(process->new_kalmanfilter_signal("Yaw",1,msg->yaw));
-    logger->log_diagnostic(process->new_kalmanfilter_signal("Yawrate",0,msg->yawspeed));
-}
 bool run_loop1_code()
 {
-    logger->log_diagnostic(process->update(measure_time_diff(ros::Time::now(),last_loop1_timer)));
 	return true;
 }
 bool run_loop2_code()
 {
-    if(process->is_poseready() == true)
-    {
-        icarus_rover_v2::pose pose = process->get_pose();
-        pose.header.stamp = ros::Time::now();
-        pose_pub.publish(pose);
-    }
  	return true;
 }
 bool run_loop3_code()
@@ -32,12 +20,12 @@ bool run_loop3_code()
 void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
 	icarus_rover_v2::firmware fw;
-	fw.Generic_Node_Name = "pose_node";
+	fw.Generic_Node_Name = "sample_node";
 	fw.Node_Name = node_name;
-	fw.Description = "Latest Rev: 28-June-2017";
-	fw.Major_Release = POSENODE_MAJOR_RELEASE;
-	fw.Minor_Release = POSENODE_MINOR_RELEASE;
-	fw.Build_Number = POSENODE_BUILD_NUMBER;
+	fw.Description = "Latest Rev: 2-June-2017";
+	fw.Major_Release = SAMPLENODE_MAJOR_RELEASE;
+	fw.Minor_Release = SAMPLENODE_MINOR_RELEASE;
+	fw.Build_Number = SAMPLENODE_BUILD_NUMBER;
 	firmware_pub.publish(fw);
 }
 void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
@@ -131,7 +119,7 @@ bool run_10Hz_code()
 }
 int main(int argc, char **argv)
 {
-	node_name = "pose_node";
+	node_name = "sample_node";
     ros::init(argc, argv, node_name);
     node_name = ros::this_node::getName();
     ros::NodeHandle n;
@@ -305,128 +293,8 @@ bool initialize(ros::NodeHandle nh)
     //End Template Code: Initialization and Parameters
 
     //Start User Code: Initialization and Parameters
-    process = new PoseNodeProcess;
+    process = new SampleNodeProcess;
 	diagnostic_status = process->init(diagnostic_status,std::string(hostname));
-    
-    //KF: Yaw
-    {
-		int output_count = 2; //n
-		int measurement_count = 2; //m
-		MatrixXd C(measurement_count,output_count);
-		C(0,0) = 1.0;
-		C(1,0) = 0.0;
-		C(0,1) = 0.0;
-		C(1,1) = 1.0;
-		MatrixXd Phi(output_count,output_count);
-		Phi(0,0) = 1.0;
-		Phi(0,1) = 1.0/(double)(loop1_rate);
-		Phi(1,0) = 0.0;
-		Phi(1,1) = 1.0;
-		MatrixXd Q(output_count,output_count);
-		Q = MatrixXd::Zero(output_count,output_count);
-		int QIndex = 0;
-		while(QIndex < output_count)
-		{
-			double v;
-			std::string param_topic = node_name +"/KF_Yaw_Q" + boost::lexical_cast<std::string>(QIndex);
-			if(nh.getParam(param_topic,v) == false)
-			{
-				char tempstr[255];
-				sprintf(tempstr,"Didn't find %s. Exiting.",param_topic.c_str());
-				logger->log_error(tempstr);
-				return false;
-			}
-			else
-			{
-				Q(QIndex,QIndex) = v;
-			}
-			QIndex++;
-    	}
-		cout << "KF: Yaw Q: " << Q << std::endl << std::endl;
-		MatrixXd R(measurement_count,measurement_count);
-		R = MatrixXd::Zero(measurement_count,measurement_count);
-		int RIndex = 0;
-		while(RIndex < output_count)
-		{
-			double v;
-			std::string param_topic = node_name +"/KF_Yaw_R" + boost::lexical_cast<std::string>(RIndex);
-			if(nh.getParam(param_topic,v) == false)
-			{
-				char tempstr[255];
-				sprintf(tempstr,"Didn't find %s. Exiting.",param_topic.c_str());
-				logger->log_error(tempstr);
-				return false;
-			}
-			else
-			{
-				R(RIndex,RIndex) = v;
-			}
-			RIndex++;
-    	}
-		cout << "KF: Yaw R: " << R << std::endl << std::endl;
-		process->set_kalmanfilter_properties("Yaw", output_count,measurement_count,C,Phi,Q,R);
-    }
-    //KF: Yawrate
-    {
-        int output_count = 1; //n
-		int measurement_count = 1; //m
-		MatrixXd C(measurement_count,output_count);
-		C(0,0) = 1.0;
-		MatrixXd Phi(output_count,output_count);
-		Phi(0,0) = 1.0;
-		MatrixXd Q(output_count,output_count);
-		Q = MatrixXd::Zero(output_count,output_count);
-		int QIndex = 0;
-		while(QIndex < output_count)
-		{
-			double v;
-			std::string param_topic = node_name +"/KF_Yaw_Q" + boost::lexical_cast<std::string>(QIndex);
-			if(nh.getParam(param_topic,v) == false)
-			{
-				char tempstr[255];
-				sprintf(tempstr,"Didn't find %s. Exiting.",param_topic.c_str());
-				logger->log_error(tempstr);
-				return false;
-			}
-			else
-			{
-				Q(QIndex,QIndex) = v;
-			}
-			QIndex++;
-    	}
-		cout << "KF: Yawrate Q: " << Q << std::endl << std::endl;
-		MatrixXd R(measurement_count,measurement_count);
-		R = MatrixXd::Zero(measurement_count,measurement_count);
-		int RIndex = 0;
-		while(RIndex < output_count)
-		{
-			double v;
-			std::string param_topic = node_name +"/KF_Yaw_R" + boost::lexical_cast<std::string>(RIndex);
-			if(nh.getParam(param_topic,v) == false)
-			{
-				char tempstr[255];
-				sprintf(tempstr,"Didn't find %s. Exiting.",param_topic.c_str());
-				logger->log_error(tempstr);
-				return false;
-			}
-			else
-			{
-				R(RIndex,RIndex) = v;
-			}
-			RIndex++;
-    	}
-		cout << "KF: Yaw R: " << R << std::endl << std::endl;
-		process->set_kalmanfilter_properties("Yawrate", output_count,measurement_count,C,Phi,Q,R);
-    }
-    std::string param_attitude_topic = node_name + "/Attitude_topic";
-    std::string attitude_topic;
-    if(nh.getParam(param_attitude_topic,attitude_topic) == false)
-    {
-        logger->log_error("Missing parameter: Attitude_topic. Exiting.");
-        return false;
-    }
-    attitude_sub = nh.subscribe<roscopter::Attitude>(attitude_topic,1,attitude_Callback);
-    pose_pub =  nh.advertise<icarus_rover_v2::pose>("/pose",1);
     //Finish User Code: Initialization and Parameters
 
     //Start Template Code: Final Initialization.

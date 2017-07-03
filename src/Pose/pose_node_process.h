@@ -28,18 +28,17 @@ struct KalmanFilter
 {
     std::string name;
     std::string type;
-    MatrixXd Xk; //(2,1)
-    MatrixXd Phi; //(2,2)
-    //double sigma_model;
-    MatrixXd P; //(2,2)
-    MatrixXd Q; //(2,2)
-    MatrixXd M; //(2,1)
-    //double sigma_meas;
-    double R;
-    std::vector<MatrixXd> Xk_buffer; //(vector(2,1)
-    double output;
-    double input;
-    MatrixXd prev; //(2,1)
+	uint8_t signal_status;
+	int measurement_count; // m
+	int output_count; // n
+	MatrixXd z; //(m x 1)
+    MatrixXd xhat; //(n x 1)
+    MatrixXd Phi; // (n x n)
+    MatrixXd G; // (n x m)
+    MatrixXd Q; // (n x n)
+    MatrixXd C; // (m x n)
+    MatrixXd R; // (m x m)
+	MatrixXd P; // (n x n)
 };
 class PoseNodeProcess
 {
@@ -51,10 +50,13 @@ public:
     bool is_initialized() { return initialized; }
 	icarus_rover_v2::diagnostic init(icarus_rover_v2::diagnostic indiag,std::string hostname);
 	icarus_rover_v2::diagnostic update(double dt);
-    icarus_rover_v2::diagnostic new_kalmanfilter(std::string name, std::string type, int size); //Only used for unit testing
-    double get_kalmanfilter_output(std::string name); //Only used for unit testing
-    icarus_rover_v2::diagnostic new_kalmanfilter_signal(std::string name, double input);
-    icarus_rover_v2::diagnostic set_kalmanfilter_properties(std::string name, double sigma_meas,double sigma_model);
+    icarus_rover_v2::diagnostic new_kalmanfilter(std::string name, std::string type); //Only used for unit testing
+    double get_kalmanfilter_output(std::string name, int index); //Only used for unit testing
+	KalmanFilter get_kalmanfilter(std::string name);
+	int get_kalmanfilter_index(std::string name);
+	KalmanFilter update_kalmanfilter(KalmanFilter kf);
+    icarus_rover_v2::diagnostic new_kalmanfilter_signal(std::string name, int index, double v);
+    icarus_rover_v2::diagnostic set_kalmanfilter_properties(std::string name, int measurement_count, int output_count, MatrixXd C,MatrixXd Phi, MatrixXd Q, MatrixXd R);
     icarus_rover_v2::pose get_pose() { return pose; }
     icarus_rover_v2::diagnostic new_yaw(double v);
     icarus_rover_v2::diagnostic new_yawrate(double v);
@@ -71,5 +73,8 @@ private:
     bool yaw_received;
     bool yawrate_received;
     bool pose_ready;
+	
+	//temporary variables
+	double temp_yaw;
 };
 #endif

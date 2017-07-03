@@ -40,21 +40,35 @@ TEST(Template,ProcessInitialization)
     EXPECT_TRUE(diagnostic.Level <= NOTICE);
     initialized_process = process;
 }
-TEST(KalmanFilter,ExampleFilter)
+TEST(KalmanFilter,ExampleFilter_SinWave)
 {
+
     icarus_rover_v2::diagnostic diagnostic;
     PoseNodeProcess *process = initialized_process;
     EXPECT_TRUE(process->is_initialized());
-    diagnostic = process->new_kalmanfilter("Example1", "Position", 2);
+    diagnostic = process->new_kalmanfilter("SinWave1", "Position");
     EXPECT_TRUE(diagnostic.Level <= NOTICE);
-    diagnostic = process->new_kalmanfilter_signal("Example2",0.0);
+	{	//KF-SinWave1
+		int output_count = 1; //n
+		int measurement_count = 1; //m
+		MatrixXd C(measurement_count,output_count);
+		C(0,0) = 1.0;
+		MatrixXd Phi(output_count,output_count);
+		Phi(0,0) = 1.0;
+		MatrixXd Q(output_count,output_count);
+		Q(0,0) = 1.0;
+		MatrixXd R(measurement_count,measurement_count);
+		R(0,0) = 1.0;
+		diagnostic = process->set_kalmanfilter_properties("SinWave1", output_count,measurement_count,C,Phi,Q,R);
+		EXPECT_TRUE(diagnostic.Level <= NOTICE);
+	}
+    diagnostic = process->new_kalmanfilter_signal("Example2",0,0.0);
     EXPECT_TRUE(diagnostic.Level > NOTICE);
-    diagnostic = process->new_kalmanfilter_signal("Example1",0.0);
+    diagnostic = process->new_kalmanfilter_signal("SinWave1",0,0.0);
     EXPECT_TRUE(diagnostic.Level <= NOTICE);
-    diagnostic = process->set_kalmanfilter_properties("Example1", 3.0,0.1);
     double time_limit = 10.0;
-    double dt = 0.01;
-    double timer = 0.0;
+    double dt = 0.1;
+    double timer = 1.3;
     double signal_update_rate = 0.1;
     double next_signal_time = signal_update_rate;
     double signal = 0.0;
@@ -64,53 +78,93 @@ TEST(KalmanFilter,ExampleFilter)
         if(timer >= next_signal_time) 
         {
             next_signal_time += signal_update_rate; 
-            double noise = static_cast <double> (rand()) / static_cast <double> (RAND_MAX);
-            signal = (noise-0.5)+sin(M_PI*timer);
+            double noise = 0.5;//static_cast <double> (rand()) / static_cast <double> (RAND_MAX);
+            signal = (noise-0.5)+sin(2.0*M_PI*timer/5.0);
             
-            diagnostic = process->new_kalmanfilter_signal("Example1",signal);    
+            diagnostic = process->new_kalmanfilter_signal("SinWave1",0,signal);    
         }
         diagnostic = process->update(dt);
+		//printf("%f,%f,%f\n",timer,signal,process->get_kalmanfilter_output("SinWave1",0));
         EXPECT_TRUE(diagnostic.Level <= NOTICE);
         timer += dt;
     }
-    
+   
 }
 TEST(KalmanFilter,PoseModel)
 {
     icarus_rover_v2::diagnostic diagnostic;
     PoseNodeProcess *process = initialized_process;
-    EXPECT_TRUE(process->is_initialized());
-    diagnostic = process->set_kalmanfilter_properties("Yaw", 3.0,0.1);
+    diagnostic = process->init(diagnostic,std::string(Host_Name));
     EXPECT_TRUE(diagnostic.Level <= NOTICE);
-    diagnostic = process->set_kalmanfilter_properties("Yawrate", 3.0,0.1);
-    EXPECT_TRUE(diagnostic.Level <= NOTICE);
+	{	//KF-Yawrate
+		int output_count = 1; //n
+		int measurement_count = 1; //m
+		MatrixXd C(measurement_count,output_count);
+		C(0,0) = 1.0;
+		MatrixXd Phi(output_count,output_count);
+		Phi(0,0) = 1.0;
+		MatrixXd Q(output_count,output_count);
+		Q(0,0) = 1.0;
+		MatrixXd R(measurement_count,measurement_count);
+		R(0,0) = 1.0;
+		diagnostic = process->set_kalmanfilter_properties("Yawrate", output_count,measurement_count,C,Phi,Q,R);
+		EXPECT_TRUE(diagnostic.Level <= NOTICE);
+	}
+	{	//KF-Yaw
+		int output_count = 2; //n
+		int measurement_count = 2; //m
+		MatrixXd C(measurement_count,output_count);
+		C(0,0) = 1.0;
+		C(1,0) = 0.0;
+		C(0,1) = 0.0;
+		C(1,1) = 1.0;
+		MatrixXd Phi(output_count,output_count);
+		Phi(0,0) = 1.0;
+		Phi(0,1) = .01;
+		Phi(1,0) = 0.0;
+		Phi(1,1) = 1.0;
+		MatrixXd Q(output_count,output_count);
+		Q(0,0) = 30.0;
+		Q(0,1) = 0.0;
+		Q(1,0) = 0.0;
+		Q(1,1) = 200.0;
+		MatrixXd R(measurement_count,measurement_count);
+		R(0,0) = 30.0;
+		R(0,1) = 0.0;
+		R(1,0) = 0.0;
+		R(1,1) = 200.0;
+		diagnostic = process->set_kalmanfilter_properties("Yaw", output_count,measurement_count,C,Phi,Q,R);
+		EXPECT_TRUE(diagnostic.Level <= NOTICE);
+	}
     icarus_rover_v2::pose pose;
     pose = process->get_pose();
     EXPECT_TRUE(pose.yaw.status == SIGNALSTATE_INITIALIZING);
     EXPECT_TRUE(pose.yawrate.status == SIGNALSTATE_INITIALIZING);
     
     diagnostic = process->update(0.01);
+	pose = process->get_pose();
     EXPECT_TRUE(diagnostic.Level <= NOTICE);
-    pose = process->get_pose();
+	
     EXPECT_TRUE(pose.yaw.status == SIGNALSTATE_INITIALIZING);
     EXPECT_TRUE(pose.yawrate.status == SIGNALSTATE_INITIALIZING);
     
-    diagnostic = process->new_kalmanfilter_signal("Yaw", 0.0);
-    EXPECT_TRUE(diagnostic.Level <= NOTICE);
+	diagnostic = process->new_kalmanfilter_signal("Yaw", 1,0.0);
+	EXPECT_TRUE(diagnostic.Level <= NOTICE);
+	
     diagnostic = process->update(0.01);
     EXPECT_TRUE(diagnostic.Level <= NOTICE);
     pose = process->get_pose();
     EXPECT_TRUE(pose.yaw.status == SIGNALSTATE_UPDATED);
     EXPECT_TRUE(pose.yawrate.status == SIGNALSTATE_INITIALIZING);
     
-    diagnostic = process->new_kalmanfilter_signal("Yawrate", 0.0);
-    EXPECT_TRUE(diagnostic.Level <= NOTICE);
+	diagnostic = process->new_kalmanfilter_signal("Yawrate", 0,0.0);
+	EXPECT_TRUE(diagnostic.Level <= NOTICE);
+
     diagnostic = process->update(0.01);
     EXPECT_TRUE(diagnostic.Level <= NOTICE);
     pose = process->get_pose();
     EXPECT_TRUE(pose.yaw.status == SIGNALSTATE_UPDATED);
     EXPECT_TRUE(pose.yawrate.status == SIGNALSTATE_UPDATED);
-    
 }
 TEST(MathOperation,MatrixOperations)
 {

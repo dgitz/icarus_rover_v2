@@ -69,9 +69,11 @@
         <param name="loop1_rate"            value="200"/> <!-- update -->
         <param name="loop2_rate"            value="50"/> <!-- publish pose -->
         <param name="Attitude_topic"          value="/ComputeModule1_roscopter_node/attitude"/>
-        <param name="KF_Yaw_sigma_meas"     value="1.0"/>
-        <param name="KF_Yaw_sigma_model"    value="1.0"/>
-        <param name="KF_Yawrate_sigma_meas"     value="1.0"/>
-        <param name="KF_Yawrate_sigma_model"    value="1.0"/>
+		<param name="KF_Yaw_Q0"				value="30.0"/>
+		<param name="KF_Yaw_Q1"				value="200.0"/>
+		<param name="KF_Yaw_R0"				value="30.0"/>
+		<param name="KF_Yaw_R1"				value="200.0"/>
+		<param name="KF_Yawrate_Q0"			value="1.0"/>
+		<param name="KF_Yawrate_R0"			value="1.0"/>
     </node>
 </launch>

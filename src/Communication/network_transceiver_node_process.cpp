@@ -106,6 +106,7 @@ void NetworkTransceiverNodeProcess::init_messages()
         newmessage.name = "Arm Status";
         messages.push_back(newmessage);
     }
+    /*
     {
         Message newmessage;
         newmessage.id = TUNE_CONTROLGROUP_ID;
@@ -118,6 +119,7 @@ void NetworkTransceiverNodeProcess::init_messages()
         newmessage.name = "Setup Control Group";
         messages.push_back(newmessage);
     }
+    */
     {
         Message newmessage;
         newmessage.id = ARMCONTROL_ID;
@@ -201,11 +203,18 @@ void NetworkTransceiverNodeProcess::init_messages()
         newmessage.id = COMMAND_ID;
         newmessage.name = "Command";
         messages.push_back(newmessage);
-    }{
+    }
+    {
         Message newmessage;
         newmessage.id = USERMESSAGE_ID;
         newmessage.name = "User Message";
         messages.push_back(newmessage);
+    }
+    {
+    	Message newmessage;
+    	newmessage.id = TUNECONTROLGROUP_ID;
+    	newmessage.name = "Tune ControlGroup";
+    	messages.push_back(newmessage);
     }
     
     for(std::size_t i = 0; i < messages.size(); i++)

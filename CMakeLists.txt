@@ -73,6 +73,7 @@ add_message_files(
   estop.msg
   signal.msg
   pose.msg
+  controlgroup.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -231,6 +232,7 @@ add_library(safety_node_process src/Diagnostics/safety_node_process.cpp)
 add_library(network_transceiver_node_process src/Communication/network_transceiver_node_process.cpp)
 add_library(pose_node_process src/Pose/pose_node_process.cpp)
 #add_library(powermonitor_node_process src/Control/powermonitor_node_process.cpp)
+#add_library(autodrive_node_process src/Control/autodrive_node_process.cpp)
 
 add_executable(sample_node src_templates/sample_node.cpp)
 target_link_libraries(sample_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor sample_node_process)
@@ -283,3 +285,8 @@ add_executable(pose_node src/Pose/pose_node.cpp)
 target_link_libraries(pose_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor pose_node_process)
 catkin_add_gtest(test_pose_node_process src/Pose/unit_tests/test_pose_node_process.cpp)
 target_link_libraries(test_pose_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${Eigen_LIBRARIES} pose_node_process logger)
+
+#add_executable(autodrive_node src/Control/autodrive_node.cpp)
+#target_link_libraries(autodrive_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor autodrive_node_process)
+#catkin_add_gtest(test_autodrive_node_process src/Control/unit_tests/test_autodrive_node_process.cpp)
+#target_link_libraries(test_autodrive_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} autodrive_node_process logger)
