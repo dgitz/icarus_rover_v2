@@ -565,6 +565,12 @@ bool parse_devicefile(TiXmlDocument doc)
 					icarus_rover_v2::pin newpin;
 					newpin.ParentDevice = newDevice.DeviceName;
 
+					TiXmlElement *l_pPinName = l_pPin->FirstChildElement( "Name" );
+					if ( NULL != l_pPinName )
+					{
+						newpin.Name = l_pPinName->GetText();
+					}
+					
 					TiXmlElement *l_pPinNumber = l_pPin->FirstChildElement( "Number" );
 					if ( NULL != l_pPinNumber )
 					{
@@ -586,6 +592,7 @@ bool parse_devicefile(TiXmlDocument doc)
 					{
 						newpin.ConnectedDevice = "";
 					}
+					
                     TiXmlElement *l_pPinDefaultValue = l_pPin->FirstChildElement( "DefaultValue" );
 					if ( NULL != l_pPinDefaultValue )
 					{
@@ -594,6 +601,26 @@ bool parse_devicefile(TiXmlDocument doc)
 					else
 					{
 						newpin.DefaultValue = 0;
+					}
+					
+					TiXmlElement *l_pPinMaxValue = l_pPin->FirstChildElement( "MaxValue" );
+					if ( NULL != l_pPinMaxValue )
+					{
+						newpin.MaxValue = atoi(l_pPinMaxValue->GetText());
+					}
+					else
+					{
+						newpin.MaxValue = 0;
+					}
+					
+					TiXmlElement *l_pPinMinValue = l_pPin->FirstChildElement( "MinValue" );
+					if ( NULL != l_pPinMinValue )
+					{
+						newpin.MinValue = atoi(l_pPinMinValue->GetText());
+					}
+					else
+					{
+						newpin.MinValue = 0;
 					}
 
 					TiXmlElement *l_pPinAuxTopic = l_pPin->FirstChildElement( "AuxTopic" );

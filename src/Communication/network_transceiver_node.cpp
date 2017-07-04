@@ -253,7 +253,7 @@ void process_udp_receive()
 		sprintf(tempstr,"0x%s",items.at(0).c_str());
 		int id = (int)strtol(tempstr,NULL,0);
 		uint8_t device,armcommand;
-		int axis1,axis2,axis3,axis4,axis5,axis6,axis7,axis8;
+		int axis1,axis2,axis3,axis4,axis5,axis6,axis7,axis8,int_1,int_2;
 		uint8_t command,option1,option2,option3;
 		uint8_t button1,button2,button3,button4,button5,button6,button7,button8;
 		std::string tempstr1,tempstr2;
@@ -375,7 +375,7 @@ void process_udp_receive()
 				}
 				break;
 			case UDPMessageHandler::UDP_TuneControlGroup_ID:
-				success = udpmessagehandler->decode_TuneControlGroupUDP(items,&tempstr1,&tempstr2,&v1,&v2,&v3);
+				success = udpmessagehandler->decode_TuneControlGroupUDP(items,&tempstr1,&tempstr2,&v1,&v2,&v3,&int_1,&int_2);
 				if(success == 1)
 				{
 					icarus_rover_v2::controlgroup cg;
@@ -384,29 +384,10 @@ void process_udp_receive()
 					cg.value1 = v1;
 					cg.value2 = v2;
 					cg.value3 = v3;
+					cg.maxvalue = int_1;
+					cg.minvalue = int_2;
 					controlgroup_pub.publish(cg);
-					printf("%s %s %f %f %f\n",
-							tempstr1.c_str(),
-							tempstr2.c_str(),
-							v1,
-							v2,
-							v3);
-					/*sensor_msgs::Joy newjoy;
-								newjoy.header.stamp = ros::Time::now();
-								newjoy.header.frame_id = "/world";
-								newjoy.axes.push_back((float)(axis1/-32768.0));
-								newjoy.axes.push_back((float)(axis2/-32768.0));
-								newjoy.axes.push_back((float)(axis3/-32768.0));
-								newjoy.axes.push_back((float)(axis4/-32768.0));
-								newjoy.axes.push_back((float)(axis5/-32768.0));
-								newjoy.axes.push_back((float)(axis6/-32768.0));
-								newjoy.buttons.push_back(button1);
-								newjoy.buttons.push_back(button2);
-								newjoy.buttons.push_back(button3);
-								newjoy.buttons.push_back(button4);
-								newjoy.buttons.push_back(button5);
-								newjoy.buttons.push_back(button6);
-								arm1_joy_pub.publish(newjoy);*/
+					
 				}
 				else
 				{

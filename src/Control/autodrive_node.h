@@ -1,5 +1,5 @@
-#ifndef SAMPLE_H
-#define SAMPLE_H
+#ifndef AUTODRIVENODE_H
+#define AUTODRIVENODE_H
 //Start Template Code: Includes
 #include "ros/ros.h"
 #include "std_msgs/String.h"
@@ -25,14 +25,29 @@
 //End User Code: Defines
 
 //Start User Code: Includes
-#include "sample_node_process.h"
+#include <icarus_rover_v2/controlgroup.h>
+#include <icarus_rover_v2/pose.h>
+#include "sensor_msgs/Joy.h"
+#include "autodrive_node_process.h"
 //End User Code: Includes
 
 //Start User Code: Data Structures
+struct CGSensorSub
+{
+	ros::Subscriber sub;
+	std::string topic;
+	std::string type;
+};
+struct CGCommandSub
+{
+	ros::Subscriber sub;
+	std::string topic;
+	std::string type;
+};
 //End User Code: Data Structures
 
 //Start Template Code: Function Prototypes
-bool initialize(ros::NodeHandle nh);
+bool initializenode();
 void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg);
 void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg);
 double measure_time_diff(ros::Time timer_a, ros::Time tiber_b);
@@ -47,9 +62,14 @@ void signalinterrupt_handler(int sig);
 //End Template Code: Function Prototypes
 
 //Start User Code: Function Prototypes
+icarus_rover_v2::diagnostic rescan_topics(icarus_rover_v2::diagnostic diag);
+void ControlGroup_Callback(const icarus_rover_v2::controlgroup::ConstPtr& msg);
+void Pose_Callback(const icarus_rover_v2::pose::ConstPtr& msg);
+void Joy_Callback(const sensor_msgs::Joy::ConstPtr& msg);
 //End User Code: Function Prototypes
 
 //Start Template Code: Define Global variables
+boost::shared_ptr<ros::NodeHandle> n;
 std::string node_name;
 std::string verbosity_level;
 ros::Subscriber pps01_sub;
@@ -86,6 +106,14 @@ double ros_rate;
 //End Template Code: Define Global Variables
 
 //Start User Code: Define Global Variables
-SampleNodeProcess *process;
+std::vector<std::string> device_topics;
+std::vector<ros::Subscriber> device_subs;
+AutoDriveNodeProcess *process;
+bool node_initialized;
+std::vector<ros::Publisher> pin_pubs;
+std::vector<std::string> pin_topics;
+ros::Subscriber controlgroup_sub;
+std::vector<CGSensorSub> CGSensorSubs;
+std::vector<CGCommandSub> CGCommandSubs;
 //End User Code: Define Global Variables
 #endif
