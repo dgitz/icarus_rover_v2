@@ -34,3 +34,29 @@ Purpose:
 E. mavlink_node
 Purpose: Connects to APM to drive PWM Outputs and Read Sensor Data
 
+E: Auto Drive
+Usage: This node should be run on 1 Device.
+Uses Configuration file: "/home/robot/config/ControlGroup.xml"
+Configuration:
+ * Loop1: Process Update
+ * Loop2: PWM Output Publish
+ * Mode: DriverStation,Disabled
+   * DriverStation: Reads topic /controlgroup for tuning commands
+   * Disabled: No PID Output
+
+Purpose:
+1. Performs PID feedback based on Sensor and Command data.
+
+Unit Tests:
+1. To Build/Run:
+    cd ~/catkin_ws
+    catkin_make catkin_make run_tests_icarus_rover_v2_gtest_test_autodrive_node_process
+2. To View:
+    cd ~/catkin_ws
+    catkin_test_results build/icarus_rover_v2
+
+Test Results stored at:  ~/catkin_ws/build/test_results/icarus_rover_v2/gtest-test_autodrive_node_process.xml
+
+Documentation History:
+5-July-2017
+Created Process, Node and Unit Test.  Tested on Rover with an AutoSteer application.  Found that yaw rate (from Pose Node), Joystick (probably not) or Steer Servo fairly unresponsive and will result in either minimal corrections or oscillations.  Going to pause for now, until I have something better to test on.

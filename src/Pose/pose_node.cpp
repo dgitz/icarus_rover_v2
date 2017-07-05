@@ -342,7 +342,7 @@ bool initialize(ros::NodeHandle nh)
 			}
 			QIndex++;
     	}
-		cout << "KF: Yaw Q: " << Q << std::endl << std::endl;
+		//cout << "KF: Yaw Q: " << Q << std::endl << std::endl;
 		MatrixXd R(measurement_count,measurement_count);
 		R = MatrixXd::Zero(measurement_count,measurement_count);
 		int RIndex = 0;
@@ -363,7 +363,7 @@ bool initialize(ros::NodeHandle nh)
 			}
 			RIndex++;
     	}
-		cout << "KF: Yaw R: " << R << std::endl << std::endl;
+		//cout << "KF: Yaw R: " << R << std::endl << std::endl;
 		process->set_kalmanfilter_properties("Yaw", output_count,measurement_count,C,Phi,Q,R);
     }
     //KF: Yawrate
@@ -394,7 +394,7 @@ bool initialize(ros::NodeHandle nh)
 			}
 			QIndex++;
     	}
-		cout << "KF: Yawrate Q: " << Q << std::endl << std::endl;
+		//cout << "KF: Yawrate Q: " << Q << std::endl << std::endl;
 		MatrixXd R(measurement_count,measurement_count);
 		R = MatrixXd::Zero(measurement_count,measurement_count);
 		int RIndex = 0;
@@ -415,7 +415,7 @@ bool initialize(ros::NodeHandle nh)
 			}
 			RIndex++;
     	}
-		cout << "KF: Yaw R: " << R << std::endl << std::endl;
+		//cout << "KF: Yaw R: " << R << std::endl << std::endl;
 		process->set_kalmanfilter_properties("Yawrate", output_count,measurement_count,C,Phi,Q,R);
     }
     std::string param_attitude_topic = node_name + "/Attitude_topic";

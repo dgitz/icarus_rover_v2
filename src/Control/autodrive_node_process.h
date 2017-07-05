@@ -29,8 +29,7 @@ struct Command
 	std::string topic;
 	std::string name;
 	int index;
-	double min_value;
-	double max_value;
+	double scale_factor;
 	double input;
 };
 struct InputSensor
@@ -38,6 +37,7 @@ struct InputSensor
 	std::string type;
 	uint8_t name;
 	double input;
+	double scale_factor;
 };
 struct Gain
 {
@@ -51,6 +51,7 @@ struct Output
 	icarus_rover_v2::pin pin;
 	std::string name;
 	std::string topic;
+	std::string nodename;
 	bool pin_info_received;
 };
 struct ControlGroup

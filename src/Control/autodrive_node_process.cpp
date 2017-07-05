@@ -10,6 +10,7 @@ AutoDriveNodeProcess::~AutoDriveNodeProcess()
 }
 icarus_rover_v2::diagnostic AutoDriveNodeProcess::init(icarus_rover_v2::diagnostic indiag,std::string hostname)
 {
+	initialized = false;
     diagnostic = indiag;
 	if(read_ControlGroupFile() == false)
 	{
@@ -17,7 +18,6 @@ icarus_rover_v2::diagnostic AutoDriveNodeProcess::init(icarus_rover_v2::diagnost
 		diagnostic.Level = ERROR;
 		diagnostic.Diagnostic_Message = INITIALIZING_ERROR;
 		diagnostic.Description = "Unable to read ControlGroup file.";
-		initialized = false;
 		return diagnostic;
 	}
 	else
@@ -25,7 +25,7 @@ icarus_rover_v2::diagnostic AutoDriveNodeProcess::init(icarus_rover_v2::diagnost
 		diagnostic.Diagnostic_Type = SOFTWARE;
 		diagnostic.Level = INFO;
 		diagnostic.Diagnostic_Message = NOERROR;
-		diagnostic.Description = "Process initialized.";
+		diagnostic.Description = "Read ControlGroupFile and started initialization.";
 		return diagnostic;
 	}
 }
@@ -34,40 +34,51 @@ icarus_rover_v2::diagnostic AutoDriveNodeProcess::update(double dt)
 	bool all_pininfo_received = true;
 	for(std::size_t i = 0; i < controlgroups.size(); i++)
 	{
-		if(controlgroups.at(i).output.pin_info_received == false) { all_pininfo_received = false; }
+		if(controlgroups.at(i).output.pin_info_received == false)
+		{
+			all_pininfo_received = false;
+		}
 	}
 	if(controlgroups.size() == 0) { all_pininfo_received = false; }
-	if(all_pininfo_received == true)
-	{
+	if((all_pininfo_received == true) and (initialized == false))
+	{;
 		initialized = true;
 	}
-	for(std::size_t i = 0; i < controlgroups.size(); i++)
+	if(initialized == true)
 	{
-		if(armed_state != ARMEDSTATUS_ARMED)
+		for(std::size_t i = 0; i < controlgroups.size(); i++)
 		{
-			controlgroups.at(i).output.pin.Value = controlgroups.at(i).output.pin.DefaultValue;
-			controlgroups.at(i).cum_error = 0.0;
-		}
-		else
-		{
-			if(controlgroups.at(i).gain.type == "PID")
+			if(armed_state != ARMEDSTATUS_ARMED)
 			{
-				double error = controlgroups.at(i).command.input-controlgroups.at(i).sensor.input;
-				
-				controlgroups.at(i).cum_error += error;
-				double P_term = controlgroups.at(i).gain.P*error;
-				double I_term = controlgroups.at(i).gain.I*controlgroups.at(i).cum_error;
-				double D_term = controlgroups.at(i).gain.D*(error-controlgroups.at(i).current_error);
-				controlgroups.at(i).current_error = error;
-				controlgroups.at(i).output.pin.Value = (int32_t)P_term+(int32_t)I_term+(int32_t)D_term+controlgroups.at(i).output.pin.DefaultValue;
+				controlgroups.at(i).output.pin.Value = controlgroups.at(i).output.pin.DefaultValue;
+				controlgroups.at(i).cum_error = 0.0;
 			}
-			if(controlgroups.at(i).output.pin.Value > controlgroups.at(i).output.pin.MaxValue)
+			else
 			{
-				controlgroups.at(i).output.pin.Value = controlgroups.at(i).output.pin.MaxValue;
-			}
-			else if(controlgroups.at(i).output.pin.Value < controlgroups.at(i).output.pin.MinValue)
-			{
-				controlgroups.at(i).output.pin.Value = controlgroups.at(i).output.pin.MinValue;
+				if(controlgroups.at(i).gain.type == "PID")
+				{
+					double error = controlgroups.at(i).command.input-controlgroups.at(i).sensor.input;
+
+					controlgroups.at(i).cum_error += error;
+					double P_term = controlgroups.at(i).gain.P*error;
+					double I_term = controlgroups.at(i).gain.I*controlgroups.at(i).cum_error;
+					double D_term = controlgroups.at(i).gain.D*(error-controlgroups.at(i).current_error);
+
+					controlgroups.at(i).current_error = error;
+					if(fabs(error > 0.1))
+					{
+						controlgroups.at(i).output.pin.Value = (int32_t)P_term+(int32_t)I_term+(int32_t)D_term+controlgroups.at(i).output.pin.DefaultValue;
+					}
+					//printf("error: %f P: %f I: %f D: %f val: %d\n",error,P_term,I_term,D_term,controlgroups.at(i).output.pin.Value);
+				}
+				if(controlgroups.at(i).output.pin.Value > controlgroups.at(i).output.pin.MaxValue)
+				{
+					controlgroups.at(i).output.pin.Value = controlgroups.at(i).output.pin.MaxValue;
+				}
+				else if(controlgroups.at(i).output.pin.Value < controlgroups.at(i).output.pin.MinValue)
+				{
+					controlgroups.at(i).output.pin.Value = controlgroups.at(i).output.pin.MinValue;
+				}
 			}
 		}
 	}
@@ -84,7 +95,8 @@ icarus_rover_v2::diagnostic AutoDriveNodeProcess::new_commandmsg(std::string cg_
 	{
 		if(controlgroups.at(i).name == cg_name)
 		{
-			controlgroups.at(i).command.input = v;
+			//printf("Got command: %s %f\n",cg_name.c_str(),v);
+			controlgroups.at(i).command.input = v*controlgroups.at(i).command.scale_factor;
 			found = true;
 		}
 	}
@@ -114,7 +126,8 @@ icarus_rover_v2::diagnostic AutoDriveNodeProcess::new_sensormsg(std::string cg_n
 	{
 		if(controlgroups.at(i).name == cg_name)
 		{
-			controlgroups.at(i).sensor.input = v;
+			//printf("Got sensor: %s %f\n",cg_name.c_str(),v);
+			controlgroups.at(i).sensor.input = v*controlgroups.at(i).sensor.scale_factor;
 			found = true;
 		}
 	}
@@ -156,9 +169,10 @@ icarus_rover_v2::diagnostic AutoDriveNodeProcess::new_devicemsg(icarus_rover_v2:
 	{
 		for(std::size_t j = 0; j < controlgroups.size(); j++)
 		{
-			if((controlgroups.at(i).output.pin_info_received == false) && (controlgroups.at(j).output.name == newdevice.pins.at(i).Name))
+			if((controlgroups.at(j).output.pin_info_received == false) && (controlgroups.at(j).output.name == newdevice.pins.at(i).Name))
 			{
-				controlgroups.at(j).output.topic = "/" + newdevice.DeviceName + "/" + newdevice.pins.at(i).Function;
+
+				controlgroups.at(j).output.topic = "/" + controlgroups.at(j).output.nodename + "/" + newdevice.pins.at(i).Function;
 				controlgroups.at(j).output.pin = newdevice.pins.at(i);
 				controlgroups.at(j).output.pin_info_received = true;
 			}
@@ -221,17 +235,12 @@ bool AutoDriveNodeProcess::read_ControlGroupFile()
 						new_cg.command.index = atoi(l_pCGCommandIndex->GetText());
 					}
 					
-					TiXmlElement *l_pCGCommandMinValue = l_pCGCommand->FirstChildElement("MinValue");
-					if ( NULL != l_pCGCommandMinValue )
+					TiXmlElement *l_pCGCommandScaleFactor = l_pCGCommand->FirstChildElement("ScaleFactor");
+					if ( NULL != l_pCGCommandScaleFactor )
 					{
-						new_cg.command.min_value = atof(l_pCGCommandMinValue->GetText());
+						new_cg.command.scale_factor = atof(l_pCGCommandScaleFactor->GetText());
 					}
 					
-					TiXmlElement *l_pCGCommandMaxValue = l_pCGCommand->FirstChildElement("MaxValue");
-					if ( NULL != l_pCGCommandMaxValue )
-					{
-						new_cg.command.max_value = atof(l_pCGCommandMaxValue->GetText());
-					}
 				}
 				
 				TiXmlElement *l_pCGSensor = l_pControlGroup->FirstChildElement("Sensor");
@@ -251,6 +260,14 @@ bool AutoDriveNodeProcess::read_ControlGroupFile()
 						new_cg.sensor.name = sensor;
 						
 					}
+
+					TiXmlElement *l_pCGSensorScaleFactor = l_pCGSensor->FirstChildElement("ScaleFactor");
+					if ( NULL != l_pCGSensorScaleFactor )
+					{
+						new_cg.sensor.scale_factor = atof(l_pCGSensorScaleFactor->GetText());
+
+
+					}
 				}
 				
 				TiXmlElement *l_pCGOutput = l_pControlGroup->FirstChildElement("Output");
@@ -263,6 +280,12 @@ bool AutoDriveNodeProcess::read_ControlGroupFile()
 						new_cg.output.name = l_pCGOutputName->GetText();
 					}
 					
+					TiXmlElement *l_pCGOutputNode = l_pCGOutput->FirstChildElement("Node");
+					if ( NULL != l_pCGOutputNode )
+					{
+						new_cg.output.nodename = l_pCGOutputNode->GetText();
+					}
+
 					
 				}
 				
@@ -329,6 +352,7 @@ icarus_rover_v2::diagnostic AutoDriveNodeProcess::new_tunecontrolgroupmsg(icarus
 			controlgroups.at(i).gain.D = msg.value3;
 			controlgroups.at(i).output.pin.MaxValue = msg.maxvalue;
 			controlgroups.at(i).output.pin.MinValue = msg.minvalue;
+			controlgroups.at(i).output.pin.DefaultValue = msg.defaultvalue;
 			found = true;
 		}
 	}

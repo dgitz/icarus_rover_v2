@@ -62,6 +62,7 @@ void signalinterrupt_handler(int sig);
 //End Template Code: Function Prototypes
 
 //Start User Code: Function Prototypes
+void ArmedState_Callback(const std_msgs::UInt8::ConstPtr& msg);
 icarus_rover_v2::diagnostic rescan_topics(icarus_rover_v2::diagnostic diag);
 void ControlGroup_Callback(const icarus_rover_v2::controlgroup::ConstPtr& msg);
 void Pose_Callback(const icarus_rover_v2::pose::ConstPtr& msg);
@@ -106,6 +107,7 @@ double ros_rate;
 //End Template Code: Define Global Variables
 
 //Start User Code: Define Global Variables
+ros::Subscriber armed_state_sub;
 std::vector<std::string> device_topics;
 std::vector<ros::Subscriber> device_subs;
 AutoDriveNodeProcess *process;

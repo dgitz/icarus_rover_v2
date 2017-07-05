@@ -253,7 +253,7 @@ void process_udp_receive()
 		sprintf(tempstr,"0x%s",items.at(0).c_str());
 		int id = (int)strtol(tempstr,NULL,0);
 		uint8_t device,armcommand;
-		int axis1,axis2,axis3,axis4,axis5,axis6,axis7,axis8,int_1,int_2;
+		int axis1,axis2,axis3,axis4,axis5,axis6,axis7,axis8,int_1,int_2,int_3;
 		uint8_t command,option1,option2,option3;
 		uint8_t button1,button2,button3,button4,button5,button6,button7,button8;
 		std::string tempstr1,tempstr2;
@@ -375,7 +375,7 @@ void process_udp_receive()
 				}
 				break;
 			case UDPMessageHandler::UDP_TuneControlGroup_ID:
-				success = udpmessagehandler->decode_TuneControlGroupUDP(items,&tempstr1,&tempstr2,&v1,&v2,&v3,&int_1,&int_2);
+				success = udpmessagehandler->decode_TuneControlGroupUDP(items,&tempstr1,&tempstr2,&v1,&v2,&v3,&int_1,&int_2,&int_3);
 				if(success == 1)
 				{
 					icarus_rover_v2::controlgroup cg;
@@ -386,6 +386,7 @@ void process_udp_receive()
 					cg.value3 = v3;
 					cg.maxvalue = int_1;
 					cg.minvalue = int_2;
+					cg.defaultvalue = int_3;
 					controlgroup_pub.publish(cg);
 					
 				}

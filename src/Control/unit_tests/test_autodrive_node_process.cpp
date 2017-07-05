@@ -72,6 +72,7 @@ TEST(Operation,ControlGroup_SteerServo)
 	msg.value3 = -.3;
 	msg.maxvalue = 1800;
 	msg.minvalue = 1300;
+	msg.defaultvalue = 1450;
 	diagnostic = process->new_tunecontrolgroupmsg(msg);
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 	

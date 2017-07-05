@@ -7,6 +7,12 @@
 //Start User Code: Functions
 bool run_loop1_code()
 {
+	icarus_rover_v2::diagnostic diagnostic = process->update(measure_time_diff(ros::Time::now(),last_loop1_timer));
+	if(diagnostic.Level > INFO)
+	{
+		logger->log_diagnostic(diagnostic);
+	}
+
 	return true;
 }
 bool run_loop2_code()
@@ -19,6 +25,7 @@ bool run_loop2_code()
 			pin_pubs.at(i).publish(pins.at(j));
 		}
 	}
+
  	return true;
 }
 bool run_loop3_code()
@@ -35,21 +42,24 @@ void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg)
 	fw.Minor_Release = AUTODRIVENODE_MINOR_RELEASE;
 	fw.Build_Number = AUTODRIVENODE_BUILD_NUMBER;
 	firmware_pub.publish(fw);
+
 	icarus_rover_v2::diagnostic diagnostic = rescan_topics(process->get_diagnostic());
 	if(diagnostic.Level > NOTICE)
 	{
 		logger->log_diagnostic(diagnostic);
 	}
-	if((process->is_initialized() == true) and (node_initialized = false))
+	if((process->is_initialized() == true) and (node_initialized == false))
 	{
 		std::vector<ControlGroup> controlgroups = process->get_controlgroups();
 		for(std::size_t i = 0; i < controlgroups.size(); i++)
 		{
+			printf("created publisher: %s\n",controlgroups.at(i).output.topic.c_str());
 			ros::Publisher pin_pub = n->advertise<icarus_rover_v2::pin>(controlgroups.at(i).output.topic,5);
 			pin_topics.push_back(controlgroups.at(i).output.topic);
 			pin_pubs.push_back(pin_pub);
 		}
 		node_initialized = true;
+		logger->log_notice("Node Initialization and Process Initialization complete.");
 	}
 }
 void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
@@ -139,11 +149,13 @@ void ControlGroup_Callback(const icarus_rover_v2::controlgroup::ConstPtr& msg)
 	data.value3 = msg->value3;
 	data.maxvalue = msg->maxvalue;
 	data.minvalue = msg->minvalue;
+	data.defaultvalue = msg->defaultvalue;
 	icarus_rover_v2::diagnostic diagnostic = process->new_tunecontrolgroupmsg(data);
 	if(diagnostic.Level > NOTICE)
 	{
 		logger->log_diagnostic(diagnostic);
 	}
+
 }
 void Pose_Callback(const icarus_rover_v2::pose::ConstPtr& msg)
 {
@@ -175,9 +187,18 @@ void Joy_Callback(const sensor_msgs::Joy::ConstPtr& msg)
 		}
 	}
 }
+void ArmedState_Callback(const std_msgs::UInt8::ConstPtr& msg)
+{
+	diagnostic_status = process->new_armedstatemsg((uint8_t)msg->data);
+	if(diagnostic_status.Level > NOTICE)
+	{
+		diagnostic_pub.publish(diagnostic_status);
+	}
+}
 //End User Code: Functions
 icarus_rover_v2::diagnostic rescan_topics(icarus_rover_v2::diagnostic diag)
 {
+	logger->log_info("Rescanning for new topics.");
 	int found_new_topics = 0;
 	ros::master::V_TopicInfo master_topics;
 	ros::master::getTopics(master_topics);
@@ -419,6 +440,7 @@ bool initializenode()
 	CGCommandSubs.clear();
     process = new AutoDriveNodeProcess;
 	diagnostic_status = process->init(diagnostic_status,std::string(hostname));
+
 	std::string param_Mode = node_name +"/Mode";
 	std::string Mode;
 	if(n->getParam(param_Mode,Mode) == false)
@@ -430,6 +452,12 @@ bool initializenode()
 	{
 		std::string controlgroup_topic = "/" + Mode + "/controlgroup";
 		controlgroup_sub = n->subscribe<icarus_rover_v2::controlgroup>(controlgroup_topic,5,ControlGroup_Callback);
+	}
+	else if(Mode == "Disabled")
+	{
+		printf("[autodrive node]Mode: Disabled.  Exiting Cleanly.");
+		logger->log_notice("[autodrive node]Mode: Disabled.  Exiting Cleanly.");
+		return false;
 	}
 	else
 	{
@@ -474,6 +502,8 @@ bool initializenode()
 		}
 		
 	}
+	std::string armed_state_topic = "/armed_state";
+	armed_state_sub = n->subscribe<std_msgs::UInt8>(armed_state_topic,1,ArmedState_Callback);
     //Finish User Code: Initialization and Parameters
 
     //Start Template Code: Final Initialization.
