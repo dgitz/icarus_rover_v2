@@ -19,6 +19,7 @@ g++ -o SPI_Raspi_Arduino SPI_Raspi_Arduino.cpp
 #include <stdio.h>
 #include <sys/time.h>
 #include <stdlib.h>
+#include "spimessage.h"
 using namespace std;
 
 static void show_usage(std::string name)
@@ -37,13 +38,14 @@ int fd;
 int first_message_received;
 long passed_checksum;
 long failed_checksum;
+SPIMessageHandler *spimessagehandler;
 
 /**********************************************************
 Declare Functions
 ***********************************************************/
 
 int spiTxRx(unsigned char txDat);
-int sendCommand(char command);
+int sendQuery(unsigned char query, unsigned char * inputbuffer);
 double dt(struct timeval a, struct timeval b);
 
 /**********************************************************
@@ -112,57 +114,74 @@ commands to the Arduino and displays the results
 	gettimeofday(&last,NULL);
 	gettimeofday(&last_printtime,NULL);
 	char command[2];
-   while (1)
-   {
-      results = sendCommand(0x14);
-	  if(results < 0)
-	  {
-		return 0;
-	  }
-	  //printf("Got: %d expected: %d\n",(int)results,last_counter_received+6);
-	  if(first_message_received == 0)
-	  {
-		first_message_received = 1;
-		
-	  }
-	  else
-	  {
-		if((int)results < 255)
-		{
-			if(((int)results-last_counter_received) != 6)
-			{
-				missed++;
-			}
-			else
-			{
-				passed++;
-			}
-		}
-		
-	  }
-	  last_counter_received = (int)results;
-		//if((int)(results) != 1165) { error++;}
-      //cout << "Addition results:" << endl;
-     //cout << "510 + 655 = " <<  (int)(results) << endl;
-
-	//printf("error: %d\n",error);
-	gettimeofday(&now,NULL);
-	//printf("loop dt: %f\n",1.0/(dt(last,now)));
-	gettimeofday(&last,NULL);
-	//printf("error count: %d rate: %f elap time: %f\n",error,error/(dt(start,now)),dt(start,now));
-	if(dt(last_printtime,now) > 1.0)
+	while (1)
 	{
-		printf("Passed Checksum: %d @ %f Failed Checksum: %d @ %f Missed: %d @ %f Passed: %d @ %f Succeed Ratio: %f%\n",
-			passed_checksum,passed_checksum/(dt(start,now)),
-			failed_checksum,failed_checksum/(dt(start,now)),
-			missed,missed/(dt(start,now)),
-			passed,passed/(dt(start,now)),
-			100.0*(double)passed/((double)passed+(double)missed));
-		gettimeofday(&last_printtime,NULL);	
+		unsigned char query = SPIMessageHandler::SPI_TestMessageCounter_ID;
+		unsigned char inputbuffer[12];
+		int success;
+		int length;
+		int passed_checksum_calc = sendQuery(query,inputbuffer);
+		if(passed_checksum_calc > 0)
+		{
+			passed_checksum++;
 		}
-    usleep(loop_delay);
+		else if(passed_checksum_calc == 0)
+		{
+			failed_checksum++;
+		}
+		else
+		{
+			return 0;
+		}
 
-     }
+		unsigned char v1,v2,v3,v4,v5,v6,v7,v8,v9,v10,v11,v12;
+		switch(query)
+		{
+			case SPIMessageHandler::SPI_TestMessageCounter_ID:
+				success = spimessagehandler->decode_TestMessageCounterSPI(inputbuffer,&length,&v1,&v2,&v3,&v4,&v5,&v6,&v7,&v8,&v9,&v10,&v11,&v12);
+				if(success == 1)
+				{
+					if(first_message_received == 0)
+					{
+						first_message_received = 1;
+
+					}
+					else
+					{
+						if((int)v1 < 255)
+						{
+							if(((int)v1-last_counter_received) != 6)
+							{
+								missed++;
+							}
+							else
+							{
+								passed++;
+							}
+						}
+
+					}
+					last_counter_received = (int)v1;
+				}
+				break;
+			default:
+				break;
+		}
+		gettimeofday(&now,NULL);
+		gettimeofday(&last,NULL);
+		if(dt(last_printtime,now) > 1.0)
+		{
+			printf("Passed Checksum: %d @ %f Failed Checksum: %d @ %f Missed: %d @ %f Passed: %d @ %f Succeed Ratio: %f%\n",
+					passed_checksum,passed_checksum/(dt(start,now)),
+					failed_checksum,failed_checksum/(dt(start,now)),
+					missed,missed/(dt(start,now)),
+					passed,passed/(dt(start,now)),
+					100.0*(double)passed/((double)passed+(double)missed));
+			gettimeofday(&last_printtime,NULL);
+		}
+		usleep(loop_delay);
+
+	}
 
 }
 
@@ -210,83 +229,81 @@ sendCommand
  one byte at and capture the results
 ***********************************************************/
 
-
-int sendCommand(char command)
+int sendQuery(unsigned char query, unsigned char * inputbuffer)
 {
+	unsigned char resultByte;
+	bool ack;
 
-unsigned char resultByte;
-bool ack;
+	/**********************************************************
+	Unions allow variables to occupy the same memory space
+	a convenient way to move back and forth between 8-bit and
+	16-bit values etc.
 
-/**********************************************************
-Unions allow variables to occupy the same memory space
-a convenient way to move back and forth between 8-bit and
-16-bit values etc.
-
-Here three unions are declared: two for parameters to be 
-passed in commands to the Arduino and one to receive
-the results
-***********************************************************/
+	Here three unions are declared: two for parameters to be
+	passed in commands to the Arduino and one to receive
+	the results
+	 ***********************************************************/
 
 
-/**********************************************************
-An initial handshake sequence sends a one byte start code
-('c') and loops endlessly until it receives the one byte 
-acknowledgment code ('a') and sets the ack flag to true.
-(Note that the loop also sends the command byte while 
-still in handshake sequence to avoid wasting a transmit
-cycle.)
-***********************************************************/
+	/**********************************************************
+	An initial handshake sequence sends a one byte start code
+	('c') and loops endlessly until it receives the one byte
+	acknowledgment code ('a') and sets the ack flag to true.
+	(Note that the loop also sends the command byte while
+	still in handshake sequence to avoid wasting a transmit
+	cycle.)
+	 ***********************************************************/
 	int wait_time_us = 1;
 	int counter = 0;
-  do
-  {
-    ack = false;
-
-    spiTxRx(0xAB);
-    usleep (wait_time_us);
-	
-
-    resultByte = spiTxRx(command);
-    if (resultByte == 'a')
-    {
-      ack = true;
-    }
-	else { counter++; }
-	if(counter > 10000)
+	do
 	{
-		printf("No Comm with device after %d tries. Exiting.\n",counter);
-		return -1;
+		ack = false;
+
+		spiTxRx(0xAB);
+		usleep (wait_time_us);
+
+
+		resultByte = spiTxRx(query);
+		if (resultByte == 'a')
+		{
+			ack = true;
+		}
+		else { counter++; }
+		if(counter > 10000)
+		{
+			printf("No Comm with device after %d tries. Exiting.\n",counter);
+			return -1;
+		}
+		usleep (wait_time_us);
 	}
-    usleep (wait_time_us);  
-   }
 
-  while (ack == false);
-/**********************************************************
-Send the parameters one byte at a time.
-***********************************************************/
+	while (ack == false);
+	/**********************************************************
+	Send the parameters one byte at a time.
+	 ***********************************************************/
 
-/**********************************************************
-Push two more zeros through so the Arduino can return the
-results
-***********************************************************/
+	/**********************************************************
+	Push two more zeros through so the Arduino can return the
+	results
+	 ***********************************************************/
 
-  usleep(wait_time_us);
-  resultByte = spiTxRx(0);
-  usleep(wait_time_us);
-  unsigned char v;
-  unsigned char running_checksum = 0;
-  for(int i = 0; i < 12; i++)
-  {
-	  v = spiTxRx(0);
-	  running_checksum ^= v;
-	  usleep(wait_time_us);
-	  //printf("i: %d v: %d \n",i,v);
+	usleep(wait_time_us);
+	resultByte = spiTxRx(0);
+	usleep(wait_time_us);
+	unsigned char v;
+	unsigned char running_checksum = 0;
+	for(int i = 0; i < 12; i++)
+	{
+		v = spiTxRx(0);
+		running_checksum ^= v;
+		inputbuffer[i] = v;
+		//*p_outbuffer++ = v;
+		usleep(wait_time_us);
+
 	}
 	//printf("\n");
-  resultByte = spiTxRx(0);
-  usleep(wait_time_us);
-  if(resultByte == running_checksum) { passed_checksum++; }
-  else { failed_checksum++; }
-  return v;
-
+	resultByte = spiTxRx(0);
+	usleep(wait_time_us);
+	if(resultByte == running_checksum) { return 1; }
+	else { return 0; }
 }
