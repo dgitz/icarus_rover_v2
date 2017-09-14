@@ -1,15 +1,3 @@
-/**********************************************************
- SPI_Raspi_Arduino
-   Configures an Raspberry Pi as an SPI master and
-   demonstrates a basic bidirectional communication scheme
-   with an Arduino slave.  The Raspberry Pi transmits
-   commands to perform addition and subtraction on a pair
-   of integers and the Ardunio returns the result
-
-Compile String:
-g++ -o SPI_Raspi_Arduino SPI_Raspi_Arduino.cpp
-***********************************************************/
-
 #include <sys/ioctl.h>
 #include <linux/spi/spidev.h>
 #include <fcntl.h>
@@ -27,6 +15,9 @@ static void show_usage(std::string name)
     std::cerr << "Usage: Test SPI Comm between Raspberry Pi and Arduino. Options:\n"
               << "\t-h,--help\t\tShow this help message\n"
               << "\t-d,--delay Delay in MicroSeconds between sending each message.  Default is 100000.\n"
+			  << "\t-q,--query Query Message.  Supported messages are:\n"
+			  << "\t\t [0] TestMessageCounter (0xAB14)\n"
+			  << "\t\t [1] Get_ANA_Port1 (0xAB20)\n"
               << std::endl;
 }
 
@@ -54,15 +45,10 @@ Main
 
 int main(int argc, char* argv[])
 {
-
-/**********************************************************
-Setup SPI
-Open file spidev0.0 (chip enable 0) for read/write access
-with the file descriptor "fd"
-Configure transfer speed (1MkHz)
-***********************************************************/
 	passed_checksum = 0;
 	failed_checksum = 0;
+	int query_message = 0;
+	unsigned char query_type;
 	long loop_delay = 100000;
 	if (argc < 2) {
         show_usage(argv[0]);
@@ -84,12 +70,27 @@ Configure transfer speed (1MkHz)
                 loop_delay = atoi(argv[i+1]); // Increment 'i' so we don't get the argument as the next argv[i
                 i++;
             } 
-            else 
-            {
-                // Uh-oh, there was no argument to the destination option.
-                std::cerr << "--delay option requires one argument." << std::endl;
-                return 1;
-            }  
+        }
+        else if ((arg == "-q") || (arg == "--query"))
+        {
+        	query_message = 1;
+        	if (i + 1 < argc)
+        	{
+        		int v = atoi(argv[i+1]);
+        		switch(v)
+        		{
+        		case 0:
+        			query_type = SPIMessageHandler::SPI_TestMessageCounter_ID;
+        			break;
+        		case 1:
+        			query_type = SPIMessageHandler::SPI_Get_ANA_Port1_ID;
+        			break;
+        		default:
+        			printf("Unsupported Query Message.  Exiting.\n");
+        			return 0;
+        		}
+        		i++;
+        	}
         }
 	}
 	first_message_received = 0;
@@ -116,7 +117,7 @@ commands to the Arduino and displays the results
 	char command[2];
 	while (1)
 	{
-		unsigned char query = SPIMessageHandler::SPI_TestMessageCounter_ID;
+		unsigned char query = query_type;
 		unsigned char inputbuffer[12];
 		int success;
 		int length;
@@ -135,6 +136,7 @@ commands to the Arduino and displays the results
 		}
 
 		unsigned char v1,v2,v3,v4,v5,v6,v7,v8,v9,v10,v11,v12;
+		uint16_t a1,a2,a3,a4,a5,a6;
 		switch(query)
 		{
 			case SPIMessageHandler::SPI_TestMessageCounter_ID:
@@ -163,7 +165,19 @@ commands to the Arduino and displays the results
 					}
 					last_counter_received = (int)v1;
 				}
+				printf("Missed: %d @ %f Passed: %d @ %f Succeed Ratio: %f%\n",
+					missed,missed/(dt(start,now)),
+					passed,passed/(dt(start,now)),
+					100.0*(double)passed/((double)passed+(double)missed));
 				break;
+			case SPIMessageHandler::SPI_Get_ANA_Port1_ID:
+							success = spimessagehandler->decode_Get_ANA_Port1SPI(inputbuffer,&length,&a1,&a2,&a3,&a4,&a5,&a6);
+							if(success == 1)
+							{
+								printf("ANA Port1 0:%d 1:%d 2:%d 3:%d 4:%d 5:%d\n",
+										a1,a2,a3,a4,a5,a6);
+							}
+							break;
 			default:
 				break;
 		}
@@ -171,12 +185,10 @@ commands to the Arduino and displays the results
 		gettimeofday(&last,NULL);
 		if(dt(last_printtime,now) > 1.0)
 		{
-			printf("Passed Checksum: %d @ %f Failed Checksum: %d @ %f Missed: %d @ %f Passed: %d @ %f Succeed Ratio: %f%\n",
+			printf("Passed Checksum: %d @ %f Failed Checksum: %d @ %f Succeed Ratio: %f%\n",
 					passed_checksum,passed_checksum/(dt(start,now)),
 					failed_checksum,failed_checksum/(dt(start,now)),
-					missed,missed/(dt(start,now)),
-					passed,passed/(dt(start,now)),
-					100.0*(double)passed/((double)passed+(double)missed));
+					100.0*(double)passed_checksum/((double)passed_checksum+(double)failed_checksum));
 			gettimeofday(&last_printtime,NULL);
 		}
 		usleep(loop_delay);
@@ -184,19 +196,6 @@ commands to the Arduino and displays the results
 	}
 
 }
-
-/**********************************************************
-spiTxRx
- Transmits one byte via the SPI device, and returns one byte
- as the result.
-
- Establishes a data structure, spi_ioc_transfer as defined
- by spidev.h and loads the various members to pass the data
- and configuration parameters to the SPI device via IOCTL
-
- Local variables txDat and rxDat are defined and passed by
- reference.  
-***********************************************************/
 double dt(struct timeval a, struct timeval b)
 {
 	double t1 = (double)(a.tv_sec) + (double)(a.tv_usec)/1000000.0;
@@ -221,38 +220,10 @@ int spiTxRx(unsigned char txDat)
   return rxDat;
 }
 
-
-/**********************************************************
-sendCommand
- Demonstration of a protocol that uses the spiTxRx function
- to send a formatted command sequence/packet to the Arduino
- one byte at and capture the results
-***********************************************************/
-
 int sendQuery(unsigned char query, unsigned char * inputbuffer)
 {
 	unsigned char resultByte;
 	bool ack;
-
-	/**********************************************************
-	Unions allow variables to occupy the same memory space
-	a convenient way to move back and forth between 8-bit and
-	16-bit values etc.
-
-	Here three unions are declared: two for parameters to be
-	passed in commands to the Arduino and one to receive
-	the results
-	 ***********************************************************/
-
-
-	/**********************************************************
-	An initial handshake sequence sends a one byte start code
-	('c') and loops endlessly until it receives the one byte
-	acknowledgment code ('a') and sets the ack flag to true.
-	(Note that the loop also sends the command byte while
-	still in handshake sequence to avoid wasting a transmit
-	cycle.)
-	 ***********************************************************/
 	int wait_time_us = 1;
 	int counter = 0;
 	do
@@ -278,15 +249,6 @@ int sendQuery(unsigned char query, unsigned char * inputbuffer)
 	}
 
 	while (ack == false);
-	/**********************************************************
-	Send the parameters one byte at a time.
-	 ***********************************************************/
-
-	/**********************************************************
-	Push two more zeros through so the Arduino can return the
-	results
-	 ***********************************************************/
-
 	usleep(wait_time_us);
 	resultByte = spiTxRx(0);
 	usleep(wait_time_us);
@@ -301,7 +263,6 @@ int sendQuery(unsigned char query, unsigned char * inputbuffer)
 		usleep(wait_time_us);
 
 	}
-	//printf("\n");
 	resultByte = spiTxRx(0);
 	usleep(wait_time_us);
 	if(resultByte == running_checksum) { return 1; }

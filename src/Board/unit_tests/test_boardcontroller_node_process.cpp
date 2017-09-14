@@ -3,7 +3,7 @@
 #include "ros/time.h"
 #include "icarus_rover_v2/device.h"
 #include "icarus_rover_v2/diagnostic.h"
-#include "../sample_node_process.h"
+#include "../boardcontroller_node_process.h"
 
 std::string Node_Name = "/unittest_boardcontroller_node_process";
 std::string Host_Name = "unittest";
@@ -29,7 +29,7 @@ TEST(Template,ProcessInitialization)
     diagnostic.Description = "Node Initializing";
 
     BoardControllerNodeProcess *process;
-    process = new SampleNodeProcess;
+    process = new BoardControllerNodeProcess;
 	diagnostic = process->init(diagnostic,std::string(Host_Name));
     EXPECT_TRUE(diagnostic.Level <= NOTICE);
 }
