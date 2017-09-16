@@ -65,7 +65,7 @@ TEST(DeviceInitialization,DeviceInitialization_ArduinoBoard)
     arduinoboard1_device.ID = 1;
     {
     	icarus_rover_v2::pin newpin;
-    	newpin.ConnectedDevice = "BucketAngleSensor";
+    	newpin.ConnectedSensor = "BucketAngleSensor";
     	newpin.Name = "AnalogInput0";
     	newpin.Number = 0;
     	newpin.Function = "AnalogInput";
@@ -74,7 +74,7 @@ TEST(DeviceInitialization,DeviceInitialization_ArduinoBoard)
 
     {
     	icarus_rover_v2::pin newpin;
-    	newpin.ConnectedDevice = "BucketLiftSensor";
+    	newpin.ConnectedSensor = "BucketLiftSensor";
     	newpin.Name = "AnalogInput1";
     	newpin.Number = 1;
     	newpin.Function = "AnalogInput";

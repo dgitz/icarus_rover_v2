@@ -276,7 +276,7 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_devicemsg(icarus_rov
                             	Sensor new_sensor;
                             	new_sensor.initialized = false;
                             	new_sensor.value = 0.0;
-                            	new_sensor.name = newdevice.pins.at(i).ConnectedDevice;
+                            	new_sensor.name = newdevice.pins.at(i).ConnectedSensor;
                             	new_sensor.connected_board = newdevice;
                             	new_sensor.connected_pin = newdevice.pins.at(i);
 

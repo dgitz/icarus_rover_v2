@@ -592,7 +592,17 @@ bool parse_devicefile(TiXmlDocument doc)
 					{
 						newpin.ConnectedDevice = "";
 					}
-					
+
+					TiXmlElement *l_pPinConnectedSensor = l_pPin->FirstChildElement( "ConnectedSensor" );
+					if ( NULL != l_pPinConnectedSensor )
+					{
+						newpin.ConnectedSensor = l_pPinConnectedSensor->GetText();
+					}
+					else
+					{
+						newpin.ConnectedSensor = "";
+					}
+
                     TiXmlElement *l_pPinDefaultValue = l_pPin->FirstChildElement( "DefaultValue" );
 					if ( NULL != l_pPinDefaultValue )
 					{
