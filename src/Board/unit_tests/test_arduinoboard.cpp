@@ -17,7 +17,8 @@ static void show_usage(std::string name)
               << "\t-d,--delay Delay in MicroSeconds between sending each message.  Default is 100000.\n"
 			  << "\t-q,--query Query Message.  Supported messages are:\n"
 			  << "\t\t [0] TestMessageCounter (0xAB14)\n"
-			  << "\t\t [1] Get_ANA_Port1 (0xAB20)\n"
+			  << "\t\t [1] Get_DIO_Port1 (0xAB19)\n"
+			  << "\t\t [2] Get_ANA_Port1 (0xAB20)\n"
               << std::endl;
 }
 
@@ -83,6 +84,9 @@ int main(int argc, char* argv[])
         			query_type = SPIMessageHandler::SPI_TestMessageCounter_ID;
         			break;
         		case 1:
+        			query_type = SPIMessageHandler::SPI_Get_DIO_Port1_ID;
+        			break;
+        		case 2:
         			query_type = SPIMessageHandler::SPI_Get_ANA_Port1_ID;
         			break;
         		default:
@@ -166,16 +170,24 @@ commands to the Arduino and displays the results
 					last_counter_received = (int)v1;
 				}
 				printf("Missed: %d @ %f Passed: %d @ %f Succeed Ratio: %f%\n",
-					missed,missed/(dt(start,now)),
-					passed,passed/(dt(start,now)),
-					100.0*(double)passed/((double)passed+(double)missed));
+						missed,missed/(dt(start,now)),
+						passed,passed/(dt(start,now)),
+						100.0*(double)passed/((double)passed+(double)missed));
 				break;
 			case SPIMessageHandler::SPI_Get_ANA_Port1_ID:
-							success = spimessagehandler->decode_Get_ANA_Port1SPI(inputbuffer,&length,&a1,&a2,&a3,&a4,&a5,&a6);
-							if(success == 1)
-							{
-								printf("ANA Port1 0:%d 1:%d 2:%d 3:%d 4:%d 5:%d\n",
-										a1,a2,a3,a4,a5,a6);
+				success = spimessagehandler->decode_Get_ANA_Port1SPI(inputbuffer,&length,&a1,&a2,&a3,&a4,&a5,&a6);
+				if(success == 1)
+				{
+					printf("ANA Port1 0:%d 1:%d 2:%d 3:%d 4:%d 5:%d\n",
+							a1,a2,a3,a4,a5,a6);
+				}
+				break;
+			case SPIMessageHandler::SPI_Get_DIO_Port1_ID:
+				success = spimessagehandler->decode_Get_DIO_Port1SPI(inputbuffer,&length,&v1,&v2,&v3,&v4,&v5,&v6,&v7,&v8);
+				if(success == 1)
+				{
+					printf("DIO Port1 0:%d 1:%d 2:%d 3:%d 4:%d 5:%d 6: %d 7: %d\n",
+							v1,v2,v3,v4,v5,v6,v7,v8);
 							}
 							break;
 			default:

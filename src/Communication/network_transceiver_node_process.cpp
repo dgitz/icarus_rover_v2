@@ -134,14 +134,14 @@ void NetworkTransceiverNodeProcess::init_messages()
     }
     {
         Message newmessage;
-        newmessage.id = GET_ANA_PORT_ID;
-        newmessage.name = "Get ANA Port";
+        newmessage.id = GET_ANA_PORT1_ID;
+        newmessage.name = "Get ANA Port1";
         messages.push_back(newmessage);
     }
     {
         Message newmessage;
-        newmessage.id = GET_DIO_PORT_ID;
-        newmessage.name = "Get DIO Port";
+        newmessage.id = GET_DIO_PORT1_ID;
+        newmessage.name = "Get DIO Port1";
         messages.push_back(newmessage);
     }
     {

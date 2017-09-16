@@ -24,7 +24,29 @@ Documentation History:
 3-June-2017
 Added analyze_timing functionality.
     
+B. boardcontroller_node
+Usage: This node should be run on every ControlModule with a connected Arduino Board.
+Supported Arduino Boards:
+ * Arduino Mega 2560
+Configuration:
+Installation:
+SPI Connections:
+		Raspberry Pi 2 Model B	|	Arduino Mega 2560
+MOSI			19							51
+MISO			21							50	
+SCLK			23							52	
+CE0/SS			24							53
 
+Purpose: Communicates with an Arduino Board
+
+Unit Tests:
+1. Process Unit Tests:
+
+2. SPI Comm Unit Tests:
+  Compile:
+  >>cd ~/catkin_ws/src/icarus_rover_v2/src/Board/unit_tests/
+  >>g++ -o test_arduinoboard test_arduinoboard.cpp spicomm.cpp
+  
 B. gpio_node --> OBSOLETE
 Usage: This node should be run for every device that has at least 1 GPIO Board installed.
 Purpose:
