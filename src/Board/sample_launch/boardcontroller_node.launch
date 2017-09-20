@@ -1,8 +1,10 @@
 <!--xml-->
 <launch>
-    <node name="$(env ROS_HOSTNAME)_boardcontroller_node" pkg="icarus_rover_v2" type="boardcontroller_node" output="screen" clear_params="true" >  
-        <param name="loop_rate"             value="500"/>
+    <node name="$(env ROS_HOSTNAME)_boardcontroller_node" pkg="icarus_rover_v2" type="boardcontroller_node" output="screen" clear_params="true">  
 	    <param name="verbosity_level"       value="DEBUG"/>
-        <param name="require_pps_to_start"  value="false"/>
+        <param name="require_pps_to_start"  value="true"/>
+        <param name="loop1_rate"            value="20.0"/> <!-- Read Board Ports -->
+        <param name="loop2_rate"            value="50.0"/> <!-- Process Update,Output publish --> 
+        <param name="loop3_rate"            value="200.0"/> <!-- SPI Comm  -->
     </node>
 </launch>

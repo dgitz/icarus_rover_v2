@@ -34,7 +34,7 @@ Purpose:
 E. mavlink_node
 Purpose: Connects to APM to drive PWM Outputs and Read Sensor Data
 
-E: Auto Drive
+F: Auto Drive
 Usage: This node should be run on 1 Device.
 Uses Configuration file: "/home/robot/config/ControlGroup.xml"
 Configuration:
@@ -56,6 +56,29 @@ Unit Tests:
     catkin_test_results build/icarus_rover_v2
 
 Test Results stored at:  ~/catkin_ws/build/test_results/icarus_rover_v2/gtest-test_autodrive_node_process.xml
+
+G: Command Launcher
+Usage: This node should be run on any device that requires external commands to be launched.
+Currently supported Commands:
+ * CameraStream: Runs gst-launch to send video from /dev/video0 over UDP
+Configuration:
+ * Loop1: Checks Commands and relaunches as necessary.
+ * Loop2: 
+ * CameraStream: <DeviceIP>:<Port> The Device IPAddress and Port that should be used to send the Camera Stream to.  NOTE: The DeviceIP must be found in the DeviceFile.xml file, and the Port must be
+   in the MiscConfig.xml file.  Currently raw IP address's and ports are not supported.
+   
+Purpose:
+1. Launches external commands outside of ROS.
+
+Unit Tests:
+1. To Build/Run:
+    cd ~/catkin_ws
+    catkin_make catkin_make run_tests_icarus_rover_v2_gtest_test_commandlauncher_node_process
+2. To View:
+    cd ~/catkin_ws
+    catkin_test_results build/icarus_rover_v2
+
+Test Results stored at:  ~/catkin_ws/build/test_results/icarus_rover_v2/gtest-test_commandlauncher_node_process.xml
 
 Documentation History:
 5-July-2017

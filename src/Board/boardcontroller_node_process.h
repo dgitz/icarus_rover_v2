@@ -38,8 +38,14 @@ struct Sensor
 	std::string name;
 	icarus_rover_v2::device connected_board;
 	icarus_rover_v2::pin connected_pin;
+    bool convert;
 	double value;
+    std::string units;
 	std::string output_datatype;
+    double min_inputvalue;
+    double max_inputvalue;
+    double min_outputvalue;
+    double max_outputvalue;
 };
 class BoardControllerNodeProcess
 {
@@ -77,6 +83,7 @@ public:
 private:
 	void init_messages();
 	std::string map_PinFunction_ToString(int function);
+    double map_input_to_output(double input_value,double min_input,double max_input,double min_output,double max_output);
 	int map_PinFunction_ToInt(std::string Function);
 	bool sensors_initialized();
 	bool update_sensor(icarus_rover_v2::device,icarus_rover_v2::pin,double value);

@@ -435,7 +435,17 @@ bool BoardControllerNodeProcess::update_sensor(icarus_rover_v2::device board,ica
 		if((sensors.at(i).connected_board.DeviceName == board.DeviceName) and
 		   (sensors.at(i).connected_pin.Name == pin.Name))
 		{
-			sensors.at(i).value = value;
+            if(sensors.at(i).convert == false)
+            {
+                sensors.at(i).value = value;
+            }
+            else
+            {
+                sensors.at(i).value = map_input_to_output(value,sensors.at(i).min_inputvalue,
+                                                                sensors.at(i).max_inputvalue,
+                                                                sensors.at(i).min_inputvalue,
+                                                                sensors.at(i).max_outputvalue);
+            }
 			return true;
 		}
 	}
@@ -513,6 +523,7 @@ bool BoardControllerNodeProcess::parse_sensorfile(TiXmlDocument doc,std::string 
 
 	if( NULL != l_pRootElement )
 	{
+        bool convert = true;
 		TiXmlElement *l_pSensorType = l_pRootElement->FirstChildElement( "Type" );
 		if(NULL != l_pSensorType)
 		{
@@ -544,8 +555,64 @@ bool BoardControllerNodeProcess::parse_sensorfile(TiXmlDocument doc,std::string 
 			printf("Sensor OutputDataType: %s Not Supported.\n",sensors.at(sensor_index).output_datatype.c_str());
 			return false;
 		}
+        
+        TiXmlElement *l_pMinInput = l_pRootElement->FirstChildElement( "MinInputValue" );
+		if(NULL != l_pMinInput)
+		{
+            sensors.at(sensor_index).convert = true;
+			sensors.at(sensor_index).min_inputvalue = std::atof(l_pMinInput->GetText());
+		}
+		else { printf("Sensor: %s Element: MinInputValue not found.\n",sensors.at(sensor_index).name.c_str()); convert = false; }
+        
+        TiXmlElement *l_pMaxInput = l_pRootElement->FirstChildElement( "MaxInputValue" );
+		if(NULL != l_pMaxInput)
+		{
+            sensors.at(sensor_index).convert = true;
+			sensors.at(sensor_index).max_inputvalue = std::atof(l_pMaxInput->GetText());
+		}
+		else { printf("Sensor: %s Element: MaxInputValue not found.\n",sensors.at(sensor_index).name.c_str()); convert = false; }
+        
+        TiXmlElement *l_pMinOutput = l_pRootElement->FirstChildElement( "MinOutputValue" );
+		if(NULL != l_pMinOutput)
+		{
+            sensors.at(sensor_index).convert = true;
+			sensors.at(sensor_index).min_outputvalue = std::atof(l_pMinOutput->GetText());
+		}
+		else { printf("Sensor: %s Element: MinOutputValue not found.\n",sensors.at(sensor_index).name.c_str()); convert = false; }
+        
+        TiXmlElement *l_pMaxOutput = l_pRootElement->FirstChildElement( "MaxOutputValue" );
+		if(NULL != l_pMaxOutput)
+		{
+            sensors.at(sensor_index).convert = true;
+			sensors.at(sensor_index).max_outputvalue = std::atof(l_pMaxOutput->GetText());
+		}
+		else { printf("Sensor: %s Element: MaxOutputValue not found.\n",sensors.at(sensor_index).name.c_str()); convert = false; }
+        
+        TiXmlElement *l_pUnits = l_pRootElement->FirstChildElement( "Units" );
+		if(NULL != l_pUnits)
+		{
+			sensors.at(sensor_index).units = l_pUnits->GetText();
+		}
+		else { printf("Sensor: %s Element: Units not found.\n",sensors.at(sensor_index).name.c_str()); return false; }
+        
+        sensors.at(sensor_index).convert = convert;
+		if((sensors.at(sensor_index).output_datatype == "double"))
+		{
+
+		}
+		else
+		{
+			printf("Sensor OutputDataType: %s Not Supported.\n",sensors.at(sensor_index).output_datatype.c_str());
+			return false;
+		}
 		sensors.at(sensor_index).initialized = true;
 	}
 	else {	printf("Element: Sensor not found.\n"); return false; }
 	return true;
+}
+double BoardControllerNodeProcess::map_input_to_output(double input_value,double min_input,double max_input,double min_output,double max_output)
+{
+    double m = (max_output-min_output)/(max_input-min_input);
+    //y-y1 = m*(x-x1);
+    return (m*(input_value-min_input))+min_output;
 }

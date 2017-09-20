@@ -29,6 +29,7 @@ Usage: This node should be run on every ControlModule with a connected Arduino B
 Supported Arduino Boards:
  * Arduino Mega 2560
 Configuration:
+Currently only 1 SPI Device is supported, at dev/spidev0.0
 Installation:
 SPI Connections:
 		Raspberry Pi 2 Model B	|	Arduino Mega 2560
@@ -41,7 +42,7 @@ Purpose: Communicates with an Arduino Board
 
 Unit Tests:
 1. Process Unit Tests:
-
+  >>catkin_make run_tests_icarus_rover_v2_gtest_test_boardcontroller_node_process
 2. SPI Comm Unit Tests:
   Compile:
   >>cd ~/catkin_ws/src/icarus_rover_v2/src/Board/unit_tests/
