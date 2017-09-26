@@ -20,7 +20,13 @@ bool run_loop1_code()
 		}
 		else if(processlist.at(i).running == false)
 		{
+			//char tempstr[1024];
+			//sprintf("Running: %s",processlist.at(i).command_text.c_str());
+			//logger->log_notice(std::string(tempstr));
 			int ret = system (processlist.at(i).command_text.c_str());
+			//char tempstr2[256];
+			//sprintf(tempstr2,"Command result: %d",ret);
+			//logger->log_notice(std::string(tempstr2));
 			process->set_process_restarted(processlist.at(i).name);
 			check_pid = true;
 		}
@@ -248,6 +254,7 @@ int main(int argc, char **argv)
 		else
 		{
 			logger->log_warn("Waiting on PPS to Start.");
+			usleep(1000000);
 		}
 		ros::spinOnce();
 		loop_rate.sleep();
