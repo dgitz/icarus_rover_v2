@@ -2,6 +2,7 @@
 string DeviceParent
 string DeviceName
 string DeviceType
+string PrimaryIP
 string Architecture
 int64 ID
 string[] Capabilities

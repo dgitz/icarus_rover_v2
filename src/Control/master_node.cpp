@@ -428,7 +428,9 @@ bool initialize(ros::NodeHandle nh)
 			temp_counter++;
 			if(temp_counter == 25)
 			{
-				logger->log_error("Searched more than 25 levels for Device parent, this is a problem!");
+				char tempstr[512];
+				sprintf(tempstr,"Searched more than 25 levels for Device:%s 's Parent, this is a problem!",other.DeviceName.c_str());
+				logger->log_error(std::string(tempstr));
 			}
 			if((local_parent == "") || (local_parent == "None"))
 			{
@@ -524,6 +526,16 @@ bool parse_devicefile(TiXmlDocument doc)
 	            if ( NULL != l_pDeviceType )
 	            {
 	                newDevice.DeviceType = l_pDeviceType->GetText();
+	            }
+
+	            TiXmlElement *l_pDevicePrimaryIP = l_pDevice->FirstChildElement( "PrimaryIP" );
+	            if ( NULL != l_pDevicePrimaryIP )
+	            {
+	            	newDevice.PrimaryIP = l_pDevicePrimaryIP->GetText();
+	            }
+	            else
+	            {
+	            	newDevice.PrimaryIP = "";
 	            }
 
 	            TiXmlElement *l_pDeviceArchitecture = l_pDevice->FirstChildElement( "Architecture" );
