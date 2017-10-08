@@ -19,6 +19,10 @@
 #include "logger.h"
 #include <math.h>
 #include <tinyxml.h>
+<<<<<<< HEAD
+#define MAX_PROCESS_RESTARTS 5
+=======
+>>>>>>> origin/US_VideoFeed_#88
 struct ProcessCommand
 {
 	std::string name;
@@ -30,7 +34,10 @@ struct ProcessCommand
 	string process_name;
 	uint32_t pid;
 	uint32_t restart_counter;
+<<<<<<< HEAD
+=======
 	int32_t max_restarts;
+>>>>>>> origin/US_VideoFeed_#88
 };
 struct IPMap
 {

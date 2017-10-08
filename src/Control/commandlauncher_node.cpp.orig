@@ -9,6 +9,12 @@ bool run_loop1_code()
 {
 	logger->log_info("Running Loop1");
 	std::vector<ProcessCommand> processlist = process->get_processlist();
+<<<<<<< HEAD
+	for(std::size_t i = 0; i < processlist.size(); i++)
+	{
+		bool check_pid = false;
+		if(processlist.at(i).restart_counter >= MAX_PROCESS_RESTARTS)
+=======
 	if(process->is_ready() == false)
 	{
 		return true;
@@ -17,6 +23,7 @@ bool run_loop1_code()
 	{
 		bool check_pid = false;
 		if((processlist.at(i).restart_counter >= processlist.at(i).max_restarts) and (processlist.at(i).max_restarts > 0))
+>>>>>>> origin/US_VideoFeed_#88
 		{
 			char tempstr[512];
 			sprintf(tempstr,"Process: %s restarted %d times.  Not restarting anymore.",processlist.at(i).name.c_str(),processlist.at(i).restart_counter);
@@ -27,10 +34,13 @@ bool run_loop1_code()
 			//char tempstr[1024];
 			//sprintf("Running: %s",processlist.at(i).command_text.c_str());
 			//logger->log_notice(std::string(tempstr));
+<<<<<<< HEAD
+=======
 			char tempstr[1024];
 			sprintf(tempstr,"Trying to restart process with command: %s",processlist.at(i).command_text.c_str());
 
 			logger->log_info(std::string(tempstr));
+>>>>>>> origin/US_VideoFeed_#88
 			int ret = system (processlist.at(i).command_text.c_str());
 			//char tempstr2[256];
 			//sprintf(tempstr2,"Command result: %d",ret);
@@ -375,6 +385,20 @@ bool initializenode()
     //Start User Code: Initialization and Parameters
     process = new CommandLauncherNodeProcess;
 	diagnostic_status = process->init(diagnostic_status,std::string(hostname));
+<<<<<<< HEAD
+	std::string param_camerastream = node_name + "/CameraStream";
+	std::string camerastream;
+	if(n->getParam(param_camerastream,camerastream) == false)
+    {
+        logger->log_error("Missing parameter: CameraStream.  Exiting.");
+        return false;
+    }
+	if(process->set_camerastream(camerastream) == false)
+	{
+		logger->log_error("Couldn't find CameraStream in process list. Exiting.");
+		return false;
+	}
+=======
 	std::string param_cameraport = node_name + "/CameraStreamPort";
 	if(n->getParam(param_cameraport,camerastream_port) == false)
     {
@@ -382,6 +406,7 @@ bool initializenode()
         return false;
     }
 
+>>>>>>> origin/US_VideoFeed_#88
 	
     //Finish User Code: Initialization and Parameters
 
@@ -413,7 +438,10 @@ void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg)
 		newdevice.DeviceName = msg->DeviceName;
 		newdevice.DeviceParent = msg->DeviceParent;
 		newdevice.DeviceType = msg->DeviceType;
+<<<<<<< HEAD
+=======
 		newdevice.PrimaryIP = msg->PrimaryIP;
+>>>>>>> origin/US_VideoFeed_#88
 		newdevice.ID = msg->ID;
 		newdevice.SensorCount = msg->SensorCount;
 		newdevice.ShieldCount = msg->ShieldCount;
@@ -425,10 +453,13 @@ void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg)
 		{
 			myDevice = process->get_mydevice();
 			resourcemonitor = new ResourceMonitor(diagnostic_status,myDevice.Architecture,myDevice.DeviceName,node_name);
+<<<<<<< HEAD
+=======
 			if(process->set_camerastream(camerastream_port) == false)
 			{
 				logger->log_error("Couldn't find CameraStreamPort in process list.");
 			}
+>>>>>>> origin/US_VideoFeed_#88
 			logger->log_notice("Device finished initializing.");
 		}
 	}

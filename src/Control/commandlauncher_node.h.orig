@@ -91,6 +91,9 @@ double ros_rate;
 //Start User Code: Define Global Variables
 boost::shared_ptr<ros::NodeHandle> n;
 CommandLauncherNodeProcess *process;
+<<<<<<< HEAD
+=======
 std::string camerastream_port;
+>>>>>>> origin/US_VideoFeed_#88
 //End User Code: Define Global Variables
 #endif

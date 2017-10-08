@@ -43,9 +43,14 @@ icarus_rover_v2::diagnostic CommandLauncherNodeProcess::new_devicemsg(icarus_rov
             mydevice = newdevice;
             initialized = true;
 			ready = true;
+<<<<<<< HEAD
+        }
+    }	
+=======
 			printf("Got IP: %s\n",mydevice.PrimaryIP.c_str());
         }
     }
+>>>>>>> origin/US_VideoFeed_#88
     diag.Level = INFO;
     diag.Diagnostic_Type = COMMUNICATIONS;
     diag.Diagnostic_Message = NOERROR;
@@ -102,12 +107,38 @@ std::string CommandLauncherNodeProcess::get_processinfo()
 	}
 	return std::string(tempstr);
 }
+<<<<<<< HEAD
+bool CommandLauncherNodeProcess::set_camerastream(std::string address)
+{
+	std::string hostname = "";
+	std::string portname = "";
+	std::size_t colon = address.find(":");
+	hostname = address.substr(0,colon);
+	portname = address.substr(colon+1);
+	//std::string str3 = str.substr (pos);
+=======
 bool CommandLauncherNodeProcess::set_camerastream(std::string portname)
 {
+>>>>>>> origin/US_VideoFeed_#88
 	for(std::size_t i = 0; i < processlist.size(); i++)
 	{
 		if(processlist.at(i).name == "CameraStream")
 		{
+<<<<<<< HEAD
+			std::string ip = lookup_deviceIP(hostname);
+			if(ip == "") { return false; }
+			uint32_t port = lookup_port(portname);
+			if(port == 0) { return false; }
+			processlist.at(i).param_string_1 = ip;
+			processlist.at(i).param_uint32_1 = port;
+			char tempstr[512];
+			sprintf(tempstr,"gst-launch -v v4l2src ! \"image/jpeg,width=640,height=480,framerate=30/1\" ! rtpjpegpay ! udpsink host=%s port=%d &",
+				ip.c_str(),port);
+			processlist.at(i).command_text = std::string(tempstr);
+			processlist.at(i).process_name = "/usr/bin/gst-launch-0.10";
+			processlist.at(i).pid = 0;
+			processlist.at(i).initialized = true;
+=======
 			uint32_t port = lookup_port(portname);
 			if(port == 0) { return false; }
 			processlist.at(i).param_uint32_1 = port;
@@ -120,6 +151,7 @@ bool CommandLauncherNodeProcess::set_camerastream(std::string portname)
 			processlist.at(i).pid = 0;
 			processlist.at(i).initialized = true;
 
+>>>>>>> origin/US_VideoFeed_#88
 			return true;
 		}
 	}
@@ -152,7 +184,10 @@ void CommandLauncherNodeProcess::init_processlist()
 	{
 		ProcessCommand proc;
 		proc.name = "CameraStream";
+<<<<<<< HEAD
+=======
 		proc.max_restarts = -1;
+>>>>>>> origin/US_VideoFeed_#88
 		processlist.push_back(proc);
 	}
 	
@@ -254,4 +289,8 @@ bool CommandLauncherNodeProcess::load_configfiles()
 		}
 	}
 	return true;
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> origin/US_VideoFeed_#88
