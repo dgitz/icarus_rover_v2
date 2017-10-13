@@ -40,4 +40,5 @@
         <param name="require_pps_to_start"  value="false"/> 
     </node>
     <node name="rviz" pkg="rviz" type="rviz" />
+  
 </launch>

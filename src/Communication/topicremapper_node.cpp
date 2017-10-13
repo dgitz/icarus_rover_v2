@@ -64,30 +64,180 @@ void Joystick_Callback(const sensor_msgs::Joy::ConstPtr& msg,const std::string &
 			char tempstr[128];
             if(map.in.name == "axis")
             {
-                double in_value = msg->axes[map.in.index];
-                double out = scale_value(in_value,map.out.neutralvalue,map.in.minvalue,map.in.maxvalue,map.out.minvalue,map.out.maxvalue,map.out.deadband);
-                icarus_rover_v2::pin newpin;
-                newpin.stamp = msg->header.stamp;
-                newpin.ParentDevice = map.out.parentdevice;
-                newpin.DefaultValue = (int)map.out.neutralvalue;
-                newpin.Function = map.out.function;
-                newpin.Number = map.out.pinnumber;
-                newpin.Value = (int)out;
-                //p_pwmoutputs.pins.push_back(newpin);
-                map.pub.publish(newpin);
+
+
+                for(std::size_t j = 0; j < TopicMaps.at(i).outs.size();j++)
+                {
+                	bool update_output = false;
+                	if(TopicMaps.at(i).outputmode.mode == "Direct")
+                	{
+                		update_output = true;
+                	}
+                	else
+                	{
+                		if(TopicMaps.at(i).outputmode.mode == "Switch")
+                		{
+                			if(TopicMaps.at(i).outputmode.topic == map.in.topic)
+                			{
+                				if(TopicMaps.at(i).outputmode.name == "button")
+                				{
+                					if(msg->buttons[TopicMaps.at(i).outputmode.index] == TopicMaps.at(i).outputmode.required_value)
+                					{
+                						update_output = true;
+                					}
+                				}
+                			}
+                		}
+                	}
+                	OutputChannel ch = TopicMaps.at(i).outs.at(j);
+                	if(update_output == true)
+                	{
+                		double in_value = msg->axes[map.in.index];
+
+						if(ch.type == "icarus_rover_v2/pin")
+						{
+							double out = scale_value(in_value,ch.neutralvalue,map.in.minvalue,map.in.maxvalue,ch.minvalue,ch.maxvalue,ch.deadband);
+							icarus_rover_v2::pin newpin;
+							newpin.stamp = msg->header.stamp;
+							newpin.ParentDevice = ch.parentdevice;
+							newpin.DefaultValue = (int)ch.neutralvalue;
+							newpin.Function = ch.function;
+							newpin.Number = ch.pinnumber;
+							newpin.Value = (int)out;
+							//p_pwmoutputs.pins.push_back(newpin);
+							map.outs.at(j).value = newpin.Value;
+							map.pubs.at(j).publish(newpin);
+						}
+						else if(ch.type == "std_msgs/Float32")
+						{
+							double out = scale_value(in_value,ch.neutralvalue,map.in.minvalue,map.in.maxvalue,ch.minvalue,ch.maxvalue,ch.deadband);
+							std_msgs::Float32 value;
+							value.data = out;
+							map.outs.at(j).value = out;
+							map.pubs.at(j).publish(value);
+						}
+						else if(ch.type == "sensor_msgs/JointState")
+						{
+							std::string member = TopicMaps.at(i).outs.at(j).topic;
+							double out = scale_value(in_value,ch.neutralvalue,map.in.minvalue,map.in.maxvalue,ch.minvalue,ch.maxvalue,ch.deadband);
+							sensor_msgs::JointState joint;
+							joint.header.stamp = ros::Time::now();
+							joint.name.resize(1);
+
+							std::size_t found1 = member.substr(1).find("/");
+							std::size_t found2 = member.substr(found1+2).find("/")+found1;
+							std::string variable = member.substr(found1+2,found2-found1);
+							std::string name = member.substr(found2+3);
+							joint.name[0] = name;
+							if(variable == "position")
+							{
+								joint.position.resize(1);
+								joint.position[0] = out;
+
+							}
+							else if(variable == "velocity")
+							{
+								joint.velocity.resize(1);
+								joint.velocity[0] = out;
+							}
+							else if(variable == "effort")
+							{
+								joint.effort.resize(1);
+								joint.effort[0] = out;
+							}
+							else
+							{
+								char tempstr[512];
+								sprintf(tempstr,"OutputChannel JointState Not Supported: %s\n",member.c_str());
+								printf("%s\n",tempstr);
+								logger->log_warn(std::string(tempstr));
+							}
+							map.outs.at(j).value = out;
+							map.pubs.at(j).publish(joint);
+						}
+
+                	}
+                	else
+                	{
+
+                		if(ch.type == "icarus_rover_v2/pin")
+                		{
+                			icarus_rover_v2::pin newpin;
+                			newpin.stamp = msg->header.stamp;
+                			newpin.ParentDevice = ch.parentdevice;
+                			newpin.DefaultValue = (int)ch.neutralvalue;
+                			newpin.Function = ch.function;
+                			newpin.Number = ch.pinnumber;
+                			newpin.Value = map.outs.at(j).value;
+                			map.pubs.at(j).publish(newpin);
+                		}
+
+                		else if(ch.type == "std_msgs/Float32")
+                		{
+                			std_msgs::Float32 value;
+                			value.data = map.outs.at(j).value;
+                			map.pubs.at(j).publish(value);
+                		}
+
+                		else if(ch.type == "sensor_msgs/JointState")
+                		{
+                			std::string member = TopicMaps.at(i).outs.at(j).topic;
+                			sensor_msgs::JointState joint;
+                			joint.header.stamp = ros::Time::now();
+                			joint.name.resize(1);
+
+                			std::size_t found1 = member.substr(1).find("/");
+                			std::size_t found2 = member.substr(found1+2).find("/")+found1;
+                			std::string variable = member.substr(found1+2,found2-found1);
+                			std::string name = member.substr(found2+3);
+                			joint.name[0] = name;
+                			if(variable == "position")
+                			{
+                				joint.position.resize(1);
+                				joint.position[0] = map.outs.at(j).value;
+
+                			}
+                			else if(variable == "velocity")
+                			{
+                				joint.velocity.resize(1);
+                				joint.velocity[0] = map.outs.at(j).value;
+                			}
+                			else if(variable == "effort")
+                			{
+                				joint.effort.resize(1);
+                				joint.effort[0] = map.outs.at(j).value;
+                			}
+                			else
+                			{
+                				char tempstr[512];
+                				sprintf(tempstr,"OutputChannel JointState Not Supported: %s\n",member.c_str());
+                				printf("%s\n",tempstr);
+                				logger->log_warn(std::string(tempstr));
+                			}
+                			map.pubs.at(j).publish(joint);
+                		}
+
+                	}
+                }
             }
             if(map.in.name == "button")
             {
-            	icarus_rover_v2::pin newpin;
-                newpin.stamp = msg->header.stamp;
-            	newpin.ParentDevice = map.out.parentdevice;
-            	newpin.Function = map.out.function;
-            	newpin.Number = map.out.pinnumber;
-            	newpin.Value = msg->buttons[map.in.index];
-                //p_digitaloutputs.pins.push_back(newpin);
-            	map.pub.publish(newpin);
+
+            	for(std::size_t j = 0; j < TopicMaps.at(i).outs.size();j++)
+				{
+            		OutputChannel ch = TopicMaps.at(i).outs.at(j);
+            		icarus_rover_v2::pin newpin;
+					newpin.stamp = msg->header.stamp;
+					newpin.ParentDevice = ch.parentdevice;
+					newpin.Function = ch.function;
+					newpin.Number = ch.pinnumber;
+					newpin.Value = msg->buttons[map.in.index];
+					//p_digitaloutputs.pins.push_back(newpin);
+					map.pubs.at(j).publish(newpin);
+				}
             }
 		}
+		TopicMaps.at(i) = map;
 	}
     //pwmoutput_pub.publish(p_pwmoutputs);
     //digitaloutput_pub.publish(p_digitaloutputs);
@@ -108,8 +258,54 @@ int parse_topicmapfile(TiXmlDocument doc)
 			while( l_pTopicMap )
 			{
 				TopicMap newtopicmap;
+				OutputMode outputmode;
+				TiXmlElement *l_pOutputMode = l_pTopicMap->FirstChildElement("OutputMode");
+				if(NULL != l_pOutputMode)
+				{
+					TiXmlElement *l_pMode = l_pOutputMode->FirstChildElement("Mode");
+					if(NULL != l_pMode)
+					{
+						outputmode.mode = l_pMode->GetText();
+					}
+
+					TiXmlElement *l_pType = l_pOutputMode->FirstChildElement("Type");
+					if(NULL != l_pType)
+					{
+						outputmode.type = l_pType->GetText();
+					}
+
+					TiXmlElement *l_pTopic = l_pOutputMode->FirstChildElement("Topic");
+					if(NULL != l_pTopic)
+					{
+						outputmode.topic = l_pTopic->GetText();
+					}
+
+					TiXmlElement *l_pName = l_pOutputMode->FirstChildElement("Name");
+					if(NULL != l_pName)
+					{
+						outputmode.name = l_pName->GetText();
+					}
+
+					TiXmlElement *l_pIndex = l_pOutputMode->FirstChildElement("Index");
+					if(NULL != l_pIndex)
+					{
+						outputmode.index = std::atoi(l_pIndex->GetText());
+					}
+
+					TiXmlElement *l_pRequiredValue = l_pOutputMode->FirstChildElement("RequiredValue");
+					if(NULL != l_pRequiredValue)
+					{
+						outputmode.required_value = std::atoi(l_pRequiredValue->GetText());
+					}
+				}
+				else
+				{
+					outputmode.mode = "Direct";
+				}
+				newtopicmap.outputmode = outputmode;
+
                 InputChannel in;
-                OutputChannel out;
+
 				//Input
 				TiXmlElement *l_pInput = l_pTopicMap->FirstChildElement( "InputChannel" );
 				if(NULL != l_pInput)
@@ -168,88 +364,122 @@ int parse_topicmapfile(TiXmlDocument doc)
 						}
 					}
 				}
-
- 
         
-				//Output
-				TiXmlElement *l_pOutput = l_pTopicMap->FirstChildElement( "OutputChannel" );
-				if(NULL != l_pOutput)
+				//Outputs
+				std::vector<OutputChannel> outputs;
+				std::vector<ros::Publisher> pubs;
+				TiXmlElement *l_Outputs = l_pTopicMap->FirstChildElement("Outputs");
+				if ( NULL != l_Outputs )
 				{
-					TiXmlElement *l_pOutputType = l_pOutput->FirstChildElement( "Type" );
-					if(NULL != l_pOutputType)
+					TiXmlElement *l_pOutputChannel = l_Outputs->FirstChildElement( "OutputChannel" );
+					while( l_pOutputChannel )
 					{
-						std::string output_type = l_pOutputType->GetText();
-						if(output_type == "icarus_rover_v2/pin")
+						OutputChannel out;
+						TiXmlElement *l_pOutputType = l_pOutputChannel->FirstChildElement( "Type" );
+						if(NULL != l_pOutputType)
 						{
-							out.type = output_type;
-							TiXmlElement *l_pTopic = l_pOutput->FirstChildElement( "Topic" );
-							if(NULL != l_pTopic)
+							std::string output_type = l_pOutputType->GetText();
+							if((output_type == "icarus_rover_v2/pin") || (output_type == "std_msgs/Float32") || (output_type == "sensor_msgs/JointState"))
 							{
-								out.topic = l_pTopic->GetText();
+								out.type = output_type;
+								TiXmlElement *l_pTopic = l_pOutputChannel->FirstChildElement( "Topic" );
+								if(NULL != l_pTopic)
+								{
+									out.topic = l_pTopic->GetText();
+								}
+								else { return -1; }
+
+								TiXmlElement *l_pParentDevice = l_pOutputChannel->FirstChildElement( "ParentDevice" );
+								if(NULL != l_pParentDevice)
+								{
+									out.parentdevice = l_pParentDevice->GetText();
+								}
+								else { return -1; }
+
+								TiXmlElement *l_pPinNumber = l_pOutputChannel->FirstChildElement( "PinNumber" );
+								if(NULL != l_pPinNumber)
+								{
+									out.pinnumber = std::atoi(l_pPinNumber->GetText());
+								}
+								else
+								{
+									if(output_type == "icarus_rover_v2/pin")
+									{
+										printf("Output: %s Requires the OutputChannel Tag: PinNumber\n",out.topic.c_str());
+										return -1;
+									}
+									else
+									{
+										out.pinnumber = -1;
+									}
+
+								}
+
+								TiXmlElement *l_pFunction = l_pOutputChannel->FirstChildElement( "Function" );
+								if(NULL != l_pFunction)
+								{
+									out.function = l_pFunction->GetText();
+								}
+								else
+								{
+									if(output_type == "icarus_rover_v2/pin")
+									{
+										printf("Output: %s Requires the OutputChannel Tag: Function\n",out.topic.c_str());
+										return -1;
+									}
+									else
+									{
+										out.function = "PINMODE_UNDEFINED";;
+									}
+								}
+
+								TiXmlElement *l_pMaxValue = l_pOutputChannel->FirstChildElement( "MaxValue" );
+								if(NULL != l_pMaxValue)
+								{
+									out.maxvalue = std::atof(l_pMaxValue->GetText());
+								}
+								else { out.maxvalue = 0.0; }
+
+								TiXmlElement *l_pMinValue = l_pOutputChannel->FirstChildElement( "MinValue" );
+								if(NULL != l_pMinValue)
+								{
+									out.minvalue = std::atof(l_pMinValue->GetText());
+								}
+								else { out.minvalue = 0.0; }
+
+								TiXmlElement *l_pNeutralValue = l_pOutputChannel->FirstChildElement( "NeutralValue" );
+								if(NULL != l_pNeutralValue)
+								{
+									out.neutralvalue = std::atof(l_pNeutralValue->GetText());
+								}
+								else { out.neutralvalue = 0.0; }
+								out.value = out.neutralvalue;
+
+								TiXmlElement *l_pDeadband = l_pOutputChannel->FirstChildElement( "Deadband" );
+								if(NULL != l_pDeadband)
+								{
+									out.deadband = std::atof(l_pDeadband->GetText());
+								}
+								else { out.deadband = 0.0; }
 							}
-                            else { return -1; }
-                            
-							TiXmlElement *l_pParentDevice = l_pOutput->FirstChildElement( "ParentDevice" );
-							if(NULL != l_pParentDevice)
+							else
 							{
-								out.parentdevice = l_pParentDevice->GetText();
+								char tempstr[128];
+								sprintf(tempstr,"Output Topic: %s not supported.  Exiting.",output_type.c_str());
+								printf("%s\n",tempstr);
 							}
-                            else { return -1; }
-                                                        
-                            TiXmlElement *l_pPinNumber = l_pOutput->FirstChildElement( "PinNumber" );
-							if(NULL != l_pPinNumber)
-							{
-								out.pinnumber = std::atoi(l_pPinNumber->GetText());
-							}
-                            else { return -1; }
-                            
-                            TiXmlElement *l_pFunction = l_pOutput->FirstChildElement( "Function" );
-							if(NULL != l_pFunction)
-							{
-								out.function = l_pFunction->GetText();
-							}
-                            else { return -1; }
-                            
-                            TiXmlElement *l_pMaxValue = l_pOutput->FirstChildElement( "MaxValue" );
-							if(NULL != l_pMaxValue)
-							{
-								out.maxvalue = std::atof(l_pMaxValue->GetText());
-							}
-                            else { out.maxvalue = 0.0; }
-                            
-                            TiXmlElement *l_pMinValue = l_pOutput->FirstChildElement( "MinValue" );
-							if(NULL != l_pMinValue)
-							{
-								out.minvalue = std::atof(l_pMinValue->GetText());
-							}
-                            else { out.minvalue = 0.0; }
-                            
-                            TiXmlElement *l_pNeutralValue = l_pOutput->FirstChildElement( "NeutralValue" );
-							if(NULL != l_pNeutralValue)
-							{
-								out.neutralvalue = std::atof(l_pNeutralValue->GetText());
-							}
-                            else { out.neutralvalue = 0.0; }
-                            
-                            TiXmlElement *l_pDeadband = l_pOutput->FirstChildElement( "Deadband" );
-							if(NULL != l_pDeadband)
-							{
-								out.deadband = std::atof(l_pDeadband->GetText());
-							}
-                            else { out.deadband = 0.0; }
 						}
-						else
-						{
-							char tempstr[128];
-							sprintf(tempstr,"Output Topic: %s not supported.  Exiting.",output_type.c_str());
-							return 0;
-						}
+						ros::Publisher pub;
+						pubs.push_back(pub);
+						outputs.push_back(out);
+						l_pOutputChannel = l_pOutputChannel->NextSiblingElement( "OutputChannel" );
 					}
+
 				}
                 newtopicmap.in = in;
-                newtopicmap.out = out;
+                newtopicmap.outs = outputs;
+                newtopicmap.pubs = pubs;
 				TopicMaps.push_back(newtopicmap);
-                
 				l_pTopicMap = l_pTopicMap->NextSiblingElement( "TopicMap" );
 			}
 		}
@@ -530,8 +760,29 @@ bool initialize(ros::NodeHandle nh)
 			logger->log_fatal("Unable to parse TopicMap.xml.  Exiting.");
 			return false;
 		}
+		logger->log_debug("------ Topic Map -----");
 		for(int i = 0; i < TopicMaps.size();i++)
 		{
+			if(TopicMaps.at(i).outputmode.mode == "Direct")
+			{
+				char tempstr[512];
+				sprintf(tempstr,"i: %d Output Mode: %s",i,TopicMaps.at(i).outputmode.mode.c_str());
+				logger->log_debug(tempstr);
+			}
+			else
+			{
+				char tempstr[512];
+				sprintf(tempstr,"i: %d Output Mode: %s Type: %s topic: %s name: %s index: %d required value: %d",
+						i,
+						TopicMaps.at(i).outputmode.mode.c_str(),
+						TopicMaps.at(i).outputmode.type.c_str(),
+						TopicMaps.at(i).outputmode.topic.c_str(),
+						TopicMaps.at(i).outputmode.name.c_str(),
+						TopicMaps.at(i).outputmode.index,
+						TopicMaps.at(i).outputmode.required_value);
+				logger->log_debug(tempstr);
+			}
+
             {
                 char tempstr[512];
                 sprintf(tempstr,"i: %d Input Channel: Type: %s topic: %s name: %s index: %d Min: %f Max: %f",
@@ -545,19 +796,24 @@ bool initialize(ros::NodeHandle nh)
                 logger->log_debug(tempstr);
             }
             {
-                char tempstr[512];
-                sprintf(tempstr,"i: %d Output Channel: Type: %s topic: %s ParentDevice: %s Pin: %d Function: %s Max Value: %f Neutral: %f Min Value: %f Deadband: %f",
-                    i,
-                    TopicMaps.at(i).out.type.c_str(),
-                    TopicMaps.at(i).out.topic.c_str(),
-                    TopicMaps.at(i).out.parentdevice.c_str(),
-                    TopicMaps.at(i).out.pinnumber,
-                    TopicMaps.at(i).out.function.c_str(),
-                    TopicMaps.at(i).out.maxvalue,
-                    TopicMaps.at(i).out.neutralvalue,
-                    TopicMaps.at(i).out.minvalue,
-                    TopicMaps.at(i).out.deadband);
-                logger->log_debug(tempstr);
+            	for(std::size_t j = 0; j < TopicMaps.at(i).outs.size();j++)
+            	{
+            		char tempstr[512];
+					sprintf(tempstr,"i: %d Output Channel[%d]: Type: %s topic: %s ParentDevice: %s Pin: %d Function: %s Max Value: %f Neutral: %f Min Value: %f Deadband: %f",
+						i,
+						j,
+						TopicMaps.at(i).outs.at(j).type.c_str(),
+						TopicMaps.at(i).outs.at(j).topic.c_str(),
+						TopicMaps.at(i).outs.at(j).parentdevice.c_str(),
+						TopicMaps.at(i).outs.at(j).pinnumber,
+						TopicMaps.at(i).outs.at(j).function.c_str(),
+						TopicMaps.at(i).outs.at(j).maxvalue,
+						TopicMaps.at(i).outs.at(j).neutralvalue,
+						TopicMaps.at(i).outs.at(j).minvalue,
+						TopicMaps.at(i).outs.at(j).deadband);
+
+					logger->log_debug(tempstr);
+            	}
             }
 		}
         
@@ -571,12 +827,27 @@ bool initialize(ros::NodeHandle nh)
                 logger->log_info(tempstr);
 				TopicMaps.at(i).sub = sub;
             }
-
-			if(TopicMaps.at(i).out.type == "icarus_rover_v2/pin")
+			for(int j = 0; j < TopicMaps.at(i).outs.size();j++)
 			{
-				ros::Publisher pub = nh.advertise<icarus_rover_v2::pin>(TopicMaps.at(i).out.topic,1000);
-                TopicMaps.at(i).pub = pub;
+				if(TopicMaps.at(i).outs.at(j).type == "icarus_rover_v2/pin")
+				{
+					ros::Publisher pub = nh.advertise<icarus_rover_v2::pin>(TopicMaps.at(i).outs.at(j).topic,10);
+					TopicMaps.at(i).pubs.at(j) = pub;
+				}
+				else if(TopicMaps.at(i).outs.at(j).type == "std_msgs/Float32")
+				{
+					ros::Publisher pub = nh.advertise<std_msgs::Float32>(TopicMaps.at(i).outs.at(j).topic,10);
+					TopicMaps.at(i).pubs.at(j) = pub;
+				}
+				else if(TopicMaps.at(i).outs.at(j).type == "sensor_msgs/JointState")
+				{
+					std::size_t found = TopicMaps.at(i).outs.at(j).topic.substr(1).find("/");
+					std::string topic = TopicMaps.at(i).outs.at(j).topic.substr(0,found+1);
+					ros::Publisher pub = nh.advertise<sensor_msgs::JointState>(topic,10);
+					TopicMaps.at(i).pubs.at(j) = pub;
+				}
 			}
+
 
 		}
 		/*

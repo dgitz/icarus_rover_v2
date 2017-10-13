@@ -28,6 +28,8 @@
 #include <tinyxml.h>
 #include <sensor_msgs/Joy.h>
 #include <icarus_rover_v2/iopins.h>
+#include <std_msgs/Float32.h>
+#include <sensor_msgs/JointState.h>
 //End User Code: Includes
 
 //Start User Code: Data Structures
@@ -51,13 +53,26 @@ struct OutputChannel
     double minvalue;
     double neutralvalue;
     double deadband;
+    double value;
+};
+struct OutputMode
+{
+	std::string mode;
+	std::string type;
+	std::string topic;
+	std::string name;
+	int index;
+	int required_value;
 };
 struct TopicMap
 {
+	OutputMode outputmode;
     InputChannel in;
-    OutputChannel out;
+    std::vector<OutputChannel> outs;
+    //OutputChannel out;
     ros::Subscriber sub;
-    ros::Publisher pub;
+    //ros::Publisher pub;
+    std::vector<ros::Publisher> pubs;
 };
 //End User Code: Data Structures
 

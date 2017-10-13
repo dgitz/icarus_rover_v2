@@ -23,19 +23,19 @@ bool run_loop2_code()
         pose.header.stamp = ros::Time::now();
         pose_pub.publish(pose);
 
-        sensor_msgs::JointState joints;
-        joints.header.stamp = ros::Time::now();
-        joints.name.resize(2);
-        joints.name[0] = "joint_camera_pan";
-        joints.name[1] = "joint_camera_tilt";
-        joints.position.resize(2);
-        joints.position[0] = pan_angle;
-        joints.position[1] = tilt_angle;
-        jointstate_pub.publish(joints);
-        pan_angle = pan_angle + M_PI/100.0;
-        if(pan_angle > M_PI/4.0) { pan_angle = -M_PI/4.0; }
-        tilt_angle = tilt_angle + M_PI/100.0;
-                if(tilt_angle > M_PI/4.0) { tilt_angle = -M_PI/4.0; }
+        //sensor_msgs::JointState joints;
+        //joints.header.stamp = ros::Time::now();
+        //joints.name.resize(1);
+        //joints.name[0] = "joint_camera_tilt";
+        //joints.name[1] = "joint_camera_tilt";
+        //joints.position.resize(1);
+        //joints.position[0] = tilt_angle;
+        //joints.position[1] = tilt_angle;
+        //jointstate_pub.publish(joints);
+        //pan_angle = pan_angle + M_PI/100.0;
+        //if(pan_angle > M_PI/4.0) { pan_angle = -M_PI/4.0; }
+        //tilt_angle = tilt_angle + M_PI/100.0;
+        //        if(tilt_angle > M_PI/4.0) { tilt_angle = -M_PI/4.0; }
     }
  	return true;
 }

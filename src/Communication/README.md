@@ -22,8 +22,9 @@ Usage: This node should be run on one device on the Robot.
 Purpose:
 1. Reads how it should remap based off TopicMap.xml file
 2. Maps the following topics to other topics:
- * sensor_msgs::Joy.axis -> icarus_rover_v2::pin.Value Scaled: [0,255]
+ * sensor_msgs::Joy.axis -> icarus_rover_v2::pin,std_msgs/Float32,sensor_msgs/JointState 
  * sensor_msgs::Joy.button -> icarus_rover_v2::pin.Value
+3. Uses an OptionMode (optional) to map input topics to multiple output topics
 
 Utilities:
 A. Message Generation

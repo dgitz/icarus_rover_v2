@@ -1,7 +1,15 @@
 <?xml version="1.0"?>
 
 <robot name="scout">
+    <material name="black">
+        <color rgba="0 0 0 1"/>
+    </material>
+
+    <material name="white">
+        <color rgba="1 1 1 1"/>
+    </material>
     <link name="base_link">
+
     </link>
     <link name="camera_base">
         <visual>
@@ -9,6 +17,7 @@
             <geometry>
                 <mesh filename="package://icarus_rover_v2/meshes/533015.stl" scale=".001 .001 .001"/>
             </geometry>
+            <material name="black"/>
         </visual>
     </link>
     <link name="camera_pan">
@@ -17,6 +26,7 @@
             <geometry>
                 <mesh filename="package://icarus_rover_v2/meshes/533016.stl" scale=".001 .001 .001"/>
             </geometry>
+            <material name="black"/>
         </visual>
     </link>
     <link name="camera_tilt" >
@@ -25,6 +35,7 @@
             <geometry>
                 <mesh filename="package://icarus_rover_v2/meshes/533017.stl" scale=".001 .001 .001"/>
             </geometry>
+            <material name="black"/>
         </visual>
     </link>
     <link name="camera_lens" />
