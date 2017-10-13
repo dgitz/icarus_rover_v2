@@ -93,8 +93,8 @@ private:
     double wheelbase_m;
     double vehicle_length_m;
     double tirediameter_m;
-    double throttle_command; //In m/s
-    double steer_command;  //In rad
+    double throttle_command; //In rad/s
+    double steer_command;  //In rad/s
     double beta; //Bicycle model
 
 	

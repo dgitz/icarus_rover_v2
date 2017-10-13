@@ -99,18 +99,15 @@ icarus_rover_v2::diagnostic PoseNodeProcess::update(double dt)
 	icarus_rover_v2::pose temp_pose = pose;
 	if(pose_mode == SIMULATED)
 	{
-		double l_f = vehicle_length_m/2.0;
+
 		temp_pose.wheelspeed.value = throttle_command*tirediameter_m/2.0;
-		double psi = pose.yaw.value;
-		double x_dot = temp_pose.wheelspeed.value * cos(psi+beta);
-		double y_dot = temp_pose.wheelspeed.value * sin(psi + beta);
-		double psi_dot = tan(steer_command)*(temp_pose.wheelspeed.value*cos(beta))/(vehicle_length_m);
-		beta = atan((l_f*tan(steer_command))/(vehicle_length_m));
+		double x_dot = temp_pose.wheelspeed.value * cos(pose.yaw.value);
+		double y_dot = temp_pose.wheelspeed.value * sin(pose.yaw.value);
 		//double psi_dot = (temp_pose.wheelspeed.value/l_f)*sin(beta);
 		//beta = atan((l_f/vehicle_length_m)*tan(steer_command));
 		temp_pose.east.value += (x_dot*dt);
 		temp_pose.north.value += (y_dot*dt);
-		temp_pose.yaw.value += (psi_dot*dt);
+		temp_pose.yaw.value += (steer_command*dt);
 		temp_pose.yaw.value = fmod(temp_pose.yaw.value + M_PI,2*M_PI);
 		if(temp_pose.yaw.value < 0)
 		{
