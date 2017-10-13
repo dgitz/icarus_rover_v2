@@ -24,6 +24,9 @@
 #include <Eigen/Dense>
 #include <std_msgs/Header.h>
 #include <sensor_msgs/JointState.h>
+#include <std_msgs/Float32.h>
+#include <tinyxml.h>
+#include <tf/transform_broadcaster.h>
 #define BUFFER_LIMIT 100
 using Eigen::MatrixXd;
 struct KalmanFilter
@@ -71,6 +74,8 @@ public:
     icarus_rover_v2::diagnostic new_yawrate(double v);
     bool is_poseready() { return pose_ready; }
     void set_posemode(uint8_t mode_) { pose_mode = mode_; }
+    void set_throttlecommand(double v) { throttle_command = v; }
+    void set_steercommand(double v) { steer_command = v; }
     
     
 private:
@@ -78,12 +83,20 @@ private:
     bool initialized;
     uint8_t pose_mode;
     void initialize_filters();
+    bool load_configfiles();
     
     std::vector<KalmanFilter> KalmanFilters;
     icarus_rover_v2::pose pose;
     bool yaw_received;
     bool yawrate_received;
     bool pose_ready;
+    double wheelbase_m;
+    double vehicle_length_m;
+    double tirediameter_m;
+    double throttle_command; //In m/s
+    double steer_command;  //In rad
+    double beta; //Bicycle model
+
 	
 	//temporary variables
 	double temp_yaw;

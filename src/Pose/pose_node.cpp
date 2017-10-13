@@ -10,6 +10,14 @@ void attitude_Callback(const roscopter::Attitude::ConstPtr& msg)
     logger->log_diagnostic(process->new_kalmanfilter_signal("Yaw",1,msg->yaw));
     logger->log_diagnostic(process->new_kalmanfilter_signal("Yawrate",0,msg->yawspeed));
 }
+void throttle_command_Callback(const std_msgs::Float32::ConstPtr& msg)
+{
+    process->set_throttlecommand(msg->data);
+}
+void steer_command_Callback(const std_msgs::Float32::ConstPtr& msg)
+{
+	process->set_steercommand(msg->data);
+}
 bool run_loop1_code()
 {
     logger->log_diagnostic(process->update(measure_time_diff(ros::Time::now(),last_loop1_timer)));
@@ -22,6 +30,14 @@ bool run_loop2_code()
         icarus_rover_v2::pose pose = process->get_pose();
         pose.header.stamp = ros::Time::now();
         pose_pub.publish(pose);
+
+        static tf::TransformBroadcaster br;
+        tf::Transform transform;
+        transform.setOrigin( tf::Vector3(pose.east.value,pose.north.value, 0.0) );
+        tf::Quaternion q;
+        q.setRPY(0, 0, pose.yaw.value);
+        transform.setRotation(q);
+        br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "map", "base_link"));
 
         //sensor_msgs::JointState joints;
         //joints.header.stamp = ros::Time::now();
@@ -443,6 +459,9 @@ bool initialize(ros::NodeHandle nh)
         return false;
     }
     attitude_sub = nh.subscribe<roscopter::Attitude>(attitude_topic,1,attitude_Callback);
+
+    throttle_command_sub = nh.subscribe<std_msgs::Float32>("/throttle_command",1,throttle_command_Callback);
+    steer_command_sub = nh.subscribe<std_msgs::Float32>("/steer_command",1,steer_command_Callback);
     pose_pub =  nh.advertise<icarus_rover_v2::pose>("/pose",1);
     //Finish User Code: Initialization and Parameters
 

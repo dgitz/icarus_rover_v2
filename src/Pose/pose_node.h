@@ -50,6 +50,8 @@ void signalinterrupt_handler(int sig);
 
 //Start User Code: Function Prototypes
 void attitude_Callback(const roscopter::Attitude::ConstPtr& msg);
+void throttle_command_Callback(const std_msgs::Float32::ConstPtr& msg);
+void steer_command_Callback(const std_msgs::Float32::ConstPtr& msg);
 //End User Code: Function Prototypes
 
 //Start Template Code: Define Global variables
@@ -95,5 +97,7 @@ ros::Publisher pose_pub;
 ros::Publisher jointstate_pub;
 double pan_angle;
 double tilt_angle;
+ros::Subscriber throttle_command_sub;
+ros::Subscriber steer_command_sub;
 //End User Code: Define Global Variables
 #endif

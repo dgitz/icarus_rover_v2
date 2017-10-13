@@ -2,6 +2,9 @@
 PoseNodeProcess::PoseNodeProcess()
 {
     pose_mode = UNDEFINED;
+    wheelbase_m = 0.0;
+    vehicle_length_m = 0.0;
+    tirediameter_m = 0.0;
 }   
 PoseNodeProcess::~PoseNodeProcess()
 {
@@ -12,6 +15,25 @@ icarus_rover_v2::diagnostic PoseNodeProcess::init(icarus_rover_v2::diagnostic in
     diagnostic = indiag;
 	initialized = false;
     initialize_filters();
+    if(load_configfiles() == false)
+	{
+		diagnostic.Level = ERROR;
+		diagnostic.Diagnostic_Type = SOFTWARE;
+		diagnostic.Diagnostic_Message = ERROR;
+		char tempstr[512];
+		sprintf(tempstr,"Unable to load config files.");
+		diagnostic.Description = std::string(tempstr);
+	}
+    pose.east.value = 0.0;
+    pose.north.value = 0.0;
+    pose.elev.value = 0.0;
+    pose.wheelspeed.value = 0.0;
+    pose.east.status = SIGNALSTATE_INITIALIZING;
+    pose.north.status = SIGNALSTATE_INITIALIZING;
+    pose.elev.status = SIGNALSTATE_INITIALIZING;
+    pose.wheelspeed.status = SIGNALSTATE_INITIALIZING;
+    throttle_command = 0.0;
+    steer_command = 0.0;
     yaw_received = false;
     pose.yaw.value = 0.0;
     pose.yaw.status = SIGNALSTATE_INITIALIZING;
@@ -20,6 +42,7 @@ icarus_rover_v2::diagnostic PoseNodeProcess::init(icarus_rover_v2::diagnostic in
     pose.yawrate.status = SIGNALSTATE_INITIALIZING;
     pose_ready = false;
 	temp_yaw = 0.0;
+	beta = 0.0;
     initialized = true;
 	return diagnostic;
 }
@@ -32,6 +55,9 @@ KalmanFilter PoseNodeProcess::get_kalmanfilter(std::string name)
             return KalmanFilters.at(i);
         }
     }
+	KalmanFilter empty;
+	empty.name = "";
+	return empty;
 }
 int PoseNodeProcess::get_kalmanfilter_index(std::string name)
 {
@@ -69,67 +95,91 @@ KalmanFilter PoseNodeProcess::update_kalmanfilter(KalmanFilter kf)
 }
 icarus_rover_v2::diagnostic PoseNodeProcess::update(double dt)
 {
+	icarus_rover_v2::diagnostic diag = diagnostic;
 	icarus_rover_v2::pose temp_pose = pose;
-	for(std::size_t i = 0; i < KalmanFilters.size(); i++)
-	{
-		KalmanFilters.at(i).signal_status = SIGNALSTATE_HOLD;
-	}
-	KalmanFilter KF_yawrate;
-	KalmanFilter KF_yaw;
-    icarus_rover_v2::diagnostic diag = diagnostic;
-	
-	//KF Updates - Acceleration
-    
-    //KF Updates - Rates/Velocities
-	KF_yawrate = get_kalmanfilter("Yawrate");
-	KF_yawrate = update_kalmanfilter(KF_yawrate);
-	KF_yawrate.signal_status = SIGNALSTATE_UPDATED;
-	KalmanFilters.at(get_kalmanfilter_index("Yawrate")) = KF_yawrate;
-    //KF Updates - Position/Orientation    
-	KF_yaw = get_kalmanfilter("Yaw");
-	temp_yaw += get_kalmanfilter_output("Yawrate",0)*(5*dt);
-	{
-		MatrixXd z(KF_yaw.measurement_count,1);
-		z(0,0) = get_kalmanfilter_output("Yawrate",0);
-		z(1,0) = temp_yaw;
-		KF_yaw.z = z;
-	}
-	KF_yaw = update_kalmanfilter(KF_yaw);
-	KF_yaw.signal_status = SIGNALSTATE_UPDATED;
-	KalmanFilters.at(get_kalmanfilter_index("Yaw")) = KF_yaw;
-    temp_pose.yaw.value = get_kalmanfilter_output("Yaw",1);
-	//printf("Setting: %f\n",get_kalmanfilter_output("Yaw",1));
-	
-	for(std::size_t i = 0; i < KalmanFilters.size(); i++)
-	{
-		if(KalmanFilters.at(i).signal_status == SIGNALSTATE_HOLD)
-		{
-			KalmanFilters.at(i) = update_kalmanfilter(KalmanFilters.at(i));
-			KalmanFilters.at(i).signal_status = SIGNALSTATE_UPDATED;
-		}
-	}
-	
-    if(yaw_received == true) {  temp_pose.yaw.status = SIGNALSTATE_UPDATED;  }
-    temp_pose.yawrate.value = get_kalmanfilter_output("Yawrate",0);
-    if(yawrate_received == true) { temp_pose.yawrate.status = SIGNALSTATE_UPDATED;   }
-    if((yaw_received == true) &&
-       (yawrate_received == true))
-    {
-       pose_ready = true;
-    }
 	if(pose_mode == SIMULATED)
 	{
+		double l_f = vehicle_length_m/2.0;
+		temp_pose.wheelspeed.value = throttle_command*tirediameter_m/2.0;
+		double psi = pose.yaw.value;
+		double x_dot = temp_pose.wheelspeed.value * cos(psi+beta);
+		double y_dot = temp_pose.wheelspeed.value * sin(psi + beta);
+		double psi_dot = tan(steer_command)*(temp_pose.wheelspeed.value*cos(beta))/(vehicle_length_m);
+		beta = atan((l_f*tan(steer_command))/(vehicle_length_m));
+		//double psi_dot = (temp_pose.wheelspeed.value/l_f)*sin(beta);
+		//beta = atan((l_f/vehicle_length_m)*tan(steer_command));
+		temp_pose.east.value += (x_dot*dt);
+		temp_pose.north.value += (y_dot*dt);
+		temp_pose.yaw.value += (psi_dot*dt);
+		temp_pose.yaw.value = fmod(temp_pose.yaw.value + M_PI,2*M_PI);
+		if(temp_pose.yaw.value < 0)
+		{
+			temp_pose.yaw.value += 2*M_PI;
+		}
+		temp_pose.yaw.value -= M_PI;
 		pose_ready = true;
+
 	}
-	if(isnan(temp_pose.yawrate.value) == true)
+	else if(pose_mode == REAL)
 	{
-		temp_pose.yawrate.value = 0.0;
-		temp_pose.yawrate.status = SIGNALSTATE_INVALID;
-	}
-	if(isnan(temp_pose.yaw.value) == true)
-	{
-		temp_pose.yaw.value = 0.0;
-		temp_pose.yaw.status = SIGNALSTATE_INVALID;
+		for(std::size_t i = 0; i < KalmanFilters.size(); i++)
+		{
+			KalmanFilters.at(i).signal_status = SIGNALSTATE_HOLD;
+		}
+		KalmanFilter KF_yawrate;
+		KalmanFilter KF_yaw;
+
+
+		//KF Updates - Acceleration
+
+		//KF Updates - Rates/Velocities
+		KF_yawrate = get_kalmanfilter("Yawrate");
+		KF_yawrate = update_kalmanfilter(KF_yawrate);
+		KF_yawrate.signal_status = SIGNALSTATE_UPDATED;
+		KalmanFilters.at(get_kalmanfilter_index("Yawrate")) = KF_yawrate;
+		//KF Updates - Position/Orientation
+		KF_yaw = get_kalmanfilter("Yaw");
+		temp_yaw += get_kalmanfilter_output("Yawrate",0)*(5*dt);
+		{
+			MatrixXd z(KF_yaw.measurement_count,1);
+			z(0,0) = get_kalmanfilter_output("Yawrate",0);
+			z(1,0) = temp_yaw;
+			KF_yaw.z = z;
+		}
+		KF_yaw = update_kalmanfilter(KF_yaw);
+		KF_yaw.signal_status = SIGNALSTATE_UPDATED;
+		KalmanFilters.at(get_kalmanfilter_index("Yaw")) = KF_yaw;
+		temp_pose.yaw.value = get_kalmanfilter_output("Yaw",1);
+		//printf("Setting: %f\n",get_kalmanfilter_output("Yaw",1));
+
+		for(std::size_t i = 0; i < KalmanFilters.size(); i++)
+		{
+			if(KalmanFilters.at(i).signal_status == SIGNALSTATE_HOLD)
+			{
+				KalmanFilters.at(i) = update_kalmanfilter(KalmanFilters.at(i));
+				KalmanFilters.at(i).signal_status = SIGNALSTATE_UPDATED;
+			}
+		}
+
+		if(yaw_received == true) {  temp_pose.yaw.status = SIGNALSTATE_UPDATED;  }
+		temp_pose.yawrate.value = get_kalmanfilter_output("Yawrate",0);
+		if(yawrate_received == true) { temp_pose.yawrate.status = SIGNALSTATE_UPDATED;   }
+		if((yaw_received == true) &&
+		   (yawrate_received == true))
+		{
+		   pose_ready = true;
+		}
+
+		if(isnan(temp_pose.yawrate.value) == true)
+		{
+			temp_pose.yawrate.value = 0.0;
+			temp_pose.yawrate.status = SIGNALSTATE_INVALID;
+		}
+		if(isnan(temp_pose.yaw.value) == true)
+		{
+			temp_pose.yaw.value = 0.0;
+			temp_pose.yaw.status = SIGNALSTATE_INVALID;
+		}
 	}
 	
 	pose = temp_pose;
@@ -323,4 +373,54 @@ void PoseNodeProcess::initialize_filters()
 		KalmanFilters.at(i).C.resize(KalmanFilters.at(i).measurement_count,KalmanFilters.at(i).output_count);
 		KalmanFilters.at(i).R.resize(KalmanFilters.at(i).measurement_count,KalmanFilters.at(i).measurement_count);
     }
+}
+bool PoseNodeProcess::load_configfiles()
+{
+	TiXmlDocument miscconfig_doc("/home/robot/config/MiscConfig.xml");
+	bool miscconfig_loaded = miscconfig_doc.LoadFile();
+	if(miscconfig_loaded == false) { return false; }
+	TiXmlElement *l_pRootElement = miscconfig_doc.RootElement();
+
+	if( NULL != l_pRootElement )
+	{
+		TiXmlElement *l_pDimensions = l_pRootElement->FirstChildElement( "Dimensions" );
+		if ( NULL != l_pDimensions )
+		{
+			TiXmlElement *l_pWheelbase = l_pDimensions->FirstChildElement( "Wheelbase" );
+			if(NULL != l_pWheelbase)
+			{
+				wheelbase_m = std::atof(l_pWheelbase->GetText());
+			}
+			else
+			{
+				printf("Wheelbase undefined.\n");
+				return false;
+			}
+
+			TiXmlElement *l_pTireDiameter = l_pDimensions->FirstChildElement( "TireDiameter" );
+			if(NULL != l_pTireDiameter)
+			{
+				tirediameter_m = std::atof(l_pTireDiameter->GetText());
+			}
+			else
+			{
+				printf("TireDiameter undefind.\n");
+				return false;
+			}
+
+			TiXmlElement *l_pLength = l_pDimensions->FirstChildElement( "Length" );
+			if(NULL != l_pLength)
+			{
+				vehicle_length_m = std::atof(l_pLength->GetText());
+			}
+			else
+			{
+				printf("Length undefined.\n");
+				return false;
+			}
+
+
+		}
+	}
+	return true;
 }
