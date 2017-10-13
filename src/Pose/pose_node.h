@@ -92,5 +92,8 @@ double ros_rate;
 PoseNodeProcess *process;
 ros::Subscriber attitude_sub;
 ros::Publisher pose_pub;
+ros::Publisher jointstate_pub;
+double pan_angle;
+double tilt_angle;
 //End User Code: Define Global Variables
 #endif

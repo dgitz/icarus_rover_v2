@@ -6,6 +6,6 @@
         <param name="loop1_rate"            value="20.0"/> <!--  -->
         <param name="loop2_rate"            value="50.0"/> <!-- Process Update,Output publish --> 
         <param name="loop3_rate"            value="200.0"/> <!--  -->
-		<CameraStream>DriverStation:CameraPort</CameraStream>
+		<param name="CameraStreamPort"      value="CameraPort"/>
     </node>
 </launch>

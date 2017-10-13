@@ -1,7 +1,7 @@
 #include "pose_node_process.h"
 PoseNodeProcess::PoseNodeProcess()
 {
-    
+    pose_mode = UNDEFINED;
 }   
 PoseNodeProcess::~PoseNodeProcess()
 {
@@ -117,7 +117,10 @@ icarus_rover_v2::diagnostic PoseNodeProcess::update(double dt)
     {
        pose_ready = true;
     }
-	
+	if(pose_mode == SIMULATED)
+	{
+		pose_ready = true;
+	}
 	if(isnan(temp_pose.yawrate.value) == true)
 	{
 		temp_pose.yawrate.value = 0.0;

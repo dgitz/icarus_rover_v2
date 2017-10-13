@@ -2,7 +2,7 @@
 //Start User Code: Firmware Definition
 #define POSENODE_MAJOR_RELEASE 0
 #define POSENODE_MINOR_RELEASE 0
-#define POSENODE_BUILD_NUMBER 1
+#define POSENODE_BUILD_NUMBER 2
 //End User Code: Firmware Definition
 //Start User Code: Functions
 void attitude_Callback(const roscopter::Attitude::ConstPtr& msg)
@@ -22,6 +22,20 @@ bool run_loop2_code()
         icarus_rover_v2::pose pose = process->get_pose();
         pose.header.stamp = ros::Time::now();
         pose_pub.publish(pose);
+
+        sensor_msgs::JointState joints;
+        joints.header.stamp = ros::Time::now();
+        joints.name.resize(2);
+        joints.name[0] = "joint_camera_pan";
+        joints.name[1] = "joint_camera_tilt";
+        joints.position.resize(2);
+        joints.position[0] = pan_angle;
+        joints.position[1] = tilt_angle;
+        jointstate_pub.publish(joints);
+        pan_angle = pan_angle + M_PI/100.0;
+        if(pan_angle > M_PI/4.0) { pan_angle = -M_PI/4.0; }
+        tilt_angle = tilt_angle + M_PI/100.0;
+                if(tilt_angle > M_PI/4.0) { tilt_angle = -M_PI/4.0; }
     }
  	return true;
 }
@@ -34,7 +48,7 @@ void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg)
 	icarus_rover_v2::firmware fw;
 	fw.Generic_Node_Name = "pose_node";
 	fw.Node_Name = node_name;
-	fw.Description = "Latest Rev: 28-June-2017";
+	fw.Description = "Latest Rev: 12-Oct-2017";
 	fw.Major_Release = POSENODE_MAJOR_RELEASE;
 	fw.Minor_Release = POSENODE_MINOR_RELEASE;
 	fw.Build_Number = POSENODE_BUILD_NUMBER;
@@ -275,7 +289,7 @@ bool initialize(ros::NodeHandle nh)
     std::string param_loop2_rate = node_name + "/loop2_rate";
     if(nh.getParam(param_loop2_rate,loop2_rate) == false)
     {
-        logger->log_warn("Missing parameter: loop1_rate.  Not running loop2 code.");
+        logger->log_warn("Missing parameter: loop2_rate.  Not running loop2 code.");
         run_loop2 = false;
     }
     else 
@@ -307,7 +321,10 @@ bool initialize(ros::NodeHandle nh)
     //Start User Code: Initialization and Parameters
     process = new PoseNodeProcess;
 	diagnostic_status = process->init(diagnostic_status,std::string(hostname));
-    
+	process->set_posemode(SIMULATED);
+	pan_angle = -M_PI/4.0;
+	tilt_angle = -M_PI/4.0;
+	jointstate_pub = nh.advertise<sensor_msgs::JointState>("/joint_states",1);
     //KF: Yaw
     {
 		int output_count = 2; //n

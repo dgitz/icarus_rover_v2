@@ -22,6 +22,8 @@
 #include "logger.h"
 #include <math.h>
 #include <Eigen/Dense>
+#include <std_msgs/Header.h>
+#include <sensor_msgs/JointState.h>
 #define BUFFER_LIMIT 100
 using Eigen::MatrixXd;
 struct KalmanFilter
@@ -40,8 +42,15 @@ struct KalmanFilter
     MatrixXd R; // (m x m)
 	MatrixXd P; // (n x n)
 };
+enum PoseMode
+{
+	UNDEFINED,
+	SIMULATED,
+	REAL = 2
+};
 class PoseNodeProcess
 {
+
 public:
 
 
@@ -61,11 +70,13 @@ public:
     icarus_rover_v2::diagnostic new_yaw(double v);
     icarus_rover_v2::diagnostic new_yawrate(double v);
     bool is_poseready() { return pose_ready; }
+    void set_posemode(uint8_t mode_) { pose_mode = mode_; }
     
     
 private:
 	icarus_rover_v2::diagnostic diagnostic;
     bool initialized;
+    uint8_t pose_mode;
     void initialize_filters();
     
     std::vector<KalmanFilter> KalmanFilters;

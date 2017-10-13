@@ -1,0 +1,53 @@
+<?xml version="1.0"?>
+
+<robot name="scout">
+    <link name="base_link">
+    </link>
+    <link name="camera_base">
+        <visual>
+            <origin rpy="3.14159 0 1.570" xyz="0 0 0"/>
+            <geometry>
+                <mesh filename="package://icarus_rover_v2/meshes/533015.stl" scale=".001 .001 .001"/>
+            </geometry>
+        </visual>
+    </link>
+    <link name="camera_pan">
+        <visual>
+            <origin rpy="0.0 0 0" xyz="0 0 0"/>
+            <geometry>
+                <mesh filename="package://icarus_rover_v2/meshes/533016.stl" scale=".001 .001 .001"/>
+            </geometry>
+        </visual>
+    </link>
+    <link name="camera_tilt" >
+    <visual>
+            <origin rpy="3.14159 1.57 0" xyz=".01 0 0"/>
+            <geometry>
+                <mesh filename="package://icarus_rover_v2/meshes/533017.stl" scale=".001 .001 .001"/>
+            </geometry>
+        </visual>
+    </link>
+    <link name="camera_lens" />
+    <joint name="joint_camera_base" type="fixed">
+        <parent link="base_link"/>
+        <child link="camera_base"/>
+        <origin xyz="0.17803 -0.11385 0.15233" rpy="0 0 0"/>
+    </joint>
+    <joint name="joint_camera_pan" type="continuous">
+        <parent link="camera_base"/>
+        <child link="camera_pan"/>
+        <origin xyz="0 0 .01105" rpy="0 0 0"/>
+        <axis xyz="0 0 1" />
+    </joint>
+    <joint name="joint_camera_tilt" type="continuous">
+        <parent link="camera_pan"/>
+        <child link="camera_tilt"/>
+        <origin xyz=".00173 0 .021935" rpy="0 0 0"/>
+        <axis xyz="0 1 0" />
+    </joint>
+    <joint name="joint_camera_lens" type="fixed">
+        <parent link="camera_tilt"/>
+        <child link="camera_lens"/>
+        <origin xyz=".02242 -.004152 .009449" rpy="0 0 0"/>
+    </joint>
+</robot>

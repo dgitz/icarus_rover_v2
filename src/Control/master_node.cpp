@@ -5,6 +5,7 @@
 #define MASTERNODE_BUILD_NUMBER 0
 //End User Code: Firmware Definition
 //Start User Code: Functions
+
 bool run_loop1_code()
 {
     publish_deviceinfo();
