@@ -74,6 +74,7 @@ add_message_files(
   signal.msg
   pose.msg
   controlgroup.msg
+  encoder.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -236,6 +237,7 @@ add_library(pose_node_process src/Pose/pose_node_process.cpp)
 add_library(autodrive_node_process src/Control/autodrive_node_process.cpp)
 add_library(boardcontroller_node_process src/Board/boardcontroller_node_process.cpp)
 add_library(commandlauncher_node_process src/Control/commandlauncher_node_process.cpp)
+add_library(simulate_node_process src/Simulate/simulate_node_process.cpp)
 
 add_executable(sample_node src_templates/sample_node.cpp)
 target_link_libraries(sample_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor sample_node_process)
@@ -303,3 +305,8 @@ add_executable(commandlauncher_node src/Control/commandlauncher_node.cpp)
 target_link_libraries(commandlauncher_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger spimessage resourcemonitor commandlauncher_node_process)
 catkin_add_gtest(test_commandlauncher_node_process src/Control/unit_tests/test_commandlauncher_node_process.cpp)
 target_link_libraries(test_commandlauncher_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} commandlauncher_node_process logger)
+
+add_executable(simulate_node src/Simulate/simulate_node.cpp)
+target_link_libraries(simulate_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor simulate_node_process)
+catkin_add_gtest(test_simulate_node_process src/Simulate/unit_tests/test_simulate_node_process.cpp)
+target_link_libraries(test_simulate_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} simulate_node_process logger)

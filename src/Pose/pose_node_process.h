@@ -17,6 +17,7 @@
 #include "icarus_rover_v2/firmware.h"
 #include "icarus_rover_v2/signal.h"
 #include "icarus_rover_v2/pose.h"
+#include "icarus_rover_v2/encoder.h"
 #include <std_msgs/UInt8.h>
 #include <serialmessage.h>
 #include "logger.h"
@@ -45,17 +46,18 @@ struct KalmanFilter
     MatrixXd R; // (m x m)
 	MatrixXd P; // (n x n)
 };
-enum PoseMode
-{
-	UNDEFINED,
-	SIMULATED,
-	REAL = 2
-};
 class PoseNodeProcess
 {
 
 public:
 
+	struct VehicleParameters
+	{
+		double tirediameter_m;
+		double vehiclelength_m;
+		double wheelbase_m;
+		double maxspeed_mps;
+	};
 
 	PoseNodeProcess();
 	~PoseNodeProcess();
@@ -73,30 +75,31 @@ public:
     icarus_rover_v2::diagnostic new_yaw(double v);
     icarus_rover_v2::diagnostic new_yawrate(double v);
     bool is_poseready() { return pose_ready; }
-    void set_posemode(uint8_t mode_) { pose_mode = mode_; }
     void set_throttlecommand(double v) { throttle_command = v; }
     void set_steercommand(double v) { steer_command = v; }
+	void set_gps(icarus_rover_v2::pose v);
+	void set_encoder(double v1,double v2) { left_encoder = v1; right_encoder = v2;}
     
     
 private:
 	icarus_rover_v2::diagnostic diagnostic;
     bool initialized;
-    uint8_t pose_mode;
     void initialize_filters();
     bool load_configfiles();
+	VehicleParameters vehicle_params;
     
     std::vector<KalmanFilter> KalmanFilters;
     icarus_rover_v2::pose pose;
+	icarus_rover_v2::pose gps;
     bool yaw_received;
     bool yawrate_received;
     bool pose_ready;
-    double wheelbase_m;
-    double vehicle_length_m;
-    double tirediameter_m;
+	double last_theta_dot;
     double throttle_command; //In rad/s
     double steer_command;  //In rad/s
-    double beta; //Bicycle model
-
+	double left_encoder;
+	double right_encoder;
+	bool gps_updated;
 	
 	//temporary variables
 	double temp_yaw;

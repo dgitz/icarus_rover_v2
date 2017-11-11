@@ -1,10 +1,8 @@
 #include "pose_node_process.h"
 PoseNodeProcess::PoseNodeProcess()
 {
-    pose_mode = UNDEFINED;
-    wheelbase_m = 0.0;
-    vehicle_length_m = 0.0;
-    tirediameter_m = 0.0;
+	gps_updated = false;
+	last_theta_dot = 0.0;
 }   
 PoseNodeProcess::~PoseNodeProcess()
 {
@@ -24,6 +22,8 @@ icarus_rover_v2::diagnostic PoseNodeProcess::init(icarus_rover_v2::diagnostic in
 		sprintf(tempstr,"Unable to load config files.");
 		diagnostic.Description = std::string(tempstr);
 	}
+	left_encoder = 0.0;
+	right_encoder = 0.0;
     pose.east.value = 0.0;
     pose.north.value = 0.0;
     pose.elev.value = 0.0;
@@ -42,7 +42,6 @@ icarus_rover_v2::diagnostic PoseNodeProcess::init(icarus_rover_v2::diagnostic in
     pose.yawrate.status = SIGNALSTATE_INITIALIZING;
     pose_ready = false;
 	temp_yaw = 0.0;
-	beta = 0.0;
     initialized = true;
 	return diagnostic;
 }
@@ -93,32 +92,59 @@ KalmanFilter PoseNodeProcess::update_kalmanfilter(KalmanFilter kf)
 	}
 	return kf;
 }
+void PoseNodeProcess::set_gps(icarus_rover_v2::pose v)
+{
+	gps = v;
+	gps_updated = true;
+}
 icarus_rover_v2::diagnostic PoseNodeProcess::update(double dt)
 {
-	icarus_rover_v2::diagnostic diag = diagnostic;
-	icarus_rover_v2::pose temp_pose = pose;
-	if(pose_mode == SIMULATED)
-	{
-
-		temp_pose.wheelspeed.value = throttle_command*tirediameter_m/2.0;
-		double x_dot = temp_pose.wheelspeed.value * cos(pose.yaw.value);
-		double y_dot = temp_pose.wheelspeed.value * sin(pose.yaw.value);
-		//double psi_dot = (temp_pose.wheelspeed.value/l_f)*sin(beta);
-		//beta = atan((l_f/vehicle_length_m)*tan(steer_command));
-		temp_pose.east.value += (x_dot*dt);
-		temp_pose.north.value += (y_dot*dt);
-		temp_pose.yaw.value += (steer_command*dt);
-		temp_pose.yaw.value = fmod(temp_pose.yaw.value + M_PI,2*M_PI);
-		if(temp_pose.yaw.value < 0)
+	{	//Pose from Odometry only
+		icarus_rover_v2::diagnostic diag = diagnostic;
+		icarus_rover_v2::pose temp_pose = pose;
+		if(gps_updated == true)
 		{
-			temp_pose.yaw.value += 2*M_PI;
+			temp_pose.east.value = gps.east.value;
+			temp_pose.north.value = gps.north.value;
+			temp_pose.yaw.value += (last_theta_dot);
+			gps_updated = false;
 		}
-		temp_pose.yaw.value -= M_PI;
-		pose_ready = true;
+		else
+		{
+		
+			double d_left = (vehicle_params.tirediameter_m/2.0)*left_encoder;
+			double d_right = (vehicle_params.tirediameter_m/2.0)*right_encoder;
+			double d_center = (d_left+d_right)/2.0;
+			double theta_dot = (d_right-d_left)/vehicle_params.wheelbase_m;
+			last_theta_dot = theta_dot;
+			
+			
+			double x_dot = d_center * cos(temp_pose.yaw.value);
+			double y_dot = d_center * sin(temp_pose.yaw.value);
 
+			temp_pose.east.value += (x_dot);
+			temp_pose.north.value += (y_dot);
+			temp_pose.yaw.value += (theta_dot);
+			temp_pose.yaw.value = fmod(temp_pose.yaw.value + M_PI,2*M_PI);
+			if(temp_pose.yaw.value < 0)	{	temp_pose.yaw.value += 2*M_PI;	}
+			temp_pose.yaw.value -= M_PI;
+		}
+		
+		pose = temp_pose;
+		pose_ready = true;
+		
+		diag.Diagnostic_Type = SOFTWARE;
+		diag.Level = INFO;
+		char tempstr[512];
+		sprintf(tempstr,"Pose Node updated");
+		diag.Description = std::string(tempstr);
+		diagnostic.Diagnostic_Message = NOERROR;
+		return diag;
 	}
-	else if(pose_mode == REAL)
 	{
+		icarus_rover_v2::diagnostic diag = diagnostic;
+		icarus_rover_v2::pose temp_pose = pose;
+		
 		for(std::size_t i = 0; i < KalmanFilters.size(); i++)
 		{
 			KalmanFilters.at(i).signal_status = SIGNALSTATE_HOLD;
@@ -177,16 +203,16 @@ icarus_rover_v2::diagnostic PoseNodeProcess::update(double dt)
 			temp_pose.yaw.value = 0.0;
 			temp_pose.yaw.status = SIGNALSTATE_INVALID;
 		}
+		
+		pose = temp_pose;
+		diag.Diagnostic_Type = SOFTWARE;
+		diag.Level = INFO;
+		char tempstr[512];
+		sprintf(tempstr,"Pose Node updated");
+		diag.Description = std::string(tempstr);
+		diagnostic.Diagnostic_Message = NOERROR;
+		return diag;
 	}
-	
-	pose = temp_pose;
-    diag.Diagnostic_Type = SOFTWARE;
-    diag.Level = INFO;
-    char tempstr[512];
-    sprintf(tempstr,"Pose Node updated");
-    diag.Description = std::string(tempstr);
-    diagnostic.Diagnostic_Message = NOERROR;
-    return diag;
 }
 double PoseNodeProcess::get_kalmanfilter_output(std::string name, int index) //Only used for unit testing
 {
@@ -380,13 +406,13 @@ bool PoseNodeProcess::load_configfiles()
 
 	if( NULL != l_pRootElement )
 	{
-		TiXmlElement *l_pDimensions = l_pRootElement->FirstChildElement( "Dimensions" );
-		if ( NULL != l_pDimensions )
+		TiXmlElement *l_pVehicleParameters = l_pRootElement->FirstChildElement( "VehicleParameters" );
+		if ( NULL != l_pVehicleParameters )
 		{
-			TiXmlElement *l_pWheelbase = l_pDimensions->FirstChildElement( "Wheelbase" );
+			TiXmlElement *l_pWheelbase = l_pVehicleParameters->FirstChildElement( "Wheelbase" );
 			if(NULL != l_pWheelbase)
 			{
-				wheelbase_m = std::atof(l_pWheelbase->GetText());
+				vehicle_params.wheelbase_m = std::atof(l_pWheelbase->GetText());
 			}
 			else
 			{
@@ -394,10 +420,10 @@ bool PoseNodeProcess::load_configfiles()
 				return false;
 			}
 
-			TiXmlElement *l_pTireDiameter = l_pDimensions->FirstChildElement( "TireDiameter" );
+			TiXmlElement *l_pTireDiameter = l_pVehicleParameters->FirstChildElement( "TireDiameter" );
 			if(NULL != l_pTireDiameter)
 			{
-				tirediameter_m = std::atof(l_pTireDiameter->GetText());
+				vehicle_params.tirediameter_m = std::atof(l_pTireDiameter->GetText());
 			}
 			else
 			{
@@ -405,14 +431,25 @@ bool PoseNodeProcess::load_configfiles()
 				return false;
 			}
 
-			TiXmlElement *l_pLength = l_pDimensions->FirstChildElement( "Length" );
+			TiXmlElement *l_pLength = l_pVehicleParameters->FirstChildElement( "Length" );
 			if(NULL != l_pLength)
 			{
-				vehicle_length_m = std::atof(l_pLength->GetText());
+				vehicle_params.vehiclelength_m = std::atof(l_pLength->GetText());
 			}
 			else
 			{
 				printf("Length undefined.\n");
+				return false;
+			}
+			
+			TiXmlElement *l_pMaxSpeed = l_pVehicleParameters->FirstChildElement( "MaxSpeed" );
+			if(NULL != l_pMaxSpeed)
+			{
+				vehicle_params.maxspeed_mps = std::atof(l_pMaxSpeed->GetText());
+			}
+			else
+			{
+				printf("MaxSpeed undefined.\n");
 				return false;
 			}
 

@@ -1,5 +1,5 @@
-#ifndef POSENODE_H
-#define POSENODE_H
+#ifndef SIMULATE_H
+#define SIMULATE_H
 //Start Template Code: Includes
 #include "ros/ros.h"
 #include "std_msgs/String.h"
@@ -25,9 +25,7 @@
 //End User Code: Defines
 
 //Start User Code: Includes
-#include <icarus_rover_v2/pose.h>
-#include <roscopter/Attitude.h>
-#include "pose_node_process.h"
+#include "simulate_node_process.h"
 //End User Code: Includes
 
 //Start User Code: Data Structures
@@ -49,11 +47,8 @@ void signalinterrupt_handler(int sig);
 //End Template Code: Function Prototypes
 
 //Start User Code: Function Prototypes
-void attitude_Callback(const roscopter::Attitude::ConstPtr& msg);
 void throttle_command_Callback(const std_msgs::Float32::ConstPtr& msg);
 void steer_command_Callback(const std_msgs::Float32::ConstPtr& msg);
-void encoder_Callback(const icarus_rover_v2::encoder::ConstPtr& msg);
-void gps_Callback(const icarus_rover_v2::pose::ConstPtr& msg);
 //End User Code: Function Prototypes
 
 //Start Template Code: Define Global variables
@@ -93,15 +88,12 @@ double ros_rate;
 //End Template Code: Define Global Variables
 
 //Start User Code: Define Global Variables
-PoseNodeProcess *process;
-ros::Subscriber attitude_sub;
+SimulateNodeProcess *process;
 ros::Publisher pose_pub;
-ros::Publisher jointstate_pub;
-double pan_angle;
-double tilt_angle;
 ros::Subscriber throttle_command_sub;
 ros::Subscriber steer_command_sub;
-ros::Subscriber encoder_sub;
-ros::Subscriber gps_sub;
+ros::Publisher encoder_pub;
+ros::Publisher imu_pub;
+ros::Publisher gps_pub;
 //End User Code: Define Global Variables
 #endif

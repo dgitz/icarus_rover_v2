@@ -6,3 +6,4 @@ signal east
 signal north
 signal elev
 signal wheelspeed
+signal groundspeed

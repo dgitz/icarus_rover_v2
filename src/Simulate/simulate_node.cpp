@@ -1,15 +1,10 @@
-#include "pose_node.h"
+#include "simulate_node.h"
 //Start User Code: Firmware Definition
-#define POSENODE_MAJOR_RELEASE 0
-#define POSENODE_MINOR_RELEASE 0
-#define POSENODE_BUILD_NUMBER 2
+#define SIMULATENODE_MAJOR_RELEASE 0
+#define SIMULATENODE_MINOR_RELEASE 0
+#define SIMULATENODE_BUILD_NUMBER 1
 //End User Code: Firmware Definition
 //Start User Code: Functions
-void attitude_Callback(const roscopter::Attitude::ConstPtr& msg)
-{
-    logger->log_diagnostic(process->new_kalmanfilter_signal("Yaw",1,msg->yaw));
-    logger->log_diagnostic(process->new_kalmanfilter_signal("Yawrate",0,msg->yawspeed));
-}
 void throttle_command_Callback(const std_msgs::Float32::ConstPtr& msg)
 {
     process->set_throttlecommand(msg->data);
@@ -18,67 +13,43 @@ void steer_command_Callback(const std_msgs::Float32::ConstPtr& msg)
 {
 	process->set_steercommand(msg->data);
 }
-void encoder_Callback(const icarus_rover_v2::encoder::ConstPtr& msg)
-{
-	process->set_encoder(msg->data[0],msg->data[1]);
-}
-void gps_Callback(const icarus_rover_v2::pose::ConstPtr& msg)
-{
-	icarus_rover_v2::pose gps;
-	gps.north.value = msg->north.value;
-	gps.east.value = msg->east.value;
-	process->set_gps(gps);
-}
 bool run_loop1_code()
 {
-    logger->log_diagnostic(process->update(measure_time_diff(ros::Time::now(),last_loop1_timer)));
+	logger->log_diagnostic(process->update(measure_time_diff(ros::Time::now(),last_loop1_timer)));
 	return true;
 }
 bool run_loop2_code()
 {
-    if(process->is_poseready() == true)
+	if(process->is_poseready() == true)
     {
         icarus_rover_v2::pose pose = process->get_pose();
         pose.header.stamp = ros::Time::now();
         pose_pub.publish(pose);
-
-        static tf::TransformBroadcaster br;
-        tf::Transform transform;
-        transform.setOrigin( tf::Vector3(pose.east.value,pose.north.value, 0.0) );
-        tf::Quaternion q;
-        q.setRPY(0, 0, pose.yaw.value);
-        transform.setRotation(q);
-        br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "map", "base_link"));
-
-        //sensor_msgs::JointState joints;
-        //joints.header.stamp = ros::Time::now();
-        //joints.name.resize(1);
-        //joints.name[0] = "joint_camera_tilt";
-        //joints.name[1] = "joint_camera_tilt";
-        //joints.position.resize(1);
-        //joints.position[0] = tilt_angle;
-        //joints.position[1] = tilt_angle;
-        //jointstate_pub.publish(joints);
-        //pan_angle = pan_angle + M_PI/100.0;
-        //if(pan_angle > M_PI/4.0) { pan_angle = -M_PI/4.0; }
-        //tilt_angle = tilt_angle + M_PI/100.0;
-        //        if(tilt_angle > M_PI/4.0) { tilt_angle = -M_PI/4.0; }
-    }
+	}
  	return true;
 }
 bool run_loop3_code()
 {
+	icarus_rover_v2::encoder encoders;
+	encoders.data.resize(2);
+	encoders.data[0] = process->get_left_encoder();
+	encoders.data[1] = process->get_right_encoder();
+	encoder_pub.publish(encoders);
+	
+	std_msgs::Float32 imu;
+	imu.data = process->get_yawrate();
+	imu_pub.publish(imu);
  	return true;
 }
 void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
 	icarus_rover_v2::firmware fw;
-	fw.Generic_Node_Name = "pose_node";
+	fw.Generic_Node_Name = "simulate_node";
 	fw.Node_Name = node_name;
-	fw.Description = "Latest Rev: 12-Oct-2017";
-	fw.Major_Release = POSENODE_MAJOR_RELEASE;
-	fw.Minor_Release = POSENODE_MINOR_RELEASE;
-	fw.Build_Number = POSENODE_BUILD_NUMBER;
+	fw.Description = "Latest Rev: 14-October-2017";
+	fw.Major_Release = SIMULATENODE_MAJOR_RELEASE;
+	fw.Minor_Release = SIMULATENODE_MINOR_RELEASE;
+	fw.Build_Number = SIMULATENODE_BUILD_NUMBER;
 	firmware_pub.publish(fw);
 }
 void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
@@ -161,6 +132,13 @@ void Command_Callback(const icarus_rover_v2::command::ConstPtr& msg)
 //End User Code: Functions
 bool run_10Hz_code()
 {
+	if(process->is_poseready() == true)
+    {
+        icarus_rover_v2::pose pose = process->get_pose();
+        pose.header.stamp = ros::Time::now();
+        gps_pub.publish(pose);
+		
+	}
     beat.stamp = ros::Time::now();
 	heartbeat_pub.publish(beat);
 
@@ -172,7 +150,7 @@ bool run_10Hz_code()
 }
 int main(int argc, char **argv)
 {
-	node_name = "pose_node";
+	node_name = "simulate_node";
     ros::init(argc, argv, node_name);
     node_name = ros::this_node::getName();
     ros::NodeHandle n;
@@ -259,7 +237,7 @@ bool initialize(ros::NodeHandle nh)
 	diagnostic_status.Node_Name = node_name;
 	diagnostic_status.System = ROVER;
 	diagnostic_status.SubSystem = ROBOT_CONTROLLER;
-	diagnostic_status.Component = TIMING_NODE;
+	diagnostic_status.Component = POSE_NODE;
 
 	diagnostic_status.Diagnostic_Type = NOERROR;
 	diagnostic_status.Level = INFO;
@@ -316,7 +294,7 @@ bool initialize(ros::NodeHandle nh)
     std::string param_loop2_rate = node_name + "/loop2_rate";
     if(nh.getParam(param_loop2_rate,loop2_rate) == false)
     {
-        logger->log_warn("Missing parameter: loop2_rate.  Not running loop2 code.");
+        logger->log_warn("Missing parameter: loop1_rate.  Not running loop2 code.");
         run_loop2 = false;
     }
     else 
@@ -346,151 +324,59 @@ bool initialize(ros::NodeHandle nh)
     //End Template Code: Initialization and Parameters
 
     //Start User Code: Initialization and Parameters
-    process = new PoseNodeProcess;
+    process = new SimulateNodeProcess;
 	diagnostic_status = process->init(diagnostic_status,std::string(hostname));
-	pan_angle = -M_PI/4.0;
-	tilt_angle = -M_PI/4.0;
-	jointstate_pub = nh.advertise<sensor_msgs::JointState>("/joint_states",1);
-    //KF: Yaw
+	
+	uint8_t vehiclemodel = SimulateNodeProcess::TANK;
+	if(process->set_vehiclemodel(vehiclemodel) == false)
+	{
+		char tempstr[256];
+		sprintf(tempstr,"Unable to set Vehicle Model: %d. Exiting.",vehiclemodel);
+		logger->log_error(std::string(tempstr));
+		return false;
+	}
+	
+	throttle_command_sub = nh.subscribe<std_msgs::Float32>("/throttle_command",1,throttle_command_Callback);
+    steer_command_sub = nh.subscribe<std_msgs::Float32>("/steer_command",1,steer_command_Callback);
+    pose_pub =  nh.advertise<icarus_rover_v2::pose>("/sim/pose",1);
+	gps_pub = nh.advertise<icarus_rover_v2::pose>("/sim/gps",1);
+	encoder_pub = nh.advertise<icarus_rover_v2::encoder>("/sim/encoder",1);
+	imu_pub = nh.advertise<std_msgs::Float32>("/sim/imu",1);
+	std::string sim_mode;
+	std::string param_simmode = node_name + "/Simulation_Mode";
+    if(nh.getParam(param_simmode,sim_mode) == false)
     {
-		int output_count = 2; //n
-		int measurement_count = 2; //m
-		MatrixXd C(measurement_count,output_count);
-		C(0,0) = 1.0;
-		C(1,0) = 0.0;
-		C(0,1) = 0.0;
-		C(1,1) = 1.0;
-		MatrixXd Phi(output_count,output_count);
-		Phi(0,0) = 1.0;
-		Phi(0,1) = 1.0/(double)(loop1_rate);
-		Phi(1,0) = 0.0;
-		Phi(1,1) = 1.0;
-		MatrixXd Q(output_count,output_count);
-		Q = MatrixXd::Zero(output_count,output_count);
-		int QIndex = 0;
-		while(QIndex < output_count)
-		{
-			double v;
-			std::string param_topic = node_name +"/KF_Yaw_Q" + boost::lexical_cast<std::string>(QIndex);
-			if(nh.getParam(param_topic,v) == false)
-			{
-				char tempstr[255];
-				sprintf(tempstr,"Didn't find %s. Exiting.",param_topic.c_str());
-				logger->log_error(tempstr);
-				return false;
-			}
-			else
-			{
-				Q(QIndex,QIndex) = v;
-			}
-			QIndex++;
-    	}
-		//cout << "KF: Yaw Q: " << Q << std::endl << std::endl;
-		MatrixXd R(measurement_count,measurement_count);
-		R = MatrixXd::Zero(measurement_count,measurement_count);
-		int RIndex = 0;
-		while(RIndex < output_count)
-		{
-			double v;
-			std::string param_topic = node_name +"/KF_Yaw_R" + boost::lexical_cast<std::string>(RIndex);
-			if(nh.getParam(param_topic,v) == false)
-			{
-				char tempstr[255];
-				sprintf(tempstr,"Didn't find %s. Exiting.",param_topic.c_str());
-				logger->log_error(tempstr);
-				return false;
-			}
-			else
-			{
-				R(RIndex,RIndex) = v;
-			}
-			RIndex++;
-    	}
-		//cout << "KF: Yaw R: " << R << std::endl << std::endl;
-		process->set_kalmanfilter_properties("Yaw", output_count,measurement_count,C,Phi,Q,R);
-    }
-    //KF: Yawrate
-    {
-        int output_count = 1; //n
-		int measurement_count = 1; //m
-		MatrixXd C(measurement_count,output_count);
-		C(0,0) = 1.0;
-		MatrixXd Phi(output_count,output_count);
-		Phi(0,0) = 1.0;
-		MatrixXd Q(output_count,output_count);
-		Q = MatrixXd::Zero(output_count,output_count);
-		int QIndex = 0;
-		while(QIndex < output_count)
-		{
-			double v;
-			std::string param_topic = node_name +"/KF_Yaw_Q" + boost::lexical_cast<std::string>(QIndex);
-			if(nh.getParam(param_topic,v) == false)
-			{
-				char tempstr[255];
-				sprintf(tempstr,"Didn't find %s. Exiting.",param_topic.c_str());
-				logger->log_error(tempstr);
-				return false;
-			}
-			else
-			{
-				Q(QIndex,QIndex) = v;
-			}
-			QIndex++;
-    	}
-		//cout << "KF: Yawrate Q: " << Q << std::endl << std::endl;
-		MatrixXd R(measurement_count,measurement_count);
-		R = MatrixXd::Zero(measurement_count,measurement_count);
-		int RIndex = 0;
-		while(RIndex < output_count)
-		{
-			double v;
-			std::string param_topic = node_name +"/KF_Yaw_R" + boost::lexical_cast<std::string>(RIndex);
-			if(nh.getParam(param_topic,v) == false)
-			{
-				char tempstr[255];
-				sprintf(tempstr,"Didn't find %s. Exiting.",param_topic.c_str());
-				logger->log_error(tempstr);
-				return false;
-			}
-			else
-			{
-				R(RIndex,RIndex) = v;
-			}
-			RIndex++;
-    	}
-		//cout << "KF: Yaw R: " << R << std::endl << std::endl;
-		process->set_kalmanfilter_properties("Yawrate", output_count,measurement_count,C,Phi,Q,R);
-    }
-    std::string param_attitude_topic = node_name + "/Attitude_topic";
-    std::string attitude_topic;
-    if(nh.getParam(param_attitude_topic,attitude_topic) == false)
-    {
-        logger->log_error("Missing parameter: Attitude_topic. Exiting.");
+        logger->log_error("Missing parameter: Simulation_Mode. Exiting.");
         return false;
     }
-    attitude_sub = nh.subscribe<roscopter::Attitude>(attitude_topic,1,attitude_Callback);
-
-    throttle_command_sub = nh.subscribe<std_msgs::Float32>("/throttle_command",1,throttle_command_Callback);
-    steer_command_sub = nh.subscribe<std_msgs::Float32>("/steer_command",1,steer_command_Callback);
-    pose_pub =  nh.advertise<icarus_rover_v2::pose>("/pose",1);
-	
-	std::string param_simulate = node_name  + "/Simulate";
-	bool simulate;
-	if(nh.getParam(param_simulate,simulate) == false)
-	{
-		logger->log_warn("Missing parameter: Simulate.  Using default: False");
-		simulate = false;
-	}
-	if(simulate == true)
-	{
-		encoder_sub = nh.subscribe<icarus_rover_v2::encoder>("/sim/encoder",1,encoder_Callback);
-		gps_sub = nh.subscribe<icarus_rover_v2::pose>("/sim/pose",1,gps_Callback);
-	}
 	else
 	{
-		encoder_sub = nh.subscribe<icarus_rover_v2::encoder>("/encoder",1,encoder_Callback);
-		gps_sub = nh.subscribe<icarus_rover_v2::pose>("/pose",1,gps_Callback);
-	}
+		if(process->set_simulationmode(process->map_simulationmode_toint(sim_mode)) == false)
+		{
+			char tempstr[512];
+			sprintf("Simulation_Mode: %s Not Supported. Exiting.",sim_mode.c_str());
+			logger->log_error(std::string(tempstr));
+		}
+		else
+		{
+			std::string script_path;
+			std::string param_script_path = node_name + "/Script_Path";
+			if(nh.getParam(param_script_path,script_path) == false)
+			{
+				logger->log_error("Missing parameter: Script_Path. Exiting.");
+				return false;
+			}
+			else
+			{
+				if(process->load_scriptfile(script_path) == false)
+				{
+					char tempstr[512];
+					sprintf("Unable to load script path at: %s",script_path.c_str());
+					logger->log_error(std::string(tempstr));
+				}
+			}
+		}
+	}	
     //Finish User Code: Initialization and Parameters
 
     //Start Template Code: Final Initialization.
