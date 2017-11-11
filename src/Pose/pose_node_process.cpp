@@ -101,6 +101,7 @@ icarus_rover_v2::diagnostic PoseNodeProcess::update(double dt)
 	{
 
 		temp_pose.wheelspeed.value = throttle_command*tirediameter_m/2.0;
+		//printf("%f %f %f\n",throttle_command,tirediameter_m,temp_pose.wheelspeed.value);
 		double x_dot = temp_pose.wheelspeed.value * cos(pose.yaw.value);
 		double y_dot = temp_pose.wheelspeed.value * sin(pose.yaw.value);
 		//double psi_dot = (temp_pose.wheelspeed.value/l_f)*sin(beta);
@@ -380,10 +381,10 @@ bool PoseNodeProcess::load_configfiles()
 
 	if( NULL != l_pRootElement )
 	{
-		TiXmlElement *l_pDimensions = l_pRootElement->FirstChildElement( "Dimensions" );
-		if ( NULL != l_pDimensions )
+		TiXmlElement *l_pVehicleParameters = l_pRootElement->FirstChildElement( "VehicleParameters" );
+		if ( NULL != l_pVehicleParameters )
 		{
-			TiXmlElement *l_pWheelbase = l_pDimensions->FirstChildElement( "Wheelbase" );
+			TiXmlElement *l_pWheelbase = l_pVehicleParameters->FirstChildElement( "Wheelbase" );
 			if(NULL != l_pWheelbase)
 			{
 				wheelbase_m = std::atof(l_pWheelbase->GetText());
@@ -394,18 +395,19 @@ bool PoseNodeProcess::load_configfiles()
 				return false;
 			}
 
-			TiXmlElement *l_pTireDiameter = l_pDimensions->FirstChildElement( "TireDiameter" );
+			TiXmlElement *l_pTireDiameter = l_pVehicleParameters->FirstChildElement( "TireDiameter" );
 			if(NULL != l_pTireDiameter)
 			{
+
 				tirediameter_m = std::atof(l_pTireDiameter->GetText());
 			}
 			else
 			{
-				printf("TireDiameter undefind.\n");
+				printf("TireDiameter undefined.\n");
 				return false;
 			}
 
-			TiXmlElement *l_pLength = l_pDimensions->FirstChildElement( "Length" );
+			TiXmlElement *l_pLength = l_pVehicleParameters->FirstChildElement( "Length" );
 			if(NULL != l_pLength)
 			{
 				vehicle_length_m = std::atof(l_pLength->GetText());
@@ -417,6 +419,11 @@ bool PoseNodeProcess::load_configfiles()
 			}
 
 
+		}
+		else
+		{
+			printf("VehicleParameters undefined. Exiting.\n");
+			return false;
 		}
 	}
 	return true;
