@@ -59,12 +59,7 @@ void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
     	{
     		for(std::size_t i = 0; i < srv.response.data.size();i++)
     		{
-    			if((srv.response.data.at(i).DeviceName == hostname) && (device_initialized == false))
-    			{
-    				myDevice = srv.response.data.at(i);
-    				resourcemonitor = new ResourceMonitor(diagnostic_status,myDevice.Architecture,myDevice.DeviceName,node_name);
-					device_initialized = true;
-    			}
+    			bool status = new_devicemsg(srv.response.data.at(i));
     		}
     	}
     }
@@ -332,6 +327,16 @@ double measure_time_diff(ros::Time timer_a, ros::Time timer_b)
 {
 	ros::Duration etime = timer_a - timer_b;
 	return etime.toSec();
+}
+bool new_devicemsg(icarus_rover_v2::device device)
+{
+	if((device.DeviceName == hostname))
+	{
+		myDevice = device;
+		resourcemonitor = new ResourceMonitor(diagnostic_status,myDevice.Architecture,myDevice.DeviceName,node_name);
+		device_initialized = true;;
+	}
+	return true;
 }
 /*
 void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg)

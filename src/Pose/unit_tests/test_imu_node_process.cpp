@@ -28,7 +28,7 @@ TEST(Template,ProcessInitialization)
     diagnostic.Diagnostic_Message = INITIALIZING;
     diagnostic.Description = "Node Initializing";
 
-    SampleNodeProcess *process;
+    IMUNodeProcess *process;
     process = new IMUNodeProcess;
 	diagnostic = process->init(diagnostic,std::string(Host_Name));
     EXPECT_TRUE(diagnostic.Level <= NOTICE);
