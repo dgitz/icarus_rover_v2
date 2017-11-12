@@ -99,125 +99,140 @@ void PoseNodeProcess::set_gps(icarus_rover_v2::pose v)
 }
 icarus_rover_v2::diagnostic PoseNodeProcess::update(double dt)
 {
-	{	//Pose from Odometry only
+	if(compute_pose == false)
+	{
 		icarus_rover_v2::diagnostic diag = diagnostic;
-		icarus_rover_v2::pose temp_pose = pose;
-		if(gps_updated == true)
-		{
-			temp_pose.east.value = gps.east.value;
-			temp_pose.north.value = gps.north.value;
-			temp_pose.yaw.value += (last_theta_dot);
-			gps_updated = false;
-		}
-		else
-		{
-		
-			double d_left = (vehicle_params.tirediameter_m/2.0)*left_encoder;
-			double d_right = (vehicle_params.tirediameter_m/2.0)*right_encoder;
-			double d_center = (d_left+d_right)/2.0;
-			double theta_dot = (d_right-d_left)/vehicle_params.wheelbase_m;
-			last_theta_dot = theta_dot;
-			
-			
-			double x_dot = d_center * cos(temp_pose.yaw.value);
-			double y_dot = d_center * sin(temp_pose.yaw.value);
-
-			temp_pose.east.value += (x_dot);
-			temp_pose.north.value += (y_dot);
-			temp_pose.yaw.value += (theta_dot);
-			temp_pose.yaw.value = fmod(temp_pose.yaw.value + M_PI,2*M_PI);
-			if(temp_pose.yaw.value < 0)	{	temp_pose.yaw.value += 2*M_PI;	}
-			temp_pose.yaw.value -= M_PI;
-		}
-		
-		pose = temp_pose;
+		pose = simpose;
 		pose_ready = true;
-		
 		diag.Diagnostic_Type = SOFTWARE;
 		diag.Level = INFO;
 		char tempstr[512];
-		sprintf(tempstr,"Pose Node updated");
+		sprintf(tempstr,"Simulated Pose Node updated");
 		diag.Description = std::string(tempstr);
 		diagnostic.Diagnostic_Message = NOERROR;
 		return diag;
 	}
+	else
 	{
-		icarus_rover_v2::diagnostic diag = diagnostic;
-		icarus_rover_v2::pose temp_pose = pose;
-		
-		for(std::size_t i = 0; i < KalmanFilters.size(); i++)
-		{
-			KalmanFilters.at(i).signal_status = SIGNALSTATE_HOLD;
-		}
-		KalmanFilter KF_yawrate;
-		KalmanFilter KF_yaw;
-
-
-		//KF Updates - Acceleration
-
-		//KF Updates - Rates/Velocities
-		KF_yawrate = get_kalmanfilter("Yawrate");
-		KF_yawrate = update_kalmanfilter(KF_yawrate);
-		KF_yawrate.signal_status = SIGNALSTATE_UPDATED;
-		KalmanFilters.at(get_kalmanfilter_index("Yawrate")) = KF_yawrate;
-		//KF Updates - Position/Orientation
-		KF_yaw = get_kalmanfilter("Yaw");
-		temp_yaw += get_kalmanfilter_output("Yawrate",0)*(5*dt);
-		{
-			MatrixXd z(KF_yaw.measurement_count,1);
-			z(0,0) = get_kalmanfilter_output("Yawrate",0);
-			z(1,0) = temp_yaw;
-			KF_yaw.z = z;
-		}
-		KF_yaw = update_kalmanfilter(KF_yaw);
-		KF_yaw.signal_status = SIGNALSTATE_UPDATED;
-		KalmanFilters.at(get_kalmanfilter_index("Yaw")) = KF_yaw;
-		temp_pose.yaw.value = get_kalmanfilter_output("Yaw",1);
-		//printf("Setting: %f\n",get_kalmanfilter_output("Yaw",1));
-
-		for(std::size_t i = 0; i < KalmanFilters.size(); i++)
-		{
-			if(KalmanFilters.at(i).signal_status == SIGNALSTATE_HOLD)
+		{	//Pose from Odometry only
+			icarus_rover_v2::diagnostic diag = diagnostic;
+			icarus_rover_v2::pose temp_pose = pose;
+			if(gps_updated == true)
 			{
-				KalmanFilters.at(i) = update_kalmanfilter(KalmanFilters.at(i));
-				KalmanFilters.at(i).signal_status = SIGNALSTATE_UPDATED;
+				temp_pose.east.value = gps.east.value;
+				temp_pose.north.value = gps.north.value;
+				temp_pose.yaw.value += (last_theta_dot);
+				gps_updated = false;
 			}
-		}
+			else
+			{
 
-		if(yaw_received == true) {  temp_pose.yaw.status = SIGNALSTATE_UPDATED;  }
-		temp_pose.yawrate.value = get_kalmanfilter_output("Yawrate",0);
-		if(yawrate_received == true) { temp_pose.yawrate.status = SIGNALSTATE_UPDATED;   }
-		if((yaw_received == true) &&
-		   (yawrate_received == true))
-		{
-		   pose_ready = true;
-		}
+				double d_left = (vehicle_params.tirediameter_m/2.0)*left_encoder;
+				double d_right = (vehicle_params.tirediameter_m/2.0)*right_encoder;
+				double d_center = (d_left+d_right)/2.0;
+				double theta_dot = (d_right-d_left)/vehicle_params.wheelbase_m;
+				last_theta_dot = theta_dot;
 
-		if(isnan(temp_pose.yawrate.value) == true)
-		{
-			temp_pose.yawrate.value = 0.0;
-			temp_pose.yawrate.status = SIGNALSTATE_INVALID;
+
+				double x_dot = d_center * cos(temp_pose.yaw.value);
+				double y_dot = d_center * sin(temp_pose.yaw.value);
+
+				temp_pose.east.value += (x_dot);
+				temp_pose.north.value += (y_dot);
+				temp_pose.yaw.value += (theta_dot);
+				temp_pose.yaw.value = fmod(temp_pose.yaw.value + M_PI,2*M_PI);
+				if(temp_pose.yaw.value < 0)	{	temp_pose.yaw.value += 2*M_PI;	}
+				temp_pose.yaw.value -= M_PI;
+			}
+
+			pose = temp_pose;
+			pose_ready = true;
+
+			diag.Diagnostic_Type = SOFTWARE;
+			diag.Level = INFO;
+			char tempstr[512];
+			sprintf(tempstr,"Pose Node updated");
+			diag.Description = std::string(tempstr);
+			diagnostic.Diagnostic_Message = NOERROR;
+			return diag;
 		}
-		if(isnan(temp_pose.yaw.value) == true)
 		{
-			temp_pose.yaw.value = 0.0;
-			temp_pose.yaw.status = SIGNALSTATE_INVALID;
+			icarus_rover_v2::diagnostic diag = diagnostic;
+			icarus_rover_v2::pose temp_pose = pose;
+
+			for(std::size_t i = 0; i < KalmanFilters.size(); i++)
+			{
+				KalmanFilters.at(i).signal_status = SIGNALSTATE_HOLD;
+			}
+			KalmanFilter KF_yawrate;
+			KalmanFilter KF_yaw;
+
+
+			//KF Updates - Acceleration
+
+			//KF Updates - Rates/Velocities
+			KF_yawrate = get_kalmanfilter("Yawrate");
+			KF_yawrate = update_kalmanfilter(KF_yawrate);
+			KF_yawrate.signal_status = SIGNALSTATE_UPDATED;
+			KalmanFilters.at(get_kalmanfilter_index("Yawrate")) = KF_yawrate;
+			//KF Updates - Position/Orientation
+			KF_yaw = get_kalmanfilter("Yaw");
+			temp_yaw += get_kalmanfilter_output("Yawrate",0)*(5*dt);
+			{
+				MatrixXd z(KF_yaw.measurement_count,1);
+				z(0,0) = get_kalmanfilter_output("Yawrate",0);
+				z(1,0) = temp_yaw;
+				KF_yaw.z = z;
+			}
+			KF_yaw = update_kalmanfilter(KF_yaw);
+			KF_yaw.signal_status = SIGNALSTATE_UPDATED;
+			KalmanFilters.at(get_kalmanfilter_index("Yaw")) = KF_yaw;
+			temp_pose.yaw.value = get_kalmanfilter_output("Yaw",1);
+			//printf("Setting: %f\n",get_kalmanfilter_output("Yaw",1));
+
+			for(std::size_t i = 0; i < KalmanFilters.size(); i++)
+			{
+				if(KalmanFilters.at(i).signal_status == SIGNALSTATE_HOLD)
+				{
+					KalmanFilters.at(i) = update_kalmanfilter(KalmanFilters.at(i));
+					KalmanFilters.at(i).signal_status = SIGNALSTATE_UPDATED;
+				}
+			}
+
+			if(yaw_received == true) {  temp_pose.yaw.status = SIGNALSTATE_UPDATED;  }
+			temp_pose.yawrate.value = get_kalmanfilter_output("Yawrate",0);
+			if(yawrate_received == true) { temp_pose.yawrate.status = SIGNALSTATE_UPDATED;   }
+			if((yaw_received == true) &&
+					(yawrate_received == true))
+			{
+				pose_ready = true;
+			}
+
+			if(isnan(temp_pose.yawrate.value) == true)
+			{
+				temp_pose.yawrate.value = 0.0;
+				temp_pose.yawrate.status = SIGNALSTATE_INVALID;
+			}
+			if(isnan(temp_pose.yaw.value) == true)
+			{
+				temp_pose.yaw.value = 0.0;
+				temp_pose.yaw.status = SIGNALSTATE_INVALID;
+			}
+			pose = temp_pose;
+			diag.Diagnostic_Type = SOFTWARE;
+			diag.Level = INFO;
+			char tempstr[512];
+			sprintf(tempstr,"Pose Node updated");
+			diag.Description = std::string(tempstr);
+			diagnostic.Diagnostic_Message = NOERROR;
+			return diag;
 		}
-		
-		pose = temp_pose;
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Level = INFO;
-		char tempstr[512];
-		sprintf(tempstr,"Pose Node updated");
-		diag.Description = std::string(tempstr);
-		diagnostic.Diagnostic_Message = NOERROR;
-		return diag;
 	}
 }
 double PoseNodeProcess::get_kalmanfilter_output(std::string name, int index) //Only used for unit testing
 {
-    for(std::size_t i = 0; i < KalmanFilters.size(); i++)
-    {
+	for(std::size_t i = 0; i < KalmanFilters.size(); i++)
+	{
         if(KalmanFilters.at(i).name == name)
         {
 			//if(index == 0) { printf("a1: %f\n",KalmanFilters.at(i).xhat(0,0)); }

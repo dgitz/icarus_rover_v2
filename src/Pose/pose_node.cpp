@@ -5,6 +5,19 @@
 #define POSENODE_BUILD_NUMBER 2
 //End User Code: Firmware Definition
 //Start User Code: Functions
+void simpose_Callback(const icarus_rover_v2::pose::ConstPtr& msg)
+{
+	icarus_rover_v2::pose p;
+	p.header.stamp = msg->header.stamp;
+	p.north.value = msg->north.value;
+	p.east.value = msg->east.value;
+	p.yawrate.value = msg->yawrate.value;
+	p.yaw.value = msg->yaw.value;
+	p.elev.value = msg->elev.value;
+	p.wheelspeed.value = msg->wheelspeed.value;
+	p.groundspeed.value = msg->groundspeed.value;
+	process->set_simpose(p);
+}
 void attitude_Callback(const roscopter::Attitude::ConstPtr& msg)
 {
     logger->log_diagnostic(process->new_kalmanfilter_signal("Yaw",1,msg->yaw));
@@ -490,6 +503,17 @@ bool initialize(ros::NodeHandle nh)
 	{
 		encoder_sub = nh.subscribe<icarus_rover_v2::encoder>("/encoder",1,encoder_Callback);
 		gps_sub = nh.subscribe<icarus_rover_v2::pose>("/pose",1,gps_Callback);
+	}
+	std::string param_compute_pose = node_name + "/Compute_Pose";
+	bool compute_pose;
+	if(nh.getParam(param_compute_pose,compute_pose) == false)
+	{
+		logger->log_warn("Missing parameter: Compute_Pose.  Will Compute Pose.");
+		compute_pose = true;
+	}
+	if(compute_pose == false)
+	{
+		simpose_sub = nh.subscribe<icarus_rover_v2::pose>("/sim/pose",1,simpose_Callback);
 	}
     //Finish User Code: Initialization and Parameters
 

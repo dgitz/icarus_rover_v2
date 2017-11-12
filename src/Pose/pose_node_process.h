@@ -75,10 +75,12 @@ public:
     icarus_rover_v2::diagnostic new_yaw(double v);
     icarus_rover_v2::diagnostic new_yawrate(double v);
     bool is_poseready() { return pose_ready; }
+    void set_computepose(bool v) { compute_pose = v; }
     void set_throttlecommand(double v) { throttle_command = v; }
     void set_steercommand(double v) { steer_command = v; }
 	void set_gps(icarus_rover_v2::pose v);
 	void set_encoder(double v1,double v2) { left_encoder = v1; right_encoder = v2;}
+	void set_simpose(icarus_rover_v2::pose v) { simpose = v; }
     
     
 private:
@@ -91,6 +93,8 @@ private:
     std::vector<KalmanFilter> KalmanFilters;
     icarus_rover_v2::pose pose;
 	icarus_rover_v2::pose gps;
+	icarus_rover_v2::pose simpose;
+	bool compute_pose;
     bool yaw_received;
     bool yawrate_received;
     bool pose_ready;

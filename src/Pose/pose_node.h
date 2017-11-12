@@ -49,6 +49,7 @@ void signalinterrupt_handler(int sig);
 //End Template Code: Function Prototypes
 
 //Start User Code: Function Prototypes
+void simpose_Callback(const icarus_rover_v2::pose::ConstPtr& msg);
 void attitude_Callback(const roscopter::Attitude::ConstPtr& msg);
 void throttle_command_Callback(const std_msgs::Float32::ConstPtr& msg);
 void steer_command_Callback(const std_msgs::Float32::ConstPtr& msg);
@@ -97,6 +98,7 @@ PoseNodeProcess *process;
 ros::Subscriber attitude_sub;
 ros::Publisher pose_pub;
 ros::Publisher jointstate_pub;
+ros::Subscriber simpose_sub;
 double pan_angle;
 double tilt_angle;
 ros::Subscriber throttle_command_sub;
