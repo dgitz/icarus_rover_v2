@@ -101,8 +101,27 @@ icarus_rover_v2::diagnostic PoseNodeProcess::update(double dt)
 {
 	if(compute_pose == false)
 	{
+<<<<<<< HEAD
+
+		temp_pose.wheelspeed.value = throttle_command*tirediameter_m/2.0;
+		//printf("%f %f %f\n",throttle_command,tirediameter_m,temp_pose.wheelspeed.value);
+		double x_dot = temp_pose.wheelspeed.value * cos(pose.yaw.value);
+		double y_dot = temp_pose.wheelspeed.value * sin(pose.yaw.value);
+		//double psi_dot = (temp_pose.wheelspeed.value/l_f)*sin(beta);
+		//beta = atan((l_f/vehicle_length_m)*tan(steer_command));
+		temp_pose.east.value += (x_dot*dt);
+		temp_pose.north.value += (y_dot*dt);
+		temp_pose.yaw.value += (steer_command*dt);
+		temp_pose.yaw.value = fmod(temp_pose.yaw.value + M_PI,2*M_PI);
+		if(temp_pose.yaw.value < 0)
+		{
+			temp_pose.yaw.value += 2*M_PI;
+		}
+		temp_pose.yaw.value -= M_PI;
+=======
 		icarus_rover_v2::diagnostic diag = diagnostic;
 		pose = simpose;
+>>>>>>> origin/US_Pose_#67
 		pose_ready = true;
 		diag.Diagnostic_Type = SOFTWARE;
 		diag.Level = INFO;
@@ -438,7 +457,12 @@ bool PoseNodeProcess::load_configfiles()
 			TiXmlElement *l_pTireDiameter = l_pVehicleParameters->FirstChildElement( "TireDiameter" );
 			if(NULL != l_pTireDiameter)
 			{
+<<<<<<< HEAD
+
+				tirediameter_m = std::atof(l_pTireDiameter->GetText());
+=======
 				vehicle_params.tirediameter_m = std::atof(l_pTireDiameter->GetText());
+>>>>>>> origin/US_Pose_#67
 			}
 			else
 			{
