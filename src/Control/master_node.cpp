@@ -5,7 +5,17 @@
 #define MASTERNODE_BUILD_NUMBER 0
 //End User Code: Firmware Definition
 //Start User Code: Functions
-
+//Start User Code: Function Prototypes
+bool device_service(icarus_rover_v2::srv_device::Request &req,
+				icarus_rover_v2::srv_device::Response &res)
+{
+	res.data.push_back(myDevice);
+	for(int i = 0; i < devices_to_publish.size(); i++)
+	{
+		res.data.push_back(devices_to_publish.at(i));
+	}
+	return true;
+}
 bool run_loop1_code()
 {
     publish_deviceinfo();
@@ -463,6 +473,9 @@ bool initialize(ros::NodeHandle nh)
 			devices_to_publish.push_back(other);
 		}
 	}
+
+    std::string srv_device_topic = "/" + node_name + "/srv_device";
+    device_srv = nh.advertiseService(srv_device_topic,device_service);
     //Finish User Code: Initialization and Parameters
 
     //Start Template Code: Final Initialization.
