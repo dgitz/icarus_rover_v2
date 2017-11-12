@@ -34,7 +34,7 @@
     </link>
     <link name="camera_pan">
         <visual>
-            <origin rpy="0.0 0 0" xyz="0 0 0"/>
+            <origin rpy="0 0 3.14" xyz="0 0 0"/>
             <geometry>
                 <mesh filename="package://icarus_rover_v2/meshes/533016.stl" scale=".001 .001 .001"/>
             </geometry>
@@ -43,7 +43,7 @@
     </link>
     <link name="camera_tilt" >
     <visual>
-            <origin rpy="3.14159 1.57 0" xyz=".01 0 0"/>
+            <origin rpy="-1.57 1.57 0" xyz=".01 0 .005"/>
             <geometry>
                 <mesh filename="package://icarus_rover_v2/meshes/533017.stl" scale=".001 .001 .001"/>
             </geometry>
