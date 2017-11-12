@@ -76,35 +76,18 @@ icarus_rover_v2::diagnostic SimulateNodeProcess::update(double dt)
 		}
 		temp_pose.yaw.value -= M_PI;
 		pose_ready = true;
-		/*
+
 		double a1 = ((1-fabs(steer_command))*throttle_command)+throttle_command;
 		double a2 = -1.0*(((1-fabs(throttle_command))*steer_command)+steer_command);
 		left_wheelspeed_command = (a1-a2)/2.0;
 		right_wheelspeed_command = (a1+a2)/2.0;
-		double perfect_left_encoder = 2.0*left_wheelspeed_command*vehicle_params.maxspeed_mps*(vehicle_params.tirediameter_m); //rad/s
-		double perfect_right_encoder = 2.0*right_wheelspeed_command*vehicle_params.maxspeed_mps*(vehicle_params.tirediameter_m); //rad/s
+		double perfect_left_encoder = (vehicle_params.maxspeed_mps*left_wheelspeed_command)/(M_PI*vehicle_params.tirediameter_m);
+		double perfect_right_encoder = (vehicle_params.maxspeed_mps*left_wheelspeed_command)/(M_PI*vehicle_params.tirediameter_m);
 		
-		double d_left = (vehicle_params.tirediameter_m/2.0)*perfect_left_encoder;
-		double d_right = (vehicle_params.tirediameter_m/2.0)*perfect_right_encoder;
-		double d_center = (d_left+d_right)/2.0;
-		double theta_dot = (d_right-d_left)/vehicle_params.wheelbase_m;
-		temp_pose.yaw.value += (theta_dot);
-		temp_pose.yawrate.value = theta_dot/dt;
-		
-		temp_pose.yaw.value = fmod(temp_pose.yaw.value + M_PI,2*M_PI);
-		if(temp_pose.yaw.value < 0)	{	temp_pose.yaw.value += 2*M_PI;	}
-		temp_pose.yaw.value -= M_PI;
-		
-		double x_dot = d_center * cos(temp_pose.yaw.value);
-		double y_dot = d_center * sin(temp_pose.yaw.value);
+		left_encoder = perfect_left_encoder+get_rand()*0;
+		right_encoder = perfect_right_encoder+get_rand()*0;
+		//yaw_rate = 0+temp_pose.yawrate.value+get_rand()*0;
 
-		temp_pose.east.value += (x_dot);
-		temp_pose.north.value += (y_dot);
-		
-		left_encoder = perfect_left_encoder+get_rand()*.03;
-		right_encoder = perfect_right_encoder+get_rand()*.03;
-		yaw_rate = .05+temp_pose.yawrate.value+get_rand()*.06;
-		*/
 
 		
 		
