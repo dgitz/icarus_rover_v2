@@ -9,12 +9,24 @@
 bool device_service(icarus_rover_v2::srv_device::Request &req,
 				icarus_rover_v2::srv_device::Response &res)
 {
-	res.data.push_back(myDevice);
-	for(int i = 0; i < devices_to_publish.size(); i++)
+	if(req.query == "SELF")
 	{
-		res.data.push_back(devices_to_publish.at(i));
+		res.data.push_back(myDevice);
+		return true;
 	}
-	return true;
+	else if(std::string::npos != req.query.find("DeviceType="))
+	{
+		std::string devicetype = req.query.substr(11,req.query.size());
+		for(std::size_t i = 0; i < devices_to_publish.size(); i++)
+		{
+			if(devices_to_publish.at(i).DeviceType == devicetype)
+			{
+				res.data.push_back(devices_to_publish.at(i));
+			}
+		}
+		return true;
+	}
+	return false;
 }
 bool run_loop1_code()
 {
@@ -540,6 +552,16 @@ bool parse_devicefile(TiXmlDocument doc)
 	            if ( NULL != l_pDeviceType )
 	            {
 	                newDevice.DeviceType = l_pDeviceType->GetText();
+	            }
+
+	            TiXmlElement *l_pDevicePN = l_pDevice->FirstChildElement("PartNumber");
+	            if( NULL != l_pDevicePN)
+	            {
+	            	newDevice.PartNumber = l_pDevicePN->GetText();
+	            }
+	            else
+	            {
+	            	newDevice.PartNumber = "";
 	            }
 
 	            TiXmlElement *l_pDevicePrimaryIP = l_pDevice->FirstChildElement( "PrimaryIP" );

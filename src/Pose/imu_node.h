@@ -27,6 +27,11 @@
 
 //Start User Code: Includes
 #include "imu_node_process.h"
+#include <boost/thread.hpp>
+#include <unistd.h>     // UNIX standard function definitions
+#include <fcntl.h>      // File control definitions
+#include <errno.h>      // Error number definitions
+#include <termios.h>    // POSIX terminal control definitions
 //End User Code: Includes
 
 //Start User Code: Data Structures
@@ -37,7 +42,7 @@ bool initialize(ros::NodeHandle nh);
 void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg);
 void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg);
 double measure_time_diff(ros::Time timer_a, ros::Time tiber_b);
-bool new_devicemsg(icarus_rover_v2::device device);
+bool new_devicemsg(std::string query,icarus_rover_v2::device device);
 //void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg);
 void Command_Callback(const icarus_rover_v2::command& msg);
 std::vector<icarus_rover_v2::diagnostic> check_program_variables();
@@ -49,6 +54,7 @@ void signalinterrupt_handler(int sig);
 //End Template Code: Function Prototypes
 
 //Start User Code: Function Prototypes
+void process_serial_receive();
 //End User Code: Function Prototypes
 
 //Start Template Code: Define Global variables
@@ -89,6 +95,9 @@ double ros_rate;
 //End Template Code: Define Global Variables
 
 //Start User Code: Define Global Variables
+ros::Publisher imu_pub;
+bool sensors_initialized;
 IMUNodeProcess *process;
+int serial_device;
 //End User Code: Define Global Variables
 #endif

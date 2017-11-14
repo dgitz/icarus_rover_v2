@@ -118,7 +118,7 @@ bool run_loop3_code()
 		}
 		else
 		{
-			printf("No Comm with device.\n");
+			printf("[BoardControllerNode]: No Comm with device.\n");
 		}
 	}
  	return true;

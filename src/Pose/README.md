@@ -27,6 +27,9 @@ Added all code, documentation.
 
 B. imu_node
 Usage: This node should be run on any device that has an IMU installed.  Only 1 instance of this node per device is supported.
+
+Supported Sensors: 
+  110012
 Configuration:
 
 Purpose: Outputs high rate imu data from different sensors

@@ -5,12 +5,55 @@
 #define IMUNODE_BUILD_NUMBER 0
 //End User Code: Firmware Definition
 //Start User Code: Functions
+void process_serial_receive()
+{
+	while(kill_node == 0)
+	{
+		int n = 0;
+		int spot = 0;
+		char buf = '\0';
+		char response[1024];
+		memset(response, '\0', sizeof response);
+		do
+		{
+			if(kill_node) { break; }
+			n = read( serial_device, &buf, 1 );
+			sprintf( &response[spot], "%c", buf );
+			spot += n;
+		} while( buf != '\r' && n > 0);
+
+		if(kill_node == 0)
+		{
+			if (n < 0)
+			{
+				std::cout << "Error reading: " << strerror(errno) << std::endl;
+			}
+			else if (n == 0)
+			{
+				std::cout << "Read nothing!" << std::endl;
+			}
+			else
+			{
+				//printf("Got: %s\n",response);
+				bool status = process->new_message(std::string(response));
+				printf("processed: %d\n",status);
+			}
+		}
+	}
+	close(serial_device);
+}
 bool run_loop1_code()
 {
+	process->update(1/loop1_rate);
 	return true;
 }
 bool run_loop2_code()
 {
+	if(process->imudata_ready(0))
+		{
+			icarus_rover_v2::imu imu_msg = process->get_imudata(0);
+			imu_pub.publish(imu_msg);
+		}
  	return true;
 }
 bool run_loop3_code()
@@ -30,8 +73,9 @@ void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg)
 }
 void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
+	printf("Delayed rate: %f count: %d\n",process->get_delayrate(),process->get_delayedcounter());
 	received_pps = true;
-    if(device_initialized == true)
+    if((device_initialized == true) and (sensors_initialized == true))
 	{
 		icarus_rover_v2::diagnostic resource_diagnostic = resourcemonitor->update();
 		if(resource_diagnostic.Diagnostic_Message == DEVICE_NOT_AVAILABLE)
@@ -53,13 +97,30 @@ void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 	}
     else
     {
-    	icarus_rover_v2::srv_device srv;
-    	srv.request.req = true;
-    	if(srv_device.call(srv) == true)
     	{
-    		for(std::size_t i = 0; i < srv.response.data.size();i++)
+			icarus_rover_v2::srv_device srv;
+			srv.request.query = "SELF";
+			if(srv_device.call(srv) == true)
+			{
+				if(srv.response.data.size() != 1)
+				{
+					logger->log_error("Got unexpected device message");
+				}
+				else
+				{
+					bool status = new_devicemsg(srv.request.query,srv.response.data.at(0));
+				}
+			}
+    	}
+    	{
+    		icarus_rover_v2::srv_device srv;
+    		srv.request.query = "DeviceType=Sensor";
+    		if(srv_device.call(srv) == true)
     		{
-    			bool status = new_devicemsg(srv.response.data.at(i));
+    			for(std::size_t i = 0; i < srv.response.data.size(); i++)
+    			{
+    				bool status = new_devicemsg(srv.request.query,srv.response.data.at(i));
+    			}
     		}
     	}
     }
@@ -150,6 +211,7 @@ int main(int argc, char **argv)
 	boot_time = ros::Time::now();
     last_10Hz_timer = ros::Time::now();
     double mtime;
+    boost::thread process_serialreceive_thread(&process_serial_receive);
     while (ros::ok() && (kill_node == 0))
     {
     	bool ok_to_start = false;
@@ -199,6 +261,8 @@ int main(int argc, char **argv)
 		ros::spinOnce();
 		loop_rate.sleep();
     }
+    process_serialreceive_thread.join();
+
     logger->log_notice("Node Finished Safely.");
     return 0;
 }
@@ -308,8 +372,37 @@ bool initialize(ros::NodeHandle nh)
     //End Template Code: Initialization and Parameters
 
     //Start User Code: Initialization and Parameters
+   	imu_pub =  nh.advertise<icarus_rover_v2::imu>("/imu",1);
     process = new IMUNodeProcess;
 	diagnostic_status = process->init(diagnostic_status,std::string(hostname));
+	sensors_initialized = false;
+	serial_device = open("/dev/ttyUSB0",O_RDWR | O_NOCTTY);
+	struct termios tty;
+	memset(&tty,0,sizeof tty);
+	if(tcgetattr(serial_device,&tty) != 0 )
+	{
+		std::cout << "Error: " << errno << " from tcgetattr: " << strerror(errno) << std::endl;
+	}
+	cfsetospeed(&tty,(speed_t)B115200);
+	cfsetispeed(&tty,(speed_t)B115200);
+	/* Setting other Port Stuff */
+	tty.c_cflag     &=  ~PARENB;            // Make 8n1
+	tty.c_cflag     &=  ~CSTOPB;
+	tty.c_cflag     &=  ~CSIZE;
+	tty.c_cflag     |=  CS8;
+
+	tty.c_cflag     &=  ~CRTSCTS;           // no flow control
+	tty.c_cc[VMIN]   =  1;                  // read doesn't block
+	tty.c_cc[VTIME]  =  5;                  // 0.5 seconds read timeout
+	tty.c_cflag     |=  CREAD | CLOCAL;     // turn on READ & ignore ctrl lines
+
+	/* Make raw */
+	cfmakeraw(&tty);
+	tcflush( serial_device, TCIFLUSH );
+	if ( tcsetattr ( serial_device, TCSANOW, &tty ) != 0) {
+	   std::cout << "Error " << errno << " from tcsetattr" << std::endl;
+	}
+
     //Finish User Code: Initialization and Parameters
 
     //Start Template Code: Final Initialization.
@@ -328,13 +421,26 @@ double measure_time_diff(ros::Time timer_a, ros::Time timer_b)
 	ros::Duration etime = timer_a - timer_b;
 	return etime.toSec();
 }
-bool new_devicemsg(icarus_rover_v2::device device)
+bool new_devicemsg(std::string query,icarus_rover_v2::device device)
 {
-	if((device.DeviceName == hostname))
+	if(query == "SELF")
 	{
-		myDevice = device;
-		resourcemonitor = new ResourceMonitor(diagnostic_status,myDevice.Architecture,myDevice.DeviceName,node_name);
-		device_initialized = true;;
+		if((device.DeviceName == hostname))
+		{
+			myDevice = device;
+			resourcemonitor = new ResourceMonitor(diagnostic_status,myDevice.Architecture,myDevice.DeviceName,node_name);
+			process->set_mydevice(device);
+			device_initialized = true;
+		}
+	}
+
+	if((device_initialized == true) and (sensors_initialized == false))
+	{
+		icarus_rover_v2::diagnostic diag = process->new_devicemsg(device);
+		if(process->get_sensors().size() == myDevice.SensorCount)
+		{
+			sensors_initialized = true;
+		}
 	}
 	return true;
 }

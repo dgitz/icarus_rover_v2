@@ -1,13 +1,14 @@
 Header header
+float32 tov
 #linear acc
-int32 xacc
-int32 yacc
-int32 zacc
+signal xacc
+signal yacc
+signal zacc
 #gyro
-int32 xgyro
-int32 ygyro
-int32 zgyro
+signal xgyro
+signal ygyro
+signal zgyro
 #magnetic field
-int32 xmag  
-int32 ymag
-int32 zmag
+signal xmag  
+signal ymag
+signal zmag
