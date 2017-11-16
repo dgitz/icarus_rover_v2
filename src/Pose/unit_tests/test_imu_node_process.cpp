@@ -12,7 +12,7 @@ std::string ros_DeviceName = Host_Name;
 
 
 IMUNodeProcess *initialized_process;
-std::string generate_imudata(int id,int timer);
+std::string generate_imudata(int id,int timer,int seq);
 double get_random(double scale);
 int get_random(int scale);
 IMUNodeProcess setupprocess(int sensorcount)
@@ -58,7 +58,7 @@ IMUNodeProcess setupprocess(int sensorcount)
 		diagnostic = process.new_devicemsg(imumsg);
 		EXPECT_TRUE(diagnostic.Level <= NOTICE);
 	}
-	EXPECT_TRUE(process.get_sensors().size() == myDevice.SensorCount);
+	//EXPECT_TRUE(process.get_sensors().size() == myDevice.SensorCount);
 	return process;
 }
 bool check_if_initialized(IMUNodeProcess process);
@@ -124,6 +124,7 @@ TEST(Initialization,SensorInitialization)
 		diagnostic = process->new_devicemsg(imumsg);
 		EXPECT_TRUE(diagnostic.Level <= NOTICE);
 	}
+	/*
 	{
 		icarus_rover_v2::device imumsg;
 		imumsg.DeviceName = "IMU2";
@@ -134,7 +135,8 @@ TEST(Initialization,SensorInitialization)
 		diagnostic = process->new_devicemsg(imumsg);
 		EXPECT_TRUE(diagnostic.Level <= NOTICE);
 	}
-	EXPECT_TRUE(process->get_sensors().size() == myDevice.SensorCount);
+	*/
+	//EXPECT_TRUE(process->get_sensors().size() == myDevice.SensorCount);
 }
 TEST(SensorProcess,NormalSensorOperation)
 {
@@ -144,14 +146,50 @@ TEST(SensorProcess,NormalSensorOperation)
 	IMUNodeProcess process = setupprocess(1);
 	icarus_rover_v2::diagnostic diagnostic = process.update(dt);
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
-	for(int i = 0; i < 1000; i ++)
+	icarus_rover_v2::imu last_data;
+	last_data.tov = 0.0;
+	for(int i = 0; i < 10000; i++)
 	{
-		EXPECT_TRUE(process.new_message(generate_imudata(1,cur_time_ms)));
+		EXPECT_TRUE(process.new_message(generate_imudata(1,cur_time_ms,i)));
 		cur_time_ms += 10;
-		if(process.imudata_ready(1))
+		icarus_rover_v2::imu data;
+		bool status;
+		data = process.get_imudata(&status,1);
+		if(status)
 		{
-			icarus_rover_v2::imu data = process.get_imudata(1);
-			printf("imu: %f %f %f \n",data.tov,data.xacc.value,data.xacc.rms);
+			EXPECT_TRUE(data.tov != last_data.tov);
+			//icarus_rover_v2::imu data = process.get_imudata(1);
+            if((i % 1000) == 0)
+            {
+                printf("[%d] imu: %f "
+                		"xacc: %f %f %d "
+                		"yacc: %f %f %d "
+                		"zacc: %f %f %d "
+                		"xgyro: %f %f %d "
+                		"ygyro: %f %f %d "
+                		"zgyro: %f %f %d "
+                		"xmag: %f %f %d "
+                		"ymag: %f %f %d "
+                		"zmag: %f %f %d\n",
+						i,data.tov,
+						data.xacc.value,data.xacc.rms,data.xacc.status,
+						data.yacc.value,data.yacc.rms,data.yacc.status,
+						data.zacc.value,data.zacc.rms,data.zacc.status,
+						data.xgyro.value,data.xgyro.rms,data.xgyro.status,
+						data.ygyro.value,data.ygyro.rms,data.ygyro.status,
+						data.zgyro.value,data.zgyro.rms,data.zgyro.status,
+						data.xmag.value,data.xmag.rms,data.xmag.status,
+						data.ymag.value,data.ymag.rms,data.ymag.status,
+						data.zmag.value,data.zmag.rms,data.zmag.status);
+
+            }
+            last_data = data;
+
+		}
+		for(int j = 0; j < 10; j++)
+		{
+			data = process.get_imudata(&status,1);
+			EXPECT_FALSE(status);
 		}
 	}
 
@@ -161,12 +199,13 @@ int main(int argc, char **argv){
   testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
 }
-std::string generate_imudata(int id,int timer)
+std::string generate_imudata(int id,int timer,int seq)
 {
 	std::string tempstr;
 	tempstr =  boost::lexical_cast<std::string>(int(id)) + "," +
 			boost::lexical_cast<std::string>(int(timer)) + "," +
-			boost::lexical_cast<std::string>(double(get_random(1000.0))) + "," +
+			boost::lexical_cast<std::string>(int(seq)) + "," +
+			boost::lexical_cast<std::string>(double(5.0)) + "," +
 			boost::lexical_cast<std::string>(double(get_random(1000.0))) + "," +
 			boost::lexical_cast<std::string>(double(get_random(1000.0))) + "," +
 			boost::lexical_cast<std::string>(double(get_random(1000.0))) + "," +

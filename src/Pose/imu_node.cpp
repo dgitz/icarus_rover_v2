@@ -10,9 +10,9 @@ void process_serial_receive()
 	while(kill_node == 0)
 	{
 		int n = 0;
+		char response[1024];
 		int spot = 0;
 		char buf = '\0';
-		char response[1024];
 		memset(response, '\0', sizeof response);
 		do
 		{
@@ -21,7 +21,6 @@ void process_serial_receive()
 			sprintf( &response[spot], "%c", buf );
 			spot += n;
 		} while( buf != '\r' && n > 0);
-
 		if(kill_node == 0)
 		{
 			if (n < 0)
@@ -36,8 +35,8 @@ void process_serial_receive()
 			{
 				//printf("Got: %s\n",response);
 				bool status = process->new_message(std::string(response));
-				printf("processed: %d\n",status);
 			}
+			//printf("processed: %d\n",status);
 		}
 	}
 	close(serial_device);
@@ -49,11 +48,28 @@ bool run_loop1_code()
 }
 bool run_loop2_code()
 {
-	if(process->imudata_ready(0))
+	try
+	{
+		bool status;
+
+
+		icarus_rover_v2::imu imu_msg = process->get_imudata(&status,0);
+		if(status)
 		{
-			icarus_rover_v2::imu imu_msg = process->get_imudata(0);
-			imu_pub.publish(imu_msg);
+			if(imu_msg.tov != last_imu.tov)
+			{
+				//printf("s: %f\n",imu_msg.tov);
+				imu_msg.header.stamp = ros::Time::now();
+				imu_pub.publish(imu_msg);
+			}
+			last_imu = imu_msg;
 		}
+	}
+	catch(int e)
+	{
+		std::cout << "An error occurred: imudata_ready: " << e << std::endl;
+	}
+        
  	return true;
 }
 bool run_loop3_code()
@@ -73,7 +89,13 @@ void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg)
 }
 void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
-	printf("Delayed rate: %f count: %d\n",process->get_delayrate(),process->get_delayedcounter());
+	if(process->get_delayedcounter() > 5)
+	{
+		char tempstr[512];
+		sprintf(tempstr,"IMU TOV was delayed: %d times",process->get_delayedcounter());
+		logger->log_warn(std::string(tempstr));
+	}
+	//printf("Delayed rate: %f count: %d\n",process->get_delayrate(),process->get_delayedcounter());
 	received_pps = true;
     if((device_initialized == true) and (sensors_initialized == true))
 	{
@@ -372,6 +394,8 @@ bool initialize(ros::NodeHandle nh)
     //End Template Code: Initialization and Parameters
 
     //Start User Code: Initialization and Parameters
+    last_imu.tov == 0.0;
+    imu_ready_to_publish = false;
    	imu_pub =  nh.advertise<icarus_rover_v2::imu>("/imu",1);
     process = new IMUNodeProcess;
 	diagnostic_status = process->init(diagnostic_status,std::string(hostname));
@@ -423,6 +447,7 @@ double measure_time_diff(ros::Time timer_a, ros::Time timer_b)
 }
 bool new_devicemsg(std::string query,icarus_rover_v2::device device)
 {
+
 	if(query == "SELF")
 	{
 		if((device.DeviceName == hostname))
@@ -437,7 +462,7 @@ bool new_devicemsg(std::string query,icarus_rover_v2::device device)
 	if((device_initialized == true) and (sensors_initialized == false))
 	{
 		icarus_rover_v2::diagnostic diag = process->new_devicemsg(device);
-		if(process->get_sensors().size() == myDevice.SensorCount)
+		if(process->get_initialized() == true)
 		{
 			sensors_initialized = true;
 		}

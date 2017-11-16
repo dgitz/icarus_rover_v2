@@ -95,9 +95,11 @@ double ros_rate;
 //End Template Code: Define Global Variables
 
 //Start User Code: Define Global Variables
+bool imu_ready_to_publish;
 ros::Publisher imu_pub;
 bool sensors_initialized;
 IMUNodeProcess *process;
 int serial_device;
+icarus_rover_v2::imu last_imu;
 //End User Code: Define Global Variables
 #endif
