@@ -24,3 +24,22 @@ Simulated using Octave-GUI: C:\SharedDrive\Dropbox\ICARUS\RoverV2\SIMULATION\Pos
 Documentation History:
 29-June-2017
 Added all code, documentation.  
+
+B. imu_node
+Usage: This node should be run on any device that has an IMU installed.  Only 1 instance of this node per device is supported.
+
+Supported Sensors: 
+  110012
+Configuration:
+
+Purpose: Outputs high rate imu data from different sensors
+
+Unit Tests:
+1. Process Unit Tests:
+  >>catkin_make run_tests_icarus_rover_v2_gtest_test_imu_node_process
+  
+Loops:
+
+Documentation History:
+12-Nov-2017
+Created node.

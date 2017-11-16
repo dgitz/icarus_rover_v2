@@ -78,11 +78,10 @@ add_message_files(
 )
 
 ## Generate services in the 'srv' folder
-# add_service_files(
-#   FILES
-#   Service1.srv
-#   Service2.srv
-# )
+ add_service_files(
+   FILES
+   srv_device.srv
+ )
 
 ## Generate actions in the 'action' folder
 # add_action_files(
@@ -159,6 +158,7 @@ include_directories(
 ## as an example, code may need to be generated before libraries
 ## either from message generation or dynamic reconfigure
 # add_dependencies(icarus_rover_v2 ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
 
 ## Declare a C++ executable
 # add_executable(icarus_rover_v2_node src/icarus_rover_v2_node.cpp)
@@ -237,6 +237,7 @@ add_library(pose_node_process src/Pose/pose_node_process.cpp)
 add_library(autodrive_node_process src/Control/autodrive_node_process.cpp)
 add_library(boardcontroller_node_process src/Board/boardcontroller_node_process.cpp)
 add_library(commandlauncher_node_process src/Control/commandlauncher_node_process.cpp)
+add_library(imu_node_process src/Pose/imu_node_process.cpp)
 add_library(simulate_node_process src/Simulate/simulate_node_process.cpp)
 
 add_executable(sample_node src_templates/sample_node.cpp)
@@ -310,3 +311,8 @@ add_executable(simulate_node src/Simulate/simulate_node.cpp)
 target_link_libraries(simulate_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor simulate_node_process)
 catkin_add_gtest(test_simulate_node_process src/Simulate/unit_tests/test_simulate_node_process.cpp)
 target_link_libraries(test_simulate_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} simulate_node_process logger)
+
+add_executable(imu_node src/Pose/imu_node.cpp)
+target_link_libraries(imu_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor imu_node_process)
+catkin_add_gtest(test_imu_node_process src/Pose/unit_tests/test_imu_node_process.cpp)
+target_link_libraries(test_imu_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} imu_node_process logger)

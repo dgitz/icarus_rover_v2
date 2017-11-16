@@ -1,5 +1,6 @@
 #device
 string DeviceParent
+string PartNumber
 string DeviceName
 string DeviceType
 string PrimaryIP

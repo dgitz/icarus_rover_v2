@@ -1,144 +1,103 @@
-#include "boardcontroller_node.h"
+#include "imu_node.h"
 //Start User Code: Firmware Definition
-#define BOARDCONTROLLERNODE_MAJOR_RELEASE 0
-#define BOARDCONTROLLERNODE_MINOR_RELEASE 0
-#define BOARDCONTROLLERNODE_BUILD_NUMBER 0
+#define IMUNODE_MAJOR_RELEASE 0
+#define IMUNODE_MINOR_RELEASE 0
+#define IMUNODE_BUILD_NUMBER 0
 //End User Code: Firmware Definition
 //Start User Code: Functions
+void process_serial_receive()
+{
+	while(kill_node == 0)
+	{
+		int n = 0;
+		char response[1024];
+		int spot = 0;
+		char buf = '\0';
+		memset(response, '\0', sizeof response);
+		do
+		{
+			if(kill_node) { break; }
+			n = read( serial_device, &buf, 1 );
+			sprintf( &response[spot], "%c", buf );
+			spot += n;
+		} while( buf != '\r' && n > 0);
+		if(kill_node == 0)
+		{
+			if (n < 0)
+			{
+				std::cout << "Error reading: " << strerror(errno) << std::endl;
+			}
+			else if (n == 0)
+			{
+				std::cout << "Read nothing!" << std::endl;
+			}
+			else
+			{
+				//printf("Got: %s\n",response);
+				bool status = process->new_message(std::string(response));
+			}
+			//printf("processed: %d\n",status);
+		}
+	}
+	close(serial_device);
+}
 bool run_loop1_code()
 {
-	{
-		icarus_rover_v2::diagnostic diag = process->send_querymessage(SPIMessageHandler::SPI_Get_ANA_Port1_ID);
-		if(diag.Level >= WARN)
-		{
-			diagnostic_pub.publish(diag);
-			logger->log_diagnostic(diag);
-		}
-	}
-	/*
-	{
-		icarus_rover_v2::diagnostic diag = process->send_querymessage(SPIMessageHandler::SPI_Get_DIO_Port1_ID);
-		if(diag.Level >= WARN)
-		{
-			diagnostic_pub.publish(diag);
-			logger->log_diagnostic(diag);
-		}
-	}
-	*/
+	process->update(1/loop1_rate);
 	return true;
 }
 bool run_loop2_code()
 {
-	icarus_rover_v2::diagnostic diag = process->update(measure_time_diff(ros::Time::now(),last_loop2_timer));
-	if(diag.Level >= WARN)
+	try
 	{
-		diagnostic_pub.publish(diag);
-		logger->log_diagnostic(diag);
-	}
-	std::vector<Sensor> sensors = process->get_sensordata();
-	for(std::size_t i = 0; i < sensors.size(); i++)
-	{
-		for(std::size_t j = 0; j < analog_sensor_names.size(); j++)
+		bool status;
+
+
+		icarus_rover_v2::imu imu_msg = process->get_imudata(&status,0);
+		if(status)
 		{
-			if(analog_sensor_names.at(j) == sensors.at(i).name)
+			if(imu_msg.tov != last_imu.tov)
 			{
-				std_msgs::Float32 v;
-				v.data = sensors.at(i).value;
-				analog_sensor_pubs.at(j).publish(v);
+				//printf("s: %f\n",imu_msg.tov);
+				imu_msg.header.stamp = ros::Time::now();
+				imu_pub.publish(imu_msg);
 			}
+			last_imu = imu_msg;
 		}
 	}
+	catch(int e)
+	{
+		std::cout << "An error occurred: imudata_ready: " << e << std::endl;
+	}
+        
  	return true;
 }
 bool run_loop3_code()
 {
-	std::vector<Message> querymessages_tosend = process->get_querymessages_tosend();
-	for(std::size_t i = 0; i < querymessages_tosend.size(); i++)
-	{
-		unsigned char inputbuffer[12];
-		int passed_checksum_calc = sendMessageQuery(querymessages_tosend.at(i).id,inputbuffer);
-		process->new_message_sent(querymessages_tosend.at(i).id);
-		if(passed_checksum_calc > 0)
-		{
-			passed_checksum++;
-
-			int length;
-			int success;
-			unsigned char v1,v2,v3,v4,v5,v6,v7,v8,v9,v10,v11,v12;
-			uint16_t a1,a2,a3,a4,a5,a6;
-			icarus_rover_v2::diagnostic diag;
-			switch(querymessages_tosend.at(i).id)
-			{
-				case SPIMessageHandler::SPI_TestMessageCounter_ID:
-					success = spimessagehandler->decode_TestMessageCounterSPI(inputbuffer,&length,&v1,&v2,&v3,&v4,&v5,&v6,&v7,&v8,&v9,&v10,&v11,&v12);
-					if(success == 1)
-					{
-						process->new_message_recv(querymessages_tosend.at(i).id);
-						diag = process->new_message_TestMessageCounter(BOARD_ID,v1,v2,v3,v4,v5,v6,v7,v8,v9,v10,v11,v12);
-						if(diag.Level >= WARN)
-						{
-							diagnostic_pub.publish(diag);
-							logger->log_diagnostic(diag);
-						}
-					}
-					break;
-				case SPIMessageHandler::SPI_Get_ANA_Port1_ID:
-					success = spimessagehandler->decode_Get_ANA_Port1SPI(inputbuffer,&length,&a1,&a2,&a3,&a4,&a5,&a6);
-					if(success == 1)
-					{
-						process->new_message_recv(querymessages_tosend.at(i).id);
-						diag = process->new_message_GetANAPort1(BOARD_ID,a1,a2,a3,a4,a5,a6);
-						if(diag.Level >= WARN)
-						{
-							diagnostic_pub.publish(diag);
-							logger->log_diagnostic(diag);
-						}
-					}
-					break;
-				case SPIMessageHandler::SPI_Get_DIO_Port1_ID:
-					success = spimessagehandler->decode_Get_DIO_Port1SPI(inputbuffer,&length,&v1,&v2,&v3,&v4,&v5,&v6,&v7,&v8);
-					if(success == 1)
-					{
-						process->new_message_recv(querymessages_tosend.at(i).id);
-						diag = process->new_message_GetDIOPort1(BOARD_ID,v1,v2,v3,v4,v5,v6,v7,v8);
-						if(diag.Level >= WARN)
-						{
-							diagnostic_pub.publish(diag);
-							logger->log_diagnostic(diag);
-						}
-					}
-					break;
-				default:
-					break;
-			}
-		}
-		else if(passed_checksum_calc == 0)
-		{
-			failed_checksum++;
-		}
-		else
-		{
-			printf("[BoardControllerNode]: No Comm with device.\n");
-		}
-	}
  	return true;
 }
-
 void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
 	icarus_rover_v2::firmware fw;
-	fw.Generic_Node_Name = "boardcontroller_node";
+	fw.Generic_Node_Name = "imu_node";
 	fw.Node_Name = node_name;
-	fw.Description = "Latest Rev: 14-Sep-2017";
-	fw.Major_Release = BOARDCONTROLLERNODE_MAJOR_RELEASE;
-	fw.Minor_Release = BOARDCONTROLLERNODE_MINOR_RELEASE;
-	fw.Build_Number = BOARDCONTROLLERNODE_BUILD_NUMBER;
+	fw.Description = "Latest Rev: 12-November-2017";
+	fw.Major_Release = IMUNODE_MAJOR_RELEASE;
+	fw.Minor_Release = IMUNODE_MINOR_RELEASE;
+	fw.Build_Number = IMUNODE_BUILD_NUMBER;
 	firmware_pub.publish(fw);
 }
 void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
+	if(process->get_delayedcounter() > 5)
+	{
+		char tempstr[512];
+		sprintf(tempstr,"IMU TOV was delayed: %d times",process->get_delayedcounter());
+		logger->log_warn(std::string(tempstr));
+	}
+	//printf("Delayed rate: %f count: %d\n",process->get_delayrate(),process->get_delayedcounter());
 	received_pps = true;
-    if(device_initialized == true)
+    if((device_initialized == true) and (sensors_initialized == true))
 	{
 		icarus_rover_v2::diagnostic resource_diagnostic = resourcemonitor->update();
 		if(resource_diagnostic.Diagnostic_Message == DEVICE_NOT_AVAILABLE)
@@ -158,22 +117,35 @@ void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 			resource_pub.publish(resources_used);
 		}
 	}
-    /*
+    else
     {
-    	icarus_rover_v2::diagnostic diag = process->send_querymessage(SPIMessageHandler::SPI_TestMessageCounter_ID);
-    	if(diag.Level >= WARN)
     	{
-    		diagnostic_pub.publish(diag);
-    		logger->log_diagnostic(diag);
+			icarus_rover_v2::srv_device srv;
+			srv.request.query = "SELF";
+			if(srv_device.call(srv) == true)
+			{
+				if(srv.response.data.size() != 1)
+				{
+					logger->log_error("Got unexpected device message");
+				}
+				else
+				{
+					bool status = new_devicemsg(srv.request.query,srv.response.data.at(0));
+				}
+			}
+    	}
+    	{
+    		icarus_rover_v2::srv_device srv;
+    		srv.request.query = "DeviceType=Sensor";
+    		if(srv_device.call(srv) == true)
+    		{
+    			for(std::size_t i = 0; i < srv.response.data.size(); i++)
+    			{
+    				bool status = new_devicemsg(srv.request.query,srv.response.data.at(i));
+    			}
+    		}
     	}
     }
-	*/
-    char tempstr[512];
-    sprintf(tempstr,"Passed Checksum: %d @ %f Failed Checksum: %d @ %f",
-    		passed_checksum,passed_checksum/(measure_time_diff(ros::Time::now(),boot_time)),
-			failed_checksum,failed_checksum/(measure_time_diff(ros::Time::now(),boot_time)));
-    logger->log_info(tempstr);
-    logger->log_info(process->get_messageinfo(false));
 }
 std::vector<icarus_rover_v2::diagnostic> check_program_variables()
 {
@@ -228,61 +200,6 @@ void Command_Callback(const icarus_rover_v2::command::ConstPtr& msg)
 		}
 	}
 }
-int spiTxRx(unsigned char txDat)
-{
-  unsigned char rxDat;
-  struct spi_ioc_transfer spi;
-  memset (&spi, 0, sizeof (spi));
-  spi.tx_buf        = (unsigned long)&txDat;
-  spi.rx_buf        = (unsigned long)&rxDat;
-  spi.len           = 1;
-  ioctl (spi_device, SPI_IOC_MESSAGE(1), &spi);
-  return rxDat;
-}
-int sendMessageQuery(unsigned char query, unsigned char * inputbuffer)
-{
-	unsigned char resultByte;
-	bool ack;
-	int wait_time_us = 1;
-	int counter = 0;
-	do
-	{
-		ack = false;
-		spiTxRx(0xAB);
-		usleep (wait_time_us);
-		resultByte = spiTxRx(query);
-		if (resultByte == 'a')
-		{
-			ack = true;
-		}
-		else { counter++; }
-		if(counter > 10000)
-		{
-			logger->log_fatal("No com with device after %d tries.");
-			return -1;
-		}
-		usleep (wait_time_us);
-	}
-	while (ack == false);
-	usleep(wait_time_us);
-	resultByte = spiTxRx(0);
-	usleep(wait_time_us);
-	unsigned char v;
-	unsigned char running_checksum = 0;
-	for(int i = 0; i < 12; i++)
-	{
-		v = spiTxRx(0);
-		running_checksum ^= v;
-		inputbuffer[i] = v;
-		usleep(wait_time_us);
-
-	}
-	resultByte = spiTxRx(0);
-	usleep(wait_time_us);
-	if(resultByte == running_checksum) { return 1; }
-	else { return 0; }
-}
-
 //End User Code: Functions
 bool run_10Hz_code()
 {
@@ -297,13 +214,12 @@ bool run_10Hz_code()
 }
 int main(int argc, char **argv)
 {
-	node_name = "boardcontroller_node";
+	node_name = "imu_node";
     ros::init(argc, argv, node_name);
-    n.reset(new ros::NodeHandle);
     node_name = ros::this_node::getName();
     ros::NodeHandle n;
     
-    if(initializenode() == false)
+    if(initialize(n) == false)
     {
         logger->log_fatal("Unable to Initialize.  Exiting.");
     	diagnostic_status.Diagnostic_Type = SOFTWARE;
@@ -317,6 +233,7 @@ int main(int argc, char **argv)
 	boot_time = ros::Time::now();
     last_10Hz_timer = ros::Time::now();
     double mtime;
+    boost::thread process_serialreceive_thread(&process_serial_receive);
     while (ros::ok() && (kill_node == 0))
     {
     	bool ok_to_start = false;
@@ -366,10 +283,12 @@ int main(int argc, char **argv)
 		ros::spinOnce();
 		loop_rate.sleep();
     }
+    process_serialreceive_thread.join();
+
     logger->log_notice("Node Finished Safely.");
     return 0;
 }
-bool initializenode()
+bool initialize(ros::NodeHandle nh)
 {
     //Start Template Code: Initialization, Parameters and Topics
 	kill_node = 0;
@@ -380,7 +299,7 @@ bool initializenode()
     hostname[1023] = '\0';
     gethostname(hostname,1023);
     std::string diagnostic_topic = "/" + node_name + "/diagnostic";
-	diagnostic_pub =  n->advertise<icarus_rover_v2::diagnostic>(diagnostic_topic,1000);
+	diagnostic_pub =  nh.advertise<icarus_rover_v2::diagnostic>(diagnostic_topic,1000);
     diagnostic_status.DeviceName = hostname;
 	diagnostic_status.Node_Name = node_name;
 	diagnostic_status.System = ROVER;
@@ -394,10 +313,10 @@ bool initializenode()
 	diagnostic_pub.publish(diagnostic_status);
 
 	std::string resource_topic = "/" + node_name + "/resource";
-	resource_pub = n->advertise<icarus_rover_v2::resource>(resource_topic,1000);
+	resource_pub = nh.advertise<icarus_rover_v2::resource>(resource_topic,1000);
 
     std::string param_verbosity_level = node_name +"/verbosity_level";
-    if(n->getParam(param_verbosity_level,verbosity_level) == false)
+    if(nh.getParam(param_verbosity_level,verbosity_level) == false)
     {
         logger = new Logger("WARN",ros::this_node::getName());
         logger->log_warn("Missing Parameter: verbosity_level");
@@ -409,25 +328,28 @@ bool initializenode()
     }
     
     std::string heartbeat_topic = "/" + node_name + "/heartbeat";
-    heartbeat_pub = n->advertise<icarus_rover_v2::heartbeat>(heartbeat_topic,1000);
+    heartbeat_pub = nh.advertise<icarus_rover_v2::heartbeat>(heartbeat_topic,1000);
     beat.Node_Name = node_name;
-    std::string device_topic = "/" + std::string(hostname) +"_master_node/device";
-    device_sub = n->subscribe<icarus_rover_v2::device>(device_topic,1000,Device_Callback);
-    pps01_sub = n->subscribe<std_msgs::Bool>("/01PPS",1000,PPS01_Callback);
-    pps1_sub = n->subscribe<std_msgs::Bool>("/1PPS",1000,PPS1_Callback);
-    command_sub = n->subscribe<icarus_rover_v2::command>("/command",1000,Command_Callback);
+    std::string device_topic = "/" + std::string(hostname) + "_master_node/srv_device";
+    srv_device = nh.serviceClient<icarus_rover_v2::srv_device>(device_topic);
+
+    //std::string device_topic = "/" + std::string(hostname) +"_master_node/device";
+    //device_sub = nh.subscribe<icarus_rover_v2::device>(device_topic,1000,Device_Callback);
+    pps01_sub = nh.subscribe<std_msgs::Bool>("/01PPS",1000,PPS01_Callback); 
+    pps1_sub = nh.subscribe<std_msgs::Bool>("/1PPS",1000,PPS1_Callback); 
+    command_sub = nh.subscribe<icarus_rover_v2::command>("/command",1000,Command_Callback);
     std::string param_require_pps_to_start = node_name +"/require_pps_to_start";
-    if(n->getParam(param_require_pps_to_start,require_pps_to_start) == false)
+    if(nh.getParam(param_require_pps_to_start,require_pps_to_start) == false)
 	{
 		logger->log_warn("Missing Parameter: require_pps_to_start.");
 		return false;
 	}
     std::string firmware_topic = "/" + node_name + "/firmware";
-    firmware_pub =  n->advertise<icarus_rover_v2::firmware>(firmware_topic,1000);
+    firmware_pub =  nh.advertise<icarus_rover_v2::firmware>(firmware_topic,1000);
     
     double max_rate = 0.0;
     std::string param_loop1_rate = node_name + "/loop1_rate";
-    if(n->getParam(param_loop1_rate,loop1_rate) == false)
+    if(nh.getParam(param_loop1_rate,loop1_rate) == false)
     {
         logger->log_warn("Missing parameter: loop1_rate.  Not running loop1 code.");
         run_loop1 = false;
@@ -440,7 +362,7 @@ bool initializenode()
     }
     
     std::string param_loop2_rate = node_name + "/loop2_rate";
-    if(n->getParam(param_loop2_rate,loop2_rate) == false)
+    if(nh.getParam(param_loop2_rate,loop2_rate) == false)
     {
         logger->log_warn("Missing parameter: loop1_rate.  Not running loop2 code.");
         run_loop2 = false;
@@ -453,7 +375,7 @@ bool initializenode()
     }
     
     std::string param_loop3_rate = node_name + "/loop3_rate";
-    if(n->getParam(param_loop3_rate,loop3_rate) == false)
+    if(nh.getParam(param_loop3_rate,loop3_rate) == false)
     {
         logger->log_warn("Missing parameter: loop3_rate.  Not running loop3 code.");
         run_loop3 = false;
@@ -472,13 +394,38 @@ bool initializenode()
     //End Template Code: Initialization and Parameters
 
     //Start User Code: Initialization and Parameters
-    passed_checksum = 0;
-    failed_checksum = 0;
-    process = new BoardControllerNodeProcess;
+    last_imu.tov == 0.0;
+    imu_ready_to_publish = false;
+   	imu_pub =  nh.advertise<icarus_rover_v2::imu>("/imu",1);
+    process = new IMUNodeProcess;
 	diagnostic_status = process->init(diagnostic_status,std::string(hostname));
-	spi_device = open("/dev/spidev0.0", O_RDWR);
-	unsigned int clock_rate = 1000000;
-	ioctl (spi_device, SPI_IOC_WR_MAX_SPEED_HZ, &clock_rate);
+	sensors_initialized = false;
+	serial_device = open("/dev/ttyUSB0",O_RDWR | O_NOCTTY);
+	struct termios tty;
+	memset(&tty,0,sizeof tty);
+	if(tcgetattr(serial_device,&tty) != 0 )
+	{
+		std::cout << "Error: " << errno << " from tcgetattr: " << strerror(errno) << std::endl;
+	}
+	cfsetospeed(&tty,(speed_t)B115200);
+	cfsetispeed(&tty,(speed_t)B115200);
+	/* Setting other Port Stuff */
+	tty.c_cflag     &=  ~PARENB;            // Make 8n1
+	tty.c_cflag     &=  ~CSTOPB;
+	tty.c_cflag     &=  ~CSIZE;
+	tty.c_cflag     |=  CS8;
+
+	tty.c_cflag     &=  ~CRTSCTS;           // no flow control
+	tty.c_cc[VMIN]   =  1;                  // read doesn't block
+	tty.c_cc[VTIME]  =  5;                  // 0.5 seconds read timeout
+	tty.c_cflag     |=  CREAD | CLOCAL;     // turn on READ & ignore ctrl lines
+
+	/* Make raw */
+	cfmakeraw(&tty);
+	tcflush( serial_device, TCIFLUSH );
+	if ( tcsetattr ( serial_device, TCSANOW, &tty ) != 0) {
+	   std::cout << "Error " << errno << " from tcsetattr" << std::endl;
+	}
 
     //Finish User Code: Initialization and Parameters
 
@@ -498,44 +445,45 @@ double measure_time_diff(ros::Time timer_a, ros::Time timer_b)
 	ros::Duration etime = timer_a - timer_b;
 	return etime.toSec();
 }
-void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg)
+bool new_devicemsg(std::string query,icarus_rover_v2::device device)
 {
-	if(process->is_ready() == false)
+
+	if(query == "SELF")
 	{
-		logger->log_notice("Device not initialized yet.");
-		icarus_rover_v2::device newdevice;
-		newdevice.Architecture = msg->Architecture;
-		newdevice.BoardCount = msg->BoardCount;
-		newdevice.Capabilities = msg->Capabilities;
-		newdevice.DeviceName = msg->DeviceName;
-		newdevice.DeviceParent = msg->DeviceParent;
-		newdevice.DeviceType = msg->DeviceType;
-		newdevice.ID = msg->ID;
-		newdevice.SensorCount = msg->SensorCount;
-		newdevice.ShieldCount = msg->ShieldCount;
-		newdevice.pins = msg->pins;
-		diagnostic_status = process->new_devicemsg(newdevice);
-		logger->log_diagnostic(diagnostic_status);
-		if(diagnostic_status.Level > INFO) { diagnostic_pub.publish(diagnostic_status); }
-		if(process->is_ready() == true)
+		if((device.DeviceName == hostname))
 		{
-			myDevice = process->get_mydevice();
+			myDevice = device;
 			resourcemonitor = new ResourceMonitor(diagnostic_status,myDevice.Architecture,myDevice.DeviceName,node_name);
-			std::vector<Sensor> sensors = process->get_sensordata();
-			for(std::size_t i = 0; i < sensors.size(); i++)
-			{
-				if(sensors.at(i).output_datatype == "double")
-				{
-					std::string analog_topic = "/" + sensors.at(i).name;
-					ros::Publisher pub = n->advertise<std_msgs::Float32>(analog_topic,10);
-					analog_sensor_pubs.push_back(pub);
-					analog_sensor_names.push_back(sensors.at(i).name);
-				}
-			}
-			logger->log_notice("Device finished initializing.");
+			process->set_mydevice(device);
+			device_initialized = true;
 		}
 	}
+
+	if((device_initialized == true) and (sensors_initialized == false))
+	{
+		icarus_rover_v2::diagnostic diag = process->new_devicemsg(device);
+		if(process->get_initialized() == true)
+		{
+			sensors_initialized = true;
+		}
+	}
+	return true;
 }
+/*
+void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg)
+{
+	icarus_rover_v2::device newdevice;
+	newdevice.DeviceName = msg->DeviceName;
+	newdevice.Architecture = msg->Architecture;
+
+	if((newdevice.DeviceName == hostname) && (device_initialized == false))
+	{
+		myDevice = newdevice;
+		resourcemonitor = new ResourceMonitor(diagnostic_status,myDevice.Architecture,myDevice.DeviceName,node_name);
+		device_initialized = true;
+	}
+}
+*/
 void signalinterrupt_handler(int sig)
 {
 	kill_node = 1;

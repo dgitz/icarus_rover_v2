@@ -5,7 +5,29 @@
 #define MASTERNODE_BUILD_NUMBER 0
 //End User Code: Firmware Definition
 //Start User Code: Functions
-
+//Start User Code: Function Prototypes
+bool device_service(icarus_rover_v2::srv_device::Request &req,
+				icarus_rover_v2::srv_device::Response &res)
+{
+	if(req.query == "SELF")
+	{
+		res.data.push_back(myDevice);
+		return true;
+	}
+	else if(std::string::npos != req.query.find("DeviceType="))
+	{
+		std::string devicetype = req.query.substr(11,req.query.size());
+		for(std::size_t i = 0; i < devices_to_publish.size(); i++)
+		{
+			if(devices_to_publish.at(i).DeviceType == devicetype)
+			{
+				res.data.push_back(devices_to_publish.at(i));
+			}
+		}
+		return true;
+	}
+	return false;
+}
 bool run_loop1_code()
 {
     publish_deviceinfo();
@@ -463,6 +485,9 @@ bool initialize(ros::NodeHandle nh)
 			devices_to_publish.push_back(other);
 		}
 	}
+
+    std::string srv_device_topic = "/" + node_name + "/srv_device";
+    device_srv = nh.advertiseService(srv_device_topic,device_service);
     //Finish User Code: Initialization and Parameters
 
     //Start Template Code: Final Initialization.
@@ -527,6 +552,16 @@ bool parse_devicefile(TiXmlDocument doc)
 	            if ( NULL != l_pDeviceType )
 	            {
 	                newDevice.DeviceType = l_pDeviceType->GetText();
+	            }
+
+	            TiXmlElement *l_pDevicePN = l_pDevice->FirstChildElement("PartNumber");
+	            if( NULL != l_pDevicePN)
+	            {
+	            	newDevice.PartNumber = l_pDevicePN->GetText();
+	            }
+	            else
+	            {
+	            	newDevice.PartNumber = "";
 	            }
 
 	            TiXmlElement *l_pDevicePrimaryIP = l_pDevice->FirstChildElement( "PrimaryIP" );

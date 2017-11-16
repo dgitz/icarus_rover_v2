@@ -7,52 +7,11 @@
         <param name="loop1_rate"            value="1"/> <!-- device,resource available, -->    
     </node>
 	
-	<node name="$(env ROS_HOSTNAME)_simulate_node" pkg="icarus_rover_v2" type="simulate_node"  output="screen" clear_params="true">
-        <param name="verbosity_level"       value="DEBUG"/>
-        <param name="require_pps_to_start"  value="false"/> 
-        <param name="loop1_rate"            value="200"/> <!-- update -->
-        <param name="loop2_rate"            value="50"/> <!-- publish sim pose -->
-        <param name="loop3_rate"            value="200"/> <!-- publish sim sensors. NOTE: GPS Output will be published at 10Hz -->
-		<param name="Simulation_Mode"		value="RemoteControl"/> <!-- Script,RemoteControl -->
-		<param name="Script_Path" 			value="/home/robot/config/sim_scripts/spiralA.csv"/> <!-- Required if Simulation_Mode == Script -->
-    </node>
-    <node pkg="robot_state_publisher" type="robot_state_publisher" name="rob_st_pub" >
-        <remap from="robot_description" to="/robot_description"/>
-    </node>
-    <node name="$(env ROS_HOSTNAME)_network_transceiver_node" pkg="icarus_rover_v2" type="network_transceiver_node"  output="screen" clear_params="true">
-        <param name="verbosity_level"       value="DEBUG"/>
-        <param name="require_pps_to_start"  value="false"/> 
-        <param name="Send_Multicast_Group"       value="239.255.43.21"/>
-        <param name="Send_Multicast_Port"        value="45454"/>
-        <param name="Recv_Unicast_Port"          value="5678"/>
-        <param name="Mode"                  value="DriverStation"/> <!--Diagnostics_GUI-->
-        <param name="loop1_rate"            value="0.1"/> <!-- scan -->  
-        <param name="loop2_rate"            value="10.0"/> <!-- Ready To Arm -->
-        <param name="loop3_rate"            value="50.0"/> <!-- Process Update -->
-    </node>
-    <node name="$(env ROS_HOSTNAME)_topicremapper_node" pkg="icarus_rover_v2" type="topicremapper_node"  output="screen" clear_params="true">
-        <param name="verbosity_level"       value="DEBUG"/>
-        <param name="require_pps_to_start"  value="false"/> 
-    </node>
 
-	<node name="$(env ROS_HOSTNAME)_pose_node" pkg="icarus_rover_v2" type="pose_node"  output="screen" clear_params="true">
+	<node name="$(env ROS_HOSTNAME)_imu_node" pkg="icarus_rover_v2" type="imu_node"  output="screen" clear_params="true">
         <param name="verbosity_level"       value="NOTICE"/>
         <param name="require_pps_to_start"  value="false"/> 
         <param name="loop1_rate"            value="200"/> <!-- update -->
-        <param name="loop2_rate"            value="200"/> <!-- publish pose -->
-		<param name="Simulate"				value="true"/> <!-- Use simulated sensors or not -->
-        <param name="Compute_Pose"           value="false"/> <!-- Use simulated pose or not -->
-        <param name="Attitude_topic"          value="/ComputeModule1_roscopter_node/attitude"/>
-        <param name="KF_Yaw_Q0"             value="0.0"/>
-        <param name="KF_Yaw_Q1"             value="0.0"/>
-        <param name="KF_Yaw_R0"             value="0.0"/>
-        <param name="KF_Yaw_R1"             value="0.0"/>
-        <param name="KF_Yaw_sigma_meas"     value="1.0"/>
-        <param name="KF_Yaw_sigma_model"    value="1.0"/>
-        <param name="KF_Yawrate_sigma_meas"     value="1.0"/>
-        <param name="KF_Yawrate_sigma_model"    value="1.0"/>
-    </node>
-    <!--
-    <node name="rviz" pkg="rviz" type="rviz" />
-	-->
+        <param name="loop2_rate"            value="400"/> <!-- Check to publish imu data -->
+    </node>	
 </launch>
