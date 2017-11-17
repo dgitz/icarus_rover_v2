@@ -1,5 +1,5 @@
 /***************AUTO-GENERATED.  DO NOT EDIT********************/
-/***Created on:2017-09-14 06:11:37.654571***/
+/***Created on:2017-11-16 07:25:02.986311***/
 /***Target: Raspberry Pi ***/
 #include "serialmessage.h"
 SerialMessageHandler::SerialMessageHandler(){}
@@ -426,5 +426,38 @@ int SerialMessageHandler::decode_Configure_ANA_PortSerial(unsigned char* inpacke
 	*Pin2_Mode=inpacket[5];
 	*Pin3_Mode=inpacket[6];
 	*Pin4_Mode=inpacket[7];
+	return 1;
+}
+int SerialMessageHandler::encode_IDSerial(char* outbuffer,int* length,unsigned char DeviceID)
+{
+	char *p_outbuffer;
+	p_outbuffer = &outbuffer[0];
+	*p_outbuffer++ = 0xAB;
+	*p_outbuffer++ = 0x40;
+	*p_outbuffer++ = 12;
+	*p_outbuffer++ = DeviceID;
+	*p_outbuffer++ = 0;
+	*p_outbuffer++ = 0;
+	*p_outbuffer++ = 0;
+	*p_outbuffer++ = 0;
+	*p_outbuffer++ = 0;
+	*p_outbuffer++ = 0;
+	*p_outbuffer++ = 0;
+	*p_outbuffer++ = 0;
+	*p_outbuffer++ = 0;
+	*p_outbuffer++ = 0;
+	*p_outbuffer++ = 0;
+	int checksum = 0;
+	for(int i = 3; i < (3+12);i++)
+	{
+		checksum ^= outbuffer[i];
+	}
+	*p_outbuffer++ = checksum;
+	*length = p_outbuffer-&outbuffer[0];
+	return 1;
+}
+int SerialMessageHandler::decode_IDSerial(unsigned char* inpacket,unsigned char* DeviceID)
+{
+	*DeviceID=inpacket[0];
 	return 1;
 }

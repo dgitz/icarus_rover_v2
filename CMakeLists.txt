@@ -238,6 +238,7 @@ add_library(autodrive_node_process src/Control/autodrive_node_process.cpp)
 add_library(boardcontroller_node_process src/Board/boardcontroller_node_process.cpp)
 add_library(commandlauncher_node_process src/Control/commandlauncher_node_process.cpp)
 add_library(imu_node_process src/Pose/imu_node_process.cpp)
+add_library(master_node_process src/Control/master_node_process.cpp)
 add_library(simulate_node_process src/Simulate/simulate_node_process.cpp)
 
 add_executable(sample_node src_templates/sample_node.cpp)
@@ -261,7 +262,10 @@ catkin_add_gtest(test_command_node_process src/Control/unit_tests/test_command_n
 target_link_libraries(test_command_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} command_node_process logger serialmessage)
 
 add_executable(master_node src/Control/master_node.cpp)
-target_link_libraries(master_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor)
+target_link_libraries(master_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} master_node_process logger resourcemonitor)
+catkin_add_gtest(test_master_node_process src/Control/unit_tests/test_master_node_process.cpp)
+target_link_libraries(test_master_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} master_node_process logger)
+
 
 add_executable(topicremapper_node src/Communication/topicremapper_node.cpp)
 target_link_libraries(topicremapper_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} logger resourcemonitor)

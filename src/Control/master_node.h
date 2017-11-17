@@ -22,9 +22,9 @@
 //End Template Code: Includes
 
 //Start User Code: Includes
+#include "master_node_process.h"
 #include <boost/algorithm/string.hpp>
-#include <tinyxml.h>
-#include <iostream>
+
 #include <string>
 #include <ros/package.h>
 #include <stdlib.h>
@@ -50,11 +50,8 @@ void signalinterrupt_handler(int sig);
 //Start User Code: Function Prototypes
 bool device_service(icarus_rover_v2::srv_device::Request &req,
 				icarus_rover_v2::srv_device::Response &res);
-void print_myDevice();
-void print_otherDevices();
 void publish_deviceinfo();
 double read_device_temperature();
-bool parse_devicefile(TiXmlDocument doc);
 //End User Code: Function Prototypes
 
 
@@ -95,8 +92,7 @@ double ros_rate;
 //End Template Code: Define Global Variables
 
 //Start User Code: Global Variables
-icarus_rover_v2::device myDevice;
-std::vector<icarus_rover_v2::device> otherDevices;
+MasterNodeProcess process;
 std::vector<icarus_rover_v2::device> devices_to_publish;
 std::vector<std::string> NodeList;
 double device_temperature;

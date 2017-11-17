@@ -11,7 +11,7 @@ bool device_service(icarus_rover_v2::srv_device::Request &req,
 {
 	if(req.query == "SELF")
 	{
-		res.data.push_back(myDevice);
+		res.data.push_back(process.get_mydevice());
 		return true;
 	}
 	else if(std::string::npos != req.query.find("DeviceType="))
@@ -32,12 +32,12 @@ bool run_loop1_code()
 {
     publish_deviceinfo();
 	icarus_rover_v2::resource device_resource_available;
-	device_resource_available.Node_Name = myDevice.DeviceName;
+	device_resource_available.Node_Name = process.get_mydevice().DeviceName;
 	device_resource_available.PID = 0;
 	device_resource_available.CPU_Perc = resourcemonitor->get_CPUFree_perc();
 	device_resource_available.RAM_MB = (double)(resourcemonitor->get_RAMFree_kB()/1000.0);
 	device_resourceavail_pub.publish(device_resource_available);
-	if(myDevice.Architecture == "armv7l")
+	if(process.get_mydevice().Architecture == "armv7l")
 	{
 		//diagnostic_status.Diagnostic_Type = SENSORS;
 		device_temperature = read_device_temperature();
@@ -157,7 +157,7 @@ std::vector<icarus_rover_v2::diagnostic> check_program_variables()
 void publish_deviceinfo()
 {
     //ros::Time start = ros::Time::now();
-	device_pub.publish(myDevice);
+	device_pub.publish(process.get_mydevice());
     for(int i = 0; i < devices_to_publish.size(); i++)
     {
         device_pub.publish(devices_to_publish.at(i));
@@ -282,8 +282,6 @@ bool initialize(ros::NodeHandle nh)
     //Start Template Code: Initialization, Parameters and Topics
 	kill_node = 0;
 	signal(SIGINT,signalinterrupt_handler);
-    myDevice.DeviceName = "";
-    myDevice.Architecture = "";
     device_initialized = false;
     hostname[1023] = '\0';
     gethostname(hostname,1023);
@@ -300,10 +298,19 @@ bool initialize(ros::NodeHandle nh)
 	diagnostic_status.Diagnostic_Message = INITIALIZING;
 	diagnostic_status.Description = "Node Initializing";
 	diagnostic_pub.publish(diagnostic_status);
+    diagnostic_status = process.init(diagnostic_status,std::string(hostname));
+    diagnostic_status = process.load_devicefile("/home/robot/config/DeviceFile.xml");
+    if(diagnostic_status.Level >= WARN)
+    {
+        logger->log_diagnostic(diagnostic_status);
+        printf("[MasterNode] ERROR: %s\n",diagnostic_status.Description.c_str());
+        return false;
+    }
+    
 
 	std::string resource_topic = "/" + node_name + "/resource";
 	resource_pub = nh.advertise<icarus_rover_v2::resource>(resource_topic,1000);
-	std::string device_resourceavail_topic = "/" + myDevice.DeviceName + "/resource_available";
+	std::string device_resourceavail_topic = "/" + process.get_mydevice().DeviceName + "/resource_available";
 	device_resourceavail_pub = nh.advertise<icarus_rover_v2::resource>(device_resourceavail_topic,1000);
 
     std::string param_verbosity_level = node_name +"/verbosity_level";
@@ -319,7 +326,6 @@ bool initialize(ros::NodeHandle nh)
     {
         logger = new Logger(verbosity_level,ros::this_node::getName());      
     }
-    
     std::string heartbeat_topic = "/" + node_name + "/heartbeat";
     heartbeat_pub = nh.advertise<icarus_rover_v2::heartbeat>(heartbeat_topic,1000);
     beat.Node_Name = node_name;
@@ -382,109 +388,24 @@ bool initialize(ros::NodeHandle nh)
     //End Template Code: Initialization and Parameters
 
     //Start User Code: Initialization and Parameters
-	myDevice.DeviceName = hostname;
-    TiXmlDocument device_doc("/home/robot/config/DeviceFile.xml");
-    bool devicefile_loaded = device_doc.LoadFile();
-    if(devicefile_loaded == true)
+    resourcemonitor = new ResourceMonitor(diagnostic_status,process.get_mydevice().Architecture,hostname,node_name);
+    if(resourcemonitor == NULL)
     {
-    	if(parse_devicefile(device_doc) == true)
-    	{
-    		resourcemonitor = new ResourceMonitor(diagnostic_status,myDevice.Architecture,hostname,node_name);
-    	}
-    	else { return false; }
-    }
-    else
-    {
-    	logger->log_fatal("Could not load or parse /home/robot/config/DeviceFile.xml. Exiting.");
-    	return false;
+        logger->log_error("Couldn't initialize resourcemonitor. Exiting.\n");
+        printf("[MasterNode]: Couldn't initialize resourcemonitor. Exiting.\n");
+        return false;
     }
     system("rosnode list -ua > /home/robot/config/AllNodeList");
-    string line;
-    ifstream allnodelist_file("/home/robot/config/AllNodeList");
-    process_file.open("/home/robot/config/ActiveNodes");
-   	if(process_file.is_open() == false)
-   	{
-   		return false;
-
-   	}
-    if(allnodelist_file.is_open())
+    
+    bool update_nodelist = process.update_nodelist("/home/robot/config/AllNodeList","/home/robot/config/ActiveNodes");
+    if(update_nodelist == false)
     {
-    	while(getline(allnodelist_file,line))
-    	{
-    		std::vector<std::string> items;
-    		boost::split(items,line,boost::is_any_of(":\t"));
-    		std::string host = items.at(1).substr(2,items.at(1).size());
-    		if(hostname == host)
-    		{
-    			std::vector<std::string> items2;
-    			boost::split(items2,items.at(3),boost::is_any_of("/"));
-    			for(int i = 0; i < items2.size();i++)
-    			{
-    			}
-    			std::string node = items2.at(items2.size()-1);
-    			if(node != "rosout")
-    			{
-    				time_t rawtime;
-    				struct tm * timeinfo;
-    				char datebuffer[80];
-    				time (&rawtime);
-    				timeinfo = localtime(&rawtime);
-    				strftime(datebuffer,80,"%d/%m/%Y %I:%M:%S",timeinfo);
-    				process_file << "Node:\t" << node << "\tLaunched:\t" << datebuffer <<  endl;
-    			}
-    		}
-    	}
-    	allnodelist_file.close();
+        logger->log_error("Couldn't initialize ActiveNodeList. Exiting.\n");
+        printf("[MasterNode]: Couldn't initialize ActiveNodeList. Exiting.\n");
+        return false;
     }
-    process_file.close();
-
     device_temperature = -100.0;
-    for(int i = 0; i < otherDevices.size();i++)
-	{
-		int temp_counter = 0;
-		icarus_rover_v2::device other = otherDevices.at(i);
-		bool is_local_parent = false;
-		bool search = true;
-		std::string local_parent = other.DeviceParent;
-		while((search == true) && (temp_counter < 25)) //Don't search more than 25 levels
-		{
-			temp_counter++;
-			if(temp_counter == 25)
-			{
-				char tempstr[512];
-				sprintf(tempstr,"Searched more than 25 levels for Device:%s 's Parent, this is a problem!",other.DeviceName.c_str());
-				logger->log_error(std::string(tempstr));
-			}
-			if((local_parent == "") || (local_parent == "None"))
-			{
-				search = false;
-			}
-			else if(local_parent == myDevice.DeviceName)
-			{
-				is_local_parent = true;
-			}
-			if(myDevice.DeviceName == local_parent)
-			{
-				local_parent = myDevice.DeviceParent;
-			}
-			else
-			{
-				for(int j = 0; j < otherDevices.size();j++)
-				{
-
-					if(otherDevices.at(j).DeviceName == local_parent)
-					{
-						local_parent = otherDevices.at(j).DeviceParent;
-						break;
-					}
-				}
-			}
-		}
-		if(is_local_parent == true)
-		{
-			devices_to_publish.push_back(other);
-		}
-	}
+    devices_to_publish = process.get_childdevices();
 
     std::string srv_device_topic = "/" + node_name + "/srv_device";
     device_srv = nh.advertiseService(srv_device_topic,device_service);
@@ -505,242 +426,6 @@ double measure_time_diff(ros::Time timer_a, ros::Time timer_b)
 {
 	ros::Duration etime = timer_a - timer_b;
 	return etime.toSec();
-}
-bool parse_devicefile(TiXmlDocument doc)
-{
-	TiXmlElement *l_pRootElement = doc.RootElement();
-
-	if( NULL != l_pRootElement )
-	{
-	    // set of &lt;person&gt; tags
-	    TiXmlElement *l_pDeviceList = l_pRootElement->FirstChildElement( "DeviceList" );
-
-	    if ( NULL != l_pDeviceList )
-	    {
-	        TiXmlElement *l_pDevice = l_pDeviceList->FirstChildElement( "Device" );
-
-	        while( l_pDevice )
-	        {
-	        	icarus_rover_v2::device newDevice;
-	        	std::vector<icarus_rover_v2::pin> pins;
-                pins.clear();
-				std::vector<std::string> input_topics;
-                input_topics.clear();
-				std::vector<std::string> output_topics;
-                output_topics.clear();
-				std::vector<std::string> topic_modes;
-                topic_modes.clear();
-	        	TiXmlElement *l_pDeviceParent = l_pDevice->FirstChildElement( "ParentDevice" );
-				if ( NULL != l_pDeviceParent )
-				{
-					newDevice.DeviceParent = l_pDeviceParent->GetText();
-				}
-
-	            TiXmlElement *l_pDeviceName = l_pDevice->FirstChildElement( "DeviceName" );
-	            if ( NULL != l_pDeviceName )
-	            {
-	                newDevice.DeviceName = l_pDeviceName->GetText();
-	            }
-
-	            TiXmlElement *l_pID = l_pDevice->FirstChildElement( "ID" );
-	            if ( NULL != l_pID )
-	            {
-	            	newDevice.ID = atoi(l_pID->GetText());
-	            }
-
-	            TiXmlElement *l_pDeviceType = l_pDevice->FirstChildElement( "DeviceType" );
-	            if ( NULL != l_pDeviceType )
-	            {
-	                newDevice.DeviceType = l_pDeviceType->GetText();
-	            }
-
-	            TiXmlElement *l_pDevicePN = l_pDevice->FirstChildElement("PartNumber");
-	            if( NULL != l_pDevicePN)
-	            {
-	            	newDevice.PartNumber = l_pDevicePN->GetText();
-	            }
-	            else
-	            {
-	            	newDevice.PartNumber = "";
-	            }
-
-	            TiXmlElement *l_pDevicePrimaryIP = l_pDevice->FirstChildElement( "PrimaryIP" );
-	            if ( NULL != l_pDevicePrimaryIP )
-	            {
-	            	newDevice.PrimaryIP = l_pDevicePrimaryIP->GetText();
-	            }
-	            else
-	            {
-	            	newDevice.PrimaryIP = "";
-	            }
-
-	            TiXmlElement *l_pDeviceArchitecture = l_pDevice->FirstChildElement( "Architecture" );
-				if ( NULL != l_pDeviceArchitecture )
-				{
-					newDevice.Architecture = l_pDeviceArchitecture->GetText();
-				}
-
-				TiXmlElement *l_pBoardCount = l_pDevice->FirstChildElement( "BoardCount" );
-				if ( NULL != l_pBoardCount )
-				{
-					newDevice.BoardCount = atoi(l_pBoardCount->GetText());
-				}
-
-				TiXmlElement *l_pSensorCount = l_pDevice->FirstChildElement( "SensorCount" );
-				if ( NULL != l_pSensorCount )
-				{
-					newDevice.SensorCount = atoi(l_pSensorCount->GetText());
-				}
-
-				TiXmlElement *l_pShieldCount = l_pDevice->FirstChildElement( "ShieldCount" );
-				if ( NULL != l_pShieldCount )
-				{
-					newDevice.ShieldCount = atoi(l_pShieldCount->GetText());
-				}
-
-				TiXmlElement *l_pCapability = l_pDevice->FirstChildElement("Capability");
-				std::vector<std::string> capabilities;
-				while( l_pCapability )
-				{
-					std::string capability = l_pCapability->GetText();
-					capabilities.push_back(capability);
-					l_pCapability = l_pCapability->NextSiblingElement( "Capability" );
-				}
-				newDevice.Capabilities = capabilities;
-				TiXmlElement *l_pPin = l_pDevice->FirstChildElement( "Pin" );
-				while( l_pPin )
-				{
-					icarus_rover_v2::pin newpin;
-					newpin.ParentDevice = newDevice.DeviceName;
-
-					TiXmlElement *l_pPinName = l_pPin->FirstChildElement( "Name" );
-					if ( NULL != l_pPinName )
-					{
-						newpin.Name = l_pPinName->GetText();
-					}
-					
-					TiXmlElement *l_pPinNumber = l_pPin->FirstChildElement( "Number" );
-					if ( NULL != l_pPinNumber )
-					{
-						newpin.Number = atoi(l_pPinNumber->GetText());
-					}
-
-					TiXmlElement *l_pPinFunction = l_pPin->FirstChildElement( "Function" );
-					if ( NULL != l_pPinFunction )
-					{
-						newpin.Function = l_pPinFunction->GetText();
-					}
-
-					TiXmlElement *l_pPinConnectedDevice = l_pPin->FirstChildElement( "ConnectedDevice" );
-					if ( NULL != l_pPinConnectedDevice )
-					{
-						newpin.ConnectedDevice = l_pPinConnectedDevice->GetText();
-					}
-					else
-					{
-						newpin.ConnectedDevice = "";
-					}
-
-					TiXmlElement *l_pPinConnectedSensor = l_pPin->FirstChildElement( "ConnectedSensor" );
-					if ( NULL != l_pPinConnectedSensor )
-					{
-						newpin.ConnectedSensor = l_pPinConnectedSensor->GetText();
-					}
-					else
-					{
-						newpin.ConnectedSensor = "";
-					}
-
-                    TiXmlElement *l_pPinDefaultValue = l_pPin->FirstChildElement( "DefaultValue" );
-					if ( NULL != l_pPinDefaultValue )
-					{
-						newpin.DefaultValue = atoi(l_pPinDefaultValue->GetText());
-					}
-					else
-					{
-						newpin.DefaultValue = 0;
-					}
-					
-					TiXmlElement *l_pPinMaxValue = l_pPin->FirstChildElement( "MaxValue" );
-					if ( NULL != l_pPinMaxValue )
-					{
-						newpin.MaxValue = atoi(l_pPinMaxValue->GetText());
-					}
-					else
-					{
-						newpin.MaxValue = 0;
-					}
-					
-					TiXmlElement *l_pPinMinValue = l_pPin->FirstChildElement( "MinValue" );
-					if ( NULL != l_pPinMinValue )
-					{
-						newpin.MinValue = atoi(l_pPinMinValue->GetText());
-					}
-					else
-					{
-						newpin.MinValue = 0;
-					}
-
-					TiXmlElement *l_pPinAuxTopic = l_pPin->FirstChildElement( "AuxTopic" );
-					if ( NULL != l_pPinAuxTopic )
-					{
-						newpin.AuxTopic = l_pPinAuxTopic->GetText();
-					}
-					else
-					{
-						newpin.AuxTopic = "";
-					}
-
-					TiXmlElement *l_pPinScaleFactor = l_pPin->FirstChildElement( "ScaleFactor" );
-					if ( NULL != l_pPinScaleFactor )
-					{
-						newpin.ScaleFactor = atof(l_pPinScaleFactor->GetText());
-					}
-					else
-					{
-						newpin.ScaleFactor = 1.0;
-					}
-
-
-					l_pPin = l_pPin->NextSiblingElement( "Pin" );
-					pins.push_back(newpin);
-
-				}
-
-				newDevice.pins = pins;
-	            if(newDevice.DeviceName == myDevice.DeviceName)
-	            {
-	            	//This is me.
-	            	myDevice = newDevice;
-	            }
-	            else
-	            {
-	            	otherDevices.push_back(newDevice);
-	            }
-	            l_pDevice = l_pDevice->NextSiblingElement( "Device" );
-	        }
-	    }
-	}
-	return true;
-}
-void print_myDevice()
-{
-	printf("MY DEVICE\r\n------------------------\r\n");
-	printf("Device Name: %s\r\n",myDevice.DeviceName.c_str());
-	printf("Architecture: %s\r\n",myDevice.Architecture.c_str());
-
-	printf("----------------------\r\n");
-}
-void print_otherDevices()
-{
-	printf("OTHER DEVICES\r\n------------------------\r\n");
-	for(int i = 0; i < otherDevices.size();i++)
-	{
-		printf("Device Name: %s\r\n",otherDevices.at(i).DeviceName.c_str());
-		printf("Architecture: %s\r\n",otherDevices.at(i).Architecture.c_str());
-	}
-
-	printf("----------------------\r\n");
 }
 void signalinterrupt_handler(int sig)
 {

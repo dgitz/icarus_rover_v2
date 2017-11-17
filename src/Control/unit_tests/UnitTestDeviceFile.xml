@@ -1,0 +1,44 @@
+<?xml version="1.0" ?>
+<DeviceListFile>
+  <DeviceList>
+    <Device>
+        <ParentDevice>None</ParentDevice>
+        <DeviceName>dgitzrosmaster</DeviceName>
+        <DeviceType>DisplayLaptop</DeviceType>
+        <PrimaryIP>10.0.0.114</PrimaryIP>
+        <Architecture>x86_64</Architecture>
+        <Capability>Display</Capability>
+    </Device>
+    <Device>
+        <ParentDevice>dgitzrosmaster</ParentDevice>
+        <DeviceName>ControlModule1</DeviceName>
+        <DeviceType>ControlModule</DeviceType>
+        <Capability>Board</Capability>
+    </Device>
+    <Device>
+        <ParentDevice>ControlModule1</ParentDevice>
+        <DeviceName>ArduinoBoard1</DeviceName>
+        <DeviceType>ArduinoBoard</DeviceType>
+        <Capability>Board</Capability>
+    </Device>
+    <Device>
+        <ParentDevice>dgitzrosmaster</ParentDevice>
+        <DeviceName>Sensor1</DeviceName>
+        <DeviceType>Camera</DeviceType>
+        <Capability>Sensor</Capability>
+    </Device>
+    <Device>
+        <ParentDevice>ArduinoBoard1</ParentDevice>
+        <DeviceName>Sensor2</DeviceName>
+        <DeviceType>Camera</DeviceType>
+        <Capability>Sensor</Capability>
+    </Device>
+    <Device>
+        <ParentDevice>None</ParentDevice>
+        <DeviceName>ControlModule2</DeviceName>
+        <DeviceType>ControlModule</DeviceType>
+        <Capability>Arduino</Capability>
+    </Device>
+
+  </DeviceList>
+</DeviceListFile>
