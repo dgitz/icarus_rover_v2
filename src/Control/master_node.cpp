@@ -6,6 +6,44 @@
 //End User Code: Firmware Definition
 //Start User Code: Functions
 //Start User Code: Function Prototypes
+bool check_serialports()
+{
+    return false;
+}
+std::vector<std::string> find_serialports()
+{
+    std::vector<std::string> ports;
+    std::vector<std::string> files;
+    DIR *dp;
+    struct dirent *dirp;
+    if((dp  = opendir("/dev/")) == NULL) 
+    {
+        cout << "Error(" << errno << ") opening " << "/dev/" << endl;
+        //return errno;
+    }
+
+    while ((dirp = readdir(dp)) != NULL) 
+    {
+        files.push_back(std::string(dirp->d_name));
+    }
+    closedir(dp);
+    std::string serial_usb = "ttyUSB";
+    std::string serial_acm = "ttyACM";
+    std::string serial = "ttyS"; //Get rid of this one
+    for(std::size_t i = 0; i < files.size(); i++)
+    {
+        std::size_t found_usb = files.at(i).find(serial_usb);
+        std::size_t found_acm = files.at(i).find(serial_acm);
+        std::size_t found_serial = files.at(i).find(serial);
+        if( (found_usb != std::string::npos) || 
+            (found_acm != std::string::npos) ||
+            (found_serial != std::string::npos))
+        {
+            ports.push_back(files.at(i));
+        }
+    }
+    return ports;
+}
 bool device_service(icarus_rover_v2::srv_device::Request &req,
 				icarus_rover_v2::srv_device::Response &res)
 {
@@ -409,6 +447,20 @@ bool initialize(ros::NodeHandle nh)
 
     std::string srv_device_topic = "/" + node_name + "/srv_device";
     device_srv = nh.advertiseService(srv_device_topic,device_service);
+    
+    diagnostic_status = process.set_serialportlist(find_serialports());
+    if(diagnostic_status.Level > NOTICE)
+    {
+        logger->log_error("Unable to find Serial Ports. Exiting.");
+        printf("[MasterNode]: Unable to find Serial Ports. Exiting.\n");
+        return false;
+    }
+    if(check_serialports() == false)
+    {
+        logger->log_error("Unable to check Serial Ports. Exiting.");
+        printf("[MasterNode]: Unable to check Serial Ports. Exiting.\n");
+        return false;
+    }
     //Finish User Code: Initialization and Parameters
 
     //Start Template Code: Final Initialization.

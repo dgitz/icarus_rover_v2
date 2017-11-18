@@ -24,9 +24,22 @@ class MasterNodeProcess
 {
 public:
 
+    enum SerialPortType
+    {
+        UNDEFINED = 0,
+        USB = 1,
+        ACM =2,
+        SERIAL = 3
+    };
     struct SerialPort
     {
+        bool available;
+        bool checked;
         std::string file;
+        uint8_t porttype;
+        std::string baudrate;
+        uint16_t id;
+        std::string pn;
     };
 
 	MasterNodeProcess();
@@ -42,8 +55,9 @@ public:
     icarus_rover_v2::diagnostic load_devicefile(std::string path);
     void print_device(std::vector<icarus_rover_v2::device> devices);
     void print_device(icarus_rover_v2::device device);
-    void set_serialportlist(std::vector<std::string> list);
+    icarus_rover_v2::diagnostic set_serialportlist(std::vector<std::string> list);
     bool update_nodelist(std::string nodelist_path,std::string activenode_path);
+    std::vector<std::string> get_allserialbaudrates() { return serialport_baudrates; }
 	
 protected:
 
@@ -55,6 +69,8 @@ private:
     std::vector<icarus_rover_v2::device> allDevices;
     std::vector<icarus_rover_v2::device> childDevices;
 	icarus_rover_v2::diagnostic diagnostic;
+    std::vector<SerialPort> serialports;
+    std::vector<std::string> serialport_baudrates;
     
 };
 #endif

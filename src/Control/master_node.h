@@ -24,11 +24,13 @@
 //Start User Code: Includes
 #include "master_node_process.h"
 #include <boost/algorithm/string.hpp>
-
+#include "serialmessage.h"
 #include <string>
 #include <ros/package.h>
 #include <stdlib.h>
 #include "icarus_rover_v2/srv_device.h"
+#include <dirent.h>
+#include <errno.h>
 //End User Code: Includes
 
 
@@ -52,6 +54,8 @@ bool device_service(icarus_rover_v2::srv_device::Request &req,
 				icarus_rover_v2::srv_device::Response &res);
 void publish_deviceinfo();
 double read_device_temperature();
+std::vector<std::string> find_serialports();
+bool check_serialports();
 //End User Code: Function Prototypes
 
 

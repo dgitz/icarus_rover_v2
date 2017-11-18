@@ -39,6 +39,27 @@
         <DeviceType>ControlModule</DeviceType>
         <Capability>Arduino</Capability>
     </Device>
+    <Device>
+        <ParentDevice>dgitzrosmaster</ParentDevice>
+        <PartNumber>110012</PartNumber>
+        <DeviceName>IMU1</DeviceName>
+        <DeviceType>Sensor</DeviceType>
+        <ID>1</ID>
+    </Device>
+    <Device>
+        <ParentDevice>dgitzrosmaster</ParentDevice>
+        <PartNumber>110012</PartNumber>
+        <DeviceName>IMU2</DeviceName>
+        <DeviceType>Sensor</DeviceType>
+        <ID>2</ID>
+    </Device>
+    <Device>
+        <ParentDevice>dgitzrosmaster</ParentDevice>
+        <PartNumber>110012</PartNumber>
+        <DeviceName>IMU3</DeviceName>
+        <DeviceType>Sensor</DeviceType>
+        <ID>3</ID>
+    </Device>
 
   </DeviceList>
 </DeviceListFile>

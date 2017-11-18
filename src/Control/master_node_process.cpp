@@ -23,8 +23,68 @@ icarus_rover_v2::diagnostic MasterNodeProcess::update(double dt)
 
 icarus_rover_v2::diagnostic MasterNodeProcess::new_devicemsg(icarus_rover_v2::device newdevice)
 {
-
-	return diagnostic;
+    icarus_rover_v2::diagnostic diag = diagnostic;
+    return diag;
+    
+}
+icarus_rover_v2::diagnostic MasterNodeProcess::set_serialportlist(std::vector<std::string> list)
+{
+    icarus_rover_v2::diagnostic diag = diagnostic;
+    std::string serial_usb = "ttyUSB";
+    std::string serial_acm = "ttyACM";
+    std::string serial = "ttyS"; //Get rid of this one
+    for(std::size_t i = 0; i < list.size(); i++)
+    {
+        std::string name = list.at(i);
+        std::size_t found_usb = name.find(serial_usb);
+        std::size_t found_acm = name.find(serial_acm);
+        std::size_t found_serial = name.find(serial);
+        if(found_usb != std::string::npos)
+        {
+            SerialPort port;
+            port.porttype = USB;
+            port.file = name;
+            
+            serialports.push_back(port);
+        }
+        else if(found_acm != std::string::npos)
+        {
+            SerialPort port;
+            port.porttype = ACM;
+            port.file =  name;
+            serialports.push_back(port);
+        }
+        else if(found_serial != std::string::npos)
+        {
+            SerialPort port;
+            port.porttype = SERIAL;
+            port.file = name;
+            serialports.push_back(port);
+        }
+        else
+        {
+            diag.Diagnostic_Type = SOFTWARE;
+            diag.Level = FATAL;
+            diag.Diagnostic_Message = INITIALIZING_ERROR;
+            char tempstr[256];
+            sprintf(tempstr,"Serial Port: %s is not supported.",name.c_str());
+            diag.Description = std::string(tempstr);
+            return diag;
+        }
+        
+    }
+    for(std::size_t i = 0; i < serialports.size(); i++)
+    {
+        serialports.at(i).id = 0;
+        serialports.at(i).pn = "";
+        serialports.at(i).available = false;
+        serialports.at(i).checked = false;
+    }
+    diag.Diagnostic_Type = NOERROR;
+    diag.Level = NOTICE;
+    diag.Diagnostic_Message = INITIALIZING;
+    diag.Description = "Created SerialPort List.";
+    return diag;
 }
 bool MasterNodeProcess::update_nodelist(std::string nodelist_path,std::string activenode_path)
 {
@@ -400,6 +460,29 @@ bool MasterNodeProcess::build_childDevices()
         if(add_child == true)
         {
             childDevices.push_back(allDevices.at(i));
+        }
+    }
+    for(std::size_t i = 0; i < childDevices.size(); i++)
+    {
+        std::string baudrate = "";
+        bool serialdevice = false;
+        if(childDevices.at(i).PartNumber == "110012")
+        {
+            serialdevice = true;
+            baudrate = "115200";
+        }
+        if(serialdevice)
+        {
+            bool add = true;
+            for(std::size_t i = 0; i < serialport_baudrates.size(); i++)
+            {
+                if(serialport_baudrates.at(i) == baudrate)
+                {
+                    add = false;
+                    break;
+                }
+            }
+            if(add) { serialport_baudrates.push_back(baudrate); }
         }
     }
     return true;

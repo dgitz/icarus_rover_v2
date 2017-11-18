@@ -19,20 +19,33 @@ int DeviceID = 123;
 MasterNodeProcess initialize_process(std::string path);
 TEST(ProcessInitialization,NormalOperation)
 {
-    
+    std::vector<std::string> devicepathlist;
+    devicepathlist.push_back("/home/robot/catkin_ws/src/icarus_rover_v2/src/Control/unit_tests/UnitTestDeviceFile.xml");
+    devicepathlist.push_back("/home/robot/catkin_ws/src/icarus_rover_v2/src/Control/unit_tests/DeviceFile.xml");
+    for(std::size_t i = 0; i < devicepathlist.size(); i++)
     {
-        std::string path = "/home/robot/catkin_ws/src/icarus_rover_v2/src/Control/unit_tests/UnitTestDeviceFile.xml";
+        std::string path = devicepathlist.at(i);
         printf("Loading: %s\n",path.c_str());
         MasterNodeProcess process = initialize_process(path);
-    }
-  
-    {
-        std::string path = "/home/robot/catkin_ws/src/icarus_rover_v2/src/Control/unit_tests/DeviceFile.xml";
-        printf("Loading: %s\n",path.c_str());
-        MasterNodeProcess process = initialize_process(path);
-    }
+        std::vector<std::string> serialportlist;
+        serialportlist.push_back("/dev/ttyUSB0");
+        serialportlist.push_back("/dev/ttyACM0");
+        serialportlist.push_back("/dev/ttyS0");
     
+        icarus_rover_v2::diagnostic diag = process.set_serialportlist(serialportlist);
+        EXPECT_TRUE(diag.Level <= NOTICE);
+        if(i == 0)
+        {
+            EXPECT_TRUE(process.get_allserialbaudrates().size() == 1);
+        }
+        else if(i == 1)
+        {
+            EXPECT_TRUE(process.get_allserialbaudrates().size() == 1);
+        }
+    }
+ 
     
+   
     
 }
 int main(int argc, char **argv){

@@ -262,7 +262,7 @@ catkin_add_gtest(test_command_node_process src/Control/unit_tests/test_command_n
 target_link_libraries(test_command_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} command_node_process logger serialmessage)
 
 add_executable(master_node src/Control/master_node.cpp)
-target_link_libraries(master_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} master_node_process logger resourcemonitor)
+target_link_libraries(master_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} master_node_process serialmessage logger resourcemonitor)
 catkin_add_gtest(test_master_node_process src/Control/unit_tests/test_master_node_process.cpp)
 target_link_libraries(test_master_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} master_node_process logger)
 
