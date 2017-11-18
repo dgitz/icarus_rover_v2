@@ -1,5 +1,5 @@
 /***************AUTO-GENERATED.  DO NOT EDIT********************/
-/***Created on:2017-11-16 07:25:02.986311***/
+/***Created on:2017-11-17 22:05:48.699908***/
 /***Target: Raspberry Pi ***/
 #include "serialmessage.h"
 SerialMessageHandler::SerialMessageHandler(){}
@@ -428,7 +428,7 @@ int SerialMessageHandler::decode_Configure_ANA_PortSerial(unsigned char* inpacke
 	*Pin4_Mode=inpacket[7];
 	return 1;
 }
-int SerialMessageHandler::encode_IDSerial(char* outbuffer,int* length,unsigned char DeviceID)
+int SerialMessageHandler::encode_IDSerial(char* outbuffer,int* length,unsigned char DeviceID,uint32_t PartNumber)
 {
 	char *p_outbuffer;
 	p_outbuffer = &outbuffer[0];
@@ -436,10 +436,10 @@ int SerialMessageHandler::encode_IDSerial(char* outbuffer,int* length,unsigned c
 	*p_outbuffer++ = 0x40;
 	*p_outbuffer++ = 12;
 	*p_outbuffer++ = DeviceID;
-	*p_outbuffer++ = 0;
-	*p_outbuffer++ = 0;
-	*p_outbuffer++ = 0;
-	*p_outbuffer++ = 0;
+	*p_outbuffer++ = PartNumber >> 24;
+	*p_outbuffer++ = PartNumber >> 16;
+	*p_outbuffer++ = PartNumber >> 8;
+	*p_outbuffer++ = (PartNumber & 0xFF);
 	*p_outbuffer++ = 0;
 	*p_outbuffer++ = 0;
 	*p_outbuffer++ = 0;
@@ -456,8 +456,12 @@ int SerialMessageHandler::encode_IDSerial(char* outbuffer,int* length,unsigned c
 	*length = p_outbuffer-&outbuffer[0];
 	return 1;
 }
-int SerialMessageHandler::decode_IDSerial(unsigned char* inpacket,unsigned char* DeviceID)
+int SerialMessageHandler::decode_IDSerial(unsigned char* inpacket,unsigned char* DeviceID,uint32_t* PartNumber)
 {
 	*DeviceID=inpacket[0];
+	int v_PartNumber3=inpacket[1]<<24;
+	int v_PartNumber2=inpacket[2]<<16;
+	int v_PartNumber1=inpacket[3]<<8;
+	*PartNumber=inpacket[4] + v_PartNumber1 + v_PartNumber2 + v_PartNumber3;
 	return 1;
 }

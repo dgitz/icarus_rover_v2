@@ -8,6 +8,16 @@
 //Start User Code: Function Prototypes
 bool check_serialports()
 {
+
+	std::vector<MasterNodeProcess::SerialPort> ports = process.get_serialports();
+	std::vector<std::string> baudrates = process.get_allserialbaudrates();
+	for(std::size_t i = 0; i < ports.size(); i++)
+	{
+		for(std::size_t j = 0; j < baudrates.size(); j++)
+		{
+
+		}
+	}
     return false;
 }
 std::vector<std::string> find_serialports()
@@ -29,15 +39,15 @@ std::vector<std::string> find_serialports()
     closedir(dp);
     std::string serial_usb = "ttyUSB";
     std::string serial_acm = "ttyACM";
-    std::string serial = "ttyS"; //Get rid of this one
+   // std::string serial = "ttyS"; //Get rid of this one
     for(std::size_t i = 0; i < files.size(); i++)
     {
         std::size_t found_usb = files.at(i).find(serial_usb);
         std::size_t found_acm = files.at(i).find(serial_acm);
-        std::size_t found_serial = files.at(i).find(serial);
+        //std::size_t found_serial = files.at(i).find(serial);
         if( (found_usb != std::string::npos) || 
-            (found_acm != std::string::npos) ||
-            (found_serial != std::string::npos))
+            (found_acm != std::string::npos))
+            //(found_serial != std::string::npos))
         {
             ports.push_back(files.at(i));
         }

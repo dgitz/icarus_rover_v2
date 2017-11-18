@@ -2,6 +2,7 @@
 
 MasterNodeProcess::MasterNodeProcess()
 {
+	serialmessagehandler = new SerialMessageHandler();
 }
 MasterNodeProcess::~MasterNodeProcess()
 {
@@ -32,13 +33,13 @@ icarus_rover_v2::diagnostic MasterNodeProcess::set_serialportlist(std::vector<st
     icarus_rover_v2::diagnostic diag = diagnostic;
     std::string serial_usb = "ttyUSB";
     std::string serial_acm = "ttyACM";
-    std::string serial = "ttyS"; //Get rid of this one
+    //std::string serial = "ttyS"; //Get rid of this one
     for(std::size_t i = 0; i < list.size(); i++)
     {
         std::string name = list.at(i);
         std::size_t found_usb = name.find(serial_usb);
         std::size_t found_acm = name.find(serial_acm);
-        std::size_t found_serial = name.find(serial);
+        //std::size_t found_serial = name.find(serial);
         if(found_usb != std::string::npos)
         {
             SerialPort port;
@@ -54,6 +55,7 @@ icarus_rover_v2::diagnostic MasterNodeProcess::set_serialportlist(std::vector<st
             port.file =  name;
             serialports.push_back(port);
         }
+        /*
         else if(found_serial != std::string::npos)
         {
             SerialPort port;
@@ -61,6 +63,7 @@ icarus_rover_v2::diagnostic MasterNodeProcess::set_serialportlist(std::vector<st
             port.file = name;
             serialports.push_back(port);
         }
+        */
         else
         {
             diag.Diagnostic_Type = SOFTWARE;

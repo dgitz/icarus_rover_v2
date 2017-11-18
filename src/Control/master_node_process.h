@@ -29,7 +29,7 @@ public:
         UNDEFINED = 0,
         USB = 1,
         ACM =2,
-        SERIAL = 3
+       // SERIAL = 3
     };
     struct SerialPort
     {
@@ -58,11 +58,13 @@ public:
     icarus_rover_v2::diagnostic set_serialportlist(std::vector<std::string> list);
     bool update_nodelist(std::string nodelist_path,std::string activenode_path);
     std::vector<std::string> get_allserialbaudrates() { return serialport_baudrates; }
+    std::vector<SerialPort> get_serialports() { return serialports; }
 	
 protected:
 
 private:
     bool build_childDevices();
+    SerialMessageHandler *serialmessagehandler;
 	std::string myhostname;
 	bool all_device_info_received;
 	icarus_rover_v2::device mydevice;

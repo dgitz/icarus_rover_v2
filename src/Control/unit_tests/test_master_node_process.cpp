@@ -30,7 +30,7 @@ TEST(ProcessInitialization,NormalOperation)
         std::vector<std::string> serialportlist;
         serialportlist.push_back("/dev/ttyUSB0");
         serialportlist.push_back("/dev/ttyACM0");
-        serialportlist.push_back("/dev/ttyS0");
+        //serialportlist.push_back("/dev/ttyS0");
     
         icarus_rover_v2::diagnostic diag = process.set_serialportlist(serialportlist);
         EXPECT_TRUE(diag.Level <= NOTICE);

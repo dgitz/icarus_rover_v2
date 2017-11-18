@@ -1,5 +1,5 @@
 /***************AUTO-GENERATED.  DO NOT EDIT********************/
-/***Created on:2017-11-16 07:25:02.986490***/
+/***Created on:2017-11-17 22:05:48.700126***/
 /***Target: Raspberry Pi ***/
 #include "spimessage.h"
 SPIMessageHandler::SPIMessageHandler(){}

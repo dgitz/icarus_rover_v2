@@ -1,5 +1,5 @@
 /***************AUTO-GENERATED.  DO NOT EDIT********************/
-/***Created on:2017-11-16 07:25:02.986282***/
+/***Created on:2017-11-17 22:05:48.699873***/
 /***Target: Raspberry Pi OR Arduino ***/
 #ifndef SERIALMESSAGE_H
 #define SERIALMESSAGE_H
@@ -44,8 +44,8 @@ public:
 	int decode_PPSSerial(unsigned char* inpacket,unsigned char* counter);
 	int encode_Configure_ANA_PortSerial(char* outbuffer,int* length,unsigned char ShieldID,unsigned char PortID,unsigned char MessageIndex,unsigned char MessageCount,unsigned char Pin1_Mode,unsigned char Pin2_Mode,unsigned char Pin3_Mode,unsigned char Pin4_Mode);
 	int decode_Configure_ANA_PortSerial(unsigned char* inpacket,unsigned char* ShieldID,unsigned char* PortID,unsigned char* MessageIndex,unsigned char* MessageCount,unsigned char* Pin1_Mode,unsigned char* Pin2_Mode,unsigned char* Pin3_Mode,unsigned char* Pin4_Mode);
-	int encode_IDSerial(char* outbuffer,int* length,unsigned char DeviceID);
-	int decode_IDSerial(unsigned char* inpacket,unsigned char* DeviceID);
+	int encode_IDSerial(char* outbuffer,int* length,unsigned char DeviceID,uint32_t PartNumber);
+	int decode_IDSerial(unsigned char* inpacket,unsigned char* DeviceID,uint32_t* PartNumber);
 private:
 };
 #endif

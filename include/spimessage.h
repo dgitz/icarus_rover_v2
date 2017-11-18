@@ -1,5 +1,5 @@
 /***************AUTO-GENERATED.  DO NOT EDIT********************/
-/***Created on:2017-11-16 07:25:02.986463***/
+/***Created on:2017-11-17 22:05:48.700096***/
 /***Target: Raspberry Pi ***/
 #ifndef SPIMESSAGE_H
 #define SPIMESSAGE_H
