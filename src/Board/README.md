@@ -1,5 +1,17 @@
 Author: David Gitz
 Task: Board
+Support Programs
+A. Test ServoHat
+B. Test TerminalHatDriver
+C. Test SerialComm
+Purpose: Test Serial Port Communication
+
+  >>g++ test_serialcomm.cpp -o test_serialcomm
+  
+Documentation History:
+19-Nov-2017 David Gitz
+Created program
+
 Nodes:
 A. hatcontroller_node
 Usage: This node should be run on every ControlModule (Raspberry Pi).
