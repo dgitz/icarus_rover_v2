@@ -1,7 +1,7 @@
 /***************AUTO-GENERATED.  DO NOT EDIT********************/
-/***Created on:2017-11-17 22:05:48.700126***/
+/***Created on:2017-11-20 07:46:01.311717***/
 /***Target: Raspberry Pi ***/
-#include "spimessage.h"
+#include "../include/spimessage.h"
 SPIMessageHandler::SPIMessageHandler(){}
 SPIMessageHandler::~SPIMessageHandler(){}
 int SPIMessageHandler::decode_TestMessageCounterSPI(unsigned char* inbuffer,int * length,unsigned char* value1,unsigned char* value2,unsigned char* value3,unsigned char* value4,unsigned char* value5,unsigned char* value6,unsigned char* value7,unsigned char* value8,unsigned char* value9,unsigned char* value10,unsigned char* value11,unsigned char* value12)
