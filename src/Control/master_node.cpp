@@ -13,12 +13,105 @@ bool check_serialports()
 	std::vector<std::string> baudrates = process.get_allserialbaudrates();
 	for(std::size_t i = 0; i < ports.size(); i++)
 	{
+		bool continue_checking_port = true;
 		for(std::size_t j = 0; j < baudrates.size(); j++)
 		{
+			if(continue_checking_port == true)
+			{
+				printf("trying: %s @ %s\n",ports.at(i).file.c_str(),baudrates.at(j).c_str());
+				std::string baudrate = baudrates.at(j);
+				int dev_fd = open(ports.at(i).file.c_str(),O_RDWR | O_NOCTTY);
+				if(dev_fd < 0)
+				{
+					printf("can't open\n");
+					break;
+				}
+				struct termios tty;
+				memset(&tty,0,sizeof tty);
+				if(tcgetattr(dev_fd,&tty) != 0 )
+				{
+					std::cout << "[MasterNode]: Error: " << errno << " from tcgetattr: " << strerror(errno) << std::endl;
+				}
+				if(baudrate == "115200")
+				{
+					cfsetospeed(&tty,(speed_t)B115200);
+					cfsetispeed(&tty,(speed_t)B115200);
+				}
+				else if(baudrate == "9600")
+				{
+					cfsetospeed(&tty,(speed_t)B9600);
+					cfsetispeed(&tty,(speed_t)B9600);
+				}
+				else
+				{
+					printf("[MasterNode]: Baudrate: %s Not Supported.\n",baudrate.c_str());
+				}
+				tty.c_cflag     &=  ~PARENB;            // Make 8n1
+				tty.c_cflag     &=  ~CSTOPB;
+				tty.c_cflag     &=  ~CSIZE;
+				tty.c_cflag     |=  CS8;
 
+				tty.c_cflag     &=  ~CRTSCTS;           // no flow control
+				tty.c_cc[VMIN]   =  1;                  // read doesn't block
+				tty.c_cc[VTIME]  =  5;                  // 0.5 seconds read timeout
+				tty.c_cflag     |=  CREAD | CLOCAL;     // turn on READ & ignore ctrl lines
+
+				/* Make raw */
+				cfmakeraw(&tty);
+				tcflush( dev_fd, TCIFLUSH );
+				if ( tcsetattr ( dev_fd, TCSANOW, &tty ) != 0) {
+					std::cout << "[MasterNode]: Error " << errno << " from tcsetattr" << std::endl;
+				}
+				int n = 0;
+				int length = 0;
+				unsigned char response[64];
+				int spot = 0;
+				unsigned char buf = '\0';
+				memset(response, '\0', sizeof response);
+				do
+				{
+					n = read( dev_fd, &buf, 1 );
+					//printf("%c",buf);
+					length += n;
+					//sprintf( &response[spot], "%c", buf );
+					response[spot] = buf;
+					spot += n;
+				} while( buf != '\r' && n > 0);
+
+				//printf("read: %d\n",length);
+				if (n < 0)
+				{
+					std::cout << "Error reading: " << strerror(errno) << std::endl;
+				}
+				else if (n == 0)
+				{
+					std::cout << "Read nothing!" << std::endl;
+				}
+				else
+				{
+					if(length > 4)
+					{
+						bool status = process.new_serialmessage(ports.at(i).file,baudrate,response,length);
+						if(status == true) { continue_checking_port = false; }
+
+					}
+				}
+				close(dev_fd);
+			}
 		}
 	}
-    return false;
+	ports = process.get_serialports();
+	for(std::size_t i = 0; i < ports.size(); i++)
+	{
+		char tempstr[512];
+		sprintf(tempstr,"Found ROS Device on Serial Port: %s @ %s with PN=%s ID=%d",
+				ports.at(i).file.c_str(),
+				ports.at(i).baudrate.c_str(),
+				ports.at(i).pn.c_str(),
+				ports.at(i).id);
+		logger->log_notice(std::string(tempstr));
+	}
+	return true;
 }
 std::vector<std::string> find_serialports()
 {
@@ -459,18 +552,26 @@ bool initialize(ros::NodeHandle nh)
     device_srv = nh.advertiseService(srv_device_topic,device_service);
     
     diagnostic_status = process.set_serialportlist(find_serialports());
+
     if(diagnostic_status.Level > NOTICE)
     {
         logger->log_error("Unable to find Serial Ports. Exiting.");
         printf("[MasterNode]: Unable to find Serial Ports. Exiting.\n");
         return false;
     }
+
     if(check_serialports() == false)
     {
         logger->log_error("Unable to check Serial Ports. Exiting.");
         printf("[MasterNode]: Unable to check Serial Ports. Exiting.\n");
         return false;
     }
+    else
+    {
+    	logger->log_notice("Serial Port Check Complete.");
+    	printf("[MasterNode]: Serial Port Check Complete.\n");
+    }
+
     //Finish User Code: Initialization and Parameters
 
     //Start Template Code: Final Initialization.

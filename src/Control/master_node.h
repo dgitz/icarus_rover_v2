@@ -31,6 +31,10 @@
 #include "icarus_rover_v2/srv_device.h"
 #include <dirent.h>
 #include <errno.h>
+
+#include <fcntl.h>      // File control definitions
+#include <errno.h>      // Error number definitions
+#include <termios.h>    // POSIX terminal control definitions
 //End User Code: Includes
 
 
@@ -97,6 +101,7 @@ double ros_rate;
 
 //Start User Code: Global Variables
 MasterNodeProcess process;
+
 std::vector<icarus_rover_v2::device> devices_to_publish;
 std::vector<std::string> NodeList;
 double device_temperature;

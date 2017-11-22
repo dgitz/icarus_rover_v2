@@ -20,6 +20,7 @@
 #include <tinyxml.h>
 #include <iostream>
 #include <fstream>
+#include "../../include/serialmessage.h"
 class MasterNodeProcess
 {
 public:
@@ -59,12 +60,13 @@ public:
     bool update_nodelist(std::string nodelist_path,std::string activenode_path);
     std::vector<std::string> get_allserialbaudrates() { return serialport_baudrates; }
     std::vector<SerialPort> get_serialports() { return serialports; }
+    bool new_serialmessage(std::string serialport,std::string baudrate,unsigned char* message,int length); //Return true: valid, false: invalid
 	
 protected:
 
 private:
-    bool build_childDevices();
     SerialMessageHandler *serialmessagehandler;
+    bool build_childDevices();
 	std::string myhostname;
 	bool all_device_info_received;
 	icarus_rover_v2::device mydevice;

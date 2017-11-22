@@ -136,6 +136,11 @@ int main(int argc, char* argv[])
     printf("Testing Serial Comm with: device=%s baudrate=%s mode=%s\n",device.c_str(),baudrate.c_str(),mode.c_str());
     SerialMessageHandler *serialmessagehandler = new SerialMessageHandler;
     int dev_fd = open(device.c_str(),O_RDWR | O_NOCTTY);
+    if(dev_fd < 0)
+    {
+    	printf("Unable to open port. Exiting.\n");
+    	return -1;
+    }
 	struct termios tty;
 	memset(&tty,0,sizeof tty);
 	if(tcgetattr(dev_fd,&tty) != 0 )
@@ -212,7 +217,7 @@ int main(int argc, char* argv[])
         else
         {
             packet_counter++;
-            if(mode=="raw")
+            if((mode=="raw"))
             {
             	if(protocol == "ROS")
             	{
@@ -261,33 +266,36 @@ int main(int argc, char* argv[])
         if(slow_timer > 1.0)
         {
         	slow_timer = 0.0;
-        	unsigned char buffer[64];
-			int length = 0;
-			int tx_status = 0;
-			switch(send_message)
-			{
-				case SERIAL_Command_ID:
-					tx_status = serialmessagehandler->encode_CommandSerial(buffer,&length,17,18,19,20);
-					printf("status: %d\n",tx_status);
-					break;
-				default:
-					printf("Can't send: 0XAB%0X: Not Supported.\n",send_message);
-					break;
-			}
-			if(tx_status)
-			{
-				int count = write( dev_fd, buffer, length );
-				//int count = write(dev_fd,reinterpret_cast<char*> (&buffer[0]),length);
-				if (count < 0)
+        	if(mode == "send")
+        	{
+				unsigned char buffer[64];
+				int length = 0;
+				int tx_status = 0;
+				switch(send_message)
 				{
-					printf("didn't send\n");
+					case SERIAL_Command_ID:
+						tx_status = serialmessagehandler->encode_CommandSerial(buffer,&length,17,18,19,20);
+						printf("status: %d\n",tx_status);
+						break;
+					default:
+						printf("Can't send: 0XAB%0X: Not Supported.\n",send_message);
+						break;
 				}
-				else
+				if(tx_status)
 				{
-					printf("sent: %d bytes\n",count);
-				}
+					int count = write( dev_fd, buffer, length );
+					//int count = write(dev_fd,reinterpret_cast<char*> (&buffer[0]),length);
+					if (count < 0)
+					{
+						printf("didn't send\n");
+					}
+					else
+					{
+						printf("sent: %d bytes\n",count);
+					}
 
-			}
+				}
+        	}
 
         }
         last = now;

@@ -2,7 +2,7 @@
 
 MasterNodeProcess::MasterNodeProcess()
 {
-	serialmessagehandler = new SerialMessageHandler();
+	SerialMessageHandler *serialmessagehandler = new SerialMessageHandler;
 }
 MasterNodeProcess::~MasterNodeProcess()
 {
@@ -28,6 +28,51 @@ icarus_rover_v2::diagnostic MasterNodeProcess::new_devicemsg(icarus_rover_v2::de
     return diag;
     
 }
+bool MasterNodeProcess::new_serialmessage(std::string serialport,std::string baudrate,unsigned char* message,int length)
+{
+	unsigned char uchar1;
+	unsigned long ulong1;
+	if(length > 4)
+	{
+		if(message[0] == 0xAB)
+		{
+			int id = message[1];
+			int packet_length = (int)message[2];
+			if((length-packet_length) == 5)
+			{
+				int computed_checksum = 0;
+				for(int i = 3; i < length - 2; i++)
+				{
+					computed_checksum ^= message[i];
+				}
+				if(computed_checksum == message[length-2])
+				{
+					if(id == SERIAL_ID_ID)
+					{
+
+						serialmessagehandler->decode_IDSerial(message,&uchar1,&ulong1);
+						std::string pn = boost::lexical_cast<std::string>(ulong1);
+						for(std::size_t i = 0; i < serialports.size(); i++)
+						{
+							if(serialports.at(i).file == serialport)
+							{
+								serialports.at(i).baudrate = baudrate;
+								serialports.at(i).id = uchar1;
+								serialports.at(i).pn = pn;
+								serialports.at(i).available = true;
+								serialports.at(i).checked = true;
+								return true;
+							}
+						}
+
+					}
+				}
+			}
+		}
+
+	}
+	return false;
+}
 icarus_rover_v2::diagnostic MasterNodeProcess::set_serialportlist(std::vector<std::string> list)
 {
     icarus_rover_v2::diagnostic diag = diagnostic;
@@ -44,7 +89,7 @@ icarus_rover_v2::diagnostic MasterNodeProcess::set_serialportlist(std::vector<st
         {
             SerialPort port;
             port.porttype = USB;
-            port.file = name;
+            port.file = "/dev/" + name;
             
             serialports.push_back(port);
         }
@@ -52,7 +97,7 @@ icarus_rover_v2::diagnostic MasterNodeProcess::set_serialportlist(std::vector<st
         {
             SerialPort port;
             port.porttype = ACM;
-            port.file =  name;
+            port.file =  "/dev/" + name;
             serialports.push_back(port);
         }
         /*
