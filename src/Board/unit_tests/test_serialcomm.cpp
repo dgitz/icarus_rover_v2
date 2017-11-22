@@ -10,6 +10,7 @@
 #include <sys/time.h>
  #include <stdint.h>
 #include <vector>
+#include<cstdlib>
 #include "../../../include/serialmessage.h"
 //#include "../Driver/ServoHatDriver.h"
 
@@ -23,14 +24,15 @@ struct Message
 	double rx_rate;
 	int packet_length;
 };
-
+long long good_packet_counter;
+long long bad_packet_counter;
 std::vector<Message> build_messages();
 std::vector<Message> decode_ROSMessage(SerialMessageHandler* handler,unsigned char* packet,int length,std::vector<Message> messages);
 static void show_usage(std::string name)
 {
     std::cerr << "Usage: Test ServoHat. Options:\n"
               << "\t-h,--help\t\tShow this help message\n"
-              << "\t-m,--mode Mode\traw,stat.\n"
+              << "\t-m,--mode Mode\traw,stat,send=<message>.\n"
 			  << "\t-p,--protocol Protocol:\tNone (Default),ROS\n"
               << "\t-d,--device SerialDevice.\n"
               << "\t-b,--baudrate BaudRate.\n"
@@ -40,10 +42,13 @@ static void show_usage(std::string name)
 
 int main(int argc, char* argv[])
 {
+	bad_packet_counter = 0;
+	good_packet_counter = 0;
     std::string mode = "";
     std::string device = "";
     std::string baudrate= "";
     std::string protocol = "";
+    uint8_t send_message = 0;
     std::vector<Message> messages;
     if (argc < 2) {
         show_usage(argv[0]);
@@ -122,6 +127,12 @@ int main(int argc, char* argv[])
     {
     	messages = build_messages();
     }
+    std::size_t found = mode.find("send=");
+    if(found != std::string::npos)
+    {
+    	send_message = std::atoi(mode.substr(5,mode.size()).c_str());
+    	mode = "send";
+    }
     printf("Testing Serial Comm with: device=%s baudrate=%s mode=%s\n",device.c_str(),baudrate.c_str(),mode.c_str());
     SerialMessageHandler *serialmessagehandler = new SerialMessageHandler;
     int dev_fd = open(device.c_str(),O_RDWR | O_NOCTTY);
@@ -164,12 +175,15 @@ int main(int argc, char* argv[])
     last = now;
     double run_time = 0.0;
     double medium_timer = 0.0;
+    double slow_timer = 0.0;
+
     while(1)
     {
         gettimeofday(&now,NULL);
         double dt = measure_timediff(now,last);  
         run_time += dt;
         medium_timer += dt;
+        slow_timer += dt;
         int n = 0;
         int length = 0;
 		unsigned char response[64];
@@ -225,13 +239,15 @@ int main(int argc, char* argv[])
         if(medium_timer > 0.25)
         {
             medium_timer = 0.0;
-            if(mode=="stat")
+            if((mode=="stat") || (mode == "send"))
             {
             	for(std::size_t i = 0; i < messages.size(); i++)
             	{
             			messages.at(i).rx_rate = (double)(messages.at(i).rx_counter)/run_time;
             	}
                 printf("Total Rx: %d @ Rate: %f bps: %f Bpp: %f\n",packet_counter,(double)(packet_counter)/run_time,8.0*(double)(rx_counter)/run_time,(double)(rx_counter)/(double)(packet_counter));
+                double ratio = 100.0*(double)(bad_packet_counter)/((double)(bad_packet_counter)+(double)(good_packet_counter));
+                printf("Bad Packets: %lld @ Rate: %f Ratio: %0.2f%\n",bad_packet_counter,(double)(bad_packet_counter)/run_time,ratio);
                 for(std::size_t i = 0; i < messages.size(); i++)
                 {
                 	if(messages.at(i).rx_counter > 0)
@@ -240,6 +256,38 @@ int main(int argc, char* argv[])
                 	}
                 }
             }
+
+        }
+        if(slow_timer > 1.0)
+        {
+        	slow_timer = 0.0;
+        	unsigned char buffer[64];
+			int length = 0;
+			int tx_status = 0;
+			switch(send_message)
+			{
+				case SERIAL_Command_ID:
+					tx_status = serialmessagehandler->encode_CommandSerial(buffer,&length,17,18,19,20);
+					printf("status: %d\n",tx_status);
+					break;
+				default:
+					printf("Can't send: 0XAB%0X: Not Supported.\n",send_message);
+					break;
+			}
+			if(tx_status)
+			{
+				int count = write( dev_fd, buffer, length );
+				//int count = write(dev_fd,reinterpret_cast<char*> (&buffer[0]),length);
+				if (count < 0)
+				{
+					printf("didn't send\n");
+				}
+				else
+				{
+					printf("sent: %d bytes\n",count);
+				}
+
+			}
 
         }
         last = now;
@@ -261,7 +309,19 @@ std::vector<Message> decode_ROSMessage(SerialMessageHandler* handler,unsigned ch
 		int packet_length = (int)packet[3];
 		if((length-packet_length) != 6)
 		{
-			//printf("Packet Length is bad\n");
+			bad_packet_counter++;
+			return messages;
+		}
+		int computed_checksum = 0;
+		for(int i = 4; i < length-2; i++)
+		{
+
+			computed_checksum ^= packet[i];
+
+		}
+		if(computed_checksum != packet[length-2])
+		{
+			bad_packet_counter++;
 			return messages;
 		}
 		unsigned char uchar1,uchar2,uchar3,uchar4;
@@ -307,11 +367,13 @@ std::vector<Message> decode_ROSMessage(SerialMessageHandler* handler,unsigned ch
 				//		ulong1,int1,long1,long2,long3,long4,long5,long6,long7,long8,long9);
 				break;
 			default:
+				bad_packet_counter++;
 				printf("Packet ID: 0XAB%0x Not Supported.\n",id);
 				return messages;
 				break;
 
 		}
+		good_packet_counter++;
 		for(std::size_t i = 0; i < messages.size(); i++)
 		{
 			if(id == messages.at(i).id)
