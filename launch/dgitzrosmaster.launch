@@ -13,7 +13,8 @@
         <param name="loop1_rate"            value="200"/> <!-- update -->
         <param name="loop2_rate"            value="1"/> <!-- publish imu data -->
         <param name="devicename_000"        value="IMU1"/>
-        <param name="deviceid_000"          value="2"/>
+        <param name="deviceid_000"          value="1"/>
         <param name="devicepn_000"          value="110012"/>
     </node>
+    
 </launch>
