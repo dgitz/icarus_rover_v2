@@ -14,6 +14,7 @@
 #include <icarus_rover_v2/diagnostic.h>
 #include <icarus_rover_v2/device.h>
 #include <icarus_rover_v2/srv_device.h>
+#include <icarus_rover_v2/srv_connection.h>
 #include <icarus_rover_v2/resource.h>
 #include <icarus_rover_v2/pin.h>
 #include <icarus_rover_v2/command.h>
@@ -27,6 +28,8 @@
 
 //Start User Code: Includes
 #include "imu_node_process.h"
+#include <boost/algorithm/string.hpp>
+#include "serialmessage.h"
 #include <boost/thread.hpp>
 #include <unistd.h>     // UNIX standard function definitions
 #include <fcntl.h>      // File control definitions
@@ -95,6 +98,8 @@ double ros_rate;
 //End Template Code: Define Global Variables
 
 //Start User Code: Define Global Variables
+SerialMessageHandler *serialmessagehandler;
+ros::ServiceClient srv_connection;
 bool imu_ready_to_publish;
 ros::Publisher imu_pub;
 bool sensors_initialized;

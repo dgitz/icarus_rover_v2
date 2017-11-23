@@ -29,6 +29,7 @@
 #include <ros/package.h>
 #include <stdlib.h>
 #include "icarus_rover_v2/srv_device.h"
+#include "icarus_rover_v2/srv_connection.h"
 #include <dirent.h>
 #include <errno.h>
 
@@ -56,6 +57,8 @@ void signalinterrupt_handler(int sig);
 //Start User Code: Function Prototypes
 bool device_service(icarus_rover_v2::srv_device::Request &req,
 				icarus_rover_v2::srv_device::Response &res);
+bool connection_service(icarus_rover_v2::srv_connection::Request &req,
+				icarus_rover_v2::srv_connection::Response &res);
 void publish_deviceinfo();
 double read_device_temperature();
 std::vector<std::string> find_serialports();
@@ -101,12 +104,13 @@ double ros_rate;
 
 //Start User Code: Global Variables
 MasterNodeProcess process;
-
+SerialMessageHandler *serialmessagehandler;
 std::vector<icarus_rover_v2::device> devices_to_publish;
 std::vector<std::string> NodeList;
 double device_temperature;
 ros::Publisher device_resourceavail_pub;
 ofstream process_file;
 ros::ServiceServer device_srv;
+ros::ServiceServer connection_srv;
 //End User Code: Global Variables
 #endif

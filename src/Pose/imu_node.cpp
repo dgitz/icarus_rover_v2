@@ -7,42 +7,58 @@
 //Start User Code: Functions
 void process_serial_receive()
 {
+	//printf("starting\n");
 	while(kill_node == 0)
 	{
 		int n = 0;
-		char response[1024];
+		int length = 0;
+		unsigned char response[64];
 		int spot = 0;
-		char buf = '\0';
+		unsigned char buf = '\0';
 		memset(response, '\0', sizeof response);
 		do
 		{
-			if(kill_node) { break; }
 			n = read( serial_device, &buf, 1 );
-			sprintf( &response[spot], "%c", buf );
+			length += n;
+			//sprintf( &response[spot], "%c", buf );
+			response[spot] = buf;
 			spot += n;
-		} while( buf != '\r' && n > 0);
-		if(kill_node == 0)
+		} while(buf != '\n' &&  buf != '\r' && n > 0);
+
+		//printf("read: %d\n",length);
+		if (n < 0)
 		{
-			if (n < 0)
+			std::cout << "[IMUNode]: Error reading: " << strerror(errno) << std::endl;
+		}
+		else if (n == 0)
+		{
+			std::cout << "[IMUNode]: Read nothing!" << std::endl;
+		}
+		else
+		{
+			if(length > 4)
 			{
-				std::cout << "Error reading: " << strerror(errno) << std::endl;
+				process->new_serialmessage(response,length);
 			}
-			else if (n == 0)
+		}
+
+		bool status;
+		icarus_rover_v2::imu imu_msg = process->get_imudata(&status);
+		if(status)
+		{
+			if(imu_msg.tov != last_imu.tov)
 			{
-				std::cout << "Read nothing!" << std::endl;
+				imu_msg.header.stamp = ros::Time::now();
+				imu_pub.publish(imu_msg);
 			}
-			else
-			{
-				//printf("Got: %s\n",response);
-				bool status = process->new_message(std::string(response));
-			}
-			//printf("processed: %d\n",status);
+			last_imu = imu_msg;
 		}
 	}
 	close(serial_device);
 }
 bool run_loop1_code()
 {
+
 	process->update(1/loop1_rate);
 	return true;
 }
@@ -53,12 +69,11 @@ bool run_loop2_code()
 		bool status;
 
 
-		icarus_rover_v2::imu imu_msg = process->get_imudata(&status,0);
+		icarus_rover_v2::imu imu_msg = process->get_imudata(&status);
 		if(status)
 		{
 			if(imu_msg.tov != last_imu.tov)
 			{
-				//printf("s: %f\n",imu_msg.tov);
 				imu_msg.header.stamp = ros::Time::now();
 				imu_pub.publish(imu_msg);
 			}
@@ -284,7 +299,6 @@ int main(int argc, char **argv)
 		loop_rate.sleep();
     }
     process_serialreceive_thread.join();
-
     logger->log_notice("Node Finished Safely.");
     return 0;
 }
@@ -395,21 +409,94 @@ bool initialize(ros::NodeHandle nh)
 
     //Start User Code: Initialization and Parameters
     last_imu.tov == 0.0;
+
     imu_ready_to_publish = false;
-   	imu_pub =  nh.advertise<icarus_rover_v2::imu>("/imu",1);
+
     process = new IMUNodeProcess;
+    std::string param_imu_name = node_name + "/devicename_000";
+    std::string imu_name;
+    if(nh.getParam(param_imu_name,imu_name) == false)
+    {
+    	logger->log_error("Missing parameter: devicename_000. Exiting.");
+    	return false;
+    }
+    std::string param_imu_id = node_name + "/deviceid_000";
+    int imu_id;
+    if(nh.getParam(param_imu_id,imu_id) == false)
+    {
+    	logger->log_error("Missing parameter: deviceid_000. Exiting.");
+    	return false;
+    }
+    //std::string param_imu_pn = node_name + "/devicepn_000";
+    std::string imu_pn = "110012";
+    /*
+    if(nh.getParam(param_imu_pn,imu_pn) == false)
+    {
+    	logger->log_error("Missing parameter: devicepn_000. Exiting.");
+    	return false;
+    }
+    */
+    serialmessagehandler = new SerialMessageHandler;
+    process->set_sensorname(imu_pn,imu_name,imu_id);
+
+    imu_pub =  nh.advertise<icarus_rover_v2::imu>("/" + imu_name,1);
+
 	diagnostic_status = process->init(diagnostic_status,std::string(hostname));
 	sensors_initialized = false;
-	serial_device = open("/dev/ttyUSB0",O_RDWR | O_NOCTTY);
+	usleep(5000000); //Wait for Master Node to initialize
+	std::string connection_topic = "/" + std::string(hostname) + "_master_node/srv_connection";
+	srv_connection = nh.serviceClient<icarus_rover_v2::srv_connection>(connection_topic);
+	icarus_rover_v2::srv_connection srv;
+	srv.request.PartNumber = imu_pn;
+	srv.request.ID = imu_id;
+	std::string serialdevice_path;
+	std::string baudrate;
+	if(srv_connection.call(srv) == true)
+	{
+		serialdevice_path = srv.response.connectionstring.substr(0,srv.response.connectionstring.find(":"));
+		baudrate = srv.response.connectionstring.substr(srv.response.connectionstring.find(":")+1);
+	}
+	else
+	{
+		logger->log_error("MasterNode Timed out when asked for string to IMU. Exiting.");
+		return false;
+	}
+	{
+		char tempstr[512];
+		sprintf(tempstr,"Connecting %s:%d to %s @ %s (bps)",
+				imu_name.c_str(),
+				imu_id,
+				serialdevice_path.c_str(),
+				baudrate.c_str());
+		logger->log_notice(std::string(tempstr));
+	}
+	serial_device = open(serialdevice_path.c_str(),O_RDWR | O_NOCTTY);
+	if(serial_device < 0)
+	{
+		printf("[IMUNode]: Can't open: %s\n",serialdevice_path.c_str());
+		return false;
+	}
 	struct termios tty;
 	memset(&tty,0,sizeof tty);
 	if(tcgetattr(serial_device,&tty) != 0 )
 	{
-		std::cout << "Error: " << errno << " from tcgetattr: " << strerror(errno) << std::endl;
+		std::cout << "[IMUNode]: Error: " << errno << " from tcgetattr: " << strerror(errno) << std::endl;
 	}
-	cfsetospeed(&tty,(speed_t)B115200);
-	cfsetispeed(&tty,(speed_t)B115200);
-	/* Setting other Port Stuff */
+	if(baudrate == "115200")
+	{
+		cfsetospeed(&tty,(speed_t)B115200);
+		cfsetispeed(&tty,(speed_t)B115200);
+	}
+	else if(baudrate == "9600")
+	{
+		cfsetospeed(&tty,(speed_t)B9600);
+		cfsetispeed(&tty,(speed_t)B9600);
+	}
+	else
+	{
+		printf("[IMUNode]: Baudrate: %s Not Supported.\n",baudrate.c_str());
+		return false;
+	}
 	tty.c_cflag     &=  ~PARENB;            // Make 8n1
 	tty.c_cflag     &=  ~CSTOPB;
 	tty.c_cflag     &=  ~CSIZE;
@@ -424,7 +511,28 @@ bool initialize(ros::NodeHandle nh)
 	cfmakeraw(&tty);
 	tcflush( serial_device, TCIFLUSH );
 	if ( tcsetattr ( serial_device, TCSANOW, &tty ) != 0) {
-	   std::cout << "Error " << errno << " from tcsetattr" << std::endl;
+		std::cout << "[IMUNode]: Error " << errno << " from tcsetattr" << std::endl;
+		return false;
+	}
+
+	for(int i = 0; i < 10; i++)
+	{//Command normal operation
+
+		unsigned char outbuffer[64];
+		int length = 0;
+
+		int tx_status = serialmessagehandler->encode_CommandSerial(outbuffer,&length,ROVERCOMMAND_RUN,ROVERCOMMAND_NONE,ROVERCOMMAND_NONE,ROVERCOMMAND_NONE);
+		if(tx_status)
+		{
+			int count = write( serial_device, outbuffer, length );
+			if(count <= 0)
+			{
+				printf("[IMUNode]: Can't Write to Serial Port. Exiting.\n");
+				return false;
+			}
+			usleep(200000);
+		}
+
 	}
 
     //Finish User Code: Initialization and Parameters

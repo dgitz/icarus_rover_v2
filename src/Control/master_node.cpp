@@ -13,12 +13,16 @@ bool check_serialports()
 	std::vector<std::string> baudrates = process.get_allserialbaudrates();
 	for(std::size_t i = 0; i < ports.size(); i++)
 	{
+		bool port_valid = false;
 		bool continue_checking_port = true;
 		for(std::size_t j = 0; j < baudrates.size(); j++)
 		{
 			if(continue_checking_port == true)
 			{
-				printf("trying: %s @ %s\n",ports.at(i).file.c_str(),baudrates.at(j).c_str());
+				char tempstr[512];
+
+				sprintf(tempstr,"Checking Serial Port: %s @ %s bps\n",ports.at(i).file.c_str(),baudrates.at(j).c_str());
+				logger->log_info(std::string(tempstr));
 				std::string baudrate = baudrates.at(j);
 				int dev_fd = open(ports.at(i).file.c_str(),O_RDWR | O_NOCTTY);
 				if(dev_fd < 0)
@@ -53,7 +57,7 @@ bool check_serialports()
 
 				tty.c_cflag     &=  ~CRTSCTS;           // no flow control
 				tty.c_cc[VMIN]   =  1;                  // read doesn't block
-				tty.c_cc[VTIME]  =  5;                  // 0.5 seconds read timeout
+				tty.c_cc[VTIME]  =  50;                  // 0.5 seconds read timeout
 				tty.c_cflag     |=  CREAD | CLOCAL;     // turn on READ & ignore ctrl lines
 
 				/* Make raw */
@@ -62,39 +66,69 @@ bool check_serialports()
 				if ( tcsetattr ( dev_fd, TCSANOW, &tty ) != 0) {
 					std::cout << "[MasterNode]: Error " << errno << " from tcsetattr" << std::endl;
 				}
-				int n = 0;
-				int length = 0;
-				unsigned char response[64];
-				int spot = 0;
-				unsigned char buf = '\0';
-				memset(response, '\0', sizeof response);
-				do
-				{
-					n = read( dev_fd, &buf, 1 );
-					//printf("%c",buf);
-					length += n;
-					//sprintf( &response[spot], "%c", buf );
-					response[spot] = buf;
-					spot += n;
-				} while( buf != '\r' && n > 0);
 
-				//printf("read: %d\n",length);
-				if (n < 0)
-				{
-					std::cout << "Error reading: " << strerror(errno) << std::endl;
-				}
-				else if (n == 0)
-				{
-					std::cout << "Read nothing!" << std::endl;
-				}
-				else
-				{
-					if(length > 4)
+				{//Command a reset
+					unsigned char outbuffer[64];
+					int length = 0;
+
+					int tx_status = serialmessagehandler->encode_CommandSerial(outbuffer,&length,ROVERCOMMAND_BOOT,ROVERCOMMAND_NONE,ROVERCOMMAND_NONE,ROVERCOMMAND_NONE);
+					if(tx_status)
 					{
-						bool status = process.new_serialmessage(ports.at(i).file,baudrate,response,length);
-						if(status == true) { continue_checking_port = false; }
-
+						int count = write( dev_fd, outbuffer, length );
+						if(count <= 0)
+						{
+							break;
+						}
+						usleep(2000000);
 					}
+
+				}
+				int packets_to_check_counter = 0;
+				while((packets_to_check_counter < 10) && (port_valid != true))
+				{
+					int n = 0;
+					int length = 0;
+					unsigned char response[64];
+					int spot = 0;
+					unsigned char buf = '\0';
+					memset(response, '\0', sizeof response);
+					do
+					{
+						n = read( dev_fd, &buf, 1 );
+						//printf("%c",buf);
+						length += n;
+						//sprintf( &response[spot], "%c", buf );
+						response[spot] = buf;
+						spot += n;
+					} while(buf != '\n' &&  buf != '\r' && n > 0);
+
+					//printf("read: %d\n",length);
+					if (n < 0)
+					{
+						std::cout << "Error reading: " << strerror(errno) << std::endl;
+					}
+					else if (n == 0)
+					{
+						std::cout << "Read nothing!" << std::endl;
+					}
+					else
+					{
+						if(length > 4)
+						{
+							bool status = process.new_serialmessage(ports.at(i).file,baudrate,response,length);
+							if(status == true)
+							{
+								continue_checking_port = false;
+								port_valid = true;
+							}
+							else
+							{
+								usleep(200000);
+							}
+
+						}
+					}
+					packets_to_check_counter++;
 				}
 				close(dev_fd);
 			}
@@ -103,13 +137,16 @@ bool check_serialports()
 	ports = process.get_serialports();
 	for(std::size_t i = 0; i < ports.size(); i++)
 	{
-		char tempstr[512];
-		sprintf(tempstr,"Found ROS Device on Serial Port: %s @ %s with PN=%s ID=%d",
-				ports.at(i).file.c_str(),
-				ports.at(i).baudrate.c_str(),
-				ports.at(i).pn.c_str(),
-				ports.at(i).id);
-		logger->log_notice(std::string(tempstr));
+		if(ports.at(i).available == true)
+		{
+			char tempstr[512];
+			sprintf(tempstr,"Found ROS Device on Serial Port: %s @ %s with PN=%s ID=%d",
+					ports.at(i).file.c_str(),
+					ports.at(i).baudrate.c_str(),
+					ports.at(i).pn.c_str(),
+					ports.at(i).id);
+			logger->log_notice(std::string(tempstr));
+		}
 	}
 	return true;
 }
@@ -146,6 +183,20 @@ std::vector<std::string> find_serialports()
         }
     }
     return ports;
+}
+bool connection_service(icarus_rover_v2::srv_connection::Request &req,
+					icarus_rover_v2::srv_connection::Response &res)
+{
+	std::vector<MasterNodeProcess::SerialPort> ports = process.get_serialports();
+	for(std::size_t i = 0; i < ports.size(); i++)
+	{
+		if((ports.at(i).pn == req.PartNumber) and (ports.at(i).id == req.ID))
+		{
+			res.connectionstring = ports.at(i).file + ":" + ports.at(i).baudrate;
+			return true;
+		}
+	}
+	return false;
 }
 bool device_service(icarus_rover_v2::srv_device::Request &req,
 				icarus_rover_v2::srv_device::Response &res)
@@ -529,6 +580,7 @@ bool initialize(ros::NodeHandle nh)
     //End Template Code: Initialization and Parameters
 
     //Start User Code: Initialization and Parameters
+    serialmessagehandler = new SerialMessageHandler;
     resourcemonitor = new ResourceMonitor(diagnostic_status,process.get_mydevice().Architecture,hostname,node_name);
     if(resourcemonitor == NULL)
     {
@@ -550,6 +602,8 @@ bool initialize(ros::NodeHandle nh)
 
     std::string srv_device_topic = "/" + node_name + "/srv_device";
     device_srv = nh.advertiseService(srv_device_topic,device_service);
+    std::string srv_connection_topic = "/" + node_name + "/srv_connection";
+    connection_srv = nh.advertiseService(srv_connection_topic,connection_service);
     
     diagnostic_status = process.set_serialportlist(find_serialports());
 
@@ -569,7 +623,7 @@ bool initialize(ros::NodeHandle nh)
     else
     {
     	logger->log_notice("Serial Port Check Complete.");
-    	printf("[MasterNode]: Serial Port Check Complete.\n");
+    	//printf("[MasterNode]: Serial Port Check Complete.\n");
     }
 
     //Finish User Code: Initialization and Parameters

@@ -49,7 +49,6 @@ bool MasterNodeProcess::new_serialmessage(std::string serialport,std::string bau
 				{
 					if(id == SERIAL_ID_ID)
 					{
-
 						serialmessagehandler->decode_IDSerial(message,&uchar1,&ulong1);
 						std::string pn = boost::lexical_cast<std::string>(ulong1);
 						for(std::size_t i = 0; i < serialports.size(); i++)

@@ -28,6 +28,7 @@ class IMUNodeProcess
 public:
 	struct Sensor
 	{
+		std::string pn;
 		bool ready;
 		bool data_available;
 		int id;
@@ -74,13 +75,21 @@ public:
 	void set_mydevice(icarus_rover_v2::device v) { myDevice = v; }
 	icarus_rover_v2::device get_mydevice() { return myDevice; }
 	bool new_message(std::string msg);
+	bool new_serialmessage(unsigned char* message,int length); //Return true: valid, false: invalid
 	//bool imudata_ready(int id);
-	icarus_rover_v2::imu get_imudata(bool* valid,int id);
+	icarus_rover_v2::imu get_imudata(bool* valid);
 	int get_delayedcounter() { return delay_counter; }
 	double get_delayrate() { return run_time/(double)(delay_counter); }
 	bool get_initialized() { return initialized; }
+	void set_sensorname(std::string pn,std::string name,int id)
+	{
+		sensor.pn = pn;
+		sensor.id = id;
+		sensor.name = name;
+	}
     
 private:
+	SerialMessageHandler *serialmessagehandler;
 	icarus_rover_v2::device myDevice;
 	icarus_rover_v2::diagnostic diagnostic;
 	int sensor_count;

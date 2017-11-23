@@ -81,6 +81,7 @@ add_message_files(
  add_service_files(
    FILES
    srv_device.srv
+   srv_connection.srv
  )
 
 ## Generate actions in the 'action' folder
@@ -317,6 +318,6 @@ catkin_add_gtest(test_simulate_node_process src/Simulate/unit_tests/test_simulat
 target_link_libraries(test_simulate_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} simulate_node_process logger)
 
 add_executable(imu_node src/Pose/imu_node.cpp)
-target_link_libraries(imu_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor imu_node_process)
+target_link_libraries(imu_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} serialmessage logger resourcemonitor imu_node_process)
 catkin_add_gtest(test_imu_node_process src/Pose/unit_tests/test_imu_node_process.cpp)
-target_link_libraries(test_imu_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} imu_node_process logger)
+target_link_libraries(test_imu_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} serialmessage imu_node_process logger)
