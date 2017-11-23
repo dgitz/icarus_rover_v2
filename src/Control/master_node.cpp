@@ -27,7 +27,7 @@ bool check_serialports()
 				int dev_fd = open(ports.at(i).file.c_str(),O_RDWR | O_NOCTTY);
 				if(dev_fd < 0)
 				{
-					printf("can't open\n");
+					printf("[MasterNode]: Can't open: %s\n",ports.at(i).file.c_str());
 					break;
 				}
 				struct termios tty;
