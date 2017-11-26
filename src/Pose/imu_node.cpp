@@ -12,7 +12,7 @@ void process_serial_receive()
 	{
 		int n = 0;
 		int length = 0;
-		unsigned char response[64];
+		unsigned char response[256];
 		int spot = 0;
 		unsigned char buf = '\0';
 		memset(response, '\0', sizeof response);
@@ -42,17 +42,7 @@ void process_serial_receive()
 			}
 		}
 
-		bool status;
-		icarus_rover_v2::imu imu_msg = process->get_imudata(&status);
-		if(status)
-		{
-			if(imu_msg.tov != last_imu.tov)
-			{
-				imu_msg.header.stamp = ros::Time::now();
-				imu_pub.publish(imu_msg);
-			}
-			last_imu = imu_msg;
-		}
+
 	}
 	close(serial_device);
 }
@@ -67,17 +57,12 @@ bool run_loop2_code()
 	try
 	{
 		bool status;
-
-
 		icarus_rover_v2::imu imu_msg = process->get_imudata(&status);
 		if(status)
 		{
-			if(imu_msg.tov != last_imu.tov)
-			{
-				imu_msg.header.stamp = ros::Time::now();
-				imu_pub.publish(imu_msg);
-			}
-			last_imu = imu_msg;
+            imu_msg.header.stamp = ros::Time::now();
+            imu_pub.publish(imu_msg);
+            last_imu = imu_msg;
 		}
 	}
 	catch(int e)
@@ -89,6 +74,19 @@ bool run_loop2_code()
 }
 bool run_loop3_code()
 {
+    bool status;
+    icarus_rover_v2::imu imu_msg = process->get_imudata(&status);
+    if(status)
+    {
+        if(process->get_verbositylevel() == "DEBUG")
+        {
+            printf("[%s] t: %f xacc: %f yacc: %f zacc: %f xgyro: %f ygyro: %f zgyro: %f xmag: %f ymag: %f zmag: %f\n",
+                process->get_sensor().name.c_str(),imu_msg.tov,
+                imu_msg.xacc.value,imu_msg.yacc.value,imu_msg.zacc.value,
+                imu_msg.xgyro.value,imu_msg.ygyro.value,imu_msg.zgyro.value,
+                imu_msg.xmag.value,imu_msg.ymag.value,imu_msg.zmag.value);
+        }
+    }
  	return true;
 }
 void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg)
@@ -409,7 +407,6 @@ bool initialize(ros::NodeHandle nh)
 
     //Start User Code: Initialization and Parameters
     last_imu.tov == 0.0;
-
     imu_ready_to_publish = false;
 
     process = new IMUNodeProcess;
@@ -438,12 +435,12 @@ bool initialize(ros::NodeHandle nh)
     */
     serialmessagehandler = new SerialMessageHandler;
     process->set_sensorname(imu_pn,imu_name,imu_id);
-
+    process->set_verbositylevel(verbosity_level);
     imu_pub =  nh.advertise<icarus_rover_v2::imu>("/" + imu_name,1);
 
 	diagnostic_status = process->init(diagnostic_status,std::string(hostname));
 	sensors_initialized = false;
-	usleep(5000000); //Wait for Master Node to initialize
+	usleep(7000000); //Wait for Master Node to initialize
 	std::string connection_topic = "/" + std::string(hostname) + "_master_node/srv_connection";
 	srv_connection = nh.serviceClient<icarus_rover_v2::srv_connection>(connection_topic);
 	icarus_rover_v2::srv_connection srv;
@@ -458,7 +455,9 @@ bool initialize(ros::NodeHandle nh)
 	}
 	else
 	{
-		logger->log_error("MasterNode Timed out when asked for string to IMU. Exiting.");
+		char tempstr[512];
+		sprintf(tempstr,"MasterNode Timed out when asked for connection to: %s:%d",imu_pn.c_str(),imu_id);
+		logger->log_error(std::string(tempstr));
 		return false;
 	}
 	{

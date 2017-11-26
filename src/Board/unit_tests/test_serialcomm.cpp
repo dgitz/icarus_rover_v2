@@ -34,7 +34,7 @@ static void show_usage(std::string name)
 {
     std::cerr << "Usage: Test ServoHat. Options:\n"
               << "\t-h,--help\t\tShow this help message\n"
-              << "\t-m,--mode Mode\traw,stat,send=<message>.\n"
+              << "\t-m,--mode Mode\traw,stat,send=<message>\n"
 			  << "\t-p,--protocol Protocol:\tNone (Default),ROS\n"
               << "\t-d,--device SerialDevice.\n"
               << "\t-b,--baudrate BaudRate.\n"
@@ -129,8 +129,8 @@ int main(int argc, char* argv[])
     {
     	messages = build_messages();
     }
-    std::size_t found = mode.find("send=");
-    if(found != std::string::npos)
+    std::size_t found_send = mode.find("send=");
+    if(found_send != std::string::npos)
     {
     	std::string tempstr = mode.substr(5,mode.size());
     	std::vector<std::string> strs;
@@ -141,185 +141,188 @@ int main(int argc, char* argv[])
     	}
     	mode = "send";
     }
-    printf("Testing Serial Comm with: device=%s baudrate=%s mode=%s\n",device.c_str(),baudrate.c_str(),mode.c_str());
-    SerialMessageHandler *serialmessagehandler = new SerialMessageHandler;
-    int dev_fd = open(device.c_str(),O_RDWR | O_NOCTTY);
-    if(dev_fd < 0)
+    if((mode == "raw") || (mode == "send") || (mode == "stat"))
     {
-    	printf("Unable to open port. Exiting.\n");
-    	return -1;
+    	printf("Testing Serial Comm with: device=%s baudrate=%s mode=%s\n",device.c_str(),baudrate.c_str(),mode.c_str());
+    	SerialMessageHandler *serialmessagehandler = new SerialMessageHandler;
+    	int dev_fd = open(device.c_str(),O_RDWR | O_NOCTTY);
+    	if(dev_fd < 0)
+    	{
+    		printf("Unable to open port. Exiting.\n");
+    		return -1;
+    	}
+    	struct termios tty;
+    	memset(&tty,0,sizeof tty);
+    	if(tcgetattr(dev_fd,&tty) != 0 )
+    	{
+    		std::cout << "Error: " << errno << " from tcgetattr: " << strerror(errno) << std::endl;
+    	}
+    	if(baudrate == "115200")
+    	{
+    		cfsetospeed(&tty,(speed_t)B115200);
+    		cfsetispeed(&tty,(speed_t)B115200);
+    	}
+    	else
+    	{
+    		printf("Baudrate: %s Not Supported.\n",baudrate.c_str());
+    	}
+    	/* Setting other Port Stuff */
+    	tty.c_cflag     &=  ~PARENB;            // Make 8n1
+    	tty.c_cflag     &=  ~CSTOPB;
+    	tty.c_cflag     &=  ~CSIZE;
+    	tty.c_cflag     |=  CS8;
+
+    	tty.c_cflag     &=  ~CRTSCTS;           // no flow control
+    	tty.c_cc[VMIN]   =  1;                  // read doesn't block
+    	tty.c_cc[VTIME]  =  5;                  // 0.5 seconds read timeout
+    	tty.c_cflag     |=  CREAD | CLOCAL;     // turn on READ & ignore ctrl lines
+
+    	/* Make raw */
+    	cfmakeraw(&tty);
+    	tcflush( dev_fd, TCIFLUSH );
+    	if ( tcsetattr ( dev_fd, TCSANOW, &tty ) != 0) {
+    		std::cout << "Error " << errno << " from tcsetattr" << std::endl;
+    	}
+    	int packet_counter = 0;
+    	long rx_counter = 0;
+    	timeval now,last;
+    	gettimeofday(&now,NULL);
+    	last = now;
+    	double run_time = 0.0;
+    	double medium_timer = 0.0;
+    	double slow_timer = 0.0;
+
+    	while(1)
+    	{
+    		gettimeofday(&now,NULL);
+    		double dt = measure_timediff(now,last);
+    		run_time += dt;
+    		medium_timer += dt;
+    		slow_timer += dt;
+    		int n = 0;
+    		int length = 0;
+    		unsigned char response[64];
+    		int spot = 0;
+    		unsigned char buf = '\0';
+    		memset(response, '\0', sizeof response);
+    		do
+    		{
+    			n = read( dev_fd, &buf, 1 );
+    			//printf("%c",buf);
+    			length += n;
+    			rx_counter += n;
+    			//sprintf( &response[spot], "%c", buf );
+    			response[spot] = buf;
+    			spot += n;
+    		} while(buf != '\n' && buf != '\r' && n > 0);
+    		//printf("read: %d\n",length);
+    		if (n < 0)
+    		{
+    			std::cout << "Error reading: " << strerror(errno) << std::endl;
+    		}
+    		else if (n == 0)
+    		{
+    			std::cout << "Read nothing!" << std::endl;
+    		}
+    		else
+    		{
+    			packet_counter++;
+    			if((mode=="raw"))
+    			{
+    				if(protocol == "ROS")
+    				{
+    					for(int i = 0; i < length; i++)
+    					{
+    						printf("%0x",response[i]);
+    						printf(" ");
+    					}
+    					printf("\n");
+    				}
+    				else
+    				{
+    					printf("%s\n",response);
+    				}
+
+    			}
+    			if((protocol == "ROS"))
+    			{
+    				messages = decode_ROSMessage(serialmessagehandler,response,length,messages);
+    			}
+
+    		}
+
+    		if(medium_timer > 0.25)
+    		{
+    			medium_timer = 0.0;
+    			if((mode=="stat") || (mode == "send"))
+    			{
+    				for(std::size_t i = 0; i < messages.size(); i++)
+    				{
+    					messages.at(i).rx_rate = (double)(messages.at(i).rx_counter)/run_time;
+    				}
+    				printf("Total Rx: %d @ Rate: %f bps: %f Bpp: %f\n",packet_counter,(double)(packet_counter)/run_time,8.0*(double)(rx_counter)/run_time,(double)(rx_counter)/(double)(packet_counter));
+    				double ratio = 100.0*(double)(bad_packet_counter)/((double)(bad_packet_counter)+(double)(good_packet_counter));
+    				printf("Bad Packets: %lld @ Rate: %f Ratio: %0.2f%\n",bad_packet_counter,(double)(bad_packet_counter)/run_time,ratio);
+    				for(std::size_t i = 0; i < messages.size(); i++)
+    				{
+    					if(messages.at(i).rx_counter > 0)
+    					{
+    						printf("Msg: 0XAB%0X Rx: %d Rate: %f Len: %d\n",messages.at(i).id,messages.at(i).rx_counter,messages.at(i).rx_rate,messages.at(i).packet_length);
+    					}
+    				}
+    			}
+
+    		}
+    		if(slow_timer > 1.0)
+    		{
+    			slow_timer = 0.0;
+
+    			if(mode == "send")
+    			{
+    				unsigned char buffer[64];
+    				int length = 0;
+    				int tx_status = 0;
+    				int v1,v2,v3,v4;
+    				v1 = 0;
+    				v2 = 0;
+    				v3 = 0;
+    				v4 = 0;
+    				int msg_id = send_messages.at(0);
+    				switch(msg_id)
+    				{
+    				case SERIAL_Command_ID:
+    					if(send_messages.size() >= 2) { v1 = send_messages.at(1); }
+    					if(send_messages.size() >= 3) { v2 = send_messages.at(2); }
+    					if(send_messages.size() >= 4) { v3 = send_messages.at(3); }
+    					if(send_messages.size() >= 5) { v4 = send_messages.at(4); }
+    					tx_status = serialmessagehandler->encode_CommandSerial(buffer,&length,v1,v2,v3,v4);
+    					break;
+    				default:
+    					printf("Can't send: 0XAB%0X: Not Supported.\n",msg_id);
+    					break;
+    				}
+    				if(tx_status)
+    				{
+    					int count = write( dev_fd, buffer, length );
+    					//int count = write(dev_fd,reinterpret_cast<char*> (&buffer[0]),length);
+    					if (count < 0)
+    					{
+    						printf("didn't send\n");
+    					}
+    					else
+    					{
+    						printf("sent: %d bytes\n",count);
+    					}
+
+    				}
+    			}
+
+
+    		}
+    		last = now;
+    	}
+    	close(dev_fd);
     }
-	struct termios tty;
-	memset(&tty,0,sizeof tty);
-	if(tcgetattr(dev_fd,&tty) != 0 )
-	{
-		std::cout << "Error: " << errno << " from tcgetattr: " << strerror(errno) << std::endl;
-	}
-    if(baudrate == "115200")
-    {
-        cfsetospeed(&tty,(speed_t)B115200);
-        cfsetispeed(&tty,(speed_t)B115200);
-    }
-    else
-    {
-        printf("Baudrate: %s Not Supported.\n",baudrate.c_str());
-    }
-	/* Setting other Port Stuff */
-	tty.c_cflag     &=  ~PARENB;            // Make 8n1
-	tty.c_cflag     &=  ~CSTOPB;
-	tty.c_cflag     &=  ~CSIZE;
-	tty.c_cflag     |=  CS8;
-
-	tty.c_cflag     &=  ~CRTSCTS;           // no flow control
-	tty.c_cc[VMIN]   =  1;                  // read doesn't block
-	tty.c_cc[VTIME]  =  5;                  // 0.5 seconds read timeout
-	tty.c_cflag     |=  CREAD | CLOCAL;     // turn on READ & ignore ctrl lines
-
-	/* Make raw */
-	cfmakeraw(&tty);
-	tcflush( dev_fd, TCIFLUSH );
-	if ( tcsetattr ( dev_fd, TCSANOW, &tty ) != 0) {
-	   std::cout << "Error " << errno << " from tcsetattr" << std::endl;
-	}
-    int packet_counter = 0;
-    long rx_counter = 0;
-    timeval now,last;
-    gettimeofday(&now,NULL);
-    last = now;
-    double run_time = 0.0;
-    double medium_timer = 0.0;
-    double slow_timer = 0.0;
-
-    while(1)
-    {
-        gettimeofday(&now,NULL);
-        double dt = measure_timediff(now,last);  
-        run_time += dt;
-        medium_timer += dt;
-        slow_timer += dt;
-        int n = 0;
-        int length = 0;
-		unsigned char response[64];
-		int spot = 0;
-		unsigned char buf = '\0';
-		memset(response, '\0', sizeof response);
-		do
-		{
-			n = read( dev_fd, &buf, 1 );
-			//printf("%c",buf);
-			length += n;
-            rx_counter += n;
-			//sprintf( &response[spot], "%c", buf );
-            response[spot] = buf;
-			spot += n;
-		} while(buf != '\n' && buf != '\r' && n > 0);
-		//printf("read: %d\n",length);
-        if (n < 0)
-        {
-            std::cout << "Error reading: " << strerror(errno) << std::endl;
-        }
-        else if (n == 0)
-        {
-            std::cout << "Read nothing!" << std::endl;
-        }
-        else
-        {
-            packet_counter++;
-            if((mode=="raw"))
-            {
-            	if(protocol == "ROS")
-            	{
-					for(int i = 0; i < length; i++)
-					{
-						printf("%0x",response[i]);
-						printf(" ");
-					}
-					printf("\n");
-            	}
-            	else
-            	{
-            		printf("%s\n",response);
-            	}
-
-            }
-            if((protocol == "ROS"))
-            {
-            	messages = decode_ROSMessage(serialmessagehandler,response,length,messages);
-            }
-            
-        }
-        
-        if(medium_timer > 0.25)
-        {
-            medium_timer = 0.0;
-            if((mode=="stat") || (mode == "send"))
-            {
-            	for(std::size_t i = 0; i < messages.size(); i++)
-            	{
-            			messages.at(i).rx_rate = (double)(messages.at(i).rx_counter)/run_time;
-            	}
-                printf("Total Rx: %d @ Rate: %f bps: %f Bpp: %f\n",packet_counter,(double)(packet_counter)/run_time,8.0*(double)(rx_counter)/run_time,(double)(rx_counter)/(double)(packet_counter));
-                double ratio = 100.0*(double)(bad_packet_counter)/((double)(bad_packet_counter)+(double)(good_packet_counter));
-                printf("Bad Packets: %lld @ Rate: %f Ratio: %0.2f%\n",bad_packet_counter,(double)(bad_packet_counter)/run_time,ratio);
-                for(std::size_t i = 0; i < messages.size(); i++)
-                {
-                	if(messages.at(i).rx_counter > 0)
-                	{
-                		printf("Msg: 0XAB%0X Rx: %d Rate: %f Len: %d\n",messages.at(i).id,messages.at(i).rx_counter,messages.at(i).rx_rate,messages.at(i).packet_length);
-                	}
-                }
-            }
-
-        }
-        if(slow_timer > 1.0)
-        {
-        	slow_timer = 0.0;
-
-        	if(mode == "send")
-        	{
-				unsigned char buffer[64];
-				int length = 0;
-				int tx_status = 0;
-				int v1,v2,v3,v4;
-				v1 = 0;
-				v2 = 0;
-				v3 = 0;
-				v4 = 0;
-				int msg_id = send_messages.at(0);
-				switch(msg_id)
-				{
-					case SERIAL_Command_ID:
-						if(send_messages.size() >= 2) { v1 = send_messages.at(1); }
-						if(send_messages.size() >= 3) { v2 = send_messages.at(2); }
-						if(send_messages.size() >= 4) { v3 = send_messages.at(3); }
-						if(send_messages.size() >= 5) { v4 = send_messages.at(4); }
-						tx_status = serialmessagehandler->encode_CommandSerial(buffer,&length,v1,v2,v3,v4);
-						break;
-					default:
-						printf("Can't send: 0XAB%0X: Not Supported.\n",msg_id);
-						break;
-				}
-				if(tx_status)
-				{
-					int count = write( dev_fd, buffer, length );
-					//int count = write(dev_fd,reinterpret_cast<char*> (&buffer[0]),length);
-					if (count < 0)
-					{
-						printf("didn't send\n");
-					}
-					else
-					{
-						printf("sent: %d bytes\n",count);
-					}
-
-				}
-        	}
-
-
-        }
-        last = now;
-    }
-    close(dev_fd);
 	return 0;
 }
 double measure_timediff(timeval b, timeval a)
@@ -386,8 +389,8 @@ std::vector<Message> decode_ROSMessage(SerialMessageHandler* handler,unsigned ch
 				handler->decode_IDSerial(packet,&uchar1,&ulong1);
 				//printf("c: %d l: %ld\n",uchar1,ulong1);
 				break;
-			case SERIAL_IMU_ID:
-				handler->decode_IMUSerial(packet,&ulong1,&int1,&long1,&long2,&long3,&long4,&long5,&long6,&long7,&long8,&long9);
+			//case SERIAL_IMU_ID:
+			//	handler->decode_IMUSerial(packet,&ulong1,&int1,&long1,&long2,&long3,&long4,&long5,&long6,&long7,&long8,&long9);
 				//printf("t: %ld count: %d ax: %ld ay: %ld az: %ld gx: %ld gy: %ld gz: %ld mx: %ld my: %ld mz: %ld\n",
 				//		ulong1,int1,long1,long2,long3,long4,long5,long6,long7,long8,long9);
 				break;
@@ -483,11 +486,7 @@ std::vector<Message> build_messages()
 		message.id = SERIAL_ID_ID;
 		messages.push_back(message);
 	}
-	{
-		Message message;
-		message.id = SERIAL_IMU_ID;
-		messages.push_back(message);
-	}
+
 	for(std::size_t i = 0; i < messages.size(); i++)
 	{
 		messages.at(i).rx_counter = 0;

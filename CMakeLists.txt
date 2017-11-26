@@ -238,7 +238,7 @@ add_library(pose_node_process src/Pose/pose_node_process.cpp)
 add_library(autodrive_node_process src/Control/autodrive_node_process.cpp)
 add_library(boardcontroller_node_process src/Board/boardcontroller_node_process.cpp)
 add_library(commandlauncher_node_process src/Control/commandlauncher_node_process.cpp)
-add_library(imu_node_process src/Pose/imu_node_process.cpp)
+add_library(imu_node_process src/Pose/imu_node_process.cpp util/serialmessage.cpp)
 add_library(master_node_process src/Control/master_node_process.cpp)
 add_library(simulate_node_process src/Simulate/simulate_node_process.cpp)
 

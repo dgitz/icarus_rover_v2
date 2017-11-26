@@ -20,7 +20,6 @@ bool check_serialports()
 			if(continue_checking_port == true)
 			{
 				char tempstr[512];
-
 				sprintf(tempstr,"Checking Serial Port: %s @ %s bps\n",ports.at(i).file.c_str(),baudrates.at(j).c_str());
 				logger->log_info(std::string(tempstr));
 				std::string baudrate = baudrates.at(j);
@@ -101,8 +100,6 @@ bool check_serialports()
 						response[spot] = buf;
 						spot += n;
 					} while(buf != '\n' &&  buf != '\r' && n > 0);
-
-					//printf("read: %d\n",length);
 					if (n < 0)
 					{
 						std::cout << "Error reading: " << strerror(errno) << std::endl;
@@ -140,12 +137,19 @@ bool check_serialports()
 		if(ports.at(i).available == true)
 		{
 			char tempstr[512];
-			sprintf(tempstr,"Found ROS Device on Serial Port: %s @ %s with PN=%s ID=%d",
+			sprintf(tempstr,"Found ROS Device on Serial Port: %s @ %s with PN=%s ID=%d\n",
 					ports.at(i).file.c_str(),
 					ports.at(i).baudrate.c_str(),
 					ports.at(i).pn.c_str(),
 					ports.at(i).id);
 			logger->log_notice(std::string(tempstr));
+		}
+		else
+		{
+			char tempstr[512];
+			sprintf(tempstr,"No ROS Device found on: %s\n",
+					ports.at(i).file.c_str());
+			logger->log_warn(std::string(tempstr));
 		}
 	}
 	return true;
