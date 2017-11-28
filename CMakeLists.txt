@@ -75,6 +75,7 @@ add_message_files(
   pose.msg
   controlgroup.msg
   encoder.msg
+  leverarm.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -82,6 +83,7 @@ add_message_files(
    FILES
    srv_device.srv
    srv_connection.srv
+   srv_leverarm.srv
  )
 
 ## Generate actions in the 'action' folder
@@ -239,7 +241,7 @@ add_library(autodrive_node_process src/Control/autodrive_node_process.cpp)
 add_library(boardcontroller_node_process src/Board/boardcontroller_node_process.cpp)
 add_library(commandlauncher_node_process src/Control/commandlauncher_node_process.cpp)
 add_library(imu_node_process src/Pose/imu_node_process.cpp util/serialmessage.cpp)
-add_library(master_node_process src/Control/master_node_process.cpp)
+add_library(master_node_process src/Control/master_node_process.cpp util/serialmessage.cpp)
 add_library(simulate_node_process src/Simulate/simulate_node_process.cpp)
 
 add_executable(sample_node src_templates/sample_node.cpp)
@@ -293,7 +295,7 @@ catkin_add_gtest(test_safety_node_process src/Diagnostics/unit_tests/test_safety
 target_link_libraries(test_safety_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} safety_node_process logger)
 
 add_executable(pose_node src/Pose/pose_node.cpp)
-target_link_libraries(pose_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor pose_node_process)
+target_link_libraries(pose_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} ${Eigen_LIBRARIES} logger resourcemonitor pose_node_process)
 catkin_add_gtest(test_pose_node_process src/Pose/unit_tests/test_pose_node_process.cpp)
 target_link_libraries(test_pose_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${Eigen_LIBRARIES} pose_node_process logger)
 
@@ -318,6 +320,6 @@ catkin_add_gtest(test_simulate_node_process src/Simulate/unit_tests/test_simulat
 target_link_libraries(test_simulate_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} simulate_node_process logger)
 
 add_executable(imu_node src/Pose/imu_node.cpp)
-target_link_libraries(imu_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} serialmessage logger resourcemonitor imu_node_process)
+target_link_libraries(imu_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} ${Eigen_LIBRARIES} serialmessage logger resourcemonitor imu_node_process)
 catkin_add_gtest(test_imu_node_process src/Pose/unit_tests/test_imu_node_process.cpp)
-target_link_libraries(test_imu_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} serialmessage imu_node_process logger)
+target_link_libraries(test_imu_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${Eigen_LIBRARIES} serialmessage imu_node_process logger)

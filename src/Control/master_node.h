@@ -30,6 +30,7 @@
 #include <stdlib.h>
 #include "icarus_rover_v2/srv_device.h"
 #include "icarus_rover_v2/srv_connection.h"
+#include "icarus_rover_v2/srv_leverarm.h"
 #include <dirent.h>
 #include <errno.h>
 
@@ -59,6 +60,8 @@ bool device_service(icarus_rover_v2::srv_device::Request &req,
 				icarus_rover_v2::srv_device::Response &res);
 bool connection_service(icarus_rover_v2::srv_connection::Request &req,
 				icarus_rover_v2::srv_connection::Response &res);
+bool leverarm_service(icarus_rover_v2::srv_leverarm::Request &req,
+				icarus_rover_v2::srv_leverarm::Response &res);
 void publish_deviceinfo();
 double read_device_temperature();
 std::vector<std::string> find_serialports();
@@ -112,5 +115,6 @@ ros::Publisher device_resourceavail_pub;
 ofstream process_file;
 ros::ServiceServer device_srv;
 ros::ServiceServer connection_srv;
+ros::ServiceServer leverarm_srv;
 //End User Code: Global Variables
 #endif

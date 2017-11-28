@@ -22,8 +22,10 @@
 #include <math.h>
 #include "icarus_rover_v2/imu.h"
 #include <tinyxml.h>
+#include <Eigen/Dense>
 #define RINGBUFFER_SIZE 500
 #define G  9.80665
+using namespace Eigen;
 class IMUNodeProcess
 {
 
@@ -111,10 +113,12 @@ public:
     void set_verbositylevel(std::string v) { verbosity_level = v; }
     std::string get_verbositylevel() { return verbosity_level; }
     bool load_sensorinfo();
+    bool set_mountingangle(double pitch_,double roll_,double yaw_);
+    MatrixXd get_rotationmatrix() { return rotation_matrix; }
     
 private:
     void update_rms();
-
+    std::string hostname;
     std::string verbosity_level;
 	SerialMessageHandler *serialmessagehandler;
 	icarus_rover_v2::device myDevice;
@@ -125,5 +129,12 @@ private:
 	double run_time;
 	bool message_ready;
 	bool initialized;
+    double pitchangle_rad;
+    double rollangle_rad;
+    double yawangle_rad;
+    MatrixXd m_pitch;
+    MatrixXd m_roll;
+    MatrixXd m_yaw;
+    MatrixXd rotation_matrix;
 };
 #endif

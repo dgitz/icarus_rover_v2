@@ -16,7 +16,7 @@ double FAST_RATE = 10.0f;
 int DeviceID = 123;
 
 
-MasterNodeProcess initialize_process(std::string path);
+MasterNodeProcess initialize_process(std::string devicepath,std::string systempath);
 TEST(ProcessInitialization,NormalOperation)
 {
     std::vector<std::string> devicepathlist;
@@ -24,9 +24,10 @@ TEST(ProcessInitialization,NormalOperation)
     devicepathlist.push_back("/home/robot/catkin_ws/src/icarus_rover_v2/src/Control/unit_tests/DeviceFile.xml");
     for(std::size_t i = 0; i < devicepathlist.size(); i++)
     {
-        std::string path = devicepathlist.at(i);
-        printf("Loading: %s\n",path.c_str());
-        MasterNodeProcess process = initialize_process(path);
+        std::string devicepath = devicepathlist.at(i);
+        std::string systempath = "/home/robot/catkin_ws/src/icarus_rover_v2/src/Control/unit_tests/UnitTestSystemFile.xml";
+        //printf("Loading: %s\n",path.c_str());
+        MasterNodeProcess process = initialize_process(devicepath,systempath);
         std::vector<std::string> serialportlist;
         serialportlist.push_back("/dev/ttyUSB0");
         serialportlist.push_back("/dev/ttyACM0");
@@ -42,7 +43,13 @@ TEST(ProcessInitialization,NormalOperation)
         {
             EXPECT_TRUE(process.get_allserialbaudrates().size() == 1);
         }
+        icarus_rover_v2::leverarm la_IMU1;
+		EXPECT_TRUE(process.get_leverarm(&la_IMU1,"IMU1"));
+
+		process.print_leverarm("IMU1","BodyOrigin",la_IMU1);
     }
+
+
  
     
    
@@ -52,7 +59,7 @@ int main(int argc, char **argv){
 	testing::InitGoogleTest(&argc, argv);
 	return RUN_ALL_TESTS();
 }
-MasterNodeProcess initialize_process(std::string devicefilepath)
+MasterNodeProcess initialize_process(std::string devicefilepath,std::string systemfilepath)
 {
 	icarus_rover_v2::diagnostic diagnostic_status;
 	diagnostic_status.DeviceName = Host_Name;
@@ -72,10 +79,15 @@ MasterNodeProcess initialize_process(std::string devicefilepath)
     diagnostic_status = process.load_devicefile(devicefilepath);
     //printf("diag: %s\n",diagnostic_status.Description.c_str());
     EXPECT_TRUE(diagnostic_status.Level <= NOTICE);
+    diagnostic_status = process.load_systemfile(systemfilepath);
+    EXPECT_TRUE(diagnostic_status.Level <= NOTICE);
     std::vector<icarus_rover_v2::device> child_devices = process.get_childdevices();
     EXPECT_TRUE(child_devices.size() > 0);
     printf("-----CHILD DEVICES-----\n");
     process.print_device(child_devices);
+    std::vector<MasterNodeProcess::LeverArm> leverarms = process.get_allleverarms();
+    printf("-----LEVER ARMS-----\n");
+    process.print_leverarm(leverarms);
 
 
 	return process;

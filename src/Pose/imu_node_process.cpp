@@ -11,15 +11,54 @@ IMUNodeProcess::IMUNodeProcess()
     sensor.buffer_size = 0;
 
     sensor.last_msgtime = 0.0;
+    pitchangle_rad = 0.0;
+    rollangle_rad = 0.0;
+    yawangle_rad = 0.0;
+    m_pitch = MatrixXd::Zero(3,3);
+    m_roll = MatrixXd::Zero(3,3);
+    m_yaw = MatrixXd::Zero(3,3);
+    rotation_matrix = MatrixXd::Zero(3,3);
 }
 IMUNodeProcess::~IMUNodeProcess()
 {
 
 }
-icarus_rover_v2::diagnostic IMUNodeProcess::init(icarus_rover_v2::diagnostic indiag,std::string hostname)
+bool IMUNodeProcess::set_mountingangle(double pitch,double roll,double yaw)
+{
+    pitchangle_rad = pitch;
+    rollangle_rad = roll;
+    yawangle_rad = yaw;
+    //Pitch: Ry
+    //Roll: Rx
+    //Yaw: Rz
+    m_roll(0,0) = 1.0;
+    m_roll(1,1) = cos(roll);
+    m_roll(1,2) = -sin(roll);
+    m_roll(2,1) = sin(roll);
+    m_roll(2,2) = cos(roll);
+    
+    m_pitch(0,0) = cos(pitch);
+    m_pitch(0,2) = sin(pitch);
+    m_pitch(1,1) = 1.0;
+    m_pitch(2,0) = -sin(pitch);
+    m_pitch(2,2) = cos(pitch);
+    
+    m_yaw(0,0) = cos(yaw);
+    m_yaw(0,1) = -sin(yaw);
+    m_yaw(1,0) = sin(yaw);
+    m_yaw(1,1) = cos(yaw);
+    m_yaw(2,2) = 1.0;
+    
+    rotation_matrix = m_yaw*m_pitch*m_roll;
+    printf("[%s] Using rotation matrix: \n",sensor.name.c_str());
+    std::cout << rotation_matrix << std::endl;
+    return true;
+    
+}
+icarus_rover_v2::diagnostic IMUNodeProcess::init(icarus_rover_v2::diagnostic indiag,std::string hostname_)
 {
     diagnostic = indiag;
-
+    hostname = hostname_;
 	return diagnostic;
 }
 icarus_rover_v2::diagnostic IMUNodeProcess::update(double dt)
@@ -33,12 +72,13 @@ icarus_rover_v2::diagnostic IMUNodeProcess::update(double dt)
 }
 icarus_rover_v2::diagnostic IMUNodeProcess::new_devicemsg(icarus_rover_v2::device device)
 {
+    icarus_rover_v2::diagnostic diag = diagnostic;
 	bool new_device = true;
-	if(sensor.name == device.DeviceName)
+	if(device.DeviceName == hostname)
 	{
-		new_device = false;
-	}
-	if(new_device == true)
+		
+    }
+	else
 	{
 		if((device.PartNumber == "110012")) //Supported IMU list
 		{
@@ -86,10 +126,26 @@ icarus_rover_v2::diagnostic IMUNodeProcess::new_devicemsg(icarus_rover_v2::devic
             s.zmag_bias = 0.0;
 			sensor = s;
 			initialized = true;
-			//initialize sensor here
+			diag.Diagnostic_Type = SOFTWARE;
+			diag.Level = INFO;
+			char tempstr[512];
+			sprintf(tempstr,"%s Initialized",sensor.name.c_str());
+			diag.Description = std::string(tempstr);
+			diag.Diagnostic_Message = NOERROR;
+            return diag;
 		}
+        else
+        {
+            diag.Diagnostic_Type = SOFTWARE;
+			diag.Level = ERROR;
+			char tempstr[512];
+			sprintf(tempstr,"%s Not Initialized",sensor.name.c_str());
+			diag.Description = std::string(tempstr);
+			diag.Diagnostic_Message = INITIALIZING_ERROR;
+            return diag;
+        }
 	}
-	return diagnostic;
+    return diag;
 }
 bool IMUNodeProcess::new_serialmessage(unsigned char* message,int length) //Return true: valid, false: invalid
 {
@@ -138,15 +194,35 @@ bool IMUNodeProcess::new_serialmessage(unsigned char* message,int length) //Retu
                 sensor.last_tov = sensor.tov;
                 sensor.tov = std::atof(strs.at(0).c_str());
                 sensor.seq = std::atoi(strs.at(1).c_str());
-                sensor.xacc = (G*std::atof(strs.at(3).c_str()))-sensor.xacc_bias; //Forward
-                sensor.yacc = (G*-1.0*std::atof(strs.at(2).c_str()))-sensor.yacc_bias; //Left
-                sensor.zacc = (G*std::atof(strs.at(4).c_str()))-sensor.zacc_bias; //Up
-                sensor.xgyro = (std::atof(strs.at(5).c_str()))-sensor.xgyro_bias; //Roll, positive right
-                sensor.ygyro = (std::atof(strs.at(6).c_str()))-sensor.ygyro_bias; //Pitch, positive forward
-                sensor.zgyro = (std::atof(strs.at(7).c_str()))-sensor.zgyro_bias;  //Yaw, positive left
-                sensor.xmag = (std::atof(strs.at(8).c_str()))-sensor.xmag_bias;
-                sensor.ymag = (std::atof(strs.at(9).c_str()))-sensor.ymag_bias;
-                sensor.zmag = (std::atof(strs.at(10).c_str()))-sensor.zmag_bias;
+                {
+                    MatrixXd x = MatrixXd::Zero(3,1);
+                    x(0,0) = (G*std::atof(strs.at(3).c_str()))-sensor.xacc_bias; //Forward
+                    x(1,0) = (G*-1.0*std::atof(strs.at(2).c_str()))-sensor.yacc_bias; //Left
+                    x(2,0) = (G*std::atof(strs.at(4).c_str()))-sensor.zacc_bias; //Up
+                    x = rotation_matrix*x;
+                    sensor.xacc = x(0,0);
+                    sensor.yacc = x(1,0);
+                    sensor.zacc = x(2,0);
+                }
+                {
+                    MatrixXd x = MatrixXd::Zero(3,1);
+                    x(0,0) = (std::atof(strs.at(5).c_str()))-sensor.xgyro_bias; //Roll, positive right
+                    x(1,0) = (std::atof(strs.at(6).c_str()))-sensor.ygyro_bias; //Pitch, positive forward
+                    x(2,0) = (std::atof(strs.at(7).c_str()))-sensor.zgyro_bias;  //Yaw, positive left
+                    x = rotation_matrix*x;
+                    sensor.xgyro = x(0,0);
+                    sensor.ygyro = x(1,0);
+                    sensor.zgyro = x(2,0);
+                }
+                {
+                    MatrixXd x = MatrixXd::Zero(3,1);
+                    x(0,0) = (std::atof(strs.at(8).c_str()))-sensor.xmag_bias;
+                    x(1,0) = (std::atof(strs.at(9).c_str()))-sensor.ymag_bias;
+                    x(2,0) = (std::atof(strs.at(10).c_str()))-sensor.zmag_bias;
+                    sensor.xmag = x(0,0);
+                    sensor.ymag = x(1,0);
+                    sensor.zmag = x(2,0);
+                }
                 sensor.xacc_buffer.push_back(sensor.xacc);
                 sensor.yacc_buffer.push_back(sensor.yacc);
                 sensor.zacc_buffer.push_back(sensor.zacc);
@@ -244,7 +320,7 @@ void IMUNodeProcess::update_rms()
     	sensor.zmag_rms = -1.0;
     }
     //printf("v: %f\n",sensor.xacc);
-    //printf("%d %d %f %f %f\n",sensor.buffer_size,sensor.xacc_buffer.size(),sensor.xacc,sensor.xacc_lastsum,sensor.xacc_rms);
+    //printf("%d %d %f %f %f\n",sensor.buffer_size,sensor.zmag_buffer.size(),sensor.zmag,sensor.zmag_lastsum,sensor.zmag_rms);
     
 
 }

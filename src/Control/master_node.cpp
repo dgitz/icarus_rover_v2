@@ -224,6 +224,15 @@ bool device_service(icarus_rover_v2::srv_device::Request &req,
 	}
 	return false;
 }
+bool leverarm_service(icarus_rover_v2::srv_leverarm::Request &req,
+				icarus_rover_v2::srv_leverarm::Response &res)
+{
+	icarus_rover_v2::leverarm la;
+	bool status = process.get_leverarm(&la,req.name);
+	if(status == false) { return false; }
+	res.lever = la;
+	return true;
+}
 bool run_loop1_code()
 {
     publish_deviceinfo();
@@ -502,6 +511,13 @@ bool initialize(ros::NodeHandle nh)
         printf("[MasterNode] ERROR: %s\n",diagnostic_status.Description.c_str());
         return false;
     }
+    diagnostic_status = process.load_systemfile("/home/robot/config/SystemFile.xml");
+    if(diagnostic_status.Level >= WARN)
+    {
+    	logger->log_diagnostic(diagnostic_status);
+    	printf("[MasterNode] ERROR: %s\n",diagnostic_status.Description.c_str());
+    	return false;
+    }
     
 
 	std::string resource_topic = "/" + node_name + "/resource";
@@ -608,6 +624,8 @@ bool initialize(ros::NodeHandle nh)
     device_srv = nh.advertiseService(srv_device_topic,device_service);
     std::string srv_connection_topic = "/" + node_name + "/srv_connection";
     connection_srv = nh.advertiseService(srv_connection_topic,connection_service);
+    std::string srv_leverarm_topic = "/" + node_name + "/srv_leverarm";
+    leverarm_srv = nh.advertiseService(srv_leverarm_topic,leverarm_service);
     
     diagnostic_status = process.set_serialportlist(find_serialports());
 

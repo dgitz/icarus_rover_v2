@@ -75,18 +75,27 @@ bool run_loop2_code()
 bool run_loop3_code()
 {
     bool status;
-    icarus_rover_v2::imu imu_msg = process->get_imudata(&status);
-    if(status)
+    try
     {
-        if(process->get_verbositylevel() == "DEBUG")
+        icarus_rover_v2::imu imu_msg = process->get_imudata(&status);
+        
+        if(status)
         {
-            printf("[%s] t: %f xacc: %f yacc: %f zacc: %f xgyro: %f ygyro: %f zgyro: %f xmag: %f ymag: %f zmag: %f\n",
-                process->get_sensor().name.c_str(),imu_msg.tov,
-                imu_msg.xacc.value,imu_msg.yacc.value,imu_msg.zacc.value,
-                imu_msg.xgyro.value,imu_msg.ygyro.value,imu_msg.zgyro.value,
-                imu_msg.xmag.value,imu_msg.ymag.value,imu_msg.zmag.value);
+            if(process->get_verbositylevel() == "DEBUG")
+            {
+                 printf("t: %f xacc: %f yacc: %f zacc: %f xgyro: %f ygyro: %f zgyro: %f xmag: %f ymag: %f zmag: %f\n",
+                    imu_msg.tov,
+                    imu_msg.xacc.value,imu_msg.yacc.value,imu_msg.zacc.value,
+                    imu_msg.xgyro.value,imu_msg.ygyro.value,imu_msg.zgyro.value,
+                    imu_msg.xmag.value,imu_msg.ymag.value,imu_msg.zmag.value);
+            }
         }
     }
+    catch (const std::exception& e) 
+    { // reference to the base of a polymorphic object
+        std::cout << e.what(); 
+    }
+    
  	return true;
 }
 void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg)
@@ -441,17 +450,42 @@ bool initialize(ros::NodeHandle nh)
 	diagnostic_status = process->init(diagnostic_status,std::string(hostname));
 	sensors_initialized = false;
 	usleep(7000000); //Wait for Master Node to initialize
+
+	std::string leverarm_topic = "/" + std::string(hostname) + "_master_node/srv_leverarm";
+	srv_leverarm = nh.serviceClient<icarus_rover_v2::srv_leverarm>(leverarm_topic);
+	icarus_rover_v2::srv_leverarm srv_la;
+	srv_la.request.name = imu_name;
+	if(srv_leverarm.call(srv_la) == true)
+	{
+		char tempstr[512];
+		sprintf(tempstr,"Setting Mounting Angle: Roll: %f Pitch: %f Yaw: %f",
+				srv_la.response.lever.roll.value,
+				srv_la.response.lever.pitch.value,
+				srv_la.response.lever.yaw.value);
+		logger->log_info(std::string(tempstr));
+		process->set_mountingangle(srv_la.response.lever.pitch.value*M_PI/180.0,srv_la.response.lever.roll.value*M_PI/180.0,srv_la.response.lever.yaw.value*M_PI/180.0);
+	}
+	else
+	{
+		char tempstr[512];
+		sprintf(tempstr,"Unable to get LeverArm for: %s from MasterNode.",imu_name.c_str());
+		logger->log_error(std::string(tempstr));
+		return false;
+
+	}
+
+
 	std::string connection_topic = "/" + std::string(hostname) + "_master_node/srv_connection";
 	srv_connection = nh.serviceClient<icarus_rover_v2::srv_connection>(connection_topic);
-	icarus_rover_v2::srv_connection srv;
-	srv.request.PartNumber = imu_pn;
-	srv.request.ID = imu_id;
+	icarus_rover_v2::srv_connection srv_conn;
+	srv_conn.request.PartNumber = imu_pn;
+	srv_conn.request.ID = imu_id;
 	std::string serialdevice_path;
 	std::string baudrate;
-	if(srv_connection.call(srv) == true)
+	if(srv_connection.call(srv_conn) == true)
 	{
-		serialdevice_path = srv.response.connectionstring.substr(0,srv.response.connectionstring.find(":"));
-		baudrate = srv.response.connectionstring.substr(srv.response.connectionstring.find(":")+1);
+		serialdevice_path = srv_conn.response.connectionstring.substr(0,srv_conn.response.connectionstring.find(":"));
+		baudrate = srv_conn.response.connectionstring.substr(srv_conn.response.connectionstring.find(":")+1);
 	}
 	else
 	{
@@ -460,6 +494,7 @@ bool initialize(ros::NodeHandle nh)
 		logger->log_error(std::string(tempstr));
 		return false;
 	}
+
 	{
 		char tempstr[512];
 		sprintf(tempstr,"Connecting %s:%d to %s @ %s (bps)",

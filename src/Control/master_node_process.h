@@ -15,6 +15,7 @@
 #include "icarus_rover_v2/device.h"
 #include "icarus_rover_v2/command.h"
 #include "icarus_rover_v2/pin.h"
+#include "icarus_rover_v2/leverarm.h"
 #include <boost/algorithm/string.hpp>
 #include <math.h>
 #include <tinyxml.h>
@@ -42,7 +43,12 @@ public:
         uint16_t id;
         std::string pn;
     };
-
+    struct LeverArm
+    {
+    	icarus_rover_v2::leverarm leverarm;
+    	std::string name;
+    	std::string reference;
+    };
 	MasterNodeProcess();
 	~MasterNodeProcess();
 
@@ -52,8 +58,10 @@ public:
 	icarus_rover_v2::device get_mydevice() { return mydevice; }
     std::vector<icarus_rover_v2::device> get_alldevices() { return allDevices; }
     std::vector<icarus_rover_v2::device> get_childdevices() { return childDevices; }
+    std::vector<LeverArm> get_allleverarms() { return leverarms; }
 	bool is_finished_initializing() { return all_device_info_received; }
     icarus_rover_v2::diagnostic load_devicefile(std::string path);
+    icarus_rover_v2::diagnostic load_systemfile(std::string path);
     void print_device(std::vector<icarus_rover_v2::device> devices);
     void print_device(icarus_rover_v2::device device);
     icarus_rover_v2::diagnostic set_serialportlist(std::vector<std::string> list);
@@ -61,6 +69,11 @@ public:
     std::vector<std::string> get_allserialbaudrates() { return serialport_baudrates; }
     std::vector<SerialPort> get_serialports() { return serialports; }
     bool new_serialmessage(std::string serialport,std::string baudrate,unsigned char* message,int length); //Return true: valid, false: invalid
+    void print_leverarm(std::vector<LeverArm> leverarms);
+    void print_leverarm(LeverArm leverarm);
+    void print_leverarm(std::string name,std::string reference,icarus_rover_v2::leverarm la);
+    bool get_leverarm(icarus_rover_v2::leverarm *leverarm,std::string name);
+
 	
 protected:
 
@@ -75,6 +88,7 @@ private:
 	icarus_rover_v2::diagnostic diagnostic;
     std::vector<SerialPort> serialports;
     std::vector<std::string> serialport_baudrates;
-    
+    std::vector<LeverArm> leverarms;
+
 };
 #endif

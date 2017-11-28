@@ -15,6 +15,7 @@ IMUNodeProcess *initialized_process;
 std::string generate_imudata(int timer,int seq);
 double get_random(double scale);
 int get_random(int scale);
+void print_matrix(MatrixXd m);
 IMUNodeProcess setupprocess()
 {
 	icarus_rover_v2::diagnostic diagnostic;
@@ -57,6 +58,8 @@ IMUNodeProcess setupprocess()
 	diagnostic = process.new_devicemsg(imumsg);
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 	EXPECT_TRUE(process.load_sensorinfo());
+    EXPECT_TRUE(process.get_initialized());
+    EXPECT_TRUE(process.set_mountingangle(0.0,0.0,0.0));
 	return process;
 }
 bool check_if_initialized(IMUNodeProcess process);
@@ -199,6 +202,116 @@ TEST(SensorProcess,NormalSensorOperation)
 
 
 }
+TEST(SensorProcess,Mounting)
+{
+	int cur_time_ms = 0;
+	double dt = 0.005;
+
+	IMUNodeProcess process = setupprocess();
+	icarus_rover_v2::diagnostic diagnostic = process.update(dt);
+	EXPECT_TRUE(diagnostic.Level <= NOTICE);
+    EXPECT_TRUE(process.set_mountingangle(0.0,0.0,0.0));
+    
+    MatrixXd r;
+    r = process.get_rotationmatrix();
+    for(int i = 0; i < r.cols(); i++)//R should be an identity matrix
+    {
+        for(int j = 0; j < r.rows(); j++)
+        {
+            if(i == j)
+            {
+                EXPECT_TRUE((abs(r(i,j)-1.0) <= .0000001));
+            }
+            else
+            {
+                EXPECT_TRUE((abs(r(i,j)) <= .0000001));
+            }
+        }
+    }
+    {
+        MatrixXd v = MatrixXd::Zero(3,1);
+        v(0,0) = 1.0;
+        MatrixXd u = r*v;
+        /*
+        printf("Multiplying Identity: ");
+        print_matrix(r);
+        printf(" With v: ");
+        print_matrix(v);
+        printf("Gives: ");
+        print_matrix(u);
+        */
+    }
+    
+    EXPECT_TRUE(process.set_mountingangle(0.0,M_PI,0.0));
+    r = process.get_rotationmatrix();
+    {
+        MatrixXd v = MatrixXd::Zero(3,1);
+        v(0,0) = 1.0;
+        v(1,0) = 2.0;
+        v(2,0) = 3.0;
+        MatrixXd u = r*v; 
+        /*
+        printf("Multiplying Rotation Matrix (rotated roll left by 180 deg): ");
+        print_matrix(r);
+        printf(" With v: ");
+        print_matrix(v);
+        printf("Gives: ");
+        print_matrix(u);
+        */
+    }
+    EXPECT_TRUE(process.set_mountingangle(M_PI/2.0,0.0,0.0));
+    r = process.get_rotationmatrix();
+    {
+        MatrixXd v = MatrixXd::Zero(3,1);
+        v(0,0) = 1.0;
+        v(1,0) = 2.0;
+        v(2,0) = 3.0;
+        MatrixXd u = r*v;  
+        /*
+        printf("Multiplying Rotation Matrix (rotated pitch forward by 90 deg): ");
+        print_matrix(r);
+        printf(" With v: ");
+        print_matrix(v);
+        printf("Gives: ");
+        print_matrix(u);
+        */
+    }
+    EXPECT_TRUE(process.set_mountingangle(0.0,0.0,M_PI/2.0));
+    r = process.get_rotationmatrix();
+    {
+        MatrixXd v = MatrixXd::Zero(3,1);
+        v(0,0) = 1.0;
+        v(1,0) = 2.0;
+        v(2,0) = 3.0;
+        MatrixXd u = r*v;  
+        /*
+        printf("Multiplying Rotation Matrix (rotated yaw left by 90 deg): ");
+        print_matrix(r);
+        printf(" With v: ");
+        print_matrix(v);
+        printf("Gives: ");
+        print_matrix(u);
+        */
+    }
+    EXPECT_TRUE(process.set_mountingangle(M_PI/2.0,M_PI/2.0,M_PI/2.0));
+    r = process.get_rotationmatrix();
+    {
+        MatrixXd v = MatrixXd::Zero(3,1);
+        v(0,0) = 1.0;
+        v(1,0) = 0.0;
+        v(2,0) = 0.0;
+        MatrixXd u = r*v;  
+        /*
+        printf("Multiplying Rotation Matrix: ");
+        print_matrix(r);
+        printf(" With v: ");
+        print_matrix(v);
+        printf("Gives: ");
+        print_matrix(u);
+        */
+    }
+    
+}
 int main(int argc, char **argv){
   testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
@@ -231,4 +344,8 @@ int get_random(int scale)
 {
 	double v = get_random((double)scale);
 	return (int)v;
+}
+void print_matrix(MatrixXd m)
+{
+    std::cout << std::endl << m << std::endl;
 }

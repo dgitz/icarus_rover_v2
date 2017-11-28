@@ -15,6 +15,7 @@
 #include <icarus_rover_v2/device.h>
 #include <icarus_rover_v2/srv_device.h>
 #include <icarus_rover_v2/srv_connection.h>
+#include <icarus_rover_v2/srv_leverarm.h>
 #include <icarus_rover_v2/resource.h>
 #include <icarus_rover_v2/pin.h>
 #include <icarus_rover_v2/command.h>
@@ -100,6 +101,7 @@ double ros_rate;
 //Start User Code: Define Global Variables
 SerialMessageHandler *serialmessagehandler;
 ros::ServiceClient srv_connection;
+ros::ServiceClient srv_leverarm;
 bool imu_ready_to_publish;
 ros::Publisher imu_pub;
 bool sensors_initialized;
