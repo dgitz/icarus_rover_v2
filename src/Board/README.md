@@ -3,14 +3,6 @@ Task: Board
 Support Programs
 A. Test ServoHat
 B. Test TerminalHatDriver
-C. Test SerialComm
-Purpose: Test Serial Port Communication
-
-  >>g++ -lm ../../../util/serialmessage.cpp test_serialcomm.cpp -o test_serialcomm
-  
-Documentation History:
-19-Nov-2017 David Gitz
-Created program
 
 Nodes:
 A. hatcontroller_node

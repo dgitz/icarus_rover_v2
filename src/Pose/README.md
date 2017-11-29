@@ -26,11 +26,13 @@ Documentation History:
 Added all code, documentation.  
 
 B. imu_node
-Usage: This node should be run on any device that has an IMU installed.  Only 1 instance of this node per device is supported.
+Usage: This node should be run on any device that has an IMU installed.  1 instance of this node should be run for every IMU installed.
 
 Supported Sensors: 
   110012
 Configuration:
+  This node's launch program will be created automatically by the SyncSoftware script based on what device has an IMU installed.  As such, no configuration
+  by the User is required.
 
 Purpose: Outputs high rate imu data from different sensors
 
@@ -39,7 +41,11 @@ Unit Tests:
   >>catkin_make run_tests_icarus_rover_v2_gtest_test_imu_node_process
   
 Loops:
+ * Loop1: Process Update
+ * Loop2: IMU Data Publish
 
 Documentation History:
+28-Nov-2017
+Finalized code and node.  
 12-Nov-2017
 Created node.

@@ -1,5 +1,14 @@
 Author: David Gitz
 Task: Communication
+Support Programs
+A. Test SerialComm
+Purpose: Test Serial Port Communication
+
+  >>g++ -lm ../../../util/serialmessage.cpp test_serialcomm.cpp -o test_serialcomm
+  
+Documentation History:
+19-Nov-2017 David Gitz
+Created program
 Nodes:
 A. speaker_node
 Usage:
