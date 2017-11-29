@@ -1,0 +1,76 @@
+\hypertarget{classPoseNodeProcess}{}\section{Pose\+Node\+Process Class Reference}
+\label{classPoseNodeProcess}\index{Pose\+Node\+Process@{Pose\+Node\+Process}}
+\subsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+struct \hyperlink{structPoseNodeProcess_1_1VehicleParameters}{Vehicle\+Parameters}
+\end{DoxyCompactItemize}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classPoseNodeProcess_a686ca898ecfd13b77dc6a1ed0dc1281d}\label{classPoseNodeProcess_a686ca898ecfd13b77dc6a1ed0dc1281d}} 
+bool {\bfseries is\+\_\+initialized} ()
+\item 
+\mbox{\Hypertarget{classPoseNodeProcess_a43bad88471a93cbb08f42d6f07d5bd34}\label{classPoseNodeProcess_a43bad88471a93cbb08f42d6f07d5bd34}} 
+icarus\+\_\+rover\+\_\+v2\+::diagnostic {\bfseries init} (icarus\+\_\+rover\+\_\+v2\+::diagnostic indiag, std\+::string hostname)
+\item 
+\mbox{\Hypertarget{classPoseNodeProcess_aec01f159a01de73bf9a02cc03652cf66}\label{classPoseNodeProcess_aec01f159a01de73bf9a02cc03652cf66}} 
+icarus\+\_\+rover\+\_\+v2\+::diagnostic {\bfseries update} (double dt)
+\item 
+\mbox{\Hypertarget{classPoseNodeProcess_ab2870e405900023b1aabdd479637a942}\label{classPoseNodeProcess_ab2870e405900023b1aabdd479637a942}} 
+icarus\+\_\+rover\+\_\+v2\+::diagnostic {\bfseries new\+\_\+kalmanfilter} (std\+::string name, std\+::string type)
+\item 
+\mbox{\Hypertarget{classPoseNodeProcess_a830c4e3b8c8284fea57cb673de419c0b}\label{classPoseNodeProcess_a830c4e3b8c8284fea57cb673de419c0b}} 
+double {\bfseries get\+\_\+kalmanfilter\+\_\+output} (std\+::string name, int index)
+\item 
+\mbox{\Hypertarget{classPoseNodeProcess_a5c444a4046238f8cfab710b84f2f9f59}\label{classPoseNodeProcess_a5c444a4046238f8cfab710b84f2f9f59}} 
+\hyperlink{structKalmanFilter}{Kalman\+Filter} {\bfseries get\+\_\+kalmanfilter} (std\+::string name)
+\item 
+\mbox{\Hypertarget{classPoseNodeProcess_a798e0df2c502a707b7f66244a75c2fb7}\label{classPoseNodeProcess_a798e0df2c502a707b7f66244a75c2fb7}} 
+int {\bfseries get\+\_\+kalmanfilter\+\_\+index} (std\+::string name)
+\item 
+\mbox{\Hypertarget{classPoseNodeProcess_a4588f77b8c031afc697d9166539f8a44}\label{classPoseNodeProcess_a4588f77b8c031afc697d9166539f8a44}} 
+\hyperlink{structKalmanFilter}{Kalman\+Filter} {\bfseries update\+\_\+kalmanfilter} (\hyperlink{structKalmanFilter}{Kalman\+Filter} kf)
+\item 
+\mbox{\Hypertarget{classPoseNodeProcess_a090b0745e183a0b7e064fb5ac72f4923}\label{classPoseNodeProcess_a090b0745e183a0b7e064fb5ac72f4923}} 
+icarus\+\_\+rover\+\_\+v2\+::diagnostic {\bfseries new\+\_\+kalmanfilter\+\_\+signal} (std\+::string name, int index, double v)
+\item 
+\mbox{\Hypertarget{classPoseNodeProcess_ab776e37c12b1df4160515b0af68d2ecc}\label{classPoseNodeProcess_ab776e37c12b1df4160515b0af68d2ecc}} 
+icarus\+\_\+rover\+\_\+v2\+::diagnostic {\bfseries set\+\_\+kalmanfilter\+\_\+properties} (std\+::string name, int measurement\+\_\+count, int output\+\_\+count, Matrix\+Xd C, Matrix\+Xd Phi, Matrix\+Xd Q, Matrix\+Xd R)
+\item 
+\mbox{\Hypertarget{classPoseNodeProcess_af974a6221ea584dacf3852ba8acb1c01}\label{classPoseNodeProcess_af974a6221ea584dacf3852ba8acb1c01}} 
+icarus\+\_\+rover\+\_\+v2\+::pose {\bfseries get\+\_\+pose} ()
+\item 
+\mbox{\Hypertarget{classPoseNodeProcess_a70574604a76bc35646868bb7487ff6ee}\label{classPoseNodeProcess_a70574604a76bc35646868bb7487ff6ee}} 
+icarus\+\_\+rover\+\_\+v2\+::diagnostic {\bfseries new\+\_\+yaw} (double v)
+\item 
+\mbox{\Hypertarget{classPoseNodeProcess_a787a8fd999f7d00f34f0b11fc4222f47}\label{classPoseNodeProcess_a787a8fd999f7d00f34f0b11fc4222f47}} 
+icarus\+\_\+rover\+\_\+v2\+::diagnostic {\bfseries new\+\_\+yawrate} (double v)
+\item 
+\mbox{\Hypertarget{classPoseNodeProcess_ac8e485b06c72696db8f025a205aad0d1}\label{classPoseNodeProcess_ac8e485b06c72696db8f025a205aad0d1}} 
+bool {\bfseries is\+\_\+poseready} ()
+\item 
+\mbox{\Hypertarget{classPoseNodeProcess_a72297fc3c02680a2a7472c3c00956162}\label{classPoseNodeProcess_a72297fc3c02680a2a7472c3c00956162}} 
+void {\bfseries set\+\_\+computepose} (bool v)
+\item 
+\mbox{\Hypertarget{classPoseNodeProcess_ad90bac7a6bbc522e191e3265a3ae1747}\label{classPoseNodeProcess_ad90bac7a6bbc522e191e3265a3ae1747}} 
+void {\bfseries set\+\_\+throttlecommand} (double v)
+\item 
+\mbox{\Hypertarget{classPoseNodeProcess_a709f8c88fbffeb01c01a69d7cbcf1aa3}\label{classPoseNodeProcess_a709f8c88fbffeb01c01a69d7cbcf1aa3}} 
+void {\bfseries set\+\_\+steercommand} (double v)
+\item 
+\mbox{\Hypertarget{classPoseNodeProcess_a979ea845ef8618a6f6ad69d1373db70a}\label{classPoseNodeProcess_a979ea845ef8618a6f6ad69d1373db70a}} 
+void {\bfseries set\+\_\+gps} (icarus\+\_\+rover\+\_\+v2\+::pose v)
+\item 
+\mbox{\Hypertarget{classPoseNodeProcess_a1a1e87f3b9ee49730fe933b1ff5731ff}\label{classPoseNodeProcess_a1a1e87f3b9ee49730fe933b1ff5731ff}} 
+void {\bfseries set\+\_\+encoder} (double v1, double v2)
+\item 
+\mbox{\Hypertarget{classPoseNodeProcess_a16a50ebe65565853b14a36f6950d0a92}\label{classPoseNodeProcess_a16a50ebe65565853b14a36f6950d0a92}} 
+void {\bfseries set\+\_\+simpose} (icarus\+\_\+rover\+\_\+v2\+::pose v)
+\end{DoxyCompactItemize}
+
+
+The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+\item 
+src/\+Pose/pose\+\_\+node\+\_\+process.\+h\item 
+src/\+Pose/pose\+\_\+node\+\_\+process.\+cpp\end{DoxyCompactItemize}

@@ -1,0 +1,25 @@
+Author\+: David Gitz \hyperlink{structTask}{Task}\+: Vision Purpose\+: All Vision-\/related Nodes
+
+Nodes\+: A. cameracapture\+\_\+node Purpose\+: Mode\+: \char`\"{}capture\char`\"{}
+\begin{DoxyEnumerate}
+\item Read Camera at specified Device (Optional, in case the image is being published from another node)
+\item Do Edge Detection on defined topic (such as $<$camera$>$/image) and output to $<$camera$>$/image\+\_\+edge Mode\+: \char`\"{}resample\char`\"{}
+\end{DoxyEnumerate}
+\begin{DoxyEnumerate}
+\item Reads image topic and rescales to match configured size. Supports encoding\+: rgb8, 32\+F\+C1
+\end{DoxyEnumerate}
+
+B. tracking\+\_\+node Purpose\+:
+\begin{DoxyEnumerate}
+\item Reads target images stored in defined path.
+\item Reads image at defined topic.
+\item Outputs position of found target in image to\+:
+\end{DoxyEnumerate}
+
+C. vision\+\_\+node Purpose\+: Obsolete node, keeping for archives and possible future expansion.
+
+C. cameramanager\+\_\+node Purpose\+:
+\begin{DoxyEnumerate}
+\item Publishes tf info for cameras (In Work)
+\item Publishes diagnostic, heartbeat and resource information for specified external tasks. 
+\end{DoxyEnumerate}

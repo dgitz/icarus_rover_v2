@@ -1,0 +1,90 @@
+\hypertarget{classMasterNodeProcess}{}\section{Master\+Node\+Process Class Reference}
+\label{classMasterNodeProcess}\index{Master\+Node\+Process@{Master\+Node\+Process}}
+\subsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+struct \hyperlink{structMasterNodeProcess_1_1LeverArm}{Lever\+Arm}
+\item 
+struct \hyperlink{structMasterNodeProcess_1_1SerialPort}{Serial\+Port}
+\end{DoxyCompactItemize}
+\subsection*{Public Types}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classMasterNodeProcess_acb6159000690011a53be2d57dda1975e}\label{classMasterNodeProcess_acb6159000690011a53be2d57dda1975e}} 
+enum {\bfseries Serial\+Port\+Type} \{ {\bfseries U\+N\+D\+E\+F\+I\+N\+ED} = 0, 
+{\bfseries U\+SB} = 1, 
+{\bfseries A\+CM} =2
+ \}
+\end{DoxyCompactItemize}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classMasterNodeProcess_aa928b2c648d13b4faed375cc15dfc652}\label{classMasterNodeProcess_aa928b2c648d13b4faed375cc15dfc652}} 
+icarus\+\_\+rover\+\_\+v2\+::diagnostic {\bfseries init} (icarus\+\_\+rover\+\_\+v2\+::diagnostic indiag, std\+::string hostname)
+\item 
+\mbox{\Hypertarget{classMasterNodeProcess_a19cc0bcaddc79b7460ea8944c00f7209}\label{classMasterNodeProcess_a19cc0bcaddc79b7460ea8944c00f7209}} 
+icarus\+\_\+rover\+\_\+v2\+::diagnostic {\bfseries update} (double dt)
+\item 
+\mbox{\Hypertarget{classMasterNodeProcess_a6acb9fe8a0baba49a5069e13aba2e373}\label{classMasterNodeProcess_a6acb9fe8a0baba49a5069e13aba2e373}} 
+icarus\+\_\+rover\+\_\+v2\+::diagnostic {\bfseries new\+\_\+devicemsg} (icarus\+\_\+rover\+\_\+v2\+::device devicemsg)
+\item 
+\mbox{\Hypertarget{classMasterNodeProcess_adf00ae56ad84a1a8995ab87eaf77da20}\label{classMasterNodeProcess_adf00ae56ad84a1a8995ab87eaf77da20}} 
+icarus\+\_\+rover\+\_\+v2\+::device {\bfseries get\+\_\+mydevice} ()
+\item 
+\mbox{\Hypertarget{classMasterNodeProcess_a7e8a12f60c1f8e974abb502d35f94fd0}\label{classMasterNodeProcess_a7e8a12f60c1f8e974abb502d35f94fd0}} 
+std\+::vector$<$ icarus\+\_\+rover\+\_\+v2\+::device $>$ {\bfseries get\+\_\+alldevices} ()
+\item 
+\mbox{\Hypertarget{classMasterNodeProcess_a971e1d3bdf38bb61a7d57da697222b2c}\label{classMasterNodeProcess_a971e1d3bdf38bb61a7d57da697222b2c}} 
+std\+::vector$<$ icarus\+\_\+rover\+\_\+v2\+::device $>$ {\bfseries get\+\_\+childdevices} ()
+\item 
+\mbox{\Hypertarget{classMasterNodeProcess_afc3c8b59d888c2f46c488b1ca09d767a}\label{classMasterNodeProcess_afc3c8b59d888c2f46c488b1ca09d767a}} 
+std\+::vector$<$ \hyperlink{structMasterNodeProcess_1_1LeverArm}{Lever\+Arm} $>$ {\bfseries get\+\_\+allleverarms} ()
+\item 
+\mbox{\Hypertarget{classMasterNodeProcess_a04eeaf542321eec99fee97dadc9b8e6b}\label{classMasterNodeProcess_a04eeaf542321eec99fee97dadc9b8e6b}} 
+bool {\bfseries is\+\_\+finished\+\_\+initializing} ()
+\item 
+\mbox{\Hypertarget{classMasterNodeProcess_a0796efe447dc2f05459de9b702e65c2d}\label{classMasterNodeProcess_a0796efe447dc2f05459de9b702e65c2d}} 
+icarus\+\_\+rover\+\_\+v2\+::diagnostic {\bfseries load\+\_\+devicefile} (std\+::string path)
+\item 
+\mbox{\Hypertarget{classMasterNodeProcess_ab10aa76938a3f29137d304fef7262160}\label{classMasterNodeProcess_ab10aa76938a3f29137d304fef7262160}} 
+icarus\+\_\+rover\+\_\+v2\+::diagnostic {\bfseries load\+\_\+systemfile} (std\+::string path)
+\item 
+\mbox{\Hypertarget{classMasterNodeProcess_ae121ec70b76cf2157b83b502013b88c0}\label{classMasterNodeProcess_ae121ec70b76cf2157b83b502013b88c0}} 
+void {\bfseries print\+\_\+device} (std\+::vector$<$ icarus\+\_\+rover\+\_\+v2\+::device $>$ devices)
+\item 
+\mbox{\Hypertarget{classMasterNodeProcess_aded7463a46f27f9a9647749eed498721}\label{classMasterNodeProcess_aded7463a46f27f9a9647749eed498721}} 
+void {\bfseries print\+\_\+device} (icarus\+\_\+rover\+\_\+v2\+::device device)
+\item 
+\mbox{\Hypertarget{classMasterNodeProcess_acbe48e54a38a292905dd3f934ad8ddad}\label{classMasterNodeProcess_acbe48e54a38a292905dd3f934ad8ddad}} 
+icarus\+\_\+rover\+\_\+v2\+::diagnostic {\bfseries set\+\_\+serialportlist} (std\+::vector$<$ std\+::string $>$ list)
+\item 
+\mbox{\Hypertarget{classMasterNodeProcess_a61784e36f6fc3b65ea51c7e459c87500}\label{classMasterNodeProcess_a61784e36f6fc3b65ea51c7e459c87500}} 
+bool {\bfseries update\+\_\+nodelist} (std\+::string nodelist\+\_\+path, std\+::string activenode\+\_\+path)
+\item 
+\mbox{\Hypertarget{classMasterNodeProcess_ad1376872d4db73283ea6a9a2c76c3a2a}\label{classMasterNodeProcess_ad1376872d4db73283ea6a9a2c76c3a2a}} 
+std\+::vector$<$ std\+::string $>$ {\bfseries get\+\_\+allserialbaudrates} ()
+\item 
+\mbox{\Hypertarget{classMasterNodeProcess_abb82f5ffd60ac733e49e9a5cf9efbefd}\label{classMasterNodeProcess_abb82f5ffd60ac733e49e9a5cf9efbefd}} 
+std\+::vector$<$ \hyperlink{structMasterNodeProcess_1_1SerialPort}{Serial\+Port} $>$ {\bfseries get\+\_\+serialports} ()
+\item 
+\mbox{\Hypertarget{classMasterNodeProcess_a4d473aeb48e7fdaa06d6166dd272ce82}\label{classMasterNodeProcess_a4d473aeb48e7fdaa06d6166dd272ce82}} 
+bool {\bfseries new\+\_\+serialmessage} (std\+::string serialport, std\+::string baudrate, unsigned char $\ast$message, int length)
+\item 
+\mbox{\Hypertarget{classMasterNodeProcess_a7f3f77ae75bbff286a83dc948602b1bc}\label{classMasterNodeProcess_a7f3f77ae75bbff286a83dc948602b1bc}} 
+void {\bfseries print\+\_\+leverarm} (std\+::vector$<$ \hyperlink{structMasterNodeProcess_1_1LeverArm}{Lever\+Arm} $>$ leverarms)
+\item 
+\mbox{\Hypertarget{classMasterNodeProcess_ad13dfb1d049b4d02ed38b5c48710fc28}\label{classMasterNodeProcess_ad13dfb1d049b4d02ed38b5c48710fc28}} 
+void {\bfseries print\+\_\+leverarm} (\hyperlink{structMasterNodeProcess_1_1LeverArm}{Lever\+Arm} leverarm)
+\item 
+\mbox{\Hypertarget{classMasterNodeProcess_a7b46ef5eaf19b530dff481ae98191041}\label{classMasterNodeProcess_a7b46ef5eaf19b530dff481ae98191041}} 
+void {\bfseries print\+\_\+leverarm} (std\+::string name, std\+::string reference, icarus\+\_\+rover\+\_\+v2\+::leverarm la)
+\item 
+\mbox{\Hypertarget{classMasterNodeProcess_a84aebd9354d2dd9f5a4698ed82a1fb4f}\label{classMasterNodeProcess_a84aebd9354d2dd9f5a4698ed82a1fb4f}} 
+bool {\bfseries get\+\_\+leverarm} (icarus\+\_\+rover\+\_\+v2\+::leverarm $\ast$leverarm, std\+::string name)
+\end{DoxyCompactItemize}
+
+
+The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+\item 
+src/\+Control/master\+\_\+node\+\_\+process.\+h\item 
+src/\+Control/master\+\_\+node\+\_\+process.\+cpp\end{DoxyCompactItemize}

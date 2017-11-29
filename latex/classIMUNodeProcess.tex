@@ -1,0 +1,70 @@
+\hypertarget{classIMUNodeProcess}{}\section{I\+M\+U\+Node\+Process Class Reference}
+\label{classIMUNodeProcess}\index{I\+M\+U\+Node\+Process@{I\+M\+U\+Node\+Process}}
+\subsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+struct \hyperlink{structIMUNodeProcess_1_1Sensor}{Sensor}
+\end{DoxyCompactItemize}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classIMUNodeProcess_a33c06ae49870b23b56ca9581fa84f2eb}\label{classIMUNodeProcess_a33c06ae49870b23b56ca9581fa84f2eb}} 
+icarus\+\_\+rover\+\_\+v2\+::diagnostic {\bfseries init} (icarus\+\_\+rover\+\_\+v2\+::diagnostic indiag, std\+::string hostname)
+\item 
+\mbox{\Hypertarget{classIMUNodeProcess_a354a496defe885237700f04b129de4c0}\label{classIMUNodeProcess_a354a496defe885237700f04b129de4c0}} 
+icarus\+\_\+rover\+\_\+v2\+::diagnostic {\bfseries update} (double dt)
+\item 
+\mbox{\Hypertarget{classIMUNodeProcess_a81931bb050ba1235dd7da19daec353db}\label{classIMUNodeProcess_a81931bb050ba1235dd7da19daec353db}} 
+icarus\+\_\+rover\+\_\+v2\+::diagnostic {\bfseries new\+\_\+devicemsg} (icarus\+\_\+rover\+\_\+v2\+::device device)
+\item 
+\mbox{\Hypertarget{classIMUNodeProcess_af79de268d06c18f1e363afaee2194b3e}\label{classIMUNodeProcess_af79de268d06c18f1e363afaee2194b3e}} 
+\hyperlink{structIMUNodeProcess_1_1Sensor}{Sensor} {\bfseries get\+\_\+sensor} ()
+\item 
+\mbox{\Hypertarget{classIMUNodeProcess_a8061162605df7cf0474c8f059ba87bf7}\label{classIMUNodeProcess_a8061162605df7cf0474c8f059ba87bf7}} 
+void {\bfseries set\+\_\+mydevice} (icarus\+\_\+rover\+\_\+v2\+::device v)
+\item 
+\mbox{\Hypertarget{classIMUNodeProcess_a3099faecfe37fd7102ab4377dd591f3d}\label{classIMUNodeProcess_a3099faecfe37fd7102ab4377dd591f3d}} 
+icarus\+\_\+rover\+\_\+v2\+::device {\bfseries get\+\_\+mydevice} ()
+\item 
+\mbox{\Hypertarget{classIMUNodeProcess_a3739bb95d3828dbec17c7c89e61d7b5c}\label{classIMUNodeProcess_a3739bb95d3828dbec17c7c89e61d7b5c}} 
+bool {\bfseries new\+\_\+message} (std\+::string msg)
+\item 
+\mbox{\Hypertarget{classIMUNodeProcess_a9fe4a73b338077214197615222f52c00}\label{classIMUNodeProcess_a9fe4a73b338077214197615222f52c00}} 
+bool {\bfseries new\+\_\+serialmessage} (unsigned char $\ast$message, int length)
+\item 
+\mbox{\Hypertarget{classIMUNodeProcess_abca8e3baef53a75279af00bc0a82a3f1}\label{classIMUNodeProcess_abca8e3baef53a75279af00bc0a82a3f1}} 
+icarus\+\_\+rover\+\_\+v2\+::imu {\bfseries get\+\_\+imudata} (bool $\ast$valid)
+\item 
+\mbox{\Hypertarget{classIMUNodeProcess_a0513c9f95731a5d0003d9a36eed8b5ad}\label{classIMUNodeProcess_a0513c9f95731a5d0003d9a36eed8b5ad}} 
+int {\bfseries get\+\_\+delayedcounter} ()
+\item 
+\mbox{\Hypertarget{classIMUNodeProcess_a7bfeb1c2c42333820f8e56b4e617b485}\label{classIMUNodeProcess_a7bfeb1c2c42333820f8e56b4e617b485}} 
+double {\bfseries get\+\_\+delayrate} ()
+\item 
+\mbox{\Hypertarget{classIMUNodeProcess_a90cb329fa7977bd9951580df8769df66}\label{classIMUNodeProcess_a90cb329fa7977bd9951580df8769df66}} 
+bool {\bfseries get\+\_\+initialized} ()
+\item 
+\mbox{\Hypertarget{classIMUNodeProcess_af008536581dbb3ebbe9fda87bee3ddcd}\label{classIMUNodeProcess_af008536581dbb3ebbe9fda87bee3ddcd}} 
+void {\bfseries set\+\_\+sensorname} (std\+::string pn, std\+::string name, int id)
+\item 
+\mbox{\Hypertarget{classIMUNodeProcess_a2621abe26bcb7d2788947c683c1bf94a}\label{classIMUNodeProcess_a2621abe26bcb7d2788947c683c1bf94a}} 
+void {\bfseries set\+\_\+verbositylevel} (std\+::string v)
+\item 
+\mbox{\Hypertarget{classIMUNodeProcess_a489fa8ccabe3fe6262f1ff0857a512dd}\label{classIMUNodeProcess_a489fa8ccabe3fe6262f1ff0857a512dd}} 
+std\+::string {\bfseries get\+\_\+verbositylevel} ()
+\item 
+\mbox{\Hypertarget{classIMUNodeProcess_a1a32d4e440179f9c2d0da9736a2af0f1}\label{classIMUNodeProcess_a1a32d4e440179f9c2d0da9736a2af0f1}} 
+bool {\bfseries load\+\_\+sensorinfo} ()
+\item 
+\mbox{\Hypertarget{classIMUNodeProcess_a27952ac1db21ff8046b764b683afebc9}\label{classIMUNodeProcess_a27952ac1db21ff8046b764b683afebc9}} 
+bool {\bfseries set\+\_\+mountingangle} (double pitch\+\_\+, double roll\+\_\+, double yaw\+\_\+)
+\item 
+\mbox{\Hypertarget{classIMUNodeProcess_aaa64dc2a9650cbdb2a0b1e56da8f2160}\label{classIMUNodeProcess_aaa64dc2a9650cbdb2a0b1e56da8f2160}} 
+Matrix\+Xd {\bfseries get\+\_\+rotationmatrix} ()
+\end{DoxyCompactItemize}
+
+
+The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+\item 
+src/\+Pose/imu\+\_\+node\+\_\+process.\+h\item 
+src/\+Pose/imu\+\_\+node\+\_\+process.\+cpp\end{DoxyCompactItemize}

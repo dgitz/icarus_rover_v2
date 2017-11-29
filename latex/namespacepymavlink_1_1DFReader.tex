@@ -1,0 +1,115 @@
+\hypertarget{namespacepymavlink_1_1DFReader}{}\section{pymavlink.\+D\+F\+Reader Namespace Reference}
+\label{namespacepymavlink_1_1DFReader}\index{pymavlink.\+D\+F\+Reader@{pymavlink.\+D\+F\+Reader}}
+\subsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+class \hyperlink{classpymavlink_1_1DFReader_1_1DFFormat}{D\+F\+Format}
+\item 
+class \hyperlink{classpymavlink_1_1DFReader_1_1DFMessage}{D\+F\+Message}
+\item 
+class \hyperlink{classpymavlink_1_1DFReader_1_1DFReader}{D\+F\+Reader}
+\item 
+class \hyperlink{classpymavlink_1_1DFReader_1_1DFReader__binary}{D\+F\+Reader\+\_\+binary}
+\item 
+class \hyperlink{classpymavlink_1_1DFReader_1_1DFReader__text}{D\+F\+Reader\+\_\+text}
+\item 
+class \hyperlink{classpymavlink_1_1DFReader_1_1DFReaderClock}{D\+F\+Reader\+Clock}
+\item 
+class \hyperlink{classpymavlink_1_1DFReader_1_1DFReaderClock__gps__interpolated}{D\+F\+Reader\+Clock\+\_\+gps\+\_\+interpolated}
+\item 
+class \hyperlink{classpymavlink_1_1DFReader_1_1DFReaderClock__msec}{D\+F\+Reader\+Clock\+\_\+msec}
+\item 
+class \hyperlink{classpymavlink_1_1DFReader_1_1DFReaderClock__px4}{D\+F\+Reader\+Clock\+\_\+px4}
+\item 
+class \hyperlink{classpymavlink_1_1DFReader_1_1DFReaderClock__usec}{D\+F\+Reader\+Clock\+\_\+usec}
+\end{DoxyCompactItemize}
+\subsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+def \hyperlink{namespacepymavlink_1_1DFReader_a8115bbdbaaf67363fe3dadcc165a51db}{null\+\_\+term} (str)
+\item 
+def \hyperlink{namespacepymavlink_1_1DFReader_ae34df4fd2613fd70e018a0d4f460e082}{D\+F\+Reader\+\_\+is\+\_\+text\+\_\+log} (filename)
+\end{DoxyCompactItemize}
+\subsection*{Variables}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{namespacepymavlink_1_1DFReader_ac95074392c85e56dacbbcd276f0bec8f}\label{namespacepymavlink_1_1DFReader_ac95074392c85e56dacbbcd276f0bec8f}} 
+{\bfseries long} = int
+\item 
+dictionary {\bfseries F\+O\+R\+M\+A\+T\+\_\+\+T\+O\+\_\+\+S\+T\+R\+U\+CT}
+\item 
+\mbox{\Hypertarget{namespacepymavlink_1_1DFReader_a2b9211b6b6b7164d29bd33019992cadb}\label{namespacepymavlink_1_1DFReader_a2b9211b6b6b7164d29bd33019992cadb}} 
+bool {\bfseries use\+\_\+profiler} = False
+\item 
+\mbox{\Hypertarget{namespacepymavlink_1_1DFReader_a179a528de5d43521d3f2f71e8dc137ed}\label{namespacepymavlink_1_1DFReader_a179a528de5d43521d3f2f71e8dc137ed}} 
+{\bfseries profiler} = Line\+Profiler()
+\item 
+\mbox{\Hypertarget{namespacepymavlink_1_1DFReader_a9653e10b2651c68cf8b171d8dd60f10c}\label{namespacepymavlink_1_1DFReader_a9653e10b2651c68cf8b171d8dd60f10c}} 
+{\bfseries filename} = sys.\+argv\mbox{[}1\mbox{]}
+\item 
+\mbox{\Hypertarget{namespacepymavlink_1_1DFReader_abc349a115aebbad3bf47cfd5e1e4f983}\label{namespacepymavlink_1_1DFReader_abc349a115aebbad3bf47cfd5e1e4f983}} 
+{\bfseries log} = \hyperlink{classpymavlink_1_1DFReader_1_1DFReader__text}{D\+F\+Reader\+\_\+text}(filename)
+\item 
+\mbox{\Hypertarget{namespacepymavlink_1_1DFReader_a41dcad484f9dfcaca656786d0882f168}\label{namespacepymavlink_1_1DFReader_a41dcad484f9dfcaca656786d0882f168}} 
+{\bfseries m} = log.\+recv\+\_\+msg()
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+\begin{DoxyVerb}APM DataFlash log file reader
+
+Copyright Andrew Tridgell 2011
+Released under GNU GPL version 3 or later
+
+Partly based on SDLog2Parser by Anton Babushkin
+\end{DoxyVerb}
+ 
+
+\subsection{Function Documentation}
+\mbox{\Hypertarget{namespacepymavlink_1_1DFReader_ae34df4fd2613fd70e018a0d4f460e082}\label{namespacepymavlink_1_1DFReader_ae34df4fd2613fd70e018a0d4f460e082}} 
+\index{pymavlink\+::\+D\+F\+Reader@{pymavlink\+::\+D\+F\+Reader}!D\+F\+Reader\+\_\+is\+\_\+text\+\_\+log@{D\+F\+Reader\+\_\+is\+\_\+text\+\_\+log}}
+\index{D\+F\+Reader\+\_\+is\+\_\+text\+\_\+log@{D\+F\+Reader\+\_\+is\+\_\+text\+\_\+log}!pymavlink\+::\+D\+F\+Reader@{pymavlink\+::\+D\+F\+Reader}}
+\subsubsection{\texorpdfstring{D\+F\+Reader\+\_\+is\+\_\+text\+\_\+log()}{DFReader\_is\_text\_log()}}
+{\footnotesize\ttfamily def pymavlink.\+D\+F\+Reader.\+D\+F\+Reader\+\_\+is\+\_\+text\+\_\+log (\begin{DoxyParamCaption}\item[{}]{filename }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}return True if a file appears to be a valid text log\end{DoxyVerb}
+ \mbox{\Hypertarget{namespacepymavlink_1_1DFReader_a8115bbdbaaf67363fe3dadcc165a51db}\label{namespacepymavlink_1_1DFReader_a8115bbdbaaf67363fe3dadcc165a51db}} 
+\index{pymavlink\+::\+D\+F\+Reader@{pymavlink\+::\+D\+F\+Reader}!null\+\_\+term@{null\+\_\+term}}
+\index{null\+\_\+term@{null\+\_\+term}!pymavlink\+::\+D\+F\+Reader@{pymavlink\+::\+D\+F\+Reader}}
+\subsubsection{\texorpdfstring{null\+\_\+term()}{null\_term()}}
+{\footnotesize\ttfamily def pymavlink.\+D\+F\+Reader.\+null\+\_\+term (\begin{DoxyParamCaption}\item[{}]{str }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}null terminate a string\end{DoxyVerb}
+ 
+
+\subsection{Variable Documentation}
+\mbox{\Hypertarget{namespacepymavlink_1_1DFReader_a616c9c66a8addbc867725f6611b9645c}\label{namespacepymavlink_1_1DFReader_a616c9c66a8addbc867725f6611b9645c}} 
+\index{pymavlink\+::\+D\+F\+Reader@{pymavlink\+::\+D\+F\+Reader}!F\+O\+R\+M\+A\+T\+\_\+\+T\+O\+\_\+\+S\+T\+R\+U\+CT@{F\+O\+R\+M\+A\+T\+\_\+\+T\+O\+\_\+\+S\+T\+R\+U\+CT}}
+\index{F\+O\+R\+M\+A\+T\+\_\+\+T\+O\+\_\+\+S\+T\+R\+U\+CT@{F\+O\+R\+M\+A\+T\+\_\+\+T\+O\+\_\+\+S\+T\+R\+U\+CT}!pymavlink\+::\+D\+F\+Reader@{pymavlink\+::\+D\+F\+Reader}}
+\subsubsection{\texorpdfstring{F\+O\+R\+M\+A\+T\+\_\+\+T\+O\+\_\+\+S\+T\+R\+U\+CT}{FORMAT\_TO\_STRUCT}}
+{\footnotesize\ttfamily dictionary pymavlink.\+D\+F\+Reader.\+F\+O\+R\+M\+A\+T\+\_\+\+T\+O\+\_\+\+S\+T\+R\+U\+CT}
+
+{\bfseries Initial value\+:}
+\begin{DoxyCode}
+1 =  \{
+2     \textcolor{stringliteral}{"b"}: (\textcolor{stringliteral}{"b"}, \textcolor{keywordtype}{None}, int),
+3     \textcolor{stringliteral}{"B"}: (\textcolor{stringliteral}{"B"}, \textcolor{keywordtype}{None}, int),
+4     \textcolor{stringliteral}{"h"}: (\textcolor{stringliteral}{"h"}, \textcolor{keywordtype}{None}, int),
+5     \textcolor{stringliteral}{"H"}: (\textcolor{stringliteral}{"H"}, \textcolor{keywordtype}{None}, int),
+6     \textcolor{stringliteral}{"i"}: (\textcolor{stringliteral}{"i"}, \textcolor{keywordtype}{None}, int),
+7     \textcolor{stringliteral}{"I"}: (\textcolor{stringliteral}{"I"}, \textcolor{keywordtype}{None}, int),
+8     \textcolor{stringliteral}{"f"}: (\textcolor{stringliteral}{"f"}, \textcolor{keywordtype}{None}, float),
+9     \textcolor{stringliteral}{"n"}: (\textcolor{stringliteral}{"4s"}, \textcolor{keywordtype}{None}, str),
+10     \textcolor{stringliteral}{"N"}: (\textcolor{stringliteral}{"16s"}, \textcolor{keywordtype}{None}, str),
+11     \textcolor{stringliteral}{"Z"}: (\textcolor{stringliteral}{"64s"}, \textcolor{keywordtype}{None}, str),
+12     \textcolor{stringliteral}{"c"}: (\textcolor{stringliteral}{"h"}, 0.01, float),
+13     \textcolor{stringliteral}{"C"}: (\textcolor{stringliteral}{"H"}, 0.01, float),
+14     \textcolor{stringliteral}{"e"}: (\textcolor{stringliteral}{"i"}, 0.01, float),
+15     \textcolor{stringliteral}{"E"}: (\textcolor{stringliteral}{"I"}, 0.01, float),
+16     \textcolor{stringliteral}{"L"}: (\textcolor{stringliteral}{"i"}, 1.0e-7, float),
+17     \textcolor{stringliteral}{"d"}: (\textcolor{stringliteral}{"d"}, \textcolor{keywordtype}{None}, float),
+18     \textcolor{stringliteral}{"M"}: (\textcolor{stringliteral}{"b"}, \textcolor{keywordtype}{None}, int),
+19     \textcolor{stringliteral}{"q"}: (\textcolor{stringliteral}{"q"}, \textcolor{keywordtype}{None}, long),  \textcolor{comment}{# Backward compat}
+20     \textcolor{stringliteral}{"Q"}: (\textcolor{stringliteral}{"Q"}, \textcolor{keywordtype}{None}, long),  \textcolor{comment}{# Backward compat}
+21     \}
+\end{DoxyCode}

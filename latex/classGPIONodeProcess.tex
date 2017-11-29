@@ -1,0 +1,158 @@
+\hypertarget{classGPIONodeProcess}{}\section{G\+P\+I\+O\+Node\+Process Class Reference}
+\label{classGPIONodeProcess}\index{G\+P\+I\+O\+Node\+Process@{G\+P\+I\+O\+Node\+Process}}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classGPIONodeProcess_a6b1d548331e138f73ab9cef67ec56319}\label{classGPIONodeProcess_a6b1d548331e138f73ab9cef67ec56319}} 
+icarus\+\_\+rover\+\_\+v2\+::diagnostic {\bfseries init} (icarus\+\_\+rover\+\_\+v2\+::diagnostic indiag, \hyperlink{classLogger}{Logger} $\ast$log, std\+::string hostname, std\+::string sensorspecpath, bool extrapolate)
+\item 
+\mbox{\Hypertarget{classGPIONodeProcess_ac66c5f2749fc6c4c8425b0f553730b5f}\label{classGPIONodeProcess_ac66c5f2749fc6c4c8425b0f553730b5f}} 
+icarus\+\_\+rover\+\_\+v2\+::diagnostic {\bfseries update} (long dt)
+\item 
+\mbox{\Hypertarget{classGPIONodeProcess_abc05069afa2e09de2a55e643d2db8eac}\label{classGPIONodeProcess_abc05069afa2e09de2a55e643d2db8eac}} 
+icarus\+\_\+rover\+\_\+v2\+::diagnostic {\bfseries new\+\_\+devicemsg} (icarus\+\_\+rover\+\_\+v2\+::device devicemsg)
+\item 
+\mbox{\Hypertarget{classGPIONodeProcess_a50b38b914d9ecb1930cd40012366254e}\label{classGPIONodeProcess_a50b38b914d9ecb1930cd40012366254e}} 
+icarus\+\_\+rover\+\_\+v2\+::diagnostic {\bfseries new\+\_\+commandmsg} (uint16\+\_\+t command, uint8\+\_\+t option1, uint8\+\_\+t option2, uint8\+\_\+t option3, std\+::string commandtext, std\+::string description)
+\item 
+\mbox{\Hypertarget{classGPIONodeProcess_a59f8c09f80a1e24ff47f97699c5ee77c}\label{classGPIONodeProcess_a59f8c09f80a1e24ff47f97699c5ee77c}} 
+icarus\+\_\+rover\+\_\+v2\+::diagnostic {\bfseries new\+\_\+pinmsg} (icarus\+\_\+rover\+\_\+v2\+::pin pinmsg)
+\item 
+\mbox{\Hypertarget{classGPIONodeProcess_a46b3783bd2d312f46937c454b2a88aef}\label{classGPIONodeProcess_a46b3783bd2d312f46937c454b2a88aef}} 
+icarus\+\_\+rover\+\_\+v2\+::device {\bfseries get\+\_\+mydevice} ()
+\item 
+\mbox{\Hypertarget{classGPIONodeProcess_ac88b1e74236c642fe54c12e4dc3e6a14}\label{classGPIONodeProcess_ac88b1e74236c642fe54c12e4dc3e6a14}} 
+std\+::vector$<$ icarus\+\_\+rover\+\_\+v2\+::device $>$ {\bfseries get\+\_\+myboards} ()
+\item 
+\mbox{\Hypertarget{classGPIONodeProcess_a4e1fbb7606a2f5bc2cc6a8f52d775acf}\label{classGPIONodeProcess_a4e1fbb7606a2f5bc2cc6a8f52d775acf}} 
+bool {\bfseries is\+\_\+finished\+\_\+initializing} ()
+\item 
+\mbox{\Hypertarget{classGPIONodeProcess_aa072b0920fe36e9af5a09c204fa3b900}\label{classGPIONodeProcess_aa072b0920fe36e9af5a09c204fa3b900}} 
+bool {\bfseries initialize\+\_\+\+Ports} ()
+\item 
+\mbox{\Hypertarget{classGPIONodeProcess_a18f26b9738d46c4543b4926d569cf78e}\label{classGPIONodeProcess_a18f26b9738d46c4543b4926d569cf78e}} 
+\hyperlink{structPort__Info}{Port\+\_\+\+Info} {\bfseries get\+\_\+\+Port\+Info} (std\+::string Board\+Name, std\+::string Port\+Name)
+\item 
+\mbox{\Hypertarget{classGPIONodeProcess_ae15437962971b9cd2f16a3eb4efc9b4d}\label{classGPIONodeProcess_ae15437962971b9cd2f16a3eb4efc9b4d}} 
+std\+::string {\bfseries map\+\_\+\+Pin\+Function\+\_\+\+To\+String} (int function)
+\item 
+\mbox{\Hypertarget{classGPIONodeProcess_ae54c7bd2d8ff5cbf7ebea3ddf9b9f94c}\label{classGPIONodeProcess_ae54c7bd2d8ff5cbf7ebea3ddf9b9f94c}} 
+int {\bfseries map\+\_\+\+Pin\+Function\+\_\+\+To\+Int} (std\+::string Function)
+\item 
+\mbox{\Hypertarget{classGPIONodeProcess_ad8c6d9479e92c63981149d0c9a7a1910}\label{classGPIONodeProcess_ad8c6d9479e92c63981149d0c9a7a1910}} 
+int {\bfseries get\+\_\+nodestate} ()
+\item 
+\mbox{\Hypertarget{classGPIONodeProcess_ac690824abd01dd5c18f7453ac15bdfe1}\label{classGPIONodeProcess_ac690824abd01dd5c18f7453ac15bdfe1}} 
+void {\bfseries set\+\_\+nodestate} (int mode)
+\item 
+\mbox{\Hypertarget{classGPIONodeProcess_ab2986b01cf341b492dbe145fd7f55109}\label{classGPIONodeProcess_ab2986b01cf341b492dbe145fd7f55109}} 
+int {\bfseries get\+\_\+boardstate} ()
+\item 
+\mbox{\Hypertarget{classGPIONodeProcess_ab72710aebdfecc3eb3f454b60c8afe38}\label{classGPIONodeProcess_ab72710aebdfecc3eb3f454b60c8afe38}} 
+bool {\bfseries set\+\_\+timeout\+\_\+ms} (long timeout)
+\item 
+\mbox{\Hypertarget{classGPIONodeProcess_a6df179ffb961a79da62c695490d4ed55}\label{classGPIONodeProcess_a6df179ffb961a79da62c695490d4ed55}} 
+int {\bfseries get\+\_\+timeout\+\_\+ms} ()
+\item 
+\mbox{\Hypertarget{classGPIONodeProcess_af0bd6bfc965a8443be292662fda1b90c}\label{classGPIONodeProcess_af0bd6bfc965a8443be292662fda1b90c}} 
+long {\bfseries get\+\_\+timer\+\_\+ms} ()
+\item 
+\mbox{\Hypertarget{classGPIONodeProcess_aad6611619f9261801d88d1d6abe5ff61}\label{classGPIONodeProcess_aad6611619f9261801d88d1d6abe5ff61}} 
+bool {\bfseries reset\+\_\+timer} ()
+\item 
+\mbox{\Hypertarget{classGPIONodeProcess_ab763502635e85504c4f69f7439a8980b}\label{classGPIONodeProcess_ab763502635e85504c4f69f7439a8980b}} 
+bool {\bfseries check\+Triggers} (std\+::vector$<$ std\+::vector$<$ unsigned char $>$ $>$ \&tx\+\_\+buffers)
+\item 
+\mbox{\Hypertarget{classGPIONodeProcess_a0895166d9796c0bf8bbd6efe87b17136}\label{classGPIONodeProcess_a0895166d9796c0bf8bbd6efe87b17136}} 
+std\+::vector$<$ icarus\+\_\+rover\+\_\+v2\+::device $>$ {\bfseries get\+\_\+boards} ()
+\item 
+\mbox{\Hypertarget{classGPIONodeProcess_ab9c4538284e515c2f697257f7473073b}\label{classGPIONodeProcess_ab9c4538284e515c2f697257f7473073b}} 
+icarus\+\_\+rover\+\_\+v2\+::diagnostic {\bfseries new\+\_\+serialmessage\+\_\+\+Test\+Message\+Counter} (int packet\+\_\+type, unsigned char $\ast$inpacket)
+\item 
+\mbox{\Hypertarget{classGPIONodeProcess_a1fdf9c6de6788297bb51fb27488d0fe7}\label{classGPIONodeProcess_a1fdf9c6de6788297bb51fb27488d0fe7}} 
+icarus\+\_\+rover\+\_\+v2\+::diagnostic {\bfseries new\+\_\+serialmessage\+\_\+\+Firmware\+Version} (int packet\+\_\+type, unsigned char $\ast$inpacket)
+\item 
+\mbox{\Hypertarget{classGPIONodeProcess_a0fafde92540cdca0922fef34910b6c96}\label{classGPIONodeProcess_a0fafde92540cdca0922fef34910b6c96}} 
+icarus\+\_\+rover\+\_\+v2\+::diagnostic {\bfseries new\+\_\+serialmessage\+\_\+\+Diagnostic} (int packet\+\_\+type, unsigned char $\ast$inpacket)
+\item 
+\mbox{\Hypertarget{classGPIONodeProcess_aa8b361106864bde09d1b14ba21d52cd5}\label{classGPIONodeProcess_aa8b361106864bde09d1b14ba21d52cd5}} 
+icarus\+\_\+rover\+\_\+v2\+::diagnostic {\bfseries new\+\_\+serialmessage\+\_\+\+Get\+\_\+\+A\+N\+A\+\_\+\+PortA} (int packet\+\_\+type, unsigned char $\ast$inpacket)
+\item 
+\mbox{\Hypertarget{classGPIONodeProcess_a3f679467f3f364cb076a32ec951bccfb}\label{classGPIONodeProcess_a3f679467f3f364cb076a32ec951bccfb}} 
+icarus\+\_\+rover\+\_\+v2\+::diagnostic {\bfseries new\+\_\+serialmessage\+\_\+\+Get\+\_\+\+A\+N\+A\+\_\+\+PortB} (int packet\+\_\+type, unsigned char $\ast$inpacket)
+\item 
+\mbox{\Hypertarget{classGPIONodeProcess_aa10decbb9cfcdd9cf649f58ab44f66e8}\label{classGPIONodeProcess_aa10decbb9cfcdd9cf649f58ab44f66e8}} 
+icarus\+\_\+rover\+\_\+v2\+::diagnostic {\bfseries new\+\_\+serialmessage\+\_\+\+Get\+\_\+\+D\+I\+O\+\_\+\+PortA} (int packet\+\_\+type, unsigned char $\ast$inpacket)
+\item 
+\mbox{\Hypertarget{classGPIONodeProcess_a6efc6b66232b38e8399cac04825f7edc}\label{classGPIONodeProcess_a6efc6b66232b38e8399cac04825f7edc}} 
+icarus\+\_\+rover\+\_\+v2\+::diagnostic {\bfseries new\+\_\+serialmessage\+\_\+\+Get\+\_\+\+D\+I\+O\+\_\+\+PortB} (int packet\+\_\+type, unsigned char $\ast$inpacket)
+\item 
+\mbox{\Hypertarget{classGPIONodeProcess_a33d8920e3134280730ee3715e45899eb}\label{classGPIONodeProcess_a33d8920e3134280730ee3715e45899eb}} 
+icarus\+\_\+rover\+\_\+v2\+::diagnostic {\bfseries new\+\_\+serialmessage\+\_\+\+Get\+\_\+\+Mode} (int packet\+\_\+type, unsigned char $\ast$inpacket)
+\item 
+\mbox{\Hypertarget{classGPIONodeProcess_a535bd21ce88be5760710aa13b9ad08fd}\label{classGPIONodeProcess_a535bd21ce88be5760710aa13b9ad08fd}} 
+void {\bfseries transmit\+\_\+armedstate} ()
+\item 
+\mbox{\Hypertarget{classGPIONodeProcess_afb1ee33dc45babb0cdd063fd282d048a}\label{classGPIONodeProcess_afb1ee33dc45babb0cdd063fd282d048a}} 
+icarus\+\_\+rover\+\_\+v2\+::diagnostic {\bfseries new\+\_\+armedstatemsg} (uint8\+\_\+t v)
+\item 
+\mbox{\Hypertarget{classGPIONodeProcess_a08ca4544ac0afadb8226fa62ed6a4be2}\label{classGPIONodeProcess_a08ca4544ac0afadb8226fa62ed6a4be2}} 
+std\+::vector$<$ \hyperlink{structmessage__info}{message\+\_\+info} $>$ {\bfseries get\+\_\+allmessage\+\_\+info} ()
+\item 
+\mbox{\Hypertarget{classGPIONodeProcess_aaea2a5c5b471c20a01be0591fc65afa9}\label{classGPIONodeProcess_aaea2a5c5b471c20a01be0591fc65afa9}} 
+\hyperlink{structstate__ack}{state\+\_\+ack} {\bfseries get\+\_\+stateack} (std\+::string name)
+\item 
+\mbox{\Hypertarget{classGPIONodeProcess_a89c10952dd784daac0e299224c865b29}\label{classGPIONodeProcess_a89c10952dd784daac0e299224c865b29}} 
+bool {\bfseries set\+\_\+stateack} (\hyperlink{structstate__ack}{state\+\_\+ack} stateack)
+\item 
+\mbox{\Hypertarget{classGPIONodeProcess_a732dea78545c3932961c07739051af91}\label{classGPIONodeProcess_a732dea78545c3932961c07739051af91}} 
+std\+::string {\bfseries map\+\_\+mode\+\_\+\+To\+String} (int mode)
+\item 
+\mbox{\Hypertarget{classGPIONodeProcess_a38b009ac694c2d7e33e900b1d43a613b}\label{classGPIONodeProcess_a38b009ac694c2d7e33e900b1d43a613b}} 
+uint8\+\_\+t {\bfseries get\+\_\+armedstate} ()
+\item 
+\mbox{\Hypertarget{classGPIONodeProcess_a68fc37f6ff753b208ba4502c4eed1cfb}\label{classGPIONodeProcess_a68fc37f6ff753b208ba4502c4eed1cfb}} 
+uint8\+\_\+t {\bfseries get\+\_\+armedcommand} ()
+\item 
+\mbox{\Hypertarget{classGPIONodeProcess_a20d4226920dc7b09dd96d2bce0685cf1}\label{classGPIONodeProcess_a20d4226920dc7b09dd96d2bce0685cf1}} 
+void {\bfseries set\+\_\+manualpin\+\_\+definition} (bool v)
+\end{DoxyCompactItemize}
+\subsection*{Protected Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classGPIONodeProcess_aa6787e4e08b4041ff07d8365da40d423}\label{classGPIONodeProcess_aa6787e4e08b4041ff07d8365da40d423}} 
+\hyperlink{structstate__ack}{state\+\_\+ack} {\bfseries send\+\_\+configure\+\_\+\+D\+I\+O\+\_\+\+PortA}
+\item 
+\mbox{\Hypertarget{classGPIONodeProcess_a23c2221f7d569bb2ab3e0d62c8b3f9db}\label{classGPIONodeProcess_a23c2221f7d569bb2ab3e0d62c8b3f9db}} 
+\hyperlink{structstate__ack}{state\+\_\+ack} {\bfseries send\+\_\+configure\+\_\+\+D\+I\+O\+\_\+\+PortB}
+\item 
+\mbox{\Hypertarget{classGPIONodeProcess_a53608aac90221ba5bbc27d52b7aa0ecc}\label{classGPIONodeProcess_a53608aac90221ba5bbc27d52b7aa0ecc}} 
+\hyperlink{structstate__ack}{state\+\_\+ack} {\bfseries send\+\_\+defaultvalue\+\_\+\+D\+I\+O\+\_\+\+PortA}
+\item 
+\mbox{\Hypertarget{classGPIONodeProcess_ac8b97966a4fa2927350ed0b438947949}\label{classGPIONodeProcess_ac8b97966a4fa2927350ed0b438947949}} 
+\hyperlink{structstate__ack}{state\+\_\+ack} {\bfseries send\+\_\+defaultvalue\+\_\+\+D\+I\+O\+\_\+\+PortB}
+\item 
+\mbox{\Hypertarget{classGPIONodeProcess_a0512cd193550ee59ed8f9ef455932318}\label{classGPIONodeProcess_a0512cd193550ee59ed8f9ef455932318}} 
+\hyperlink{structstate__ack}{state\+\_\+ack} {\bfseries send\+\_\+testmessage\+\_\+command}
+\item 
+\mbox{\Hypertarget{classGPIONodeProcess_ab53678f6d1b5b6767d578a4e82213f2c}\label{classGPIONodeProcess_ab53678f6d1b5b6767d578a4e82213f2c}} 
+\hyperlink{structstate__ack}{state\+\_\+ack} {\bfseries send\+\_\+nodemode}
+\item 
+\mbox{\Hypertarget{classGPIONodeProcess_a89019f443c1fd471d99bae06b695d114}\label{classGPIONodeProcess_a89019f443c1fd471d99bae06b695d114}} 
+\hyperlink{structstate__ack}{state\+\_\+ack} {\bfseries send\+\_\+set\+\_\+\+D\+I\+O\+\_\+\+PortA}
+\item 
+\mbox{\Hypertarget{classGPIONodeProcess_a84348173c9e679589fe07d4fc88b56f3}\label{classGPIONodeProcess_a84348173c9e679589fe07d4fc88b56f3}} 
+\hyperlink{structstate__ack}{state\+\_\+ack} {\bfseries send\+\_\+set\+\_\+\+D\+I\+O\+\_\+\+PortB}
+\item 
+\mbox{\Hypertarget{classGPIONodeProcess_a548f232d6096fda30238aa8c0e392018}\label{classGPIONodeProcess_a548f232d6096fda30238aa8c0e392018}} 
+\hyperlink{structstate__ack}{state\+\_\+ack} {\bfseries send\+\_\+armedcommand}
+\item 
+\mbox{\Hypertarget{classGPIONodeProcess_a6b25e967b48580329f8a4a3e9978aa84}\label{classGPIONodeProcess_a6b25e967b48580329f8a4a3e9978aa84}} 
+\hyperlink{structstate__ack}{state\+\_\+ack} {\bfseries send\+\_\+armedstate}
+\end{DoxyCompactItemize}
+
+
+The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+\item 
+src/\+Board/gpio\+\_\+node\+\_\+process.\+h\item 
+src/\+Board/gpio\+\_\+node\+\_\+process.\+cpp\end{DoxyCompactItemize}

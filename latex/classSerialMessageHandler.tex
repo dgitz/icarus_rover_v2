@@ -1,0 +1,80 @@
+\hypertarget{classSerialMessageHandler}{}\section{Serial\+Message\+Handler Class Reference}
+\label{classSerialMessageHandler}\index{Serial\+Message\+Handler@{Serial\+Message\+Handler}}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classSerialMessageHandler_ace3a580615d169b5ed605c39e540f63d}\label{classSerialMessageHandler_ace3a580615d169b5ed605c39e540f63d}} 
+int {\bfseries encode\+\_\+\+User\+Message\+Serial} (unsigned char $\ast$outbuffer, int $\ast$length, unsigned char value1, unsigned char value2, unsigned char value3, unsigned char value4, unsigned char value5, unsigned char value6, unsigned char value7, unsigned char value8, unsigned char value9, unsigned char value10, unsigned char value11, unsigned char value12)
+\item 
+\mbox{\Hypertarget{classSerialMessageHandler_a5640f04e00397185eb0c6c00c79a0833}\label{classSerialMessageHandler_a5640f04e00397185eb0c6c00c79a0833}} 
+int {\bfseries decode\+\_\+\+User\+Message\+Serial} (unsigned char $\ast$inpacket, unsigned char $\ast$value1, unsigned char $\ast$value2, unsigned char $\ast$value3, unsigned char $\ast$value4, unsigned char $\ast$value5, unsigned char $\ast$value6, unsigned char $\ast$value7, unsigned char $\ast$value8, unsigned char $\ast$value9, unsigned char $\ast$value10, unsigned char $\ast$value11, unsigned char $\ast$value12)
+\item 
+\mbox{\Hypertarget{classSerialMessageHandler_a7df4a5438371c97bba23695492c0c627}\label{classSerialMessageHandler_a7df4a5438371c97bba23695492c0c627}} 
+int {\bfseries encode\+\_\+\+Command\+Serial} (unsigned char $\ast$outbuffer, int $\ast$length, unsigned char \hyperlink{structCommand}{Command}, unsigned char Option1, unsigned char Option2, unsigned char Option3)
+\item 
+\mbox{\Hypertarget{classSerialMessageHandler_a3ab1541f92a9117e5f988d0fb5fb766b}\label{classSerialMessageHandler_a3ab1541f92a9117e5f988d0fb5fb766b}} 
+int {\bfseries decode\+\_\+\+Command\+Serial} (unsigned char $\ast$inpacket, unsigned char $\ast$\hyperlink{structCommand}{Command}, unsigned char $\ast$Option1, unsigned char $\ast$Option2, unsigned char $\ast$Option3)
+\item 
+\mbox{\Hypertarget{classSerialMessageHandler_a15e8fac783c2c4daabe1de3d958991e1}\label{classSerialMessageHandler_a15e8fac783c2c4daabe1de3d958991e1}} 
+int {\bfseries encode\+\_\+\+Diagnostic\+Serial} (unsigned char $\ast$outbuffer, int $\ast$length, unsigned char System, unsigned char Sub\+System, unsigned char Component, unsigned char Diagnostic\+\_\+\+Type, unsigned char Level, unsigned char Diagnostic\+\_\+\+Message)
+\item 
+\mbox{\Hypertarget{classSerialMessageHandler_aa714c14768602bcb28c33aad496c41a2}\label{classSerialMessageHandler_aa714c14768602bcb28c33aad496c41a2}} 
+int {\bfseries decode\+\_\+\+Diagnostic\+Serial} (unsigned char $\ast$inpacket, unsigned char $\ast$System, unsigned char $\ast$Sub\+System, unsigned char $\ast$Component, unsigned char $\ast$Diagnostic\+\_\+\+Type, unsigned char $\ast$Level, unsigned char $\ast$Diagnostic\+\_\+\+Message)
+\item 
+\mbox{\Hypertarget{classSerialMessageHandler_ae370da367689cccde36688bf669e89e9}\label{classSerialMessageHandler_ae370da367689cccde36688bf669e89e9}} 
+int {\bfseries encode\+\_\+\+Test\+Message\+Command\+Serial} (unsigned char $\ast$outbuffer, int $\ast$length, unsigned char value1, unsigned char value2, unsigned char value3, unsigned char value4, unsigned char value5, unsigned char value6, unsigned char value7, unsigned char value8)
+\item 
+\mbox{\Hypertarget{classSerialMessageHandler_a31232406d6263837196118a5729c69f9}\label{classSerialMessageHandler_a31232406d6263837196118a5729c69f9}} 
+int {\bfseries encode\+\_\+\+Configure\+\_\+\+D\+I\+O\+\_\+\+Port\+Serial} (unsigned char $\ast$outbuffer, int $\ast$length, unsigned char Shield\+ID, unsigned char Port\+ID, unsigned char Message\+Index, unsigned char Message\+Count, unsigned char Pin1\+\_\+\+Mode, unsigned char Pin2\+\_\+\+Mode, unsigned char Pin3\+\_\+\+Mode, unsigned char Pin4\+\_\+\+Mode, unsigned char Pin5\+\_\+\+Mode, unsigned char Pin6\+\_\+\+Mode, unsigned char Pin7\+\_\+\+Mode, unsigned char Pin8\+\_\+\+Mode)
+\item 
+\mbox{\Hypertarget{classSerialMessageHandler_a7af58de454ac40180fc0f6a74cfb713f}\label{classSerialMessageHandler_a7af58de454ac40180fc0f6a74cfb713f}} 
+int {\bfseries decode\+\_\+\+Configure\+\_\+\+D\+I\+O\+\_\+\+Port\+Serial} (unsigned char $\ast$inpacket, unsigned char $\ast$Shield\+ID, unsigned char $\ast$Port\+ID, unsigned char $\ast$Message\+Index, unsigned char $\ast$Message\+Count, unsigned char $\ast$Pin1\+\_\+\+Mode, unsigned char $\ast$Pin2\+\_\+\+Mode, unsigned char $\ast$Pin3\+\_\+\+Mode, unsigned char $\ast$Pin4\+\_\+\+Mode, unsigned char $\ast$Pin5\+\_\+\+Mode, unsigned char $\ast$Pin6\+\_\+\+Mode, unsigned char $\ast$Pin7\+\_\+\+Mode, unsigned char $\ast$Pin8\+\_\+\+Mode)
+\item 
+\mbox{\Hypertarget{classSerialMessageHandler_ac3800e211e50b3f4e88c7d77457964d9}\label{classSerialMessageHandler_ac3800e211e50b3f4e88c7d77457964d9}} 
+int {\bfseries encode\+\_\+\+Mode\+Serial} (unsigned char $\ast$outbuffer, int $\ast$length, unsigned char Device\+Type, unsigned char ID, unsigned char Mode)
+\item 
+\mbox{\Hypertarget{classSerialMessageHandler_a5fb4f2a15c3a0eb8a49d6cbcec259c3d}\label{classSerialMessageHandler_a5fb4f2a15c3a0eb8a49d6cbcec259c3d}} 
+int {\bfseries decode\+\_\+\+Mode\+Serial} (unsigned char $\ast$inpacket, unsigned char $\ast$Device\+Type, unsigned char $\ast$ID, unsigned char $\ast$Mode)
+\item 
+\mbox{\Hypertarget{classSerialMessageHandler_a62418e263b6d368e1309faba04717dc1}\label{classSerialMessageHandler_a62418e263b6d368e1309faba04717dc1}} 
+int {\bfseries encode\+\_\+\+Set\+\_\+\+D\+I\+O\+\_\+\+Port\+Serial} (unsigned char $\ast$outbuffer, int $\ast$length, unsigned char Shield\+ID, unsigned char Port\+ID, unsigned char Pin1\+\_\+\+Value, unsigned char Pin2\+\_\+\+Value, unsigned char Pin3\+\_\+\+Value, unsigned char Pin4\+\_\+\+Value, unsigned char Pin5\+\_\+\+Value, unsigned char Pin6\+\_\+\+Value, unsigned char Pin7\+\_\+\+Value, unsigned char Pin8\+\_\+\+Value)
+\item 
+\mbox{\Hypertarget{classSerialMessageHandler_ab6d5debd538b8dc45b44bf1cdafbe29a}\label{classSerialMessageHandler_ab6d5debd538b8dc45b44bf1cdafbe29a}} 
+int {\bfseries decode\+\_\+\+Set\+\_\+\+D\+I\+O\+\_\+\+Port\+Serial} (unsigned char $\ast$inpacket, unsigned char $\ast$Shield\+ID, unsigned char $\ast$Port\+ID, unsigned char $\ast$Pin1\+\_\+\+Value, unsigned char $\ast$Pin2\+\_\+\+Value, unsigned char $\ast$Pin3\+\_\+\+Value, unsigned char $\ast$Pin4\+\_\+\+Value, unsigned char $\ast$Pin5\+\_\+\+Value, unsigned char $\ast$Pin6\+\_\+\+Value, unsigned char $\ast$Pin7\+\_\+\+Value, unsigned char $\ast$Pin8\+\_\+\+Value)
+\item 
+\mbox{\Hypertarget{classSerialMessageHandler_abbf60056ee29672bd8ab635eb7d75e8f}\label{classSerialMessageHandler_abbf60056ee29672bd8ab635eb7d75e8f}} 
+int {\bfseries decode\+\_\+\+Firmware\+Version\+Serial} (unsigned char $\ast$inpacket, unsigned char $\ast$major\+Version, unsigned char $\ast$minor\+Version, unsigned char $\ast$build\+Number)
+\item 
+\mbox{\Hypertarget{classSerialMessageHandler_a2aa01802400a0c45ca4079bb76f8d455}\label{classSerialMessageHandler_a2aa01802400a0c45ca4079bb76f8d455}} 
+int {\bfseries encode\+\_\+\+Arm\+\_\+\+Status\+Serial} (unsigned char $\ast$outbuffer, int $\ast$length, unsigned char Status)
+\item 
+\mbox{\Hypertarget{classSerialMessageHandler_a81454569ed84f997130c6008d23c305b}\label{classSerialMessageHandler_a81454569ed84f997130c6008d23c305b}} 
+int {\bfseries decode\+\_\+\+Arm\+\_\+\+Status\+Serial} (unsigned char $\ast$inpacket, unsigned char $\ast$Status)
+\item 
+\mbox{\Hypertarget{classSerialMessageHandler_a5069bc2a552f86672409054b36adfb17}\label{classSerialMessageHandler_a5069bc2a552f86672409054b36adfb17}} 
+int {\bfseries encode\+\_\+\+Set\+\_\+\+D\+I\+O\+\_\+\+Port\+\_\+\+Default\+Value\+Serial} (unsigned char $\ast$outbuffer, int $\ast$length, unsigned char Shield\+ID, unsigned char Port\+ID, unsigned char Message\+Index, unsigned char Message\+Count, unsigned char Pin1\+\_\+\+Value, unsigned char Pin2\+\_\+\+Value, unsigned char Pin3\+\_\+\+Value, unsigned char Pin4\+\_\+\+Value, unsigned char Pin5\+\_\+\+Value, unsigned char Pin6\+\_\+\+Value, unsigned char Pin7\+\_\+\+Value, unsigned char Pin8\+\_\+\+Value)
+\item 
+\mbox{\Hypertarget{classSerialMessageHandler_a2bd74dfc78f5327e0a9098a7dcb45c19}\label{classSerialMessageHandler_a2bd74dfc78f5327e0a9098a7dcb45c19}} 
+int {\bfseries decode\+\_\+\+Set\+\_\+\+D\+I\+O\+\_\+\+Port\+\_\+\+Default\+Value\+Serial} (unsigned char $\ast$inpacket, unsigned char $\ast$Shield\+ID, unsigned char $\ast$Port\+ID, unsigned char $\ast$Message\+Index, unsigned char $\ast$Message\+Count, unsigned char $\ast$Pin1\+\_\+\+Value, unsigned char $\ast$Pin2\+\_\+\+Value, unsigned char $\ast$Pin3\+\_\+\+Value, unsigned char $\ast$Pin4\+\_\+\+Value, unsigned char $\ast$Pin5\+\_\+\+Value, unsigned char $\ast$Pin6\+\_\+\+Value, unsigned char $\ast$Pin7\+\_\+\+Value, unsigned char $\ast$Pin8\+\_\+\+Value)
+\item 
+\mbox{\Hypertarget{classSerialMessageHandler_a10c8e8c8a372d1ab7dee71e519603b8c}\label{classSerialMessageHandler_a10c8e8c8a372d1ab7dee71e519603b8c}} 
+int {\bfseries encode\+\_\+\+P\+P\+S\+Serial} (unsigned char $\ast$outbuffer, int $\ast$length, unsigned char counter)
+\item 
+\mbox{\Hypertarget{classSerialMessageHandler_af4005ad84fc5e22449dc4a4a2785a5eb}\label{classSerialMessageHandler_af4005ad84fc5e22449dc4a4a2785a5eb}} 
+int {\bfseries decode\+\_\+\+P\+P\+S\+Serial} (unsigned char $\ast$inpacket, unsigned char $\ast$counter)
+\item 
+\mbox{\Hypertarget{classSerialMessageHandler_a465a338fea61f2ff7bf42a17a2246310}\label{classSerialMessageHandler_a465a338fea61f2ff7bf42a17a2246310}} 
+int {\bfseries encode\+\_\+\+Configure\+\_\+\+A\+N\+A\+\_\+\+Port\+Serial} (unsigned char $\ast$outbuffer, int $\ast$length, unsigned char Shield\+ID, unsigned char Port\+ID, unsigned char Message\+Index, unsigned char Message\+Count, unsigned char Pin1\+\_\+\+Mode, unsigned char Pin2\+\_\+\+Mode, unsigned char Pin3\+\_\+\+Mode, unsigned char Pin4\+\_\+\+Mode)
+\item 
+\mbox{\Hypertarget{classSerialMessageHandler_a897038abd548f29dea408fd205f535a0}\label{classSerialMessageHandler_a897038abd548f29dea408fd205f535a0}} 
+int {\bfseries decode\+\_\+\+Configure\+\_\+\+A\+N\+A\+\_\+\+Port\+Serial} (unsigned char $\ast$inpacket, unsigned char $\ast$Shield\+ID, unsigned char $\ast$Port\+ID, unsigned char $\ast$Message\+Index, unsigned char $\ast$Message\+Count, unsigned char $\ast$Pin1\+\_\+\+Mode, unsigned char $\ast$Pin2\+\_\+\+Mode, unsigned char $\ast$Pin3\+\_\+\+Mode, unsigned char $\ast$Pin4\+\_\+\+Mode)
+\item 
+\mbox{\Hypertarget{classSerialMessageHandler_a2406c3e75a5f79e83690920369049409}\label{classSerialMessageHandler_a2406c3e75a5f79e83690920369049409}} 
+int {\bfseries decode\+\_\+\+I\+D\+Serial} (unsigned char $\ast$inpacket, unsigned char $\ast$Device\+ID, unsigned long $\ast$Part\+Number)
+\end{DoxyCompactItemize}
+
+
+The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+\item 
+include/serialmessage.\+h\item 
+util/serialmessage.\+cpp\end{DoxyCompactItemize}

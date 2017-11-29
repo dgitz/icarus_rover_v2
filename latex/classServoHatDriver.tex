@@ -1,0 +1,62 @@
+\hypertarget{classServoHatDriver}{}\section{Servo\+Hat\+Driver Class Reference}
+\label{classServoHatDriver}\index{Servo\+Hat\+Driver@{Servo\+Hat\+Driver}}
+\subsection*{Public Types}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classServoHatDriver_a8b0b713c06c269876e08fa3e8f48bac3}\label{classServoHatDriver_a8b0b713c06c269876e08fa3e8f48bac3}} 
+enum {\bfseries Servo\+Hat\+Driver\+Constant} \{ \newline
+{\bfseries \+\_\+\+\_\+\+M\+O\+D\+E1} = 0x00, 
+{\bfseries \+\_\+\+\_\+\+M\+O\+D\+E2} = 0x01, 
+{\bfseries \+\_\+\+\_\+\+S\+U\+B\+A\+D\+R1} = 0x02, 
+{\bfseries \+\_\+\+\_\+\+S\+U\+B\+A\+D\+R2} = 0x03, 
+\newline
+{\bfseries \+\_\+\+\_\+\+S\+U\+B\+A\+D\+R3} = 0x04, 
+{\bfseries \+\_\+\+\_\+\+P\+R\+E\+S\+C\+A\+LE} = 0x\+FE, 
+{\bfseries \+\_\+\+\_\+\+L\+E\+D0\+\_\+\+O\+N\+\_\+L} = 0x06, 
+{\bfseries \+\_\+\+\_\+\+L\+E\+D0\+\_\+\+O\+N\+\_\+H} = 0x07, 
+\newline
+{\bfseries \+\_\+\+\_\+\+L\+E\+D0\+\_\+\+O\+F\+F\+\_\+L} = 0x08, 
+{\bfseries \+\_\+\+\_\+\+L\+E\+D0\+\_\+\+O\+F\+F\+\_\+H} = 0x09, 
+{\bfseries \+\_\+\+\_\+\+A\+L\+L\+\_\+\+L\+E\+D\+\_\+\+O\+N\+\_\+L} = 0x\+FA, 
+{\bfseries \+\_\+\+\_\+\+A\+L\+L\+\_\+\+L\+E\+D\+\_\+\+O\+N\+\_\+H} = 0x\+FB, 
+\newline
+{\bfseries \+\_\+\+\_\+\+A\+L\+L\+\_\+\+L\+E\+D\+\_\+\+O\+F\+F\+\_\+L} = 0x\+FC, 
+{\bfseries \+\_\+\+\_\+\+A\+L\+L\+\_\+\+L\+E\+D\+\_\+\+O\+F\+F\+\_\+H} = 0x\+FD, 
+{\bfseries \+\_\+\+\_\+\+R\+E\+S\+T\+A\+RT} = 0x80, 
+{\bfseries \+\_\+\+\_\+\+S\+L\+E\+EP} = 0x10, 
+\newline
+{\bfseries \+\_\+\+\_\+\+A\+L\+L\+C\+A\+LL} = 0x01, 
+{\bfseries \+\_\+\+\_\+\+I\+N\+V\+RT} = 0x10, 
+{\bfseries \+\_\+\+\_\+\+O\+U\+T\+D\+RV} = 0x04
+ \}
+\end{DoxyCompactItemize}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classServoHatDriver_acd55eaaae4fe72f8ed7c899c3e332a0f}\label{classServoHatDriver_acd55eaaae4fe72f8ed7c899c3e332a0f}} 
+int {\bfseries init} (int address=0x40)
+\item 
+\mbox{\Hypertarget{classServoHatDriver_a3f9a5961dedde7a4bbde8254a4dfdf59}\label{classServoHatDriver_a3f9a5961dedde7a4bbde8254a4dfdf59}} 
+void {\bfseries set\+P\+W\+M\+Freq} (int freq)
+\item 
+\mbox{\Hypertarget{classServoHatDriver_a666c0cf7beee25d381e0f5d3cfd23491}\label{classServoHatDriver_a666c0cf7beee25d381e0f5d3cfd23491}} 
+void {\bfseries set\+P\+WM} (int channel, int on, int off)
+\item 
+\mbox{\Hypertarget{classServoHatDriver_af784ccc448ddc82a152f238c25f59b46}\label{classServoHatDriver_af784ccc448ddc82a152f238c25f59b46}} 
+void {\bfseries reset\+All\+P\+WM} (int on, int off)
+\item 
+\mbox{\Hypertarget{classServoHatDriver_a742ae6e5f99b08f017084c4053b95147}\label{classServoHatDriver_a742ae6e5f99b08f017084c4053b95147}} 
+void {\bfseries set\+Servo\+Value} (int channel, int v)
+\item 
+\mbox{\Hypertarget{classServoHatDriver_a3c80c94e0390d58c97d5e35787c1798f}\label{classServoHatDriver_a3c80c94e0390d58c97d5e35787c1798f}} 
+void {\bfseries reset\+All\+Servo} ()
+\item 
+\mbox{\Hypertarget{classServoHatDriver_a6ef84bcafbc36d250467b30e4b656257}\label{classServoHatDriver_a6ef84bcafbc36d250467b30e4b656257}} 
+int {\bfseries get\+\_\+address} ()
+\end{DoxyCompactItemize}
+
+
+The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+\item 
+src/\+Board/\+Driver/Servo\+Hat\+Driver.\+h\item 
+src/\+Board/\+Driver/Servo\+Hat\+Driver.\+cpp\end{DoxyCompactItemize}

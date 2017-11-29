@@ -1,0 +1,79 @@
+\hypertarget{namespacepymavlink_1_1tools_1_1MPU6KSearch}{}\section{pymavlink.\+tools.\+M\+P\+U6\+K\+Search Namespace Reference}
+\label{namespacepymavlink_1_1tools_1_1MPU6KSearch}\index{pymavlink.\+tools.\+M\+P\+U6\+K\+Search@{pymavlink.\+tools.\+M\+P\+U6\+K\+Search}}
+\subsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{namespacepymavlink_1_1tools_1_1MPU6KSearch_a279d987dea7583d9f989aa9cf3e8b3b7}\label{namespacepymavlink_1_1tools_1_1MPU6KSearch_a279d987dea7583d9f989aa9cf3e8b3b7}} 
+def {\bfseries I\+M\+U\+Check\+Fail} (filename)
+\item 
+def \hyperlink{namespacepymavlink_1_1tools_1_1MPU6KSearch_adb2e53c6e56de3bd2784aa39e2605d92}{match\+\_\+extension} (f)
+\end{DoxyCompactItemize}
+\subsection*{Variables}
+\begin{DoxyCompactItemize}
+\item 
+list {\bfseries search\+\_\+dirs}
+\item 
+\mbox{\Hypertarget{namespacepymavlink_1_1tools_1_1MPU6KSearch_ac0205e09e9160c156c91decf18d0b6c0}\label{namespacepymavlink_1_1tools_1_1MPU6KSearch_ac0205e09e9160c156c91decf18d0b6c0}} 
+string {\bfseries results} = \textquotesingle{}Search\+Results.\+zip\textquotesingle{}
+\item 
+\mbox{\Hypertarget{namespacepymavlink_1_1tools_1_1MPU6KSearch_addf5782d97897730d0cb3b7410787906}\label{namespacepymavlink_1_1tools_1_1MPU6KSearch_addf5782d97897730d0cb3b7410787906}} 
+string {\bfseries email} = \textquotesingle{}Craig Elder $<$craig@3drobotics.\+com$>$\textquotesingle{}
+\item 
+\mbox{\Hypertarget{namespacepymavlink_1_1tools_1_1MPU6KSearch_ac237d9dc19ad865c06c3b254b1413ea0}\label{namespacepymavlink_1_1tools_1_1MPU6KSearch_ac237d9dc19ad865c06c3b254b1413ea0}} 
+list {\bfseries found} = \mbox{[}$\,$\mbox{]}
+\item 
+\mbox{\Hypertarget{namespacepymavlink_1_1tools_1_1MPU6KSearch_a91724bc509807606cd6a2e1598b58891}\label{namespacepymavlink_1_1tools_1_1MPU6KSearch_a91724bc509807606cd6a2e1598b58891}} 
+{\bfseries directories} = sys.\+argv\mbox{[}1\+:\mbox{]}
+\item 
+\mbox{\Hypertarget{namespacepymavlink_1_1tools_1_1MPU6KSearch_aca86a704134fd3da4bb5925d74832d36}\label{namespacepymavlink_1_1tools_1_1MPU6KSearch_aca86a704134fd3da4bb5925d74832d36}} 
+list {\bfseries filelist} = \mbox{[}$\,$\mbox{]}
+\item 
+\mbox{\Hypertarget{namespacepymavlink_1_1tools_1_1MPU6KSearch_ab42858fbaf5e3782f567e13183d9ea07}\label{namespacepymavlink_1_1tools_1_1MPU6KSearch_ab42858fbaf5e3782f567e13183d9ea07}} 
+list {\bfseries extensions} = \mbox{[}\textquotesingle{}.tlog\textquotesingle{},\textquotesingle{}.bin\textquotesingle{}\mbox{]}
+\item 
+\mbox{\Hypertarget{namespacepymavlink_1_1tools_1_1MPU6KSearch_a159243f0ffefc2196fac676fca1d67c1}\label{namespacepymavlink_1_1tools_1_1MPU6KSearch_a159243f0ffefc2196fac676fca1d67c1}} 
+{\bfseries path} = os.\+path.\+join(root, f)
+\item 
+\mbox{\Hypertarget{namespacepymavlink_1_1tools_1_1MPU6KSearch_ac07a87a94d378396fc6958ca6fcb3064}\label{namespacepymavlink_1_1tools_1_1MPU6KSearch_ac07a87a94d378396fc6958ca6fcb3064}} 
+list {\bfseries f} = filelist\mbox{[}i\mbox{]}
+\item 
+\mbox{\Hypertarget{namespacepymavlink_1_1tools_1_1MPU6KSearch_a20389f5c308cc78d8368d19db6ef8b92}\label{namespacepymavlink_1_1tools_1_1MPU6KSearch_a20389f5c308cc78d8368d19db6ef8b92}} 
+{\bfseries zip} = zipfile.\+Zip\+File(results, \textquotesingle{}w\textquotesingle{})
+\item 
+\mbox{\Hypertarget{namespacepymavlink_1_1tools_1_1MPU6KSearch_a363a1bdf64d3d75b1d37289d07de7386}\label{namespacepymavlink_1_1tools_1_1MPU6KSearch_a363a1bdf64d3d75b1d37289d07de7386}} 
+{\bfseries arcname} = os.\+path.\+basename(f)
+\item 
+\mbox{\Hypertarget{namespacepymavlink_1_1tools_1_1MPU6KSearch_a74dfdaae82367ac45a4be38a0a325453}\label{namespacepymavlink_1_1tools_1_1MPU6KSearch_a74dfdaae82367ac45a4be38a0a325453}} 
+{\bfseries mtime} = os.\+path.\+getmtime(f)
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+\begin{DoxyVerb}search a set of log files for signs of inconsistent IMU data
+\end{DoxyVerb}
+ 
+
+\subsection{Function Documentation}
+\mbox{\Hypertarget{namespacepymavlink_1_1tools_1_1MPU6KSearch_adb2e53c6e56de3bd2784aa39e2605d92}\label{namespacepymavlink_1_1tools_1_1MPU6KSearch_adb2e53c6e56de3bd2784aa39e2605d92}} 
+\index{pymavlink\+::tools\+::\+M\+P\+U6\+K\+Search@{pymavlink\+::tools\+::\+M\+P\+U6\+K\+Search}!match\+\_\+extension@{match\+\_\+extension}}
+\index{match\+\_\+extension@{match\+\_\+extension}!pymavlink\+::tools\+::\+M\+P\+U6\+K\+Search@{pymavlink\+::tools\+::\+M\+P\+U6\+K\+Search}}
+\subsubsection{\texorpdfstring{match\+\_\+extension()}{match\_extension()}}
+{\footnotesize\ttfamily def pymavlink.\+tools.\+M\+P\+U6\+K\+Search.\+match\+\_\+extension (\begin{DoxyParamCaption}\item[{}]{f }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}see if the path matches a extension\end{DoxyVerb}
+ 
+
+\subsection{Variable Documentation}
+\mbox{\Hypertarget{namespacepymavlink_1_1tools_1_1MPU6KSearch_a9ed3d2455a7095caeaeb4f078ce9b64c}\label{namespacepymavlink_1_1tools_1_1MPU6KSearch_a9ed3d2455a7095caeaeb4f078ce9b64c}} 
+\index{pymavlink\+::tools\+::\+M\+P\+U6\+K\+Search@{pymavlink\+::tools\+::\+M\+P\+U6\+K\+Search}!search\+\_\+dirs@{search\+\_\+dirs}}
+\index{search\+\_\+dirs@{search\+\_\+dirs}!pymavlink\+::tools\+::\+M\+P\+U6\+K\+Search@{pymavlink\+::tools\+::\+M\+P\+U6\+K\+Search}}
+\subsubsection{\texorpdfstring{search\+\_\+dirs}{search\_dirs}}
+{\footnotesize\ttfamily list pymavlink.\+tools.\+M\+P\+U6\+K\+Search.\+search\+\_\+dirs}
+
+{\bfseries Initial value\+:}
+\begin{DoxyCode}
+1 =  [\textcolor{stringliteral}{'c:\(\backslash\)Program Files\(\backslash\)APM Planner'},
+2                \textcolor{stringliteral}{'c:\(\backslash\)Program Files\(\backslash\)Mission Planner'},
+3                \textcolor{stringliteral}{'c:\(\backslash\)Program Files (x86)\(\backslash\)APM Planner'},
+4                \textcolor{stringliteral}{'c:\(\backslash\)Program Files (x86)\(\backslash\)Mission Planner'}]
+\end{DoxyCode}

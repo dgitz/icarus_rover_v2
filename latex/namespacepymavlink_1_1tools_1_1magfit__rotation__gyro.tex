@@ -1,0 +1,76 @@
+\hypertarget{namespacepymavlink_1_1tools_1_1magfit__rotation__gyro}{}\section{pymavlink.\+tools.\+magfit\+\_\+rotation\+\_\+gyro Namespace Reference}
+\label{namespacepymavlink_1_1tools_1_1magfit__rotation__gyro}\index{pymavlink.\+tools.\+magfit\+\_\+rotation\+\_\+gyro@{pymavlink.\+tools.\+magfit\+\_\+rotation\+\_\+gyro}}
+\subsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+class \hyperlink{classpymavlink_1_1tools_1_1magfit__rotation__gyro_1_1Rotation}{Rotation}
+\end{DoxyCompactItemize}
+\subsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+def \hyperlink{namespacepymavlink_1_1tools_1_1magfit__rotation__gyro_af1e9e314abb16f339b04627f6de1d866}{mag\+\_\+fixup} (mag, A\+H\+R\+S\+\_\+\+O\+R\+I\+E\+N\+T\+A\+T\+I\+ON, C\+O\+M\+P\+A\+S\+S\+\_\+\+O\+R\+I\+E\+NT, C\+O\+M\+P\+A\+S\+S\+\_\+\+E\+X\+T\+E\+R\+N\+AL)
+\item 
+\mbox{\Hypertarget{namespacepymavlink_1_1tools_1_1magfit__rotation__gyro_ace75078283945a476e29455cef312625}\label{namespacepymavlink_1_1tools_1_1magfit__rotation__gyro_ace75078283945a476e29455cef312625}} 
+def {\bfseries add\+\_\+errors} (mag, gyr, last\+\_\+mag, deltat, total\+\_\+error, rotations)
+\item 
+def \hyperlink{namespacepymavlink_1_1tools_1_1magfit__rotation__gyro_ae8efb99d4a985344c87bdda430c85b7c}{magfit} (logfile)
+\end{DoxyCompactItemize}
+\subsection*{Variables}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{namespacepymavlink_1_1tools_1_1magfit__rotation__gyro_a8432b0357247a5eb4791c6296e678f22}\label{namespacepymavlink_1_1tools_1_1magfit__rotation__gyro_a8432b0357247a5eb4791c6296e678f22}} 
+{\bfseries parser} = Argument\+Parser(description=\+\_\+\+\_\+doc\+\_\+\+\_\+)
+\item 
+\mbox{\Hypertarget{namespacepymavlink_1_1tools_1_1magfit__rotation__gyro_a3d689679b4cd3d263e2cca1ca1b1f8b5}\label{namespacepymavlink_1_1tools_1_1magfit__rotation__gyro_a3d689679b4cd3d263e2cca1ca1b1f8b5}} 
+{\bfseries dest}
+\item 
+\mbox{\Hypertarget{namespacepymavlink_1_1tools_1_1magfit__rotation__gyro_a4cdc3788f5093934f2722388d1463508}\label{namespacepymavlink_1_1tools_1_1magfit__rotation__gyro_a4cdc3788f5093934f2722388d1463508}} 
+{\bfseries action}
+\item 
+\mbox{\Hypertarget{namespacepymavlink_1_1tools_1_1magfit__rotation__gyro_aae9e0cf2f804dd771097e11c8327d328}\label{namespacepymavlink_1_1tools_1_1magfit__rotation__gyro_aae9e0cf2f804dd771097e11c8327d328}} 
+{\bfseries help}
+\item 
+\mbox{\Hypertarget{namespacepymavlink_1_1tools_1_1magfit__rotation__gyro_a7c2604e6f258e7f6aa3f8281e054aa5f}\label{namespacepymavlink_1_1tools_1_1magfit__rotation__gyro_a7c2604e6f258e7f6aa3f8281e054aa5f}} 
+{\bfseries default}
+\item 
+\mbox{\Hypertarget{namespacepymavlink_1_1tools_1_1magfit__rotation__gyro_ad09874ef50e2ba74d3128b3dfb17bff5}\label{namespacepymavlink_1_1tools_1_1magfit__rotation__gyro_ad09874ef50e2ba74d3128b3dfb17bff5}} 
+{\bfseries type}
+\item 
+\mbox{\Hypertarget{namespacepymavlink_1_1tools_1_1magfit__rotation__gyro_a4bcc06ecf610261f589da0ebc3606788}\label{namespacepymavlink_1_1tools_1_1magfit__rotation__gyro_a4bcc06ecf610261f589da0ebc3606788}} 
+{\bfseries float}
+\item 
+\mbox{\Hypertarget{namespacepymavlink_1_1tools_1_1magfit__rotation__gyro_a210741e7197d467870e87988678947fa}\label{namespacepymavlink_1_1tools_1_1magfit__rotation__gyro_a210741e7197d467870e87988678947fa}} 
+{\bfseries metavar}
+\item 
+\mbox{\Hypertarget{namespacepymavlink_1_1tools_1_1magfit__rotation__gyro_ab0d530e5042786764b481c8e16edc038}\label{namespacepymavlink_1_1tools_1_1magfit__rotation__gyro_ab0d530e5042786764b481c8e16edc038}} 
+{\bfseries nargs}
+\item 
+\mbox{\Hypertarget{namespacepymavlink_1_1tools_1_1magfit__rotation__gyro_a27834f9ffa92cdae1fa567e5898adb84}\label{namespacepymavlink_1_1tools_1_1magfit__rotation__gyro_a27834f9ffa92cdae1fa567e5898adb84}} 
+{\bfseries args} = parser.\+parse\+\_\+args()
+\item 
+\mbox{\Hypertarget{namespacepymavlink_1_1tools_1_1magfit__rotation__gyro_a5c1736b19d46521b3acc4397d60cd1d7}\label{namespacepymavlink_1_1tools_1_1magfit__rotation__gyro_a5c1736b19d46521b3acc4397d60cd1d7}} 
+list {\bfseries rotations}
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+\begin{DoxyVerb}fit best estimate of magnetometer rotation to gyro data
+\end{DoxyVerb}
+ 
+
+\subsection{Function Documentation}
+\mbox{\Hypertarget{namespacepymavlink_1_1tools_1_1magfit__rotation__gyro_af1e9e314abb16f339b04627f6de1d866}\label{namespacepymavlink_1_1tools_1_1magfit__rotation__gyro_af1e9e314abb16f339b04627f6de1d866}} 
+\index{pymavlink\+::tools\+::magfit\+\_\+rotation\+\_\+gyro@{pymavlink\+::tools\+::magfit\+\_\+rotation\+\_\+gyro}!mag\+\_\+fixup@{mag\+\_\+fixup}}
+\index{mag\+\_\+fixup@{mag\+\_\+fixup}!pymavlink\+::tools\+::magfit\+\_\+rotation\+\_\+gyro@{pymavlink\+::tools\+::magfit\+\_\+rotation\+\_\+gyro}}
+\subsubsection{\texorpdfstring{mag\+\_\+fixup()}{mag\_fixup()}}
+{\footnotesize\ttfamily def pymavlink.\+tools.\+magfit\+\_\+rotation\+\_\+gyro.\+mag\+\_\+fixup (\begin{DoxyParamCaption}\item[{}]{mag,  }\item[{}]{A\+H\+R\+S\+\_\+\+O\+R\+I\+E\+N\+T\+A\+T\+I\+ON,  }\item[{}]{C\+O\+M\+P\+A\+S\+S\+\_\+\+O\+R\+I\+E\+NT,  }\item[{}]{C\+O\+M\+P\+A\+S\+S\+\_\+\+E\+X\+T\+E\+R\+N\+AL }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}fixup a mag vector back to original value using AHRS and Compass orientation parameters\end{DoxyVerb}
+ \mbox{\Hypertarget{namespacepymavlink_1_1tools_1_1magfit__rotation__gyro_ae8efb99d4a985344c87bdda430c85b7c}\label{namespacepymavlink_1_1tools_1_1magfit__rotation__gyro_ae8efb99d4a985344c87bdda430c85b7c}} 
+\index{pymavlink\+::tools\+::magfit\+\_\+rotation\+\_\+gyro@{pymavlink\+::tools\+::magfit\+\_\+rotation\+\_\+gyro}!magfit@{magfit}}
+\index{magfit@{magfit}!pymavlink\+::tools\+::magfit\+\_\+rotation\+\_\+gyro@{pymavlink\+::tools\+::magfit\+\_\+rotation\+\_\+gyro}}
+\subsubsection{\texorpdfstring{magfit()}{magfit()}}
+{\footnotesize\ttfamily def pymavlink.\+tools.\+magfit\+\_\+rotation\+\_\+gyro.\+magfit (\begin{DoxyParamCaption}\item[{}]{logfile }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}find best magnetometer rotation fit to a log file\end{DoxyVerb}
+ 

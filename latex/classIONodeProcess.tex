@@ -1,0 +1,74 @@
+\hypertarget{classIONodeProcess}{}\section{I\+O\+Node\+Process Class Reference}
+\label{classIONodeProcess}\index{I\+O\+Node\+Process@{I\+O\+Node\+Process}}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classIONodeProcess_a6dbd95b713b32ff4e271cf737e298499}\label{classIONodeProcess_a6dbd95b713b32ff4e271cf737e298499}} 
+icarus\+\_\+rover\+\_\+v2\+::diagnostic {\bfseries init} (icarus\+\_\+rover\+\_\+v2\+::diagnostic indiag, \hyperlink{classLogger}{Logger} $\ast$log, std\+::string hostname)
+\item 
+\mbox{\Hypertarget{classIONodeProcess_a45bb372daa02ac567b29bb156c56c69e}\label{classIONodeProcess_a45bb372daa02ac567b29bb156c56c69e}} 
+icarus\+\_\+rover\+\_\+v2\+::diagnostic {\bfseries update} (long dt, uint8\+\_\+t state, uint8\+\_\+t command)
+\item 
+\mbox{\Hypertarget{classIONodeProcess_a8bee390d89a1aa5e9481f7a69928f789}\label{classIONodeProcess_a8bee390d89a1aa5e9481f7a69928f789}} 
+icarus\+\_\+rover\+\_\+v2\+::diagnostic {\bfseries new\+\_\+devicemsg} (icarus\+\_\+rover\+\_\+v2\+::device devicemsg)
+\item 
+\mbox{\Hypertarget{classIONodeProcess_a9a23df211c6cd666be98637901233169}\label{classIONodeProcess_a9a23df211c6cd666be98637901233169}} 
+icarus\+\_\+rover\+\_\+v2\+::diagnostic {\bfseries new\+\_\+commandmsg} (icarus\+\_\+rover\+\_\+v2\+::command commandmsg)
+\item 
+\mbox{\Hypertarget{classIONodeProcess_a8f97c3166473df0ec78ce0341abad8a2}\label{classIONodeProcess_a8f97c3166473df0ec78ce0341abad8a2}} 
+icarus\+\_\+rover\+\_\+v2\+::diagnostic {\bfseries new\+\_\+pinmsg} (icarus\+\_\+rover\+\_\+v2\+::pin pinmsg)
+\item 
+\mbox{\Hypertarget{classIONodeProcess_aaba7abd28662c89597ffb66cbae10d61}\label{classIONodeProcess_aaba7abd28662c89597ffb66cbae10d61}} 
+icarus\+\_\+rover\+\_\+v2\+::device {\bfseries get\+\_\+mydevice} ()
+\item 
+\mbox{\Hypertarget{classIONodeProcess_a844e50c4b1e6a4d5e955ee9a168b767e}\label{classIONodeProcess_a844e50c4b1e6a4d5e955ee9a168b767e}} 
+std\+::vector$<$ icarus\+\_\+rover\+\_\+v2\+::pin $>$ {\bfseries get\+\_\+mypins} ()
+\item 
+\mbox{\Hypertarget{classIONodeProcess_acf9db910a30472030eb7edc9876a7541}\label{classIONodeProcess_acf9db910a30472030eb7edc9876a7541}} 
+bool {\bfseries is\+\_\+finished\+\_\+initializing} ()
+\item 
+\mbox{\Hypertarget{classIONodeProcess_af2eda25698036035df824ed6cecdc663}\label{classIONodeProcess_af2eda25698036035df824ed6cecdc663}} 
+bool {\bfseries initialize\+\_\+\+Ports} ()
+\item 
+\mbox{\Hypertarget{classIONodeProcess_a230f0e5435ed25149f96a4742f679f92}\label{classIONodeProcess_a230f0e5435ed25149f96a4742f679f92}} 
+\hyperlink{structPort__Info}{Port\+\_\+\+Info} {\bfseries get\+\_\+\+Port\+Info} (std\+::string Port\+Name)
+\item 
+\mbox{\Hypertarget{classIONodeProcess_a927f96b78eb3fd275a15e5512b536cb6}\label{classIONodeProcess_a927f96b78eb3fd275a15e5512b536cb6}} 
+std\+::string {\bfseries map\+\_\+\+Pin\+Function\+\_\+\+To\+String} (int function)
+\item 
+\mbox{\Hypertarget{classIONodeProcess_a1f061f2aa7e2b4e0788105fcee1c14d2}\label{classIONodeProcess_a1f061f2aa7e2b4e0788105fcee1c14d2}} 
+int {\bfseries map\+\_\+\+Pin\+Function\+\_\+\+To\+Int} (std\+::string Function)
+\item 
+\mbox{\Hypertarget{classIONodeProcess_a30f01145272c1ad50464c80cf31ed8bc}\label{classIONodeProcess_a30f01145272c1ad50464c80cf31ed8bc}} 
+bool {\bfseries set\+\_\+timeout\+\_\+ms} (long timeout)
+\item 
+\mbox{\Hypertarget{classIONodeProcess_a2a00c8f5bbcce2a19a93ffebebc5c9c0}\label{classIONodeProcess_a2a00c8f5bbcce2a19a93ffebebc5c9c0}} 
+int {\bfseries get\+\_\+timeout\+\_\+ms} ()
+\item 
+\mbox{\Hypertarget{classIONodeProcess_af23ffc756d8b229dad370171029580b7}\label{classIONodeProcess_af23ffc756d8b229dad370171029580b7}} 
+long {\bfseries get\+\_\+timer\+\_\+ms} ()
+\item 
+\mbox{\Hypertarget{classIONodeProcess_aea6106402ae8f4cb49dd773e9496f7f7}\label{classIONodeProcess_aea6106402ae8f4cb49dd773e9496f7f7}} 
+bool {\bfseries reset\+\_\+timer} ()
+\item 
+\mbox{\Hypertarget{classIONodeProcess_ad84c387845e9c1bd7dab4505178e738e}\label{classIONodeProcess_ad84c387845e9c1bd7dab4505178e738e}} 
+bool {\bfseries check\+Triggers} (std\+::vector$<$ std\+::vector$<$ unsigned char $>$ $>$ \&tx\+\_\+buffers)
+\item 
+\mbox{\Hypertarget{classIONodeProcess_a2b23f52e962f0b18edfcfd7980f56306}\label{classIONodeProcess_a2b23f52e962f0b18edfcfd7980f56306}} 
+\hyperlink{structstate__ack}{state\+\_\+ack} {\bfseries get\+\_\+stateack} (std\+::string name)
+\item 
+\mbox{\Hypertarget{classIONodeProcess_a1720304f54575b04340ff0f7370c300a}\label{classIONodeProcess_a1720304f54575b04340ff0f7370c300a}} 
+bool {\bfseries set\+\_\+stateack} (\hyperlink{structstate__ack}{state\+\_\+ack} stateack)
+\item 
+\mbox{\Hypertarget{classIONodeProcess_a341f8e94ecb4b982cfc47ff93b1e0472}\label{classIONodeProcess_a341f8e94ecb4b982cfc47ff93b1e0472}} 
+icarus\+\_\+rover\+\_\+v2\+::diagnostic {\bfseries enable\+\_\+actuators} (bool state)
+\item 
+\mbox{\Hypertarget{classIONodeProcess_a568409f0fae3f24c563429b0d605e0fc}\label{classIONodeProcess_a568409f0fae3f24c563429b0d605e0fc}} 
+uint8\+\_\+t {\bfseries get\+\_\+armedstate} ()
+\end{DoxyCompactItemize}
+
+
+The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+\item 
+src/\+Control/io\+\_\+node\+\_\+process.\+h\item 
+src/\+Control/io\+\_\+node\+\_\+process.\+cpp\end{DoxyCompactItemize}

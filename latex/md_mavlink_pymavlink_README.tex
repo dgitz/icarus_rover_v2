@@ -1,0 +1,79 @@
+This is a python implementation of the M\+A\+V\+Link protocol.
+
+\section*{Documentation}
+
+Please see \href{http://www.qgroundcontrol.org/mavlink/pymavlink}{\tt http\+://www.\+qgroundcontrol.\+org/mavlink/pymavlink} for documentation.
+
+\section*{Installation}
+
+\subsection*{Recommendation}
+
+Pymavlink is currently a Python 2 package. It is recommended to install and use it with Python 2.
+
+However an initial Python 3 support is given. The following instruction assume your are using Python 2 and an Debian-\/based (like Ubuntu) installation.
+
+\subsection*{Dependencies}
+
+Pymavlink requires 3 dependencies \+: \begin{DoxyVerb}- future : for python 2 and python 3 interoperability (http://python-future.org/)
+- lxml : for checking and parsing xml file (http://lxml.de/installation.html)
+- python-dev : for mavnative
+\end{DoxyVerb}
+
+
+\subsubsection*{On linux}
+
+lxml has some additional dependencies that can be installed with your package manager (here with apt-\/get) \+:
+
+
+\begin{DoxyCode}
+sudo apt-get install libxml2-dev libxslt-dev python-dev
+\end{DoxyCode}
+
+
+Using pip you can install the required dependencies for pymavlink \+:
+
+
+\begin{DoxyCode}
+sudo pip2 install -U future lxml
+\end{DoxyCode}
+
+
+The -\/U parameter allow to update future and lxml version if it is already installed.
+
+\subsubsection*{On Windows}
+
+Use pip to install future as for linux. Lxml can be installed with a windows installer from here \+: \href{https://pypi.python.org/pypi/lxml/3.6.0}{\tt https\+://pypi.\+python.\+org/pypi/lxml/3.\+6.\+0}
+
+\subsection*{Installation}
+
+\subsubsection*{For users}
+
+It is recommended to install pymavlink from Py\+Pi with pip, that way dependencies should be auto install by pip. 
+\begin{DoxyCode}
+sudo pip2 install -U pymavlink
+\end{DoxyCode}
+ The -\/U parameter allow to update pymavlink version if it is already installed.
+
+\subsubsection*{For developpers}
+
+On the pymavlink directory, you can use \+: 
+\begin{DoxyCode}
+sudo MDEF=PATH\_TO\_message\_definitions pip2 install . -v
+\end{DoxyCode}
+ The -\/v parameter will output the installation commands on the terminal. The M\+D\+EF usage is require as pip install is done from /tmp directory, so it is necessary to use M\+D\+EF variable to point on the message\+\_\+definitions directory. Use pip should auto install dependencies and allow to keep them up-\/to-\/date with pip.
+
+Or 
+\begin{DoxyCode}
+sudo python2 setup.py install
+\end{DoxyCode}
+
+
+\subsubsection*{Advance usage}
+
+Please see Pip documentation \+: \href{https://pip.pypa.io/en/stable/}{\tt https\+://pip.\+pypa.\+io/en/stable/}
+
+\subsection*{\# License }
+
+pymavlink is released under the G\+NU Lesser General Public License v3 or later.
+
+Join the chat at \href{https://gitter.im/ArduPilot/pymavlink}{\tt https\+://gitter.\+im/\+Ardu\+Pilot/pymavlink} 

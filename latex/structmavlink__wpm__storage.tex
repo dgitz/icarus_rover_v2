@@ -1,0 +1,76 @@
+\hypertarget{structmavlink__wpm__storage}{}\section{mavlink\+\_\+wpm\+\_\+storage Struct Reference}
+\label{structmavlink__wpm__storage}\index{mavlink\+\_\+wpm\+\_\+storage@{mavlink\+\_\+wpm\+\_\+storage}}
+\subsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{structmavlink__wpm__storage_accfec92ea4372aa83ceddba2723a6ba2}\label{structmavlink__wpm__storage_accfec92ea4372aa83ceddba2723a6ba2}} 
+mavlink\+\_\+mission\+\_\+item\+\_\+t \hyperlink{structmavlink__wpm__storage_accfec92ea4372aa83ceddba2723a6ba2}{waypoints} \mbox{[}M\+A\+V\+L\+I\+N\+K\+\_\+\+W\+P\+M\+\_\+\+M\+A\+X\+\_\+\+W\+P\+\_\+\+C\+O\+U\+NT\mbox{]}
+\begin{DoxyCompactList}\small\item\em Currently active waypoints. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{structmavlink__wpm__storage_a8c0d2d3554b3e78ef729e4151427df87}\label{structmavlink__wpm__storage_a8c0d2d3554b3e78ef729e4151427df87}} 
+mavlink\+\_\+mission\+\_\+item\+\_\+t \hyperlink{structmavlink__wpm__storage_a8c0d2d3554b3e78ef729e4151427df87}{rcv\+\_\+waypoints} \mbox{[}M\+A\+V\+L\+I\+N\+K\+\_\+\+W\+P\+M\+\_\+\+M\+A\+X\+\_\+\+W\+P\+\_\+\+C\+O\+U\+NT\mbox{]}
+\begin{DoxyCompactList}\small\item\em Receive buffer for next waypoints. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{structmavlink__wpm__storage_aa63b350cf3cc42140f4520e0e7d7ff2c}\label{structmavlink__wpm__storage_aa63b350cf3cc42140f4520e0e7d7ff2c}} 
+uint16\+\_\+t {\bfseries size}
+\item 
+\mbox{\Hypertarget{structmavlink__wpm__storage_ad5724d0f20f959d615f547aa0ac64289}\label{structmavlink__wpm__storage_ad5724d0f20f959d615f547aa0ac64289}} 
+uint16\+\_\+t {\bfseries max\+\_\+size}
+\item 
+\mbox{\Hypertarget{structmavlink__wpm__storage_a79483c58f7121a501b9cc60e802c89bf}\label{structmavlink__wpm__storage_a79483c58f7121a501b9cc60e802c89bf}} 
+uint16\+\_\+t {\bfseries rcv\+\_\+size}
+\item 
+\mbox{\Hypertarget{structmavlink__wpm__storage_a8dc08aadcce998279d7dc32b16b45ccb}\label{structmavlink__wpm__storage_a8dc08aadcce998279d7dc32b16b45ccb}} 
+enum M\+A\+V\+L\+I\+N\+K\+\_\+\+W\+P\+M\+\_\+\+S\+T\+A\+T\+ES {\bfseries current\+\_\+state}
+\item 
+\mbox{\Hypertarget{structmavlink__wpm__storage_a6bd44a64c46b8a8ce034b4e4764bc17f}\label{structmavlink__wpm__storage_a6bd44a64c46b8a8ce034b4e4764bc17f}} 
+uint16\+\_\+t \hyperlink{structmavlink__wpm__storage_a6bd44a64c46b8a8ce034b4e4764bc17f}{current\+\_\+wp\+\_\+id}
+\begin{DoxyCompactList}\small\item\em Waypoint in current transmission. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{structmavlink__wpm__storage_a8f3b090fd85b75be995fc21ead4c3237}\label{structmavlink__wpm__storage_a8f3b090fd85b75be995fc21ead4c3237}} 
+uint16\+\_\+t \hyperlink{structmavlink__wpm__storage_a8f3b090fd85b75be995fc21ead4c3237}{current\+\_\+active\+\_\+wp\+\_\+id}
+\begin{DoxyCompactList}\small\item\em Waypoint the system is currently heading towards. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{structmavlink__wpm__storage_ae8ec70a53b4e8e41b27e1a7d0636b563}\label{structmavlink__wpm__storage_ae8ec70a53b4e8e41b27e1a7d0636b563}} 
+uint16\+\_\+t {\bfseries current\+\_\+count}
+\item 
+\mbox{\Hypertarget{structmavlink__wpm__storage_ae7646067b29a0e90e7783a0dac510802}\label{structmavlink__wpm__storage_ae7646067b29a0e90e7783a0dac510802}} 
+uint8\+\_\+t {\bfseries current\+\_\+partner\+\_\+sysid}
+\item 
+\mbox{\Hypertarget{structmavlink__wpm__storage_aeb24b1e57dc3caca5f8478a53fcde264}\label{structmavlink__wpm__storage_aeb24b1e57dc3caca5f8478a53fcde264}} 
+uint8\+\_\+t {\bfseries current\+\_\+partner\+\_\+compid}
+\item 
+\mbox{\Hypertarget{structmavlink__wpm__storage_a2a9513d0fdedb58b99c2651b33b3a51e}\label{structmavlink__wpm__storage_a2a9513d0fdedb58b99c2651b33b3a51e}} 
+uint64\+\_\+t {\bfseries timestamp\+\_\+lastaction}
+\item 
+\mbox{\Hypertarget{structmavlink__wpm__storage_a1410b4ae2ba02af85ae0b78862b336d3}\label{structmavlink__wpm__storage_a1410b4ae2ba02af85ae0b78862b336d3}} 
+uint64\+\_\+t {\bfseries timestamp\+\_\+last\+\_\+send\+\_\+setpoint}
+\item 
+\mbox{\Hypertarget{structmavlink__wpm__storage_a48ca1926dbe7052fb6e2eb6b94627eb4}\label{structmavlink__wpm__storage_a48ca1926dbe7052fb6e2eb6b94627eb4}} 
+uint64\+\_\+t {\bfseries timestamp\+\_\+firstinside\+\_\+orbit}
+\item 
+\mbox{\Hypertarget{structmavlink__wpm__storage_ab4dc7dfa3b693283c9cffeebab202b92}\label{structmavlink__wpm__storage_ab4dc7dfa3b693283c9cffeebab202b92}} 
+uint64\+\_\+t {\bfseries timestamp\+\_\+lastoutside\+\_\+orbit}
+\item 
+\mbox{\Hypertarget{structmavlink__wpm__storage_ac88afbbfc25f5dc3c75a234bea412e25}\label{structmavlink__wpm__storage_ac88afbbfc25f5dc3c75a234bea412e25}} 
+uint32\+\_\+t {\bfseries timeout}
+\item 
+\mbox{\Hypertarget{structmavlink__wpm__storage_a83eca80631cd60d5e2224a5292ab7279}\label{structmavlink__wpm__storage_a83eca80631cd60d5e2224a5292ab7279}} 
+uint32\+\_\+t {\bfseries delay\+\_\+setpoint}
+\item 
+\mbox{\Hypertarget{structmavlink__wpm__storage_adeee2dd88714bb06a3b386f55d290056}\label{structmavlink__wpm__storage_adeee2dd88714bb06a3b386f55d290056}} 
+float {\bfseries accept\+\_\+range\+\_\+yaw}
+\item 
+\mbox{\Hypertarget{structmavlink__wpm__storage_a3a60cd041821c337b5ecb576caf65fac}\label{structmavlink__wpm__storage_a3a60cd041821c337b5ecb576caf65fac}} 
+float {\bfseries accept\+\_\+range\+\_\+distance}
+\item 
+\mbox{\Hypertarget{structmavlink__wpm__storage_ad161b6732e68c9ae4294bdafb3cbcb68}\label{structmavlink__wpm__storage_ad161b6732e68c9ae4294bdafb3cbcb68}} 
+bool {\bfseries yaw\+\_\+reached}
+\item 
+\mbox{\Hypertarget{structmavlink__wpm__storage_af1cf11449f14f504a19f0014cb551826}\label{structmavlink__wpm__storage_af1cf11449f14f504a19f0014cb551826}} 
+bool {\bfseries pos\+\_\+reached}
+\item 
+\mbox{\Hypertarget{structmavlink__wpm__storage_aa19d779596c32a9586d35cffac988859}\label{structmavlink__wpm__storage_aa19d779596c32a9586d35cffac988859}} 
+bool {\bfseries idle}
+\end{DoxyCompactItemize}
+
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+mavlink/missionlib/waypoints.\+h\end{DoxyCompactItemize}

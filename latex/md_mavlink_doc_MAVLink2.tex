@@ -1,0 +1,253 @@
+M\+A\+V\+Link2 is a new variant of the M\+A\+V\+Link protocol designed to bring more flexibility and security to M\+A\+V\+Link communication.
+
+A background document on the M\+A\+V\+Link2 design is available here\+:
+
+\href{https://docs.google.com/document/d/1XtbD0ORNkhZ8eKrsbSIZNLyg9sFRXMXbsR2mp37KbIg/edit?usp=sharing}{\tt https\+://docs.\+google.\+com/document/d/1\+Xtb\+D0\+O\+R\+Nkh\+Z8e\+Krsb\+S\+I\+Z\+N\+Lyg9s\+F\+R\+X\+M\+Xbs\+R2mp37\+Kb\+Ig/edit?usp=sharing}
+
+it is suggested that you start by reading that document.
+
+The key features of M\+A\+V\+Link2 are\+:
+
+
+\begin{DoxyItemize}
+\item support for more than 256 message I\+Ds (24 bit message ID)
+\item support for packet signing
+\item support for extending existing M\+A\+V\+Link messages
+\item support for variable length arrays
+\end{DoxyItemize}
+
+The first 3 features in this list are implemented now and ready for testing. The last feature is not implemented yet.
+
+Most of the rest of this document is a guide for programmers interested in using M\+A\+V\+Link2 in their applications. The two language bindings that are covered are C and Python. Bindings for M\+A\+V\+Link2 for other languages are not implemented yet.
+
+\subsection*{Using the C implementation}
+
+Using the C implementation of M\+A\+V\+Link2 is very similar to using the existing M\+A\+V\+Link1 implementation. You start by generating the M\+A\+V\+Link2 headers using mavgen.\+py, but passing the --wire-\/protocol=2.\+0 option. For example\+:
+
+
+\begin{DoxyCode}
+mavgen.py --lang C message\_definitions/v1.0/ardupilotmega.xml -o generator/C/include\_v2.0
+       --wire-protocol=2.0
+\end{DoxyCode}
+
+
+This will generate a set of C headers in the generator/\+C/include\+\_\+v2.\+0 directory. These headers offer the same range of A\+P\+Is as was offered by M\+A\+V\+Link1. The major changes from an A\+PI perspective are\+:
+
+
+\begin{DoxyItemize}
+\item you don\textquotesingle{}t need to provide a message C\+RC table any more, or message length table. These have been folded into a single packed table, replacing the old table which was indexed by msg\+Id. That was necessary to cope with the much larger 24 bit namespace of message I\+Ds.
+\end{DoxyItemize}
+
+\subsubsection*{Sending and receiving M\+A\+V\+Link1 packets}
+
+The C implementation of M\+A\+V\+Link2 supports sending and receiving M\+A\+V\+Link1 packets as well. To force sending M\+A\+V\+Link1 packets on a particular channel you change the flags field of the status object. For example\+:
+
+
+\begin{DoxyCode}
+mavlink\_status\_t *status = mavlink\_get\_channel\_status(MAVLINK\_COMM\_0);
+status->flags |= MAVLINK\_STATUS\_FLAG\_OUT\_MAVLINK1;
+\end{DoxyCode}
+
+
+that will cause subsequent packets on the given channel to be sent as M\+A\+V\+Link1.
+
+Incoming M\+A\+V\+Link1 packets will be automatically handled as M\+A\+V\+Link1. If you need to determine if a particular message was received as M\+A\+V\+Link1 or M\+A\+V\+Link2 then you can use the magic field of the message, like this\+:
+
+
+\begin{DoxyCode}
+if (msg->magic = MAVLINK\_STX\_MAVLINK1) \{
+   printf("This is a MAVLink1 message\(\backslash\)n");
+\}
+\end{DoxyCode}
+
+
+In most cases this should not be necessary as the xml message definition files for M\+A\+V\+Link1 and M\+A\+V\+Link2 are the same, so you can treat incoming M\+A\+V\+Link1 messages the same as M\+A\+V\+Link2 messages.
+
+Note that M\+A\+V\+Link1 is restricted to message\+I\+Ds less than 256, so any messages with a higher message\+ID won\textquotesingle{}t be received as M\+A\+V\+Link1.
+
+\subsubsection*{Handling message extensions}
+
+The X\+ML for messages can contain extensions that are optional in the protocol. This allows for extra fields to be added to a message. For example\+:
+
+
+\begin{DoxyCode}
+<message id="152" name="MEMINFO">
+  <description>state of APM memory</description>
+  <field name="brkval" type="uint16\_t">heap top</field>
+  <field name="freemem" type="uint16\_t">free memory</field>
+  <extensions/>
+  <field name="extrafield1" type="uint8\_t">extension1</field>
+  <field name="extrafield2" type="uint32\_t">extension2</field>
+</message>
+\end{DoxyCode}
+
+
+the fields after the extensions line are extended fields. The rules for extended messages are\+:
+
+
+\begin{DoxyItemize}
+\item if sent as a M\+A\+V\+Link1 message then extended fields are not sent
+\item if received by an implementation that doesn\textquotesingle{}t have the extended fields then the fields will not be seen
+\item if sent by an implementation that doesn\textquotesingle{}t have the extended fields then the recipient will see zero values for the extended fields
+\end{DoxyItemize}
+
+\subsubsection*{Handling message signing}
+
+One of the key features of M\+A\+V\+Link2 is support for signing of messages. To enable signing in your application you will need to add some additional code. In particular you will need to add\+:
+
+
+\begin{DoxyItemize}
+\item code to handle the S\+E\+T\+U\+P\+\_\+\+S\+I\+G\+N\+I\+NG message
+\item code to setup and teardown signing on a link
+\item code to save and load the secret key and timestamp in persistent storage
+\item a callback to allow for accepting of certain kinds of unsigned messages
+\end{DoxyItemize}
+
+Example code in Ardu\+Pilot for each of these pieces if available here\+:
+
+\href{https://github.com/tridge/ardupilot/blob/mavlink2-wip/libraries/GCS_MAVLink/GCS_Signing.cpp}{\tt https\+://github.\+com/tridge/ardupilot/blob/mavlink2-\/wip/libraries/\+G\+C\+S\+\_\+\+M\+A\+V\+Link/\+G\+C\+S\+\_\+\+Signing.\+cpp}
+
+\subsubsection*{Handling S\+E\+T\+U\+P\+\_\+\+S\+I\+G\+N\+I\+NG}
+
+The S\+E\+T\+U\+P\+\_\+\+S\+I\+G\+N\+I\+NG message is the mechanism for a G\+CS to setup a signing key on a M\+A\+V\+Link2 device. It takes a 32 byte secret key and an initial timestamp. The method of generating the 32 byte secret key is up to the G\+CS implementation, although it is suggested that all G\+CS implementations should support the use of a sha256 hash of a user provided passphrase.
+
+\subsubsection*{Handling timestamps}
+
+The timestamp is a 64 bit number, and is in units of 10 microseconds since 1st January 2015. For systems where the time since 1/1/1970 is available (the unix epoch) you can use an offset in seconds of 1420070400.
+
+Storage and handling of the timestamp is critical to the security of the signing system. The rules are\+:
+
+
+\begin{DoxyItemize}
+\item the current timestamp should be stored regularly in persistent storage (suggested at least once a minute)
+\item the timestamp used on startup should be the maximum of the timestamp implied by the system clock and the stored timestamp
+\item if the system does not have a R\+TC mechanism then it should update its timestamp when G\+PS lock is achieved. The maximum of the timestamp from the G\+PS and the stored timestamp should be used
+\item the timestamp should be incremented by one on each message send. This is done for you by the generated headers.
+\item when a correctly signed message is decoded the timestamp should be replaced by the timestamp of the incoming message if that timestamp is greater than the current timestamp. This is done for you by the generated headers
+\item the timestamp on incoming signed messages should be checked against the previous timestamp for the incoming (link\+ID,src\+System,Src\+Component) tuple and the message rejected if it is smaller. This is done for you by generated headers.
+\item if there is no previous message with the given (link\+ID,src\+System,Src\+Component) then the timestamp should be accepted if it not more than 6 million (one minute) behind the current timestamp
+\end{DoxyItemize}
+
+\subsubsection*{Enabling signing on a channel}
+
+To enable signing on a channel you need to fill in two pointers in the status structure for the cnannel. The two pointed are\+:
+
+
+\begin{DoxyCode}
+mavlink\_signing\_t *signing;
+mavlink\_signing\_streams\_t *signing\_streams;
+\end{DoxyCode}
+
+
+The signing pointer controls signing for this stream. It is per-\/stream, and contains the secret key, the timestamp and a set of flags, plus an optional callback function for accepting unsigned packets. Typical setup would be\+:
+
+
+\begin{DoxyCode}
+memcpy(signing.secret\_key, key.secret\_key, 32);
+signing.link\_id = (uint8\_t)chan;
+signing.timestamp = key.timestamp;
+signing.flags = MAVLINK\_SIGNING\_FLAG\_SIGN\_OUTGOING;
+signing.accept\_unsigned\_callback = accept\_unsigned\_callback;
+mavlink\_status\_t *status = mavlink\_get\_channel\_status(chan);
+status.signing = &signing;
+\end{DoxyCode}
+
+
+The signing\+\_\+streams pointer is a structure used to record the previous timestamp for a (link\+Id,src\+System,Src\+Component) tuple. This must point to a structure that is common to all channels in order to prevent inter-\/channel replay attacks. Typical setup is\+:
+
+
+\begin{DoxyCode}
+mavlink\_status\_t *status = mavlink\_get\_channel\_status(chan);
+status.signing\_streams = &signing\_streams;
+\end{DoxyCode}
+
+
+The maximum number of signing streams supported is given by the M\+A\+V\+L\+I\+N\+K\+\_\+\+M\+A\+X\+\_\+\+S\+I\+G\+N\+I\+N\+G\+\_\+\+S\+T\+R\+E\+A\+MS macro. This defaults to 16, but it may be worth raising this for G\+CS implementations. If the C implementation runs out of signing streams then new streams will be rejected.
+
+\subsubsection*{Using the accept\+\_\+unsigned\+\_\+callback}
+
+In the signing structure there is an optional accept\+\_\+unsigned\+\_\+callback function pointer. The C prototype for this function is\+:
+
+
+\begin{DoxyCode}
+bool accept\_unsigned\_callback(const mavlink\_status\_t *status, uint32\_t msgId);
+\end{DoxyCode}
+
+
+If set in the signing structure then this function will be called on any unsigned packet (including all M\+A\+V\+Link1 packets) or any packet where the signature is incorrect. The function offers a way for the implementation to allow unsigned packets to be accepted.
+
+The rules for what unsigned packets should be accepted is implementation specific, but it is suggested the following rules be considered\+:
+
+
+\begin{DoxyItemize}
+\item have a mechanism for marking a particular communication channel as being secure (such as a U\+SB connection) to allow for signing setup.
+\item always accept R\+A\+D\+I\+O\+\_\+\+S\+T\+A\+T\+US packets for feedback from 3\+DR radios (which don\textquotesingle{}t do signing)
+\end{DoxyItemize}
+
+For example\+:
+
+
+\begin{DoxyCode}
+static const uint32\_t accept\_list[] = \{
+    MAVLINK\_MSG\_ID\_RADIO\_STATUS
+\};
+
+static bool accept\_unsigned\_callback(const mavlink\_status\_t *status, uint32\_t msgId)
+\{
+    if (status == mavlink\_get\_channel\_status(MAVLINK\_COMM\_0)) \{
+        // always accept channel 0, assumed to be secure channel. This
+        // is USB on PX4 boards
+        return true;
+    \}
+    for (uint8\_t i=0; i<ARRAY\_SIZE(accept\_list); i++) \{
+        if (accept\_list[i] == msgId) \{
+            return true;
+        \}
+    \}
+    return false;
+\}
+\end{DoxyCode}
+
+
+\subsubsection*{Handling link I\+Ds}
+
+The purpose of the link\+\_\+id field in the M\+A\+V\+Link2 signing structure is to prevent cross-\/channel replay attacks. Without the link\+\_\+id an attacker could record a packet (such as a disarm request) on one channel, then play it back on a different channel.
+
+The intention with the link I\+Ds is that each channel of communication between an autopilot and a G\+CS uses a different link ID. There is no requirement that the same link ID be used in both directions however.
+
+For C implementations the obvious mechanism is to use the M\+A\+V\+Link channel number as the link ID. That works well for an autopilot, but runs into an issue for a G\+CS implementation. The issue is that a user may launch multiple G\+CS instances talking to the same autopilot via different communication links (such as two radios, or U\+SB and a radio). These multiple G\+CS instances will not be aware of each other, and so may choose the same link ID. If that happens then a large number of correctly signed packets will be rejected by the autopilot as they will have timestamps that are older than the timestamp received for the same stream tuple on the other communication link.
+
+The solution that I have adopted for M\+A\+V\+Proxy is this\+:
+
+
+\begin{DoxyCode}
+if (msg.get\_signed() and
+    self.mav.signing.link\_id == 0 and
+    msg.get\_link\_id() != 0 and
+    self.target\_system == msg.get\_srcSystem() and
+    self.target\_component == msg.get\_srcComponent()):
+    # change to link\_id from incoming packet
+    self.mav.signing.link\_id = msg.get\_link\_id()
+\end{DoxyCode}
+
+
+what that says is that if the current link ID in use by M\+A\+V\+Proxy is zero, and it receives a correctly signed packet with a non-\/zero link ID then it switches link ID to the one from the incoming packet.
+
+The has the effect of making the G\+CS slave its link ID to the link ID of the autopilot.
+
+\subsubsection*{Negotiating M\+A\+V\+Link2}
+
+It is expected that vehicle and G\+CS implementations will support both M\+A\+V\+Link1 and M\+A\+V\+Link2 for quite some time. We would like most users to receive the benefit of M\+A\+V\+Link2, while still supporting implementations that don\textquotesingle{}t yet support M\+A\+V\+Link2.
+
+The following is meant to capture best practice for vehicle firmware and G\+CS authors\+:
+
+
+\begin{DoxyItemize}
+\item vehicle implementations should have a way to enable/disable the sending of M\+A\+V\+Link2 messages. This should preferably be on a per-\/link basis to allow for some peripherals to be M\+A\+V\+Link1 while others are M\+A\+V\+Link2. It is acceptable for this option to require a reboot of the flight controller to take effect.
+\item if signing is enabled and M\+A\+V\+Link2 is enabled then the vehicle should immediately start sending M\+A\+V\+Link2 on startup
+\item if signing is not enabled and M\+A\+V\+Link2 is enabled then the vehicle may choose to start by sending M\+A\+V\+Link1 and switch to M\+A\+V\+Link2 on a link when it first receives a M\+A\+V\+Link2 message on the link
+\item vehicles should set the M\+A\+V\+\_\+\+P\+R\+O\+T\+O\+C\+O\+L\+\_\+\+C\+A\+P\+A\+B\+I\+L\+I\+T\+Y\+\_\+\+M\+A\+V\+L\+I\+N\+K2 capability flag in the A\+U\+T\+O\+P\+I\+L\+O\+T\+\_\+\+V\+E\+R\+S\+I\+ON message if M\+A\+V\+Link2 is available on a link. This should be set in the case where the link is currently sending M\+A\+V\+Link1 packets but M\+A\+V\+Link2 packets will be accepted and will cause a switch to M\+A\+V\+Link2
+\item G\+CS implementations can choose to either automatically switch to M\+A\+V\+Link2 where available or to have a configuration option for M\+A\+V\+Link2
+\item if the G\+CS chooses to use a configuration option then when the option is enabled it should send M\+A\+V\+Link2 on starting the link
+\item if the G\+CS chooses to use automatic switching then it should switch to sending M\+A\+V\+Link2 if either it receives a M\+A\+V\+Link2 message on the link or by asking for the A\+U\+T\+O\+P\+I\+L\+O\+T\+\_\+\+V\+E\+R\+S\+I\+ON message to be sent and seeing the M\+A\+V\+\_\+\+P\+R\+O\+T\+O\+C\+O\+L\+\_\+\+C\+A\+P\+A\+B\+I\+L\+I\+T\+Y\+\_\+\+M\+A\+V\+L\+I\+N\+K2 flag is set 
+\end{DoxyItemize}

@@ -1,0 +1,107 @@
+Author\+: David Gitz \hyperlink{structTask}{Task}\+: Control Nodes\+: A. master\+\_\+node Usage\+: This node should be run on every device.
+
+Purpose\+:
+\begin{DoxyEnumerate}
+\item Reads Device\+File.\+xml and publishes icarus\+\_\+rover\+\_\+v2\+::device info for all nodes on current Device.
+\item Monitors Device Temperature, if supported.
+\item Publishes device\textquotesingle{}s available resource information.
+\end{DoxyEnumerate}
+
+B. command\+\_\+node Usage\+: This device should be run on 1 device total.
+
+Purpose\+:
+\begin{DoxyEnumerate}
+\item Generates commands and publishes to icarus\+\_\+rover\+\_\+v2\+::command topic
+\item Reads $\ast$/ready\+\_\+to\+\_\+arm topics
+\item Reads /user\+\_\+armcommand
+\end{DoxyEnumerate}
+
+C. Arm Controller Usage\+: This node should be run for every Arm on the Robot.
+
+Purpose\+:
+\begin{DoxyEnumerate}
+\item Read in the desired pose of the gripper of each Arm, compute a path for the Arm and generate the target joint angles.
+\end{DoxyEnumerate}
+
+D. io\+\_\+node Usage\+: This node should be run for each Control\+Module. Purpose\+:
+\begin{DoxyEnumerate}
+\item Controls the G\+P\+IO pins that are hooked directly to the Control\+Module.
+\item Either drives Arm Pin or reads Arm Pin depending on Configuration.
+\end{DoxyEnumerate}
+
+E. mavlink\+\_\+node Purpose\+: Connects to A\+PM to drive P\+WM Outputs and Read \hyperlink{structSensor}{Sensor} Data
+
+F\+: Auto Drive Usage\+: This node should be run on 1 Device. Uses Configuration file\+: \char`\"{}/home/robot/config/\+Control\+Group.\+xml\char`\"{} Configuration\+:
+\begin{DoxyItemize}
+\item Loop1\+: Process Update
+\item Loop2\+: P\+WM \hyperlink{structOutput}{Output} Publish
+\item Mode\+: Driver\+Station,Disabled
+\begin{DoxyItemize}
+\item Driver\+Station\+: Reads topic /controlgroup for tuning commands
+\item Disabled\+: No P\+ID \hyperlink{structOutput}{Output}
+\end{DoxyItemize}
+\end{DoxyItemize}
+
+Purpose\+:
+\begin{DoxyEnumerate}
+\item Performs P\+ID feedback based on \hyperlink{structSensor}{Sensor} and \hyperlink{structCommand}{Command} data.
+\end{DoxyEnumerate}
+
+Unit Tests\+:
+\begin{DoxyEnumerate}
+\item To Build/\+Run\+: cd $\sim$/catkin\+\_\+ws catkin\+\_\+make catkin\+\_\+make run\+\_\+tests\+\_\+icarus\+\_\+rover\+\_\+v2\+\_\+gtest\+\_\+test\+\_\+autodrive\+\_\+node\+\_\+process
+\item To View\+: cd $\sim$/catkin\+\_\+ws catkin\+\_\+test\+\_\+results build/icarus\+\_\+rover\+\_\+v2
+\end{DoxyEnumerate}
+
+Test Results stored at\+: $\sim$/catkin\+\_\+ws/build/test\+\_\+results/icarus\+\_\+rover\+\_\+v2/gtest-\/test\+\_\+autodrive\+\_\+node\+\_\+process.xml
+
+G\+: \hyperlink{structCommand}{Command} Launcher Usage\+: This node should be run on any device that requires external commands to be launched. Currently supported Commands\+:
+\begin{DoxyItemize}
+\item Camera\+Stream\+: Runs gst-\/launch to send video from /dev/video0 over U\+DP Configuration\+:
+\item Loop1\+: Checks Commands and relaunches as necessary.
+\item Loop2\+:
+\item Camera\+Stream\+: $<$\+Device\+I\+P$>$\+:$<$\+Port$>$ The Device I\+P\+Address and Port that should be used to send the Camera Stream to. N\+O\+TE\+: The Device\+IP must be found in the Device\+File.\+xml file, and the Port must be in the Misc\+Config.\+xml file. Currently raw IP address\textquotesingle{}s and ports are not supported.
+\end{DoxyItemize}
+
+Purpose\+:
+\begin{DoxyEnumerate}
+\item Launches external commands outside of R\+OS.
+\end{DoxyEnumerate}
+
+Unit Tests\+:
+\begin{DoxyEnumerate}
+\item To Build/\+Run\+: cd $\sim$/catkin\+\_\+ws catkin\+\_\+make catkin\+\_\+make run\+\_\+tests\+\_\+icarus\+\_\+rover\+\_\+v2\+\_\+gtest\+\_\+test\+\_\+commandlauncher\+\_\+node\+\_\+process
+\item To View\+: cd $\sim$/catkin\+\_\+ws catkin\+\_\+test\+\_\+results build/icarus\+\_\+rover\+\_\+v2
+\end{DoxyEnumerate}
+
+Test Results stored at\+: $\sim$/catkin\+\_\+ws/build/test\+\_\+results/icarus\+\_\+rover\+\_\+v2/gtest-\/test\+\_\+commandlauncher\+\_\+node\+\_\+process.xml
+
+Documentation History\+: 5-\/\+July-\/2017 Created Process, Node and Unit Test. Tested on Rover with an Auto\+Steer application. Found that yaw rate (from Pose Node), Joystick (probably not) or Steer Servo fairly unresponsive and will result in either minimal corrections or oscillations. Going to pause for now, until I have something better to test on.
+
+G\+: \hyperlink{structCommand}{Command} Launcher Usage\+: This node should be run on any device that requires external commands to be launched. Currently supported Commands\+:
+\begin{DoxyItemize}
+\item Camera\+Stream\+: Runs gst-\/launch to send video from /dev/video0 over U\+DP Configuration\+:
+\item Loop1\+: Checks Commands and relaunches as necessary.
+\item Loop2\+:
+\item Camera\+Stream\+Port\+: $<$\+Port$>$ The Port that should be used to send the Camera Stream to. N\+O\+TE\+: The specified Port\+Name must be in the Misc\+Config.\+xml file.
+\end{DoxyItemize}
+
+Current Commands that are launched\+:
+\begin{DoxyItemize}
+\item raspivid/gstreamer\+: gstreamer pipeline is launched that creates a camera T\+CP stream.
+\end{DoxyItemize}
+
+Purpose\+:
+\begin{DoxyEnumerate}
+\item Launches external commands outside of R\+OS.
+\end{DoxyEnumerate}
+
+Unit Tests\+:
+\begin{DoxyEnumerate}
+\item To Build/\+Run\+: cd $\sim$/catkin\+\_\+ws catkin\+\_\+make catkin\+\_\+make run\+\_\+tests\+\_\+icarus\+\_\+rover\+\_\+v2\+\_\+gtest\+\_\+test\+\_\+commandlauncher\+\_\+node\+\_\+process
+\item To View\+: cd $\sim$/catkin\+\_\+ws catkin\+\_\+test\+\_\+results build/icarus\+\_\+rover\+\_\+v2
+\end{DoxyEnumerate}
+
+Test Results stored at\+: $\sim$/catkin\+\_\+ws/build/test\+\_\+results/icarus\+\_\+rover\+\_\+v2/gtest-\/test\+\_\+commandlauncher\+\_\+node\+\_\+process.xml
+
+Documentation History\+: 8-\/\+October-\/2017 Finalized node, process and unit test for initial command. 
