@@ -49,3 +49,28 @@ Documentation History:
 Finalized code and node.  
 12-Nov-2017
 Created node.
+
+C. truth_node
+Usage: This node should be run on any device that has a Truth Source installed.  1 instance of this node should be run for every Truth Source installed.
+
+Supported Sensors: 
+  810090
+Configuration:
+  This node's launch program will be created automatically by the SyncSoftware script based on what device has an Truth Source installed.  As such, no configuration
+  by the User is required.
+
+Purpose: Outputs high rate truth data from different sensors
+
+Unit Tests:
+1. Process Unit Tests:
+  >>catkin_make run_tests_icarus_rover_v2_gtest_test_truth_node_process
+  
+Loops:
+ * Loop1: Process Update
+ * Loop2: Truth Data Publish
+
+Documentation History:
+30-Nov-2017
+Finalized code and node.  
+29-Nov-2017
+Created node.

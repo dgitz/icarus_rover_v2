@@ -83,11 +83,11 @@ bool check_serialports()
 
 				}
 				int packets_to_check_counter = 0;
-				while((packets_to_check_counter < 10) && (port_valid != true))
+				while((packets_to_check_counter < 50) && (port_valid != true))
 				{
 					int n = 0;
 					int length = 0;
-					unsigned char response[64];
+					unsigned char response[MAX_SERIALPACKET_SIZE];
 					int spot = 0;
 					unsigned char buf = '\0';
 					memset(response, '\0', sizeof response);
@@ -99,7 +99,7 @@ bool check_serialports()
 						//sprintf( &response[spot], "%c", buf );
 						response[spot] = buf;
 						spot += n;
-					} while(buf != '\n' &&  buf != '\r' && n > 0);
+					} while(buf != '\n' &&  buf != '\r' && n > 0 && length < MAX_SERIALPACKET_SIZE);
 					if (n < 0)
 					{
 						std::cout << "Error reading: " << strerror(errno) << std::endl;

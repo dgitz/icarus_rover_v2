@@ -658,7 +658,8 @@ bool MasterNodeProcess::build_childDevices()
     {
         std::string baudrate = "";
         bool serialdevice = false;
-        if(childDevices.at(i).PartNumber == "110012")
+        if((childDevices.at(i).PartNumber == "110012") ||
+           (childDevices.at(i).PartNumber == "810090"))
         {
             serialdevice = true;
             baudrate = "115200";

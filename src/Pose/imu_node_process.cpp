@@ -249,7 +249,7 @@ bool IMUNodeProcess::new_serialmessage(unsigned char* message,int length) //Retu
             }
             else
             {
-            	
+            	printf("[IMUNode:%s]: %s\n",sensor.name.c_str(),message);
             }
 			
 		}

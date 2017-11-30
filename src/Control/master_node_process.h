@@ -22,6 +22,7 @@
 #include <iostream>
 #include <fstream>
 #include "../../include/serialmessage.h"
+#define MAX_SERIALPACKET_SIZE 64
 class MasterNodeProcess
 {
 public:
