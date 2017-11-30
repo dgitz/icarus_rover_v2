@@ -20,11 +20,15 @@ icarus_rover_v2::diagnostic TruthNodeProcess::init(icarus_rover_v2::diagnostic i
     hostname = hostname_;
 	return diagnostic;
 }
+/*! \brief Time Update
+ */
 icarus_rover_v2::diagnostic TruthNodeProcess::update(double dt)
 {
 	run_time += dt;
 	return diagnostic;
 }
+/*! \brief Initialize Sensor
+ */
 icarus_rover_v2::diagnostic TruthNodeProcess::new_devicemsg(icarus_rover_v2::device device)
 {
     icarus_rover_v2::diagnostic diag = diagnostic;
@@ -76,6 +80,8 @@ icarus_rover_v2::diagnostic TruthNodeProcess::new_devicemsg(icarus_rover_v2::dev
 	}
     return diag;
 }
+/*! \brief Process message from Sensor
+ */
 bool TruthNodeProcess::new_serialmessage(unsigned char* message,int length) //Return true: valid, false: invalid
 {
 	unsigned char uchar1;
@@ -143,7 +149,8 @@ bool TruthNodeProcess::new_serialmessage(unsigned char* message,int length) //Re
 	}
 	return false;
 }
-
+/*! \brief Load Sensor Info from Config
+ */
 bool TruthNodeProcess::load_sensorinfo()
 {
 	std::string sensorinfo_path = "/home/robot/config/sensors/" + sensor.name + "/" + sensor.name + ".xml";
@@ -162,6 +169,8 @@ bool TruthNodeProcess::load_sensorinfo()
 
 	return true;
 }
+/*! \brief Converts sensor data to ROS format
+ */
 bool TruthNodeProcess::get_truthdata(icarus_rover_v2::pose *data)
 {
 	if((sensor.ready == true))

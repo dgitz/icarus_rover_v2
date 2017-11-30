@@ -23,6 +23,7 @@ IMUNodeProcess::~IMUNodeProcess()
 {
 
 }
+
 bool IMUNodeProcess::set_mountingangle(double pitch,double roll,double yaw)
 {
     pitchangle_rad = pitch;
@@ -61,6 +62,8 @@ icarus_rover_v2::diagnostic IMUNodeProcess::init(icarus_rover_v2::diagnostic ind
     hostname = hostname_;
 	return diagnostic;
 }
+/*! \brief Time Update
+ */
 icarus_rover_v2::diagnostic IMUNodeProcess::update(double dt)
 {
 	run_time += dt;
@@ -70,6 +73,8 @@ icarus_rover_v2::diagnostic IMUNodeProcess::update(double dt)
 	}
 	return diagnostic;
 }
+/*! \brief Initialize Sensor
+ */
 icarus_rover_v2::diagnostic IMUNodeProcess::new_devicemsg(icarus_rover_v2::device device)
 {
     icarus_rover_v2::diagnostic diag = diagnostic;
@@ -147,6 +152,8 @@ icarus_rover_v2::diagnostic IMUNodeProcess::new_devicemsg(icarus_rover_v2::devic
 	}
     return diag;
 }
+/*! \brief Process message from Sensor
+ */
 bool IMUNodeProcess::new_serialmessage(unsigned char* message,int length) //Return true: valid, false: invalid
 {
 	unsigned char uchar1;
@@ -361,6 +368,8 @@ bool IMUNodeProcess::new_message(std::string msg)
 	}
 	return false;
 }
+/*! \brief Converts sensor data to ROS format
+ */
 icarus_rover_v2::imu IMUNodeProcess::get_imudata(bool* valid)
 {
 	icarus_rover_v2::imu data;
@@ -446,6 +455,8 @@ icarus_rover_v2::imu IMUNodeProcess::get_imudata(bool* valid)
 	data.tov = -1.0;
 	return data;
 }
+/*! \brief Load Sensor Info from Config
+ */
 bool IMUNodeProcess::load_sensorinfo()
 {
 	std::string sensorinfo_path = "/home/robot/config/sensors/" + sensor.name + "/" + sensor.name + ".xml";
