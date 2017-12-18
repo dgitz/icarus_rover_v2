@@ -27,7 +27,20 @@ using namespace Eigen;
 std::string Node_Name = "/unittest_pose_node_process";
 std::string Host_Name = "unittest";
 std::string ros_DeviceName = Host_Name;
-
+struct Source_Signal
+{
+	std::string name;
+	std::string units;
+	std::string type;
+	std::string sensorname;
+	uint8_t sensorindex;
+	bool computed_signal;
+	std::string sensorsource;
+	std::vector<double> timestamp;
+	std::vector<double> value;
+	std::vector<uint8_t> status;
+	std::vector<double> rms;
+};
 
 
 PoseNodeProcess *initialized_process;
@@ -35,13 +48,14 @@ PoseNodeProcess *initialized_process;
 double measure_time_diff(struct timeval a, struct timeval b);
 bool check_if_initialized(PoseNodeProcess process);
 double measure_timediff(struct timeval a, struct timeval b);
-void print_signals(std::vector<PoseNodeProcess::Basic_Signal> signals);
-void check_signals(std::vector<PoseNodeProcess::Basic_Signal> signals);
-void print_signals(std::vector<PoseNodeProcess::Extended_Signal> signals);
-void print_signals(std::vector<PoseNodeProcess::Sensor_Signal> signals);
-std::vector<PoseNodeProcess::Basic_Signal> load_sensordata(std::string path);
-std::vector<PoseNodeProcess::Basic_Signal> get_sensordatabysensorname(std::string name,std::vector<PoseNodeProcess::Basic_Signal> data);
-icarus_rover_v2::imu get_rossensordata(std::string name,int index, std::vector<PoseNodeProcess::Basic_Signal> data);
+void print_signals(std::vector<Source_Signal> signals);
+void print_signals(std::vector<Basic_Signal> signals);
+void check_signals(std::vector<Basic_Signal> signals);
+void print_signals(std::vector<Extended_Signal> signals);
+void print_signals(std::vector<Sensor_Signal> signals);
+std::vector<Source_Signal> load_sensordata(std::string path);
+std::vector<Source_Signal> get_sourcedatabysensorname(std::string name,std::vector<Source_Signal> data);
+icarus_rover_v2::imu get_rossourcedata(std::string name,int index, std::vector<Source_Signal> data);
 TEST(Template,ProcessInitialization)
 {
     icarus_rover_v2::diagnostic diagnostic;
@@ -64,7 +78,7 @@ TEST(Template,ProcessInitialization)
 }
 TEST(PoseModel,LoadSensorDataFromFolder)
 {
-	std::vector<PoseNodeProcess::Basic_Signal> raw_data;
+	std::vector<Source_Signal> raw_data;
 	raw_data = load_sensordata("/home/robot/Dropbox/ICARUS/Scout/SIMULATION/Pose/Data/UnitTest_LoadSensorData1/");
 	EXPECT_TRUE(raw_data.size() > 0);
 	if(VERBOSE == 1)
@@ -81,12 +95,45 @@ TEST(PoseModel,TimeCompensate)
 	{
 		sensorsample_index.at(i) = 0;
 	};
-	std::vector<PoseNodeProcess::Basic_Signal> raw_data;
+	std::vector<Source_Signal> raw_data;
 	raw_data = load_sensordata("/home/robot/Dropbox/ICARUS/Scout/SIMULATION/Pose/Data/UnitTest_LoadSensorData1/");
 	EXPECT_TRUE(raw_data.size() > 0);
 	icarus_rover_v2::diagnostic diagnostic;
 	PoseNodeProcess *process = initialized_process;
+
+	{
+		icarus_rover_v2::device newdevicemsg;
+		newdevicemsg.DeviceName = ros_DeviceName;
+		newdevicemsg.BoardCount = 0;
+		newdevicemsg.Architecture = "x86_64";
+		newdevicemsg.DeviceParent = "None";
+		newdevicemsg.DeviceType = "ComputeModule";
+		newdevicemsg.ID = 1;
+		newdevicemsg.SensorCount = IMU_COUNT;
+		newdevicemsg.ShieldCount = 0;
+		diagnostic = process->new_devicemsg(newdevicemsg);
+		EXPECT_TRUE(diagnostic.Level <= NOTICE);
+	}
+	for(int i = 0; i < IMU_COUNT; i++)
+	{
+		std::ostringstream ss;
+		ss << "IMU" << i+1;
+		icarus_rover_v2::device newdevicemsg;
+		newdevicemsg.DeviceName = ss.str();
+		newdevicemsg.PartNumber = "110012";
+		newdevicemsg.DeviceParent = ros_DeviceName;
+		newdevicemsg.DeviceType = "Sensor";
+		newdevicemsg.ID = i+1;
+		diagnostic = process->new_devicemsg(newdevicemsg);
+		EXPECT_TRUE(diagnostic.Level <= NOTICE);
+
+	}
 	EXPECT_TRUE(process->is_initialized());
+	{
+		std::vector<Basic_Signal> signals = process->get_rawsignals("IMU");
+		EXPECT_TRUE(signals.size() == raw_data.size());
+	}
+
 	double run_time = 0;
 	for(std::size_t i = 0; i < raw_data.size(); i++)
 	{
@@ -105,23 +152,26 @@ TEST(PoseModel,TimeCompensate)
 		{
 			std::ostringstream ss;
 			ss << "IMU" << i+1;
-			std::vector<PoseNodeProcess::Basic_Signal> imu_data = get_sensordatabysensorname(ss.str(),raw_data);
+			std::vector<Source_Signal> imu_data = get_sourcedatabysensorname(ss.str(),raw_data);
 			EXPECT_TRUE(imu_data.size() > 0);
 			if(sim_time > imu_data.at(0).timestamp.at(sensorsample_index.at(i)))
 			{
 				sensorsample_index.at(i) = sensorsample_index.at(i) + 1;
-				icarus_rover_v2::imu imudata = get_rossensordata(ss.str(),sensorsample_index.at(i),imu_data);
+				icarus_rover_v2::imu imudata = get_rossourcedata(ss.str(),sensorsample_index.at(i),imu_data);
 				process->new_imudata(ss.str(),imudata);
 			}
 
 		}
+		diagnostic = process->update((double)1.0/POSE_RATE);
+		EXPECT_TRUE(diagnostic.Level <= NOTICE);
 		sim_time += 1.0/(double)(POSE_RATE);
 	}
 	gettimeofday(&finish,NULL);
 	double etime = measure_time_diff(finish,start);
 	EXPECT_TRUE(etime < run_time);
 	printf("elap: %f\n",measure_time_diff(finish,start));
-
+	std::vector<Extended_Signal> signals = process->get_extendedsignals("IMU");
+	print_signals(signals);
 
 
 }
@@ -416,37 +466,40 @@ double measure_timediff(struct timeval a, struct timeval b)
     double b_time = (double)b.tv_sec + (double)(b.tv_usec)/1000000.0;
     return b_time-a_time;
 }
-void print_signals(std::vector<PoseNodeProcess::Basic_Signal> signals)
+void print_signals(std::vector<Basic_Signal> signals)
 {
 	for(std::size_t i = 0; i < signals.size(); i++)
 	{
-
-		int len = signals.at(i).timestamp.size();
-		EXPECT_TRUE((len == signals.at(i).value.size()));
-		EXPECT_TRUE((len == signals.at(i).status.size()));
-		EXPECT_TRUE((len == signals.at(i).rms.size()));
-		printf("[%d] Basic Signal: %s units: %s Length: %d\n",(int)i,signals.at(i).name.c_str(),signals.at(i).units.c_str(),len);
+		printf("[%d] Basic Signal: %s units: %s\n",(int)i,signals.at(i).name.c_str(),signals.at(i).units.c_str());
 	}
 
 }
-void print_signals(std::vector<PoseNodeProcess::Extended_Signal> signals)
+void print_signals(std::vector<Extended_Signal> signals)
 {
 	for(std::size_t i = 0; i < signals.size(); i++)
 	{
-		printf("[%d] Extended Signal: %s units: %s\n",(int)i,signals.at(i).name.c_str(),signals.at(i).units.c_str());
+		EXPECT_TRUE(signals.at(i).status != SIGNALSTATE_UNDEFINED);
+		printf("[%d] Extended Signal: %s units: %s Buffer: %d\n",(int)i,signals.at(i).name.c_str(),signals.at(i).units.c_str(),(int)signals.at(i).value_buffer.size());
 	}
 }
-void print_signals(std::vector<PoseNodeProcess::Sensor_Signal> signals)
+void print_signals(std::vector<Sensor_Signal> signals)
 {
 	for(std::size_t i = 0; i < signals.size(); i++)
 	{
 		printf("[%d] Sensor Signal: %s units: %s\n",(int)i,signals.at(i).name.c_str(),signals.at(i).units.c_str());
 	}
 }
-std::vector<PoseNodeProcess::Basic_Signal> load_sensordata(std::string folder)
+void print_signals(std::vector<Source_Signal> signals)
 {
-	std::vector<PoseNodeProcess::Basic_Signal> empty;
-	std::vector<PoseNodeProcess::Basic_Signal> raw_imudata;
+	for(std::size_t i = 0; i < signals.size(); i++)
+	{
+		printf("[%d] Source Signal: %s units: %s\n",(int)i,signals.at(i).name.c_str(),signals.at(i).units.c_str());
+	}
+}
+std::vector<Source_Signal> load_sensordata(std::string folder)
+{
+	std::vector<Source_Signal> empty;
+	std::vector<Source_Signal> raw_imudata;
 	raw_imudata.clear();
 	std::vector<std::string> imu_datafiles;
 	DIR *dir;
@@ -472,15 +525,15 @@ std::vector<PoseNodeProcess::Basic_Signal> load_sensordata(std::string folder)
 
 	for(std::size_t i = 0; i < imu_datafiles.size(); i++)
 	{
-		PoseNodeProcess::Basic_Signal raw_imu_xacc;
-		PoseNodeProcess::Basic_Signal raw_imu_yacc;
-		PoseNodeProcess::Basic_Signal raw_imu_zacc;
-		PoseNodeProcess::Basic_Signal raw_imu_xgyro;
-		PoseNodeProcess::Basic_Signal raw_imu_ygyro;
-		PoseNodeProcess::Basic_Signal raw_imu_zgyro;
-		PoseNodeProcess::Basic_Signal raw_imu_xmag;
-		PoseNodeProcess::Basic_Signal raw_imu_ymag;
-		PoseNodeProcess::Basic_Signal raw_imu_zmag;
+		Source_Signal raw_imu_xacc;
+		Source_Signal raw_imu_yacc;
+		Source_Signal raw_imu_zacc;
+		Source_Signal raw_imu_xgyro;
+		Source_Signal raw_imu_ygyro;
+		Source_Signal raw_imu_zgyro;
+		Source_Signal raw_imu_xmag;
+		Source_Signal raw_imu_ymag;
+		Source_Signal raw_imu_zmag;
 		{
 			std::ostringstream ss1;
 			ss1 << "xacc" << i+1;
@@ -680,9 +733,9 @@ std::vector<PoseNodeProcess::Basic_Signal> load_sensordata(std::string folder)
 	}
 	return raw_imudata;
 }
-std::vector<PoseNodeProcess::Basic_Signal> get_sensordatabysensorname(std::string name,std::vector<PoseNodeProcess::Basic_Signal> data)
+std::vector<Source_Signal> get_sourcedatabysensorname(std::string name,std::vector<Source_Signal> data)
 {
-	std::vector<PoseNodeProcess::Basic_Signal> output;
+	std::vector<Source_Signal> output;
 	for(std::size_t i = 0; i < data.size(); i++)
 	{
 		if(data.at(i).sensorname.compare(name) == 0)
@@ -692,7 +745,7 @@ std::vector<PoseNodeProcess::Basic_Signal> get_sensordatabysensorname(std::strin
 	}
 	return output;
 }
-icarus_rover_v2::imu get_rossensordata(std::string name,int index, std::vector<PoseNodeProcess::Basic_Signal> data)
+icarus_rover_v2::imu get_rossourcedata(std::string name,int index, std::vector<Source_Signal> data)
 {
 	icarus_rover_v2::imu output;
 	output.tov = data.at(0).timestamp.at(index);
@@ -711,39 +764,39 @@ icarus_rover_v2::imu get_rossensordata(std::string name,int index, std::vector<P
 		signal.value = data.at(i).value.at(index);
 		signal.rms = data.at(i).value.at(index);
 		signal.status = data.at(i).value.at(index);
-		if(found_xacc == std::string::npos)
+		if(found_xacc != std::string::npos)
 		{
 			output.xacc = signal;
 		}
-		else if(found_yacc == std::string::npos)
+		else if(found_yacc != std::string::npos)
 		{
 			output.yacc = signal;
 		}
-		else if(found_zacc == std::string::npos)
+		else if(found_zacc != std::string::npos)
 		{
 			output.zacc = signal;
 		}
-		else if(found_xgyro == std::string::npos)
+		else if(found_xgyro != std::string::npos)
 		{
 			output.xgyro = signal;
 		}
-		else if(found_ygyro == std::string::npos)
+		else if(found_ygyro != std::string::npos)
 		{
 			output.ygyro = signal;
 		}
-		else if(found_zgyro == std::string::npos)
+		else if(found_zgyro != std::string::npos)
 		{
 			output.zgyro = signal;
 		}
-		else if(found_xmag == std::string::npos)
+		else if(found_xmag != std::string::npos)
 		{
 			output.zgyro = signal;
 		}
-		else if(found_ymag == std::string::npos)
+		else if(found_ymag != std::string::npos)
 		{
 			output.xmag = signal;
 		}
-		else if(found_zmag == std::string::npos)
+		else if(found_zmag != std::string::npos)
 		{
 			output.zmag = signal;
 		}

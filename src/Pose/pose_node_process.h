@@ -29,6 +29,7 @@
 #include <std_msgs/Float32.h>
 #include <tinyxml.h>
 #include <tf/transform_broadcaster.h>
+#include "blocks/initializers/initializers.h"
 #include "blocks/time_compensate/time_compensate.h"
 #define BUFFER_LIMIT 100
 using Eigen::MatrixXd;
@@ -61,39 +62,34 @@ public:
 		double maxspeed_mps;
 	};
     
-    struct Basic_Signal //Used for *_Raw and to extend to *_Signals and Sensor_Signals
-    {
-        std::string name;
-        std::string units;
-        std::string type;
-        std::string sensorname;
-        uint8_t sensorindex;
-        bool computed_signal;
-        std::string sensorsource;
-        std::vector<double> timestamp;
-        std::vector<double> value;
-        std::vector<uint8_t> status;
-        std::vector<double> rms;
-    };
     
-    struct Extended_Signal : public Basic_Signal
+
+    struct Basic_Sensor
     {
-        std::vector<double> value_buffer;
+    	bool initialized;
+    	std::string pn;
+    	bool ready;
+    	bool new_dataavailable;
+    	int id;
+    	int seq;
+    	double tov;
+    	double last_tov;
+    	double last_msgtime;
+    	std::string name;
     };
-    
-    struct Sensor_Signal : public Extended_Signal
+
+    struct IMU_Sensor : public Basic_Sensor
     {
-        bool initialized;
-        bool compute_rms;
-        double rms_temp1;
 
     };
 
-	PoseNodeProcess();
+    PoseNodeProcess();
 	~PoseNodeProcess();
     bool is_initialized() { return initialized; }
 	icarus_rover_v2::diagnostic init(icarus_rover_v2::diagnostic indiag,std::string hostname);
 	icarus_rover_v2::diagnostic update(double dt);
+	icarus_rover_v2::diagnostic new_devicemsg(icarus_rover_v2::device device);
+
     icarus_rover_v2::diagnostic new_kalmanfilter(std::string name, std::string type); //Only used for unit testing
     double get_kalmanfilter_output(std::string name, int index); //Only used for unit testing
 
@@ -113,15 +109,24 @@ public:
 	void set_gps(icarus_rover_v2::pose v);
 	void set_encoder(double v1,double v2) { left_encoder = v1; right_encoder = v2;}
 	void set_simpose(icarus_rover_v2::pose v) { simpose = v; }
+	std::vector<Basic_Signal> get_rawsignals(std::string sensortype);
+	std::vector<Extended_Signal> get_extendedsignals(std::string sensortype);
+
 
     
     
 private:
+	double run_time;
+	std::string hostname;
     TimeCompensate timecompensate;
+    TimeCompensate::SamplingMethod sampling_method;
 	icarus_rover_v2::diagnostic diagnostic;
     bool initialized;
+    int sensor_count;
     void initialize_filters();
     bool load_configfiles();
+    void initialize_rawandextended_signals();
+    bool update_rawsignal(std::string sensortype,std::string sensorname,icarus_rover_v2::imu data);  //Override this as needed.
 	VehicleParameters vehicle_params;
     
     std::vector<KalmanFilter> KalmanFilters;
@@ -141,6 +146,9 @@ private:
 	
 	//temporary variables
 	double temp_yaw;
+
+	//Sensors
+	std::vector<IMU_Sensor> imus;
     
     //Signals
     std::vector<Basic_Signal> IMU_Raw;
