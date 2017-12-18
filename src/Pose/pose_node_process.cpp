@@ -338,6 +338,10 @@ icarus_rover_v2::diagnostic PoseNodeProcess::new_kalmanfilter_signal(std::string
     }
     return diag;    
 }
+void PoseNodeProcess::new_imudata(std::string sensorname,icarus_rover_v2::imu data)
+{
+
+}
 /*icarus_rover_v2::diagnostic PoseNodeProcess::new_kalmanfilter(std::string name, std::string type, int size)
 {
     icarus_rover_v2::diagnostic diag = diagnostic;
