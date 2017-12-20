@@ -153,6 +153,7 @@ TEST(PoseModel,TimeCompensate)
 			std::ostringstream ss;
 			ss << "IMU" << i+1;
 			std::vector<Source_Signal> imu_data = get_sourcedatabysensorname(ss.str(),raw_data);
+
 			EXPECT_TRUE(imu_data.size() > 0);
 			if(sim_time > imu_data.at(0).timestamp.at(sensorsample_index.at(i)))
 			{
@@ -169,7 +170,7 @@ TEST(PoseModel,TimeCompensate)
 	gettimeofday(&finish,NULL);
 	double etime = measure_time_diff(finish,start);
 	EXPECT_TRUE(etime < run_time);
-	printf("elap: %f\n",measure_time_diff(finish,start));
+	printf("Test Case Actual Elapsed Time: %f (sec).\n",measure_time_diff(finish,start));
 	std::vector<Extended_Signal> signals = process->get_extendedsignals("IMU");
 	print_signals(signals);
 
@@ -479,25 +480,35 @@ void print_signals(std::vector<Extended_Signal> signals)
 	for(std::size_t i = 0; i < signals.size(); i++)
 	{
 		EXPECT_TRUE(signals.at(i).status != SIGNALSTATE_UNDEFINED);
-		printf("[%d] Extended Signal: %s units: %s Buffer: %d\n",(int)i,signals.at(i).name.c_str(),signals.at(i).units.c_str(),(int)signals.at(i).value_buffer.size());
+		if(VERBOSE == 1)
+		{
+			printf("[%d] Extended Signal: %s units: %s Buffer: %d\n",(int)i,signals.at(i).name.c_str(),signals.at(i).units.c_str(),(int)signals.at(i).value_buffer.size());
+
+		}
 	}
 }
 void print_signals(std::vector<Sensor_Signal> signals)
 {
 	for(std::size_t i = 0; i < signals.size(); i++)
 	{
-		printf("[%d] Sensor Signal: %s units: %s\n",(int)i,signals.at(i).name.c_str(),signals.at(i).units.c_str());
+		if(VERBOSE == 1)
+		{
+			printf("[%d] Sensor Signal: %s units: %s\n",(int)i,signals.at(i).name.c_str(),signals.at(i).units.c_str());
+		}
 	}
 }
 void print_signals(std::vector<Source_Signal> signals)
 {
 	for(std::size_t i = 0; i < signals.size(); i++)
 	{
-		printf("[%d] Source Signal: %s units: %s\n",(int)i,signals.at(i).name.c_str(),signals.at(i).units.c_str());
+		if(VERBOSE == 1)
+		{
+			printf("[%d] Source Signal: %s units: %s\n",(int)i,signals.at(i).name.c_str(),signals.at(i).units.c_str());
+		}
 	}
 }
 std::vector<Source_Signal> load_sensordata(std::string folder)
-{
+		{
 	std::vector<Source_Signal> empty;
 	std::vector<Source_Signal> raw_imudata;
 	raw_imudata.clear();
@@ -671,48 +682,48 @@ std::vector<Source_Signal> load_sensordata(std::string folder)
 
 				raw_imu_xacc.timestamp.push_back(std::atof(strs.at(0).c_str()));
 				raw_imu_xacc.value.push_back(std::atof(strs.at(IMU_XACC_COLUMN).c_str()));
-				raw_imu_xacc.rms.push_back(std::atoi(strs.at(IMU_XACC_COLUMN+1).c_str()));
-				raw_imu_xacc.status.push_back(std::atoi(strs.at(IMU_XACC_COLUMN+2).c_str()));
+				raw_imu_xacc.rms.push_back(std::atoi(strs.at(IMU_XACC_COLUMN+2).c_str()));
+				raw_imu_xacc.status.push_back(std::atoi(strs.at(IMU_XACC_COLUMN+1).c_str()));
 
 				raw_imu_yacc.timestamp.push_back(std::atof(strs.at(0).c_str()));
 				raw_imu_yacc.value.push_back(std::atof(strs.at(IMU_YACC_COLUMN).c_str()));
-				raw_imu_yacc.rms.push_back(std::atoi(strs.at(IMU_YACC_COLUMN+1).c_str()));
-				raw_imu_yacc.status.push_back(std::atoi(strs.at(IMU_YACC_COLUMN+2).c_str()));
+				raw_imu_yacc.rms.push_back(std::atoi(strs.at(IMU_YACC_COLUMN+2).c_str()));
+				raw_imu_yacc.status.push_back(std::atoi(strs.at(IMU_YACC_COLUMN+1).c_str()));
 
 				raw_imu_zacc.timestamp.push_back(std::atof(strs.at(0).c_str()));
 				raw_imu_zacc.value.push_back(std::atof(strs.at(IMU_ZACC_COLUMN).c_str()));
-				raw_imu_zacc.rms.push_back(std::atoi(strs.at(IMU_ZACC_COLUMN+1).c_str()));
-				raw_imu_zacc.status.push_back(std::atoi(strs.at(IMU_ZACC_COLUMN+2).c_str()));
+				raw_imu_zacc.rms.push_back(std::atoi(strs.at(IMU_ZACC_COLUMN+2).c_str()));
+				raw_imu_zacc.status.push_back(std::atoi(strs.at(IMU_ZACC_COLUMN+1).c_str()));
 
 				raw_imu_xgyro.timestamp.push_back(std::atof(strs.at(0).c_str()));
 				raw_imu_xgyro.value.push_back(std::atof(strs.at(IMU_XGYRO_COLUMN).c_str()));
-				raw_imu_xgyro.rms.push_back(std::atoi(strs.at(IMU_XGYRO_COLUMN+1).c_str()));
-				raw_imu_xgyro.status.push_back(std::atoi(strs.at(IMU_XGYRO_COLUMN+2).c_str()));
+				raw_imu_xgyro.rms.push_back(std::atoi(strs.at(IMU_XGYRO_COLUMN+2).c_str()));
+				raw_imu_xgyro.status.push_back(std::atoi(strs.at(IMU_XGYRO_COLUMN+1).c_str()));
 
 				raw_imu_ygyro.timestamp.push_back(std::atof(strs.at(0).c_str()));
 				raw_imu_ygyro.value.push_back(std::atof(strs.at(IMU_YGYRO_COLUMN).c_str()));
-				raw_imu_ygyro.rms.push_back(std::atoi(strs.at(IMU_YGYRO_COLUMN+1).c_str()));
-				raw_imu_ygyro.status.push_back(std::atoi(strs.at(IMU_YGYRO_COLUMN+2).c_str()));
+				raw_imu_ygyro.rms.push_back(std::atoi(strs.at(IMU_YGYRO_COLUMN+2).c_str()));
+				raw_imu_ygyro.status.push_back(std::atoi(strs.at(IMU_YGYRO_COLUMN+1).c_str()));
 
 				raw_imu_zgyro.timestamp.push_back(std::atof(strs.at(0).c_str()));
 				raw_imu_zgyro.value.push_back(std::atof(strs.at(IMU_ZGYRO_COLUMN).c_str()));
-				raw_imu_zgyro.rms.push_back(std::atoi(strs.at(IMU_ZGYRO_COLUMN+1).c_str()));
-				raw_imu_zgyro.status.push_back(std::atoi(strs.at(IMU_ZGYRO_COLUMN+2).c_str()));
+				raw_imu_zgyro.rms.push_back(std::atoi(strs.at(IMU_ZGYRO_COLUMN+2).c_str()));
+				raw_imu_zgyro.status.push_back(std::atoi(strs.at(IMU_ZGYRO_COLUMN+1).c_str()));
 
 				raw_imu_xmag.timestamp.push_back(std::atof(strs.at(0).c_str()));
 				raw_imu_xmag.value.push_back(std::atof(strs.at(IMU_XMAG_COLUMN).c_str()));
-				raw_imu_xmag.rms.push_back(std::atoi(strs.at(IMU_XMAG_COLUMN+1).c_str()));
-				raw_imu_xmag.status.push_back(std::atoi(strs.at(IMU_XMAG_COLUMN+2).c_str()));
+				raw_imu_xmag.rms.push_back(std::atoi(strs.at(IMU_XMAG_COLUMN+2).c_str()));
+				raw_imu_xmag.status.push_back(std::atoi(strs.at(IMU_XMAG_COLUMN+1).c_str()));
 
 				raw_imu_ymag.timestamp.push_back(std::atof(strs.at(0).c_str()));
 				raw_imu_ymag.value.push_back(std::atof(strs.at(IMU_YMAG_COLUMN).c_str()));
-				raw_imu_ymag.rms.push_back(std::atoi(strs.at(IMU_YMAG_COLUMN+1).c_str()));
-				raw_imu_ymag.status.push_back(std::atoi(strs.at(IMU_YMAG_COLUMN+2).c_str()));
+				raw_imu_ymag.rms.push_back(std::atoi(strs.at(IMU_YMAG_COLUMN+2).c_str()));
+				raw_imu_ymag.status.push_back(std::atoi(strs.at(IMU_YMAG_COLUMN+1).c_str()));
 
 				raw_imu_zmag.timestamp.push_back(std::atof(strs.at(0).c_str()));
 				raw_imu_zmag.value.push_back(std::atof(strs.at(IMU_ZMAG_COLUMN).c_str()));
-				raw_imu_zmag.rms.push_back(std::atoi(strs.at(IMU_ZMAG_COLUMN+1).c_str()));
-				raw_imu_zmag.status.push_back(std::atoi(strs.at(IMU_ZMAG_COLUMN+2).c_str()));
+				raw_imu_zmag.rms.push_back(std::atoi(strs.at(IMU_ZMAG_COLUMN+2).c_str()));
+				raw_imu_zmag.status.push_back(std::atoi(strs.at(IMU_ZMAG_COLUMN+1).c_str()));
 			}
 			raw_imudata.push_back(raw_imu_xacc);
 			raw_imudata.push_back(raw_imu_yacc);
@@ -762,8 +773,9 @@ icarus_rover_v2::imu get_rossourcedata(std::string name,int index, std::vector<S
 		std::size_t found_zmag = std::string(data.at(i).name).find("zmag");
 		icarus_rover_v2::signal signal;
 		signal.value = data.at(i).value.at(index);
-		signal.rms = data.at(i).value.at(index);
-		signal.status = data.at(i).value.at(index);
+		signal.rms = data.at(i).rms.at(index);
+		signal.status = data.at(i).status.at(index);
+
 		if(found_xacc != std::string::npos)
 		{
 			output.xacc = signal;
@@ -790,11 +802,11 @@ icarus_rover_v2::imu get_rossourcedata(std::string name,int index, std::vector<S
 		}
 		else if(found_xmag != std::string::npos)
 		{
-			output.zgyro = signal;
+			output.xmag = signal;
 		}
 		else if(found_ymag != std::string::npos)
 		{
-			output.xmag = signal;
+			output.ymag = signal;
 		}
 		else if(found_zmag != std::string::npos)
 		{
