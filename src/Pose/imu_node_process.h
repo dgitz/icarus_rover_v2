@@ -110,6 +110,7 @@ public:
 		sensor.id = id;
 		sensor.name = name;
 	}
+	std::string get_sensorname() { return sensor.name; }
     void set_verbositylevel(std::string v) { verbosity_level = v; }
     std::string get_verbositylevel() { return verbosity_level; }
     bool load_sensorinfo();
@@ -136,5 +137,6 @@ private:
     MatrixXd m_roll;
     MatrixXd m_yaw;
     MatrixXd rotation_matrix;
+    int packet_missed_counter;
 };
 #endif

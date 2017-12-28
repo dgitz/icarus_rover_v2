@@ -1,6 +1,7 @@
 #include "imu_node_process.h"
 IMUNodeProcess::IMUNodeProcess()
 {
+	packet_missed_counter = 0;
 	message_ready = false;
 	running = false;
 	run_time = 0.0;
@@ -34,24 +35,24 @@ bool IMUNodeProcess::set_mountingangle(double pitch,double roll,double yaw)
     //Yaw: Rz
     m_roll(0,0) = 1.0;
     m_roll(1,1) = cos(roll);
-    m_roll(1,2) = -sin(roll);
-    m_roll(2,1) = sin(roll);
+    m_roll(1,2) = sin(roll);
+    m_roll(2,1) = -sin(roll);
     m_roll(2,2) = cos(roll);
     
     m_pitch(0,0) = cos(pitch);
-    m_pitch(0,2) = sin(pitch);
+    m_pitch(0,2) = -sin(pitch);
     m_pitch(1,1) = 1.0;
-    m_pitch(2,0) = -sin(pitch);
+    m_pitch(2,0) = sin(pitch);
     m_pitch(2,2) = cos(pitch);
     
     m_yaw(0,0) = cos(yaw);
-    m_yaw(0,1) = -sin(yaw);
-    m_yaw(1,0) = sin(yaw);
+    m_yaw(0,1) = sin(yaw);
+    m_yaw(1,0) = -sin(yaw);
     m_yaw(1,1) = cos(yaw);
     m_yaw(2,2) = 1.0;
     
-    rotation_matrix = m_yaw*m_pitch*m_roll;
-    printf("[%s] Using rotation matrix: \n",sensor.name.c_str());
+    rotation_matrix = m_roll*m_pitch*m_yaw;
+    printf("[IMUNode:%s] Using rotation matrix: \n",sensor.name.c_str());
     std::cout << rotation_matrix << std::endl;
     return true;
     
@@ -69,7 +70,18 @@ icarus_rover_v2::diagnostic IMUNodeProcess::update(double dt)
 	run_time += dt;
 	if((run_time - sensor.last_msgtime) > 2.0)
 	{
-		printf("[%s]: delay: %f\n",sensor.name.c_str(),run_time-sensor.last_msgtime);
+		printf("[IMUNode:%s]: delay: %f\n",sensor.name.c_str(),run_time-sensor.last_msgtime);
+	}
+	double packet_missed_rate = (double)(packet_missed_counter)/run_time;
+	if((run_time > 20.0) and (packet_missed_rate > 10.0)) //10 Hz
+	{
+		diagnostic.Level = WARN;
+		diagnostic.Diagnostic_Message = DROPPING_PACKETS;
+		diagnostic.Diagnostic_Type = COMMUNICATIONS;
+		char tempstr[512];
+		sprintf(tempstr,"[IMUNode:%s] Dropping Packets at %f Hz (dropped=%d)\n",sensor.name.c_str(),packet_missed_rate,packet_missed_counter);
+		diagnostic.Description = std::string(tempstr);
+		printf("%s",tempstr);
 	}
 	return diagnostic;
 }
@@ -87,49 +99,39 @@ icarus_rover_v2::diagnostic IMUNodeProcess::new_devicemsg(icarus_rover_v2::devic
 	{
 		if((device.PartNumber == "110012")) //Supported IMU list
 		{
-			Sensor s;
-			s.ready = false;
-			s.name = device.DeviceName;
-			s.id = device.ID;
-            s.tov = 0.0;
-			s.buffer_size = 0;
+			sensor.ready = false;
+			sensor.name = device.DeviceName;
+			sensor.id = device.ID;
+			sensor.tov = 0.0;
+			sensor.buffer_size = 0;
 
-            s.xacc_lastsum = 0.0;
-            s.xacc_rms = -1.0;
-            s.xacc_bias = 0.0;
+            sensor.xacc_lastsum = 0.0;
+            sensor.xacc_rms = -1.0;
 
-            s.yacc_lastsum = 0.0;
-            s.yacc_rms = -1.0;
-            s.yacc_bias = 0.0;
+            sensor.yacc_lastsum = 0.0;
+            sensor.yacc_rms = -1.0;
 
-            s.zacc_lastsum = 0.0;
-            s.zacc_rms = -1.0;
-            s.zacc_bias = 0.0;
+            sensor.zacc_lastsum = 0.0;
+            sensor.zacc_rms = -1.0;
 
-            s.xgyro_lastsum = 0.0;
-            s.xgyro_rms = -1.0;
-            s.xgyro_bias = 0.0;
+            sensor.xgyro_lastsum = 0.0;
+            sensor.xgyro_rms = -1.0;
 
-            s.ygyro_lastsum = 0.0;
-            s.ygyro_rms = -1.0;
-            s.ygyro_bias = 0.0;
+            sensor.ygyro_lastsum = 0.0;
+            sensor.ygyro_rms = -1.0;
 
-            s.zgyro_lastsum = 0.0;
-            s.zgyro_rms = -1.0;
-            s.zgyro_bias = 0.0;
+            sensor.zgyro_lastsum = 0.0;
+            sensor.zgyro_rms = -1.0;
 
-            s.xmag_lastsum = 0.0;
-            s.xmag_rms = -1.0;
-            s.xmag_bias = 0.0;
+            sensor.xmag_lastsum = 0.0;
+            sensor.xmag_rms = -1.0;
 
-            s.ymag_lastsum = 0.0;
-            s.ymag_rms = -1.0;
-            s.ymag_bias = 0.0;
+            sensor.ymag_lastsum = 0.0;
+            sensor.ymag_rms = -1.0;
 
-            s.zmag_lastsum = 0.0;
-            s.zmag_rms = -1.0;
-            s.zmag_bias = 0.0;
-			sensor = s;
+            sensor.zmag_lastsum = 0.0;
+            sensor.zmag_rms = -1.0;
+
 			initialized = true;
 			diag.Diagnostic_Type = SOFTWARE;
 			diag.Level = INFO;
@@ -194,12 +196,26 @@ bool IMUNodeProcess::new_serialmessage(unsigned char* message,int length) //Retu
 			tempstr.append(reinterpret_cast<const char *>(message));
 			//tempstr = const_cast<std::string>(message);
 			std::vector<std::string> strs;
+
 			boost::split(strs,tempstr,boost::is_any_of(","));
-            if(strs.size() >= 12)
+            //printf("[IMUNode: %s] Len: %d\n",sensor.name.c_str(),strs.size());
+			bool packet_ok = true;
+			if(strs.size() != 12) { packet_ok = false; }
+			for(std::size_t i = 0; i < strs.size(); i++)
+			{
+				if(strs.at(i).size() == 0)
+				{
+					packet_ok = false;
+				}
+			}
+            if(packet_ok == true)
             {
+            	//printf("msg: %s\n",tempstr.c_str());
             	sensor.last_msgtime = run_time;
                 sensor.last_tov = sensor.tov;
+
                 sensor.tov = std::atof(strs.at(0).c_str());
+                //printf("tov: %d\n",sensor.tov);
                 sensor.seq = std::atoi(strs.at(1).c_str());
                 {
                     MatrixXd x = MatrixXd::Zero(3,1);
@@ -213,7 +229,7 @@ bool IMUNodeProcess::new_serialmessage(unsigned char* message,int length) //Retu
                 }
                 {
                     MatrixXd x = MatrixXd::Zero(3,1);
-                    x(0,0) = (std::atof(strs.at(5).c_str()))-sensor.xgyro_bias; //Roll, positive right
+                    x(0,0) = (std::atof(strs.at(5).c_str()))-sensor.xgyro_bias; //Roll, positive left
                     x(1,0) = (std::atof(strs.at(6).c_str()))-sensor.ygyro_bias; //Pitch, positive forward
                     x(2,0) = (std::atof(strs.at(7).c_str()))-sensor.zgyro_bias;  //Yaw, positive left
                     x = rotation_matrix*x;
@@ -225,10 +241,12 @@ bool IMUNodeProcess::new_serialmessage(unsigned char* message,int length) //Retu
                     MatrixXd x = MatrixXd::Zero(3,1);
                     x(0,0) = (std::atof(strs.at(8).c_str()))-sensor.xmag_bias;
                     x(1,0) = (std::atof(strs.at(9).c_str()))-sensor.ymag_bias;
-                    x(2,0) = (std::atof(strs.at(10).c_str()))-sensor.zmag_bias;
+                    x(2,0) = -((std::atof(strs.at(10).c_str()))-sensor.zmag_bias);
+                    x = rotation_matrix*x;
                     sensor.xmag = x(0,0);
                     sensor.ymag = x(1,0);
                     sensor.zmag = x(2,0);
+
                 }
                 sensor.xacc_buffer.push_back(sensor.xacc);
                 sensor.yacc_buffer.push_back(sensor.yacc);
@@ -256,7 +274,9 @@ bool IMUNodeProcess::new_serialmessage(unsigned char* message,int length) //Retu
             }
             else
             {
-            	printf("[IMUNode:%s]: %s\n",sensor.name.c_str(),message);
+            	printf("msg: %s\n",tempstr.c_str());
+            	packet_missed_counter++;
+            	//printf("[IMUNode:%s]: %s\n",sensor.name.c_str(),message);
             }
 			
 		}
@@ -276,6 +296,7 @@ void IMUNodeProcess::update_rms()
     sensor.xmag_lastsum +=  pow(sensor.xmag,2.0);
     sensor.ymag_lastsum +=  pow(sensor.ymag,2.0);
     sensor.zmag_lastsum +=  pow(sensor.zmag,2.0);
+
     if(sensor.buffer_size > (RINGBUFFER_SIZE ))
     {
     	sensor.xacc_buffer.erase(sensor.xacc_buffer.begin());
@@ -297,6 +318,16 @@ void IMUNodeProcess::update_rms()
     	sensor.xmag_lastsum -= pow(sensor.xmag_buffer.at(0),2.0);
     	sensor.ymag_lastsum -= pow(sensor.ymag_buffer.at(0),2.0);
     	sensor.zmag_lastsum -= pow(sensor.zmag_buffer.at(0),2.0);
+
+    	sensor.xacc_lastsum = fabs(sensor.xacc_lastsum);
+    	sensor.yacc_lastsum = fabs(sensor.yacc_lastsum);
+    	sensor.zacc_lastsum = fabs(sensor.zacc_lastsum);
+    	sensor.xgyro_lastsum = fabs(sensor.xgyro_lastsum);
+    	sensor.ygyro_lastsum = fabs(sensor.ygyro_lastsum);
+    	sensor.zgyro_lastsum = fabs(sensor.zgyro_lastsum);
+    	sensor.xmag_lastsum = fabs(sensor.xmag_lastsum);
+    	sensor.ymag_lastsum = fabs(sensor.ymag_lastsum);
+    	sensor.zmag_lastsum = fabs(sensor.zmag_lastsum);
     	//printf("here\n");
 
 
@@ -325,6 +356,18 @@ void IMUNodeProcess::update_rms()
     	sensor.xmag_rms = -1.0;
     	sensor.ymag_rms = -1.0;
     	sensor.zmag_rms = -1.0;
+    }
+    if(std::isnan(sensor.xgyro_rms))
+    {
+    	printf("[IMUNode:%s] XGyro RMS Invalid %d %f %f\n",sensor.name.c_str(),sensor.buffer_size,sensor.xgyro_lastsum,sensor.xgyro);
+    }
+    if(std::isnan(sensor.ygyro_rms))
+    {
+    	printf("[IMUNode:%s] YGyro RMS Invalid %d %f %f\n",sensor.name.c_str(),sensor.buffer_size,sensor.ygyro_lastsum,sensor.ygyro);
+    }
+    if(std::isnan(sensor.zgyro_rms))
+    {
+    	printf("[IMUNode:%s] ZGyro RMS Invalid %d %f %f\n",sensor.name.c_str(),sensor.buffer_size,sensor.zgyro_lastsum,sensor.zgyro);
     }
     //printf("v: %f\n",sensor.xacc);
     //printf("%d %d %f %f %f\n",sensor.buffer_size,sensor.zmag_buffer.size(),sensor.zmag,sensor.zmag_lastsum,sensor.zmag_rms);
@@ -564,12 +607,13 @@ bool IMUNodeProcess::load_sensorinfo()
 			if(NULL != l_pBias)
 			{
 				sensor.zmag_bias = std::atof(l_pBias->GetText());
-						}
-						else { return false; }
+			}
+			else { return false; }
 		}
 		else { return false; }
 	}
 	else { return false;}
-
+	//printf("[IMUNode:%s]: xmag bias: %f ymag bias: %f zmag bias: %f\n",
+	//		sensor.name.c_str(),sensor.xmag_bias,sensor.ymag_bias,sensor.zmag_bias);
 	return true;
 }

@@ -28,16 +28,17 @@ void process_serial_receive()
 		//printf("read: %d\n",length);
 		if (n < 0)
 		{
-			std::cout << "[IMUNode]: Error reading: " << strerror(errno) << std::endl;
+			std::cout << "[IMUNode:" << process->get_sensorname() << "]: Error reading: " << strerror(errno) << std::endl;
 		}
 		else if (n == 0)
 		{
-			std::cout << "[IMUNode]: Read nothing!" << std::endl;
+			std::cout << "[IMUNode:" << process->get_sensorname() << "]: Read nothing!" << std::endl;
 		}
 		else
 		{
 			if(length > 4)
 			{
+                //printf("Got: %s\n",response);
 				process->new_serialmessage(response,length);
 			}
 		}
@@ -419,6 +420,7 @@ bool initialize(ros::NodeHandle nh)
     imu_ready_to_publish = false;
 
     process = new IMUNodeProcess;
+
     std::string param_imu_name = node_name + "/devicename_000";
     std::string imu_name;
     if(nh.getParam(param_imu_name,imu_name) == false)
@@ -442,13 +444,19 @@ bool initialize(ros::NodeHandle nh)
     	return false;
     }
     */
+
     serialmessagehandler = new SerialMessageHandler;
     process->set_sensorname(imu_pn,imu_name,imu_id);
     process->set_verbositylevel(verbosity_level);
     imu_pub =  nh.advertise<icarus_rover_v2::imu>("/" + imu_name,1);
-
 	diagnostic_status = process->init(diagnostic_status,std::string(hostname));
 	sensors_initialized = false;
+	if(process->load_sensorinfo() == false)
+	{
+		logger->log_error("Unable to load Sensor Info. Exiting.");
+		printf("[IMUNode:%s] Unable to load Sensor Info. Exiting.\n",imu_name.c_str());
+		return false;
+	}
 	usleep(7000000); //Wait for Master Node to initialize
 
 	std::string leverarm_topic = "/" + std::string(hostname) + "_master_node/srv_leverarm";
@@ -470,10 +478,10 @@ bool initialize(ros::NodeHandle nh)
 		char tempstr[512];
 		sprintf(tempstr,"Unable to get LeverArm for: %s from MasterNode.",imu_name.c_str());
 		logger->log_error(std::string(tempstr));
+		printf("[IMUNode:%s] %s\n",imu_name.c_str(),tempstr);
 		return false;
 
 	}
-
 
 	std::string connection_topic = "/" + std::string(hostname) + "_master_node/srv_connection";
 	srv_connection = nh.serviceClient<icarus_rover_v2::srv_connection>(connection_topic);
@@ -490,8 +498,9 @@ bool initialize(ros::NodeHandle nh)
 	else
 	{
 		char tempstr[512];
-		sprintf(tempstr,"MasterNode Timed out when asked for connection to: %s:%d",imu_pn.c_str(),imu_id);
+		sprintf(tempstr,"[IMUNode:%s] MasterNode Timed out when asked for connection to: %s:%d",imu_name.c_str(),imu_pn.c_str(),imu_id);
 		logger->log_error(std::string(tempstr));
+		printf("%s\n",tempstr);
 		return false;
 	}
 
@@ -503,18 +512,19 @@ bool initialize(ros::NodeHandle nh)
 				serialdevice_path.c_str(),
 				baudrate.c_str());
 		logger->log_notice(std::string(tempstr));
+		//printf("[IMUNode:%s] %s",imu_name.c_str(),tempstr);
 	}
 	serial_device = open(serialdevice_path.c_str(),O_RDWR | O_NOCTTY);
 	if(serial_device < 0)
 	{
-		printf("[IMUNode]: Can't open: %s\n",serialdevice_path.c_str());
+		printf("[IMUNode:%s]: Can't open: %s\n",imu_name.c_str(),serialdevice_path.c_str());
 		return false;
 	}
 	struct termios tty;
 	memset(&tty,0,sizeof tty);
 	if(tcgetattr(serial_device,&tty) != 0 )
 	{
-		std::cout << "[IMUNode]: Error: " << errno << " from tcgetattr: " << strerror(errno) << std::endl;
+		std::cout << "[IMUNode:" << imu_name << "]: Error: " << errno << " from tcgetattr: " << strerror(errno) << std::endl;
 	}
 	if(baudrate == "115200")
 	{
@@ -528,7 +538,7 @@ bool initialize(ros::NodeHandle nh)
 	}
 	else
 	{
-		printf("[IMUNode]: Baudrate: %s Not Supported.\n",baudrate.c_str());
+		printf("[IMUNode:%s]: Baudrate: %s Not Supported.\n",imu_name.c_str(),baudrate.c_str());
 		return false;
 	}
 	tty.c_cflag     &=  ~PARENB;            // Make 8n1
@@ -538,14 +548,15 @@ bool initialize(ros::NodeHandle nh)
 
 	tty.c_cflag     &=  ~CRTSCTS;           // no flow control
 	tty.c_cc[VMIN]   =  1;                  // read doesn't block
-	tty.c_cc[VTIME]  =  5;                  // 0.5 seconds read timeout
+	tty.c_cc[VTIME]  =  10;                  // 0.5 seconds read timeout
 	tty.c_cflag     |=  CREAD | CLOCAL;     // turn on READ & ignore ctrl lines
 
 	/* Make raw */
 	cfmakeraw(&tty);
-	tcflush( serial_device, TCIFLUSH );
+	sleep(2); //required to make flush work, for some reason
+	tcflush(serial_device,TCIOFLUSH);
 	if ( tcsetattr ( serial_device, TCSANOW, &tty ) != 0) {
-		std::cout << "[IMUNode]: Error " << errno << " from tcsetattr" << std::endl;
+		std::cout << "[IMUNode:" << imu_name << "]: Error " << errno << " from tcsetattr" << std::endl;
 		return false;
 	}
 
@@ -561,7 +572,7 @@ bool initialize(ros::NodeHandle nh)
 			int count = write( serial_device, outbuffer, length );
 			if(count <= 0)
 			{
-				printf("[IMUNode]: Can't Write to Serial Port. Exiting.\n");
+				printf("[IMUNode:%s]: Can't Write to Serial Port. Exiting.\n",imu_name.c_str());
 				return false;
 			}
 			usleep(200000);
