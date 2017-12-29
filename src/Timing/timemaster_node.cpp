@@ -34,6 +34,7 @@ void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg)
 	fw.Minor_Release = TIMEMASTERNODE_MINOR_RELEASE;
 	fw.Build_Number = TIMEMASTERNODE_BUILD_NUMBER;
 	firmware_pub.publish(fw);
+	printf("t=%4.2f (sec) [%s]: %s\n",ros::Time::now().toSec(),node_name.c_str(),diagnostic_status.Description.c_str());
 
 }
 void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
@@ -59,6 +60,7 @@ void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 			resource_pub.publish(resources_used);
 		}
 	}
+    diagnostic_pub.publish(diagnostic_status);
 }
 std::vector<icarus_rover_v2::diagnostic> check_program_variables()
 {
@@ -123,6 +125,11 @@ bool run_10Hz_code()
     {
         diagnostic_pub.publish(diagnostic_status);
     }
+    run_time += 1.0/10.0;
+    diagnostic_status.Diagnostic_Type = SOFTWARE;
+    diagnostic_status.Level = INFO;
+    diagnostic_status.Diagnostic_Message = NOERROR;
+    diagnostic_status.Description = "Node Running.";
     return true;
 }
 int main(int argc, char **argv)
@@ -304,6 +311,7 @@ bool initialize(ros::NodeHandle nh)
     //Start User Code: Initialization and Parameters
     pps01_delay = 0.0;
     pps1_delay = 0.0;
+    run_time = 0.0;
     std::string pps_source;
     std::string param_pps_source = node_name +"/pps_source";
     if(nh.getParam(param_pps_source,pps_source) == false)

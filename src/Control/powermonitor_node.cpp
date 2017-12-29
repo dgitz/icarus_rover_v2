@@ -1,3 +1,4 @@
+//OBSOLETE!
 #include "powermonitor_node.h"
 //Start User Code: Firmware Definition
 #define POWERMONITORNODE_MAJOR_RELEASE 2

@@ -74,6 +74,8 @@ public:
 	icarus_rover_v2::diagnostic init(icarus_rover_v2::diagnostic indiag,std::string hostname);
 	icarus_rover_v2::diagnostic update(double dt);
 	icarus_rover_v2::diagnostic new_devicemsg(icarus_rover_v2::device devicemsg);
+	void set_mydevice(icarus_rover_v2::device v) { mydevice = v; }
+	bool get_initialized() { return initialized; }
 	std::vector<ControlGroup> get_controlgroups() { return controlgroups; }
 	icarus_rover_v2::diagnostic new_tunecontrolgroupmsg(icarus_rover_v2::controlgroup msg);
 	icarus_rover_v2::diagnostic new_sensormsg(std::string cg_name, double v);
@@ -88,6 +90,7 @@ public:
 	std::string get_sensorname(uint8_t v);
     
 private:
+	icarus_rover_v2::device mydevice;
 	icarus_rover_v2::diagnostic diagnostic;
 	std::vector<ControlGroup> controlgroups;
 	uint8_t armed_state;

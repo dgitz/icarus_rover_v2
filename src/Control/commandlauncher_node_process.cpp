@@ -1,6 +1,7 @@
 #include "commandlauncher_node_process.h"
 CommandLauncherNodeProcess::CommandLauncherNodeProcess()
 {
+	initialized = false;
 	run_time = 0.0;
 	initialized = false;
 	ready = false;

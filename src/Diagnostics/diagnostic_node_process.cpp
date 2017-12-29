@@ -1,20 +1,20 @@
-#include "sample_node_process.h"
+#include "diagnostic_node_process.h"
 /*! \brief Constructor
  */
-SampleNodeProcess::SampleNodeProcess()
+DiagnosticNodeProcess::DiagnosticNodeProcess()
 {
 	run_time = 0.0;
 	initialized = false;
 }
 /*! \brief Deconstructor
  */
-SampleNodeProcess::~SampleNodeProcess()
+DiagnosticNodeProcess::~DiagnosticNodeProcess()
 {
 
 }
 /*! \brief Initialize Process
  */
-icarus_rover_v2::diagnostic SampleNodeProcess::init(icarus_rover_v2::diagnostic indiag,std::string hostname)
+icarus_rover_v2::diagnostic DiagnosticNodeProcess::init(icarus_rover_v2::diagnostic indiag,std::string hostname)
 {
    	myhostname = hostname;
 	diagnostic = indiag;
@@ -23,7 +23,7 @@ icarus_rover_v2::diagnostic SampleNodeProcess::init(icarus_rover_v2::diagnostic 
 }
 /*! \brief Time Update of Process
  */
-icarus_rover_v2::diagnostic SampleNodeProcess::update(double dt)
+icarus_rover_v2::diagnostic DiagnosticNodeProcess::update(double dt)
 {
 	run_time += dt;
 	icarus_rover_v2::diagnostic diag = diagnostic;
@@ -36,7 +36,7 @@ icarus_rover_v2::diagnostic SampleNodeProcess::update(double dt)
 }
 /*! \brief Setup Process Device info
  */
-icarus_rover_v2::diagnostic SampleNodeProcess::new_devicemsg(icarus_rover_v2::device device)
+icarus_rover_v2::diagnostic DiagnosticNodeProcess::new_devicemsg(icarus_rover_v2::device device)
 {
     icarus_rover_v2::diagnostic diag = diagnostic;
 	bool new_device = true;
@@ -48,7 +48,7 @@ icarus_rover_v2::diagnostic SampleNodeProcess::new_devicemsg(icarus_rover_v2::de
 }
 /*! \brief Process Command Message
  */
-std::vector<icarus_rover_v2::diagnostic> SampleNodeProcess::new_commandmsg(icarus_rover_v2::command cmd)
+std::vector<icarus_rover_v2::diagnostic> DiagnosticNodeProcess::new_commandmsg(icarus_rover_v2::command cmd)
 {
 	std::vector<icarus_rover_v2::diagnostic> diaglist;
 	icarus_rover_v2::diagnostic diag = diagnostic;
@@ -76,7 +76,7 @@ std::vector<icarus_rover_v2::diagnostic> SampleNodeProcess::new_commandmsg(icaru
 }
 /*! \brief Self-Diagnostic-Check Program Variables
  */
-std::vector<icarus_rover_v2::diagnostic> SampleNodeProcess::check_program_variables()
+std::vector<icarus_rover_v2::diagnostic> DiagnosticNodeProcess::check_program_variables()
 {
 	std::vector<icarus_rover_v2::diagnostic> diaglist;
 	bool status = true;

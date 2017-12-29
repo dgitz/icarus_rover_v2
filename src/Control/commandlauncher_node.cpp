@@ -2,9 +2,11 @@
 //Start User Code: Firmware Definition
 #define COMMANDLAUNCHERNODE_MAJOR_RELEASE 0
 #define COMMANDLAUNCHERNODE_MINOR_RELEASE 0
-#define COMMANDLAUNCHERNODE_BUILD_NUMBER 0
+#define COMMANDLAUNCHERNODE_BUILD_NUMBER 1
 //End User Code: Firmware Definition
 //Start User Code: Functions
+/*! \brief User Loop1 Code
+ */
 bool run_loop1_code()
 {
 	logger->log_info("Running Loop1");
@@ -57,6 +59,8 @@ bool run_loop1_code()
 	}
 	return true;
 }
+/*! \brief User Loop2 Code
+ */
 bool run_loop2_code()
 {
 	icarus_rover_v2::diagnostic diag = process->update(measure_time_diff(ros::Time::now(),last_loop2_timer));
@@ -67,23 +71,28 @@ bool run_loop2_code()
 	}
  	return true;
 }
+/*! \brief User Loop3 Code
+ */
 bool run_loop3_code()
 {
  	return true;
 }
-
+/*! \brief 0.1 PULSE PER SECOND User Code
+ */
 void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
 	logger->log_notice(process->get_processinfo());
 	icarus_rover_v2::firmware fw;
 	fw.Generic_Node_Name = "commandlauncher_node";
 	fw.Node_Name = node_name;
-	fw.Description = "Latest Rev: 19-Sep-2017";
+	fw.Description = "Latest Rev: 28-December-2017";
 	fw.Major_Release = COMMANDLAUNCHERNODE_MAJOR_RELEASE;
 	fw.Minor_Release = COMMANDLAUNCHERNODE_MINOR_RELEASE;
 	fw.Build_Number = COMMANDLAUNCHERNODE_BUILD_NUMBER;
 	firmware_pub.publish(fw);
 }
+/*! \brief 1.0 PULSE PER SECOND User Code
+ */
 void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
 	received_pps = true;
@@ -100,6 +109,7 @@ void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 			resources_used = resourcemonitor->get_resourceused();
 			resource_pub.publish(resources_used);
 			diagnostic_pub.publish(resource_diagnostic);
+			logger->log_diagnostic(resource_diagnostic);
 		}
 		else if(resource_diagnostic.Level <= NOTICE)
 		{
@@ -107,17 +117,27 @@ void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 			resource_pub.publish(resources_used);
 		}
 	}
-    /*
+	else
     {
-    	icarus_rover_v2::diagnostic diag = process->send_querymessage(SPIMessageHandler::SPI_TestMessageCounter_ID);
-    	if(diag.Level >= WARN)
     	{
-    		diagnostic_pub.publish(diag);
-    		logger->log_diagnostic(diag);
+			icarus_rover_v2::srv_device srv;
+			srv.request.query = "SELF";
+			if(srv_device.call(srv) == true)
+			{
+				if(srv.response.data.size() != 1)
+				{
+					logger->log_error("Got unexpected device message");
+				}
+				else
+				{
+					bool status = new_devicemsg(srv.request.query,srv.response.data.at(0));
+				}
+			}
     	}
     }
-	*/
 }
+/*! \brief Self-Diagnostic-Check Program Variables
+ */
 std::vector<icarus_rover_v2::diagnostic> check_program_variables()
 {
 	std::vector<icarus_rover_v2::diagnostic> diaglist;
@@ -312,8 +332,9 @@ bool initializenode()
     std::string heartbeat_topic = "/" + node_name + "/heartbeat";
     heartbeat_pub = n->advertise<icarus_rover_v2::heartbeat>(heartbeat_topic,1000);
     beat.Node_Name = node_name;
-    std::string device_topic = "/" + std::string(hostname) +"_master_node/device";
-    device_sub = n->subscribe<icarus_rover_v2::device>(device_topic,1000,Device_Callback);
+    std::string device_topic = "/" + std::string(hostname) + "_master_node/srv_device";
+    srv_device = n->serviceClient<icarus_rover_v2::srv_device>(device_topic);
+
     pps01_sub = n->subscribe<std_msgs::Bool>("/01PPS",1000,PPS01_Callback);
     pps1_sub = n->subscribe<std_msgs::Bool>("/1PPS",1000,PPS1_Callback);
     command_sub = n->subscribe<icarus_rover_v2::command>("/command",1000,Command_Callback);
@@ -343,7 +364,7 @@ bool initializenode()
     std::string param_loop2_rate = node_name + "/loop2_rate";
     if(n->getParam(param_loop2_rate,loop2_rate) == false)
     {
-        logger->log_warn("Missing parameter: loop1_rate.  Not running loop2 code.");
+        logger->log_warn("Missing parameter: loop2_rate.  Not running loop2 code.");
         run_loop2 = false;
     }
     else 
@@ -401,37 +422,28 @@ double measure_time_diff(ros::Time timer_a, ros::Time timer_b)
 	ros::Duration etime = timer_a - timer_b;
 	return etime.toSec();
 }
-void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg)
+bool new_devicemsg(std::string query,icarus_rover_v2::device device)
 {
-	if(process->is_ready() == false)
+
+	if(query == "SELF")
 	{
-		logger->log_notice("Device not initialized yet.");
-		icarus_rover_v2::device newdevice;
-		newdevice.Architecture = msg->Architecture;
-		newdevice.BoardCount = msg->BoardCount;
-		newdevice.Capabilities = msg->Capabilities;
-		newdevice.DeviceName = msg->DeviceName;
-		newdevice.DeviceParent = msg->DeviceParent;
-		newdevice.DeviceType = msg->DeviceType;
-		newdevice.PrimaryIP = msg->PrimaryIP;
-		newdevice.ID = msg->ID;
-		newdevice.SensorCount = msg->SensorCount;
-		newdevice.ShieldCount = msg->ShieldCount;
-		newdevice.pins = msg->pins;
-		diagnostic_status = process->new_devicemsg(newdevice);
-		logger->log_diagnostic(diagnostic_status);
-		if(diagnostic_status.Level > INFO) { diagnostic_pub.publish(diagnostic_status); }
-		if(process->is_ready() == true)
+		if((device.DeviceName == hostname))
 		{
-			myDevice = process->get_mydevice();
+			myDevice = device;
 			resourcemonitor = new ResourceMonitor(diagnostic_status,myDevice.Architecture,myDevice.DeviceName,node_name);
-			if(process->set_camerastream(camerastream_port) == false)
-			{
-				logger->log_error("Couldn't find CameraStreamPort in process list.");
-			}
-			logger->log_notice("Device finished initializing.");
+			process->set_mydevice(device);
+			device_initialized = true;
 		}
 	}
+
+	if((device_initialized == true))
+	{
+		icarus_rover_v2::diagnostic diag = process->new_devicemsg(device);
+		if(process->get_initialized() == true)
+		{
+		}
+	}
+	return true;
 }
 void signalinterrupt_handler(int sig)
 {

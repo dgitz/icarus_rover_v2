@@ -1,22 +1,32 @@
 #include "network_transceiver_node_process.h"
-
+/*! \brief Constructor
+ */
 NetworkTransceiverNodeProcess::NetworkTransceiverNodeProcess()
 {
     run_time = 0.0;
+	initialized = false;
     init_messages();
 }
+/*! \brief Deconstructor
+ */
 NetworkTransceiverNodeProcess::~NetworkTransceiverNodeProcess()
 {
 
 }
-icarus_rover_v2::diagnostic NetworkTransceiverNodeProcess::init(icarus_rover_v2::diagnostic diag,std::string hostname)
+/*! \brief Initialize Process
+ */
+icarus_rover_v2::diagnostic NetworkTransceiverNodeProcess::init(icarus_rover_v2::diagnostic indiag,std::string hostname)
 {
 	myhostname = hostname;
-	diagnostic = diag;
+	diagnostic = indiag;
+	mydevice.DeviceName = hostname;
 	return diagnostic;
 }
+/*! \brief Time Update of Process
+ */
 icarus_rover_v2::diagnostic NetworkTransceiverNodeProcess::update(double dt)
 {
+	icarus_rover_v2::diagnostic diag = diagnostic;
 	run_time += dt;
     for(std::size_t i = 0; i < messages.size(); i++)
     {
@@ -30,8 +40,109 @@ icarus_rover_v2::diagnostic NetworkTransceiverNodeProcess::update(double dt)
             messages.at(i).recv_rate = (double)(messages.at(i).recv_counter)/run_time;
         }
     }
-	return diagnostic;
+	
+	diag.Diagnostic_Type = NOERROR;
+	diag.Level = INFO;
+	diag.Diagnostic_Message = NOERROR;
+	diag.Description = "Node Running";
+	diagnostic = diag;
+	return diag;
 }
+/*! \brief Setup Process Device info
+ */
+icarus_rover_v2::diagnostic NetworkTransceiverNodeProcess::new_devicemsg(icarus_rover_v2::device device)
+{
+    icarus_rover_v2::diagnostic diag = diagnostic;
+	bool new_device = true;
+	if(device.DeviceName == myhostname)
+	{
+
+    }
+    return diag;
+}
+/*! \brief Process Command Message
+ */
+std::vector<icarus_rover_v2::diagnostic> NetworkTransceiverNodeProcess::new_commandmsg(icarus_rover_v2::command cmd)
+{
+	std::vector<icarus_rover_v2::diagnostic> diaglist;
+	icarus_rover_v2::diagnostic diag = diagnostic;
+	if (cmd.Command ==  DIAGNOSTIC_ID)
+	{
+		if(cmd.Option1 == LEVEL1)
+		{
+			diaglist.push_back(diag);
+			return diaglist;
+		}
+		else if(cmd.Option1 == LEVEL2)
+		{
+			diaglist = check_program_variables();
+			return diaglist;
+		}
+		else if(cmd.Option1 == LEVEL3)
+		{
+		}
+		else if(cmd.Option1 == LEVEL4)
+		{
+		}
+	}
+	diaglist.push_back(diag);
+	return diaglist;
+}
+/*! \brief Self-Diagnostic-Check Program Variables
+ */
+std::vector<icarus_rover_v2::diagnostic> NetworkTransceiverNodeProcess::check_program_variables()
+{
+	std::vector<icarus_rover_v2::diagnostic> diaglist;
+	icarus_rover_v2::diagnostic diag=diagnostic;
+	bool status = true;
+
+	if(initialized == false)
+	{
+		status = false;
+		diag.Diagnostic_Type = SOFTWARE;
+		diag.Level = WARN;
+		diag.Diagnostic_Message = INITIALIZING;
+		diag.Description = "Node Not Initialized Yet.";
+		diaglist.push_back(diag);
+	}
+	bool any_message_sent = false;
+	for(std::size_t i = 0; i < messages.size(); i++)
+	{
+		if(messages.at(i).sent_counter > 0)
+		{
+			any_message_sent = true;
+		}
+	}
+	if(any_message_sent == false)
+	{
+		status = false;
+		diag.Diagnostic_Type = COMMUNICATIONS;
+		diag.Level = WARN;
+		diag.Diagnostic_Message = DROPPING_PACKETS;
+		diag.Description = "Have not sent any UDP Packets Yet.";
+		diaglist.push_back(diag);
+	}
+
+	if(status == true)
+	{
+
+		diag.Diagnostic_Type = SOFTWARE;
+		diag.Level = NOTICE;
+		diag.Diagnostic_Message = DIAGNOSTIC_PASSED;
+		diag.Description = "Checked Program Variables -> PASSED";
+		diaglist.push_back(diag);
+	}
+	else
+	{
+		diag.Diagnostic_Type = SOFTWARE;
+		diag.Level = WARN;
+		diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
+		diag.Description = "Checked Program Variables -> FAILED";
+		diaglist.push_back(diag);
+	}
+	return diaglist;
+}
+
 icarus_rover_v2::diagnostic NetworkTransceiverNodeProcess::new_message_sent(uint16_t id)
 {
     icarus_rover_v2::diagnostic diag = diagnostic;
@@ -246,3 +357,4 @@ std::string NetworkTransceiverNodeProcess::get_messageinfo(bool v)
     }
     return std::string(tempstr);
 }
+

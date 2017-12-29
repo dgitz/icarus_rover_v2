@@ -35,6 +35,7 @@ struct PeriodicCommand
 	icarus_rover_v2::command command;
 	double rate_hz;
 	double lasttime_ran;
+	bool send_me;
 };
 class CommandNodeProcess
 {
@@ -46,13 +47,20 @@ public:
 
 	icarus_rover_v2::diagnostic init(icarus_rover_v2::diagnostic indiag,Logger *log,std::string hostname);
 	icarus_rover_v2::diagnostic update(double dt);
-	icarus_rover_v2::diagnostic new_devicemsg(icarus_rover_v2::device devicemsg);
+	void set_diagnostic(icarus_rover_v2::diagnostic v) { diagnostic = v; }
+	icarus_rover_v2::diagnostic get_diagnostic() { return diagnostic; }
+	double get_runtime() { return run_time; }
 	icarus_rover_v2::device get_mydevice() { return mydevice; }
-	bool is_finished_initializing() { return all_device_info_received; }
+	icarus_rover_v2::diagnostic new_devicemsg(icarus_rover_v2::device device);
+	void set_mydevice(icarus_rover_v2::device device) { mydevice = device; }
+	bool get_initialized() { return all_device_info_received; }
+	std::vector<icarus_rover_v2::diagnostic> new_commandmsg(icarus_rover_v2::command cmd);
+	std::vector<icarus_rover_v2::diagnostic> check_program_variables();
+
 	int get_armeddisarmed_state() { return armeddisarmed_state; }
     icarus_rover_v2::diagnostic new_readytoarmmsg(std::string topic, bool value);
     icarus_rover_v2::diagnostic init_readytoarm_list(std::vector<std::string> topics);
-    icarus_rover_v2::diagnostic init_PeriodicCommands(std::vector<PeriodicCommand> commands);
+    icarus_rover_v2::diagnostic init_PeriodicCommands();
     icarus_rover_v2::diagnostic new_user_commandmsg(icarus_rover_v2::command msg);
     icarus_rover_v2::diagnostic new_targetmsg(std::string target);
   //  int get_armcommand() { return armedcommand; }
@@ -73,12 +81,11 @@ public:
 	double get_batterylevel_perc() { return batterylevel_perc; }
 	std::string map_RoverCommand_ToString(int v);
 	std::vector<ReadyToArm> get_ReadyToArmList() { return ReadyToArmList; }
-	std::vector<PeriodicCommand> get_PeriodicCommands() { return periodic_commands; }
+	std::vector<icarus_rover_v2::command> get_PeriodicCommands();
 
 protected:
 
 private:
-
 	std::string myhostname;
 	bool all_device_info_received;
 	icarus_rover_v2::device mydevice;

@@ -1,8 +1,8 @@
 #include "imu_node.h"
 //Start User Code: Firmware Definition
 #define IMUNODE_MAJOR_RELEASE 0
-#define IMUNODE_MINOR_RELEASE 0
-#define IMUNODE_BUILD_NUMBER 0
+#define IMUNODE_MINOR_RELEASE 1
+#define IMUNODE_BUILD_NUMBER 1
 //End User Code: Firmware Definition
 //Start User Code: Functions
 void process_serial_receive()
@@ -104,7 +104,7 @@ void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg)
 	icarus_rover_v2::firmware fw;
 	fw.Generic_Node_Name = "imu_node";
 	fw.Node_Name = node_name;
-	fw.Description = "Latest Rev: 12-November-2017";
+	fw.Description = "Latest Rev: 27-December-2017";
 	fw.Major_Release = IMUNODE_MAJOR_RELEASE;
 	fw.Minor_Release = IMUNODE_MINOR_RELEASE;
 	fw.Build_Number = IMUNODE_BUILD_NUMBER;

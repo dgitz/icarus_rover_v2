@@ -13,6 +13,9 @@
 #include <icarus_rover_v2/Definitions.h>
 #include <icarus_rover_v2/diagnostic.h>
 #include <icarus_rover_v2/device.h>
+#include <icarus_rover_v2/srv_device.h>
+#include <icarus_rover_v2/srv_connection.h>
+#include <icarus_rover_v2/srv_leverarm.h>
 #include <icarus_rover_v2/resource.h>
 #include <icarus_rover_v2/pin.h>
 #include <icarus_rover_v2/command.h>
@@ -37,9 +40,8 @@ bool initialize(ros::NodeHandle nh);
 void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg);
 void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg);
 double measure_time_diff(ros::Time timer_a, ros::Time tiber_b);
-void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg);
+bool new_devicemsg(std::string query,icarus_rover_v2::device device);
 void Command_Callback(const icarus_rover_v2::command& msg);
-std::vector<icarus_rover_v2::diagnostic> check_program_variables();
 bool run_loop3_code();
 bool run_loop2_code();
 bool run_loop1_code();
@@ -53,11 +55,11 @@ void User_Command_Callback(const icarus_rover_v2::command::ConstPtr& msg);
 //End User Code: Function Prototypes
 
 //Start Template Code: Define Global variables
+ros::ServiceClient srv_device;
 std::string node_name;
 std::string verbosity_level;
 ros::Subscriber pps01_sub;
 ros::Subscriber pps1_sub;
-ros::Subscriber device_sub;
 ros::Publisher diagnostic_pub;
 ros::Publisher resource_pub;
 ros::Subscriber command_sub;
@@ -69,7 +71,6 @@ Logger *logger;
 ResourceMonitor *resourcemonitor;
 bool require_pps_to_start;
 bool received_pps;
-ros::Time now;
 ros::Time boot_time;
 bool device_initialized;
 char hostname[1024];

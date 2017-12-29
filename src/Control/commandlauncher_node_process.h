@@ -52,6 +52,8 @@ public:
 	~CommandLauncherNodeProcess();
 	icarus_rover_v2::diagnostic init(icarus_rover_v2::diagnostic indiag,std::string hostname);
 	icarus_rover_v2::diagnostic update(double dt);
+	void set_mydevice(icarus_rover_v2::device v) { mydevice = v; }
+	bool get_initialized() { return initialized; }
 	double measure_timediff(struct timeval a, struct timeval b);
 	bool is_ready() { return ready; }
     icarus_rover_v2::diagnostic new_devicemsg(icarus_rover_v2::device newdevice);

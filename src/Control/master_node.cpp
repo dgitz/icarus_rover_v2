@@ -2,7 +2,7 @@
 //Start User Code: Firmware Definition
 #define MASTERNODE_MAJOR_RELEASE 1
 #define MASTERNODE_MINOR_RELEASE 4
-#define MASTERNODE_BUILD_NUMBER 0
+#define MASTERNODE_BUILD_NUMBER 2
 //End User Code: Firmware Definition
 //Start User Code: Functions
 //Start User Code: Function Prototypes
@@ -26,7 +26,7 @@ bool check_serialports()
 				int dev_fd = open(ports.at(i).file.c_str(),O_RDWR | O_NOCTTY);
 				if(dev_fd < 0)
 				{
-					printf("[MasterNode]: Can't open: %s\n",ports.at(i).file.c_str());
+					printf("[%s]: Can't open: %s\n",node_name.c_str(),ports.at(i).file.c_str());
 					break;
 				}
 				struct termios tty;
@@ -47,7 +47,7 @@ bool check_serialports()
 				}
 				else
 				{
-					printf("[MasterNode]: Baudrate: %s Not Supported.\n",baudrate.c_str());
+					printf("[%s]: Baudrate: %s Not Supported.\n",node_name.c_str(),baudrate.c_str());
 				}
 				tty.c_cflag     &=  ~PARENB;            // Make 8n1
 				tty.c_cflag     &=  ~CSTOPB;
@@ -152,6 +152,7 @@ bool check_serialports()
 			logger->log_warn(std::string(tempstr));
 		}
 	}
+
 	return true;
 }
 std::vector<std::string> find_serialports()
@@ -222,6 +223,16 @@ bool device_service(icarus_rover_v2::srv_device::Request &req,
 		}
 		return true;
 	}
+	else if(req.query == "ALL")
+	{
+		std::vector<icarus_rover_v2::device> alldevices = process.get_alldevices();
+		for(std::size_t i = 0; i < alldevices.size(); i++)
+		{
+			res.data.push_back(alldevices.at(i));
+		}
+		return true;
+
+	}
 	return false;
 }
 bool leverarm_service(icarus_rover_v2::srv_leverarm::Request &req,
@@ -233,9 +244,10 @@ bool leverarm_service(icarus_rover_v2::srv_leverarm::Request &req,
 	res.lever = la;
 	return true;
 }
+/*! \brief User Loop1 Code
+ */
 bool run_loop1_code()
 {
-    publish_deviceinfo();
 	icarus_rover_v2::resource device_resource_available;
 	device_resource_available.Node_Name = process.get_mydevice().DeviceName;
 	device_resource_available.PID = 0;
@@ -272,10 +284,20 @@ bool run_loop1_code()
 	}
 	return true;
 }
+/*! \brief User Loop2 Code
+ */
 bool run_loop2_code()
 {
+	icarus_rover_v2::diagnostic diag = process.update(1.0/(double)loop2_rate);
+	if(diag.Level > WARN)
+	{
+		logger->log_diagnostic(diag);
+		printf("[%s]:%s\n",node_name.c_str(),diag.Description.c_str());
+	}
  	return true;
 }
+/*! \brief User Loop3 Code
+ */
 bool run_loop3_code()
 {
  	return true;
@@ -299,18 +321,23 @@ double read_device_temperature()
 	}
 	return temp;
 }
+/*! \brief 0.1 PULSE PER SECOND User Code
+ */
 void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
     logger->log_info("Node Running.");
 	icarus_rover_v2::firmware fw;
 	fw.Generic_Node_Name = "master_node";
 	fw.Node_Name = node_name;
-	fw.Description = "Latest Rev: 27-May-2017";
+	fw.Description = "Latest Rev: 28-December-2017";
 	fw.Major_Release = MASTERNODE_MAJOR_RELEASE;
 	fw.Minor_Release = MASTERNODE_MINOR_RELEASE;
 	fw.Build_Number = MASTERNODE_BUILD_NUMBER;
 	firmware_pub.publish(fw);
+	printf("t=%4.2f (sec) [%s]: %s\n",ros::Time::now().toSec(),node_name.c_str(),process.get_diagnostic().Description.c_str());
 }
+/*! \brief 1.0 PULSE PER SECOND User Code
+ */
 void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
     received_pps = true;
@@ -332,67 +359,22 @@ void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 		resources_used = resourcemonitor->get_resourceused();
 		resource_pub.publish(resources_used);
 	}
-}
-std::vector<icarus_rover_v2::diagnostic> check_program_variables()
-{
-	std::vector<icarus_rover_v2::diagnostic> diaglist;
-	bool status = true;
-	logger->log_notice("checking program variables.");
-
-	if(status == true)
-	{
-		icarus_rover_v2::diagnostic diag=diagnostic_status;
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Level = NOTICE;
-		diag.Diagnostic_Message = DIAGNOSTIC_PASSED;
-		diag.Description = "Checked Program Variables -> PASSED";
-		diaglist.push_back(diag);
-	}
-	else
-	{
-		icarus_rover_v2::diagnostic diag=diagnostic_status;
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Level = WARN;
-		diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
-		diag.Description = "Checked Program Variables -> FAILED";
-		diaglist.push_back(diag);
-	}
-	return diaglist;
-}
-void publish_deviceinfo()
-{
-    //ros::Time start = ros::Time::now();
-	device_pub.publish(process.get_mydevice());
-    for(int i = 0; i < devices_to_publish.size(); i++)
-    {
-        device_pub.publish(devices_to_publish.at(i));
-    }
-    //printf("Time to publish: %f\n",measure_time_diff(ros::Time::now(),start));
+	diagnostic_pub.publish(process.get_diagnostic());
 }
 void Command_Callback(const icarus_rover_v2::command::ConstPtr& msg)
 {
-	//logger->log_info("Got command");
-	if (msg->Command ==  DIAGNOSTIC_ID)
+	icarus_rover_v2::command command;
+	command.Command = msg->Command;
+	command.Option1 = msg->Option1;
+	command.Option2 = msg->Option2;
+	command.Option3 = msg->Option3;
+	command.CommandText = msg->CommandText;
+	command.Description = msg->Description;
+	std::vector<icarus_rover_v2::diagnostic> diaglist = process.new_commandmsg(command);
+	for(std::size_t i = 0; i < diaglist.size(); i++)
 	{
-		if(msg->Option1 == LEVEL1)
-		{
-			diagnostic_pub.publish(diagnostic_status);
-		}
-		else if(msg->Option1 == LEVEL2)
-		{
-			std::vector<icarus_rover_v2::diagnostic> diaglist = check_program_variables();
-			for(int i = 0; i < diaglist.size();i++) { diagnostic_pub.publish(diaglist.at(i)); }
-		}
-		else if(msg->Option1 == LEVEL3)
-		{
-		}
-		else if(msg->Option1 == LEVEL4)
-		{
-		}
-		else
-		{
-			logger->log_error("Shouldn't get here!!!");
-		}
+		logger->log_diagnostic(diaglist.at(i));
+		diagnostic_pub.publish(diaglist.at(i));
 	}
 }
 //End User Code: Functions
@@ -426,7 +408,6 @@ int main(int argc, char **argv)
     }
     ros::Rate loop_rate(ros_rate);
 	boot_time = ros::Time::now();
-    now = ros::Time::now();
     last_10Hz_timer = ros::Time::now();
     double mtime;
     while (ros::ok() && (kill_node == 0))
@@ -436,10 +417,9 @@ int main(int argc, char **argv)
 		else if(require_pps_to_start == true && received_pps == true) { ok_to_start = true; }
     	if(ok_to_start == true)
     	{
-    		now = ros::Time::now();
             if(run_loop1 == true)
             {
-                mtime = measure_time_diff(now,last_loop1_timer);
+                mtime = measure_time_diff(ros::Time::now(),last_loop1_timer);
                 if(mtime >= (1.0/loop1_rate))
                 {
                     run_loop1_code();
@@ -448,7 +428,7 @@ int main(int argc, char **argv)
             }
             if(run_loop2 == true)
             {
-                mtime = measure_time_diff(now,last_loop2_timer);
+                mtime = measure_time_diff(ros::Time::now(),last_loop2_timer);
                 if(mtime >= (1.0/loop2_rate))
                 {
                     run_loop2_code();
@@ -457,7 +437,7 @@ int main(int argc, char **argv)
             }
             if(run_loop3 == true)
             {
-                mtime = measure_time_diff(now,last_loop3_timer);
+                mtime = measure_time_diff(ros::Time::now(),last_loop3_timer);
                 if(mtime >= (1.0/loop3_rate))
                 {
                     run_loop3_code();
@@ -465,7 +445,7 @@ int main(int argc, char **argv)
                 }
             }
             
-            mtime = measure_time_diff(now,last_10Hz_timer);
+            mtime = measure_time_diff(ros::Time::now(),last_10Hz_timer);
             if(mtime >= 0.1)
             {
                 run_10Hz_code();
@@ -508,14 +488,14 @@ bool initialize(ros::NodeHandle nh)
     if(diagnostic_status.Level >= WARN)
     {
         logger->log_diagnostic(diagnostic_status);
-        printf("[MasterNode] ERROR: %s\n",diagnostic_status.Description.c_str());
+        printf("[%s] ERROR: %s\n",node_name.c_str(),diagnostic_status.Description.c_str());
         return false;
     }
     diagnostic_status = process.load_systemfile("/home/robot/config/SystemFile.xml");
     if(diagnostic_status.Level >= WARN)
     {
     	logger->log_diagnostic(diagnostic_status);
-    	printf("[MasterNode] ERROR: %s\n",diagnostic_status.Description.c_str());
+    	printf("[%s] ERROR: %s\n",node_name.c_str(),diagnostic_status.Description.c_str());
     	return false;
     }
     
@@ -526,8 +506,6 @@ bool initialize(ros::NodeHandle nh)
 	device_resourceavail_pub = nh.advertise<icarus_rover_v2::resource>(device_resourceavail_topic,1000);
 
     std::string param_verbosity_level = node_name +"/verbosity_level";
-	std::string device_topic = "/" + node_name + "/device";
-    device_pub = nh.advertise<icarus_rover_v2::device>(device_topic,1000);
     if(nh.getParam(param_verbosity_level,verbosity_level) == false)
     {
         logger = new Logger("WARN",ros::this_node::getName());
@@ -605,7 +583,7 @@ bool initialize(ros::NodeHandle nh)
     if(resourcemonitor == NULL)
     {
         logger->log_error("Couldn't initialize resourcemonitor. Exiting.\n");
-        printf("[MasterNode]: Couldn't initialize resourcemonitor. Exiting.\n");
+        printf("[%s]: Couldn't initialize resourcemonitor. Exiting.\n",node_name.c_str());
         return false;
     }
     system("rosnode list -ua > /home/robot/config/AllNodeList");
@@ -614,7 +592,7 @@ bool initialize(ros::NodeHandle nh)
     if(update_nodelist == false)
     {
         logger->log_error("Couldn't initialize ActiveNodeList. Exiting.\n");
-        printf("[MasterNode]: Couldn't initialize ActiveNodeList. Exiting.\n");
+        printf("[%s]: Couldn't initialize ActiveNodeList. Exiting.\n",node_name.c_str());
         return false;
     }
     device_temperature = -100.0;
@@ -632,14 +610,14 @@ bool initialize(ros::NodeHandle nh)
     if(diagnostic_status.Level > NOTICE)
     {
         logger->log_error("Unable to find Serial Ports. Exiting.");
-        printf("[MasterNode]: Unable to find Serial Ports. Exiting.\n");
+        printf("[%s]: Unable to find Serial Ports. Exiting.\n",node_name.c_str());
         return false;
     }
 
     if(check_serialports() == false)
     {
         logger->log_error("Unable to check Serial Ports. Exiting.");
-        printf("[MasterNode]: Unable to check Serial Ports. Exiting.\n");
+        printf("[%s]: Unable to check Serial Ports. Exiting.\n",node_name.c_str());
         return false;
     }
     else
@@ -647,7 +625,7 @@ bool initialize(ros::NodeHandle nh)
     	logger->log_notice("Serial Port Check Complete.");
     	//printf("[MasterNode]: Serial Port Check Complete.\n");
     }
-
+    process.set_initialized(true);
     //Finish User Code: Initialization and Parameters
 
     //Start Template Code: Final Initialization.
@@ -655,6 +633,7 @@ bool initialize(ros::NodeHandle nh)
 	diagnostic_status.Level = INFO;
 	diagnostic_status.Diagnostic_Message = NOERROR;
 	diagnostic_status.Description = "Node Initialized";
+	process.set_diagnostic(diagnostic_status);
 	diagnostic_pub.publish(diagnostic_status);
     logger->log_info("Initialized!");
     return true;

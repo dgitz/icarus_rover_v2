@@ -1,32 +1,112 @@
 #include "master_node_process.h"
-
+/*! \brief Constructor
+ */
 MasterNodeProcess::MasterNodeProcess()
 {
+	initialized = false;
+	run_time = 0.0;
 	SerialMessageHandler *serialmessagehandler = new SerialMessageHandler;
 }
+/*! \brief Deconstructor
+ */
 MasterNodeProcess::~MasterNodeProcess()
 {
 
 }
+/*! \brief Initialize Process
+ */
 icarus_rover_v2::diagnostic MasterNodeProcess::init(icarus_rover_v2::diagnostic indiag,std::string hostname)
 {
 	myhostname = hostname;
 	diagnostic = indiag;
 	mydevice.DeviceName = hostname;
-
 	return diagnostic;
 }
+/*! \brief Time Update of Process
+ */
 icarus_rover_v2::diagnostic MasterNodeProcess::update(double dt)
 {
-   
-	return diagnostic;
+	run_time += dt;
+	icarus_rover_v2::diagnostic diag = diagnostic;
+	diag.Diagnostic_Type = NOERROR;
+	diag.Level = INFO;
+	diag.Diagnostic_Message = NOERROR;
+	diag.Description = "Node Running";
+	diagnostic = diag;
+	return diag;
 }
-
-icarus_rover_v2::diagnostic MasterNodeProcess::new_devicemsg(icarus_rover_v2::device newdevice)
+/*! \brief Process Command Message
+ */
+std::vector<icarus_rover_v2::diagnostic> MasterNodeProcess::new_commandmsg(icarus_rover_v2::command cmd)
 {
-    icarus_rover_v2::diagnostic diag = diagnostic;
-    return diag;
-    
+	std::vector<icarus_rover_v2::diagnostic> diaglist;
+	icarus_rover_v2::diagnostic diag = diagnostic;
+	if (cmd.Command ==  DIAGNOSTIC_ID)
+	{
+		if(cmd.Option1 == LEVEL1)
+		{
+			diaglist.push_back(diag);
+			return diaglist;
+		}
+		else if(cmd.Option1 == LEVEL2)
+		{
+			diaglist = check_program_variables();
+			return diaglist;
+		}
+		else if(cmd.Option1 == LEVEL3)
+		{
+		}
+		else if(cmd.Option1 == LEVEL4)
+		{
+		}
+	}
+	diaglist.push_back(diag);
+	return diaglist;
+}
+/*! \brief Self-Diagnostic-Check Program Variables
+ */
+std::vector<icarus_rover_v2::diagnostic> MasterNodeProcess::check_program_variables()
+{
+	std::vector<icarus_rover_v2::diagnostic> diaglist;
+	icarus_rover_v2::diagnostic diag=diagnostic;
+	bool status = true;
+	if(initialized == false)
+	{
+		status = false;
+		diag.Diagnostic_Type = SOFTWARE;
+		diag.Level = WARN;
+		diag.Diagnostic_Message = INITIALIZING;
+		diag.Description = "Node Not Initialized Yet.";
+		diaglist.push_back(diag);
+	}
+	if(allDevices.size() == 0)
+	{
+		status = false;
+		diag.Diagnostic_Type = DATA_STORAGE;
+		diag.Level = ERROR;
+		diag.Diagnostic_Message = INITIALIZING_ERROR;
+		diag.Description = "No Devices read at all in DeviceFile.xml";
+		diaglist.push_back(diag);
+	}
+	if(status == true)
+	{
+
+		diag.Diagnostic_Type = SOFTWARE;
+		diag.Level = NOTICE;
+		diag.Diagnostic_Message = DIAGNOSTIC_PASSED;
+		diag.Description = "Checked Program Variables -> PASSED";
+		diaglist.push_back(diag);
+	}
+	else
+	{
+
+		diag.Diagnostic_Type = SOFTWARE;
+		diag.Level = WARN;
+		diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
+		diag.Description = "Checked Program Variables -> FAILED";
+		diaglist.push_back(diag);
+	}
+	return diaglist;
 }
 bool MasterNodeProcess::new_serialmessage(std::string serialport,std::string baudrate,unsigned char* message,int length)
 {
@@ -505,10 +585,7 @@ icarus_rover_v2::diagnostic MasterNodeProcess::load_devicefile(std::string path)
 	            	mydevice = newDevice;
                     mydevice_assigned = true;
 	            }
-	            else
-	            {
-	            	allDevices.push_back(newDevice);
-	            }
+	            allDevices.push_back(newDevice);
 	            l_pDevice = l_pDevice->NextSiblingElement( "Device" );
 	        }
 	    }

@@ -2,9 +2,11 @@
 //Start User Code: Firmware Definition
 #define DIAGNOSTICNODE_MAJOR_RELEASE 2
 #define DIAGNOSTICNODE_MINOR_RELEASE 3
-#define DIAGNOSTICNODE_BUILD_NUMBER 0
+#define DIAGNOSTICNODE_BUILD_NUMBER 1
 //End User Code: Firmware Definition
 //Start User Code: Functions
+/*! \brief User Loop1 Code
+ */
 bool run_loop1_code()
 {
 	if(check_tasks() == false)
@@ -13,11 +15,13 @@ bool run_loop1_code()
 	}
 	return true;
 }
+/*! \brief User Loop2 Code
+ */
 bool run_loop2_code()
 {
 	if(Log_Resources_Used == 1)
 	{
-		if(measure_time_diff(ros::Time::now(),boot_time) > 20.0) //Wait 5 seconds for all Nodes to start.
+		if(measure_time_diff(ros::Time::now(),boot_time) > 20.0) //Wait 20 seconds for all Nodes to start.
 		{
 			log_resources();
 		}
@@ -27,8 +31,15 @@ bool run_loop2_code()
     ready_to_arm_pub.publish(bool_ready_to_arm);
  	return true;
 }
+/*! \brief User Loop3 Code
+ */
 bool run_loop3_code()
 {
+	icarus_rover_v2::diagnostic diag = process->update(1.0/(double)loop3_rate);
+	if(diag.Level > NOTICE)
+	{
+		diagnostic_pub.publish(diag);
+	}
  	return true;
 }
 icarus_rover_v2::diagnostic rescan_topics(icarus_rover_v2::diagnostic diag)
@@ -379,6 +390,8 @@ bool check_tasks()
 	}
 	return true;
 }
+/*! \brief 0.1 PULSE PER SECOND User Code
+ */
 void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
 	diagnostic_status = rescan_topics(diagnostic_status);
@@ -386,12 +399,15 @@ void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg)
 	icarus_rover_v2::firmware fw;
 	fw.Generic_Node_Name = "diagnostic_node";
 	fw.Node_Name = node_name;
-	fw.Description = "Latest Rev: 8-April-2017";
+	fw.Description = "Latest Rev: 29-December-2017";
 	fw.Major_Release = DIAGNOSTICNODE_MAJOR_RELEASE;
 	fw.Minor_Release = DIAGNOSTICNODE_MINOR_RELEASE;
 	fw.Build_Number = DIAGNOSTICNODE_BUILD_NUMBER;
 	firmware_pub.publish(fw);
+	printf("t=%4.2f (sec) [%s]: %s\n",ros::Time::now().toSec(),node_name.c_str(),process->get_diagnostic().Description.c_str());
 }
+/*! \brief 1.0 PULSE PER SECOND User Code
+ */
 void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
 	received_pps = true;
@@ -408,6 +424,7 @@ void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 			resources_used = resourcemonitor->get_resourceused();
 			resource_pub.publish(resources_used);
 			diagnostic_pub.publish(resource_diagnostic);
+			logger->log_diagnostic(resource_diagnostic);
 		}
 		else if(resource_diagnostic.Level <= NOTICE)
 		{
@@ -415,7 +432,43 @@ void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 			resource_pub.publish(resources_used);
 		}
 	}
+	else
+    {
+    	{
+			icarus_rover_v2::srv_device srv;
+			srv.request.query = "SELF";
+			if(srv_device.call(srv) == true)
+			{
+				if(srv.response.data.size() != 1)
+				{
+					logger->log_error("Got unexpected device message");
+				}
+				else
+				{
+					bool status = new_devicemsg(srv.request.query,srv.response.data.at(0));
+				}
+			}
+    	}
+    }
+    diagnostic_pub.publish(process->get_diagnostic());
 }
+void Command_Callback(const icarus_rover_v2::command::ConstPtr& msg)
+{
+	icarus_rover_v2::command command;
+	command.Command = msg->Command;
+	command.Option1 = msg->Option1;
+	command.Option2 = msg->Option2;
+	command.Option3 = msg->Option3;
+	command.CommandText = msg->CommandText;
+	command.Description = msg->Description;
+	std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(command);
+	for(std::size_t i = 0; i < diaglist.size(); i++)
+	{
+		logger->log_diagnostic(diaglist.at(i));
+		diagnostic_pub.publish(diaglist.at(i));
+	}
+}
+
 void resource_Callback(const icarus_rover_v2::resource::ConstPtr& msg,const std::string &topicname)
 {
 	for(int i = 0; i < TaskList.size();i++)
@@ -493,59 +546,7 @@ void diagnostic_Callback(const icarus_rover_v2::diagnostic::ConstPtr& msg,const 
 			break;
 	}
 }
-std::vector<icarus_rover_v2::diagnostic> check_program_variables()
-{
-	std::vector<icarus_rover_v2::diagnostic> diaglist;
-	bool status = true;
-	logger->log_notice("checking program variables.");
 
-	if(status == true)
-	{
-		icarus_rover_v2::diagnostic diag=diagnostic_status;
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Level = NOTICE;
-		diag.Diagnostic_Message = DIAGNOSTIC_PASSED;
-		diag.Description = "Checked Program Variables -> PASSED";
-		diaglist.push_back(diag);
-	}
-	else
-	{
-		icarus_rover_v2::diagnostic diag=diagnostic_status;
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Level = WARN;
-		diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
-		diag.Description = "Checked Program Variables -> FAILED";
-		diaglist.push_back(diag);
-	}
-	return diaglist;
-}
-
-void Command_Callback(const icarus_rover_v2::command::ConstPtr& msg)
-{
-	//logger->log_info("Got command");
-	if (msg->Command ==  DIAGNOSTIC_ID)
-	{
-		if(msg->Option1 == LEVEL1)
-		{
-			diagnostic_pub.publish(diagnostic_status);
-		}
-		else if(msg->Option1 == LEVEL2)
-		{
-			std::vector<icarus_rover_v2::diagnostic> diaglist = check_program_variables();
-			for(int i = 0; i < diaglist.size();i++) { diagnostic_pub.publish(diaglist.at(i)); }
-		}
-		else if(msg->Option1 == LEVEL3)
-		{
-		}
-		else if(msg->Option1 == LEVEL4)
-		{
-		}
-		else
-		{
-			logger->log_error("Shouldn't get here!!!");
-		}
-	}
-}
 //End User Code: Functions
 bool run_10Hz_code()
 {
@@ -577,7 +578,6 @@ int main(int argc, char **argv)
     }
     ros::Rate loop_rate(ros_rate);
 	boot_time = ros::Time::now();
-    now = ros::Time::now();
     last_10Hz_timer = ros::Time::now();
     double mtime;
     while (ros::ok() && (kill_node == 0))
@@ -587,10 +587,9 @@ int main(int argc, char **argv)
 		else if(require_pps_to_start == true && received_pps == true) { ok_to_start = true; }
     	if(ok_to_start == true)
     	{
-    		now = ros::Time::now();
             if(run_loop1 == true)
             {
-                mtime = measure_time_diff(now,last_loop1_timer);
+                mtime = measure_time_diff(ros::Time::now(),last_loop1_timer);
                 if(mtime >= (1.0/loop1_rate))
                 {
                     run_loop1_code();
@@ -599,7 +598,7 @@ int main(int argc, char **argv)
             }
             if(run_loop2 == true)
             {
-                mtime = measure_time_diff(now,last_loop2_timer);
+                mtime = measure_time_diff(ros::Time::now(),last_loop2_timer);
                 if(mtime >= (1.0/loop2_rate))
                 {
                     run_loop2_code();
@@ -608,7 +607,7 @@ int main(int argc, char **argv)
             }
             if(run_loop3 == true)
             {
-                mtime = measure_time_diff(now,last_loop3_timer);
+                mtime = measure_time_diff(ros::Time::now(),last_loop3_timer);
                 if(mtime >= (1.0/loop3_rate))
                 {
                     run_loop3_code();
@@ -616,7 +615,7 @@ int main(int argc, char **argv)
                 }
             }
             
-            mtime = measure_time_diff(now,last_10Hz_timer);
+            mtime = measure_time_diff(ros::Time::now(),last_10Hz_timer);
             if(mtime >= 0.1)
             {
                 run_10Hz_code();
@@ -661,11 +660,14 @@ bool initializenode()
 	std::string heartbeat_topic = "/" + node_name + "/heartbeat";
 	heartbeat_pub = n->advertise<icarus_rover_v2::heartbeat>(heartbeat_topic,1000);
 	beat.Node_Name = node_name;
+ 	std::string device_topic = "/" + std::string(hostname) + "_master_node/srv_device";
+    srv_device = n->serviceClient<icarus_rover_v2::srv_device>(device_topic);
+
 	command_sub = n->subscribe<icarus_rover_v2::command>("/command",1000,Command_Callback);
 	pps01_sub = n->subscribe<std_msgs::Bool>("/01PPS",1000,PPS01_Callback); 
     pps1_sub = n->subscribe<std_msgs::Bool>("/1PPS",1000,PPS1_Callback); 
-	std::string device_topic = "/" + std::string(hostname) +"_master_node/device";
-	device_sub = n->subscribe<icarus_rover_v2::device>(device_topic,1000,Device_Callback);
+
+
  	std::string param_require_pps_to_start = node_name +"/require_pps_to_start";
     if(n->getParam(param_require_pps_to_start,require_pps_to_start) == false)
 	{
@@ -727,12 +729,14 @@ bool initializenode()
 	diagnostic_status.Node_Name = node_name;
 	diagnostic_status.System = ROVER;
 	diagnostic_status.SubSystem = ROBOT_CONTROLLER;
-	diagnostic_status.Component = TIMING_NODE;
-
+	diagnostic_status.Component = DIAGNOSTIC_NODE;
+	
 	diagnostic_status.Diagnostic_Type = NOERROR;
 	diagnostic_status.Level = INFO;
 	diagnostic_status.Diagnostic_Message = INITIALIZING;
 	diagnostic_status.Description = "Node Initializing";
+	process = new DiagnosticNodeProcess;
+	diagnostic_status = process->init(diagnostic_status,std::string(hostname));
 	diagnostic_pub.publish(diagnostic_status);
 	std::string param_ram_usage_threshold = node_name +"/RAM_usage_threshold_MB";
 	if(n->getParam(param_ram_usage_threshold,RAM_usage_threshold_MB) == false)
@@ -766,18 +770,28 @@ double measure_time_diff(ros::Time timer_a, ros::Time timer_b)
 	ros::Duration etime = timer_a - timer_b;
 	return etime.toSec();
 }
-void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg)
+bool new_devicemsg(std::string query,icarus_rover_v2::device device)
 {
-	icarus_rover_v2::device newdevice;
-	newdevice.DeviceName = msg->DeviceName;
-	newdevice.Architecture = msg->Architecture;
 
-	if((newdevice.DeviceName == hostname) && (device_initialized == false))
+	if(query == "SELF")
 	{
-		myDevice = newdevice;
-		resourcemonitor = new ResourceMonitor(diagnostic_status,myDevice.Architecture,myDevice.DeviceName,node_name);
-		device_initialized = true;
+		if((device.DeviceName == hostname))
+		{
+			myDevice = device;
+			resourcemonitor = new ResourceMonitor(diagnostic_status,myDevice.Architecture,myDevice.DeviceName,node_name);
+			process->set_mydevice(device);
+			device_initialized = true;
+		}
 	}
+
+	if((device_initialized == true))
+	{
+		icarus_rover_v2::diagnostic diag = process->new_devicemsg(device);
+		if(process->get_initialized() == true)
+		{
+		}
+	}
+	return true;
 }
 void signalinterrupt_handler(int sig)
 {

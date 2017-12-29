@@ -1,3 +1,4 @@
+//OBSOLETE
 #ifndef TFHELPER_NODE_H
 #define TFHELPER_NODE_H
 //Start Template Code: Includes

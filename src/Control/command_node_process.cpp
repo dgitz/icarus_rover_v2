@@ -1,5 +1,6 @@
 #include "command_node_process.h"
-
+/*! \brief Constructor
+ */
 CommandNodeProcess::CommandNodeProcess()
 {
 	ms_timer = 0;
@@ -15,10 +16,14 @@ CommandNodeProcess::CommandNodeProcess()
 	node_state = NODESTATE_BOOTING;
     //armedcommand = ARMEDCOMMAND_DISARM;
 }
+/*! \brief Deconstructor
+ */
 CommandNodeProcess::~CommandNodeProcess()
 {
 
 }
+/*! \brief Initialize Process
+ */
 icarus_rover_v2::diagnostic CommandNodeProcess::init(icarus_rover_v2::diagnostic indiag,
 		Logger *log,std::string hostname)
 {
@@ -135,10 +140,15 @@ icarus_rover_v2::diagnostic CommandNodeProcess::new_user_commandmsg(icarus_rover
         return diagnostic;
     }
 }
+/*! \brief Time Update of Process
+ */
 icarus_rover_v2::diagnostic CommandNodeProcess::update(double dt)
 {
+	run_time += dt;
+	icarus_rover_v2::diagnostic diag = diagnostic;
     node_state = NODESTATE_RUNNING; //Hack
     batterylevel_perc = 0.0;
+    /*
 	if((node_state == NODESTATE_RUNNING) && (current_command.Command == ROVERCOMMAND_NONE))
 	{
 		if(batterylevel_perc < BATTERYLEVEL_TO_RECHARGE)
@@ -171,7 +181,7 @@ icarus_rover_v2::diagnostic CommandNodeProcess::update(double dt)
 	{
 		node_state = NODESTATE_RUNNING;
 	}
-
+	*/
     bool temp = true;
     for(int i = 0; i < ReadyToArmList.size();i++)
     {
@@ -205,21 +215,23 @@ icarus_rover_v2::diagnostic CommandNodeProcess::update(double dt)
     		armeddisarmed_state = ARMEDSTATUS_DISARMED;
     	}
     }
-    run_time += dt;
-	
-    if(current_command.Command == ROVERCOMMAND_NONE)
+    for(std::size_t i = 0; i < periodic_commands.size(); i++)
     {
-    	for(int i = 0; i < periodic_commands.size(); i++)
+    	double time_to_run = periodic_commands.at(i).lasttime_ran + (1.0/periodic_commands.at(i).rate_hz);
+    	if(time_to_run <= run_time)
     	{
-    		double time_to_run = periodic_commands.at(i).lasttime_ran + (1.0/periodic_commands.at(i).rate_hz);
-    		if(time_to_run <= run_time)
-    		{
-    			current_command = periodic_commands.at(i).command;
-    			periodic_commands.at(i).lasttime_ran = run_time;
-    		}
+    		periodic_commands.at(i).send_me = true;
+    		periodic_commands.at(i).lasttime_ran = run_time;
     	}
     }
-	return diagnostic;
+	
+
+	diag.Diagnostic_Type = NOERROR;
+	diag.Level = INFO;
+	diag.Diagnostic_Message = NOERROR;
+	diag.Description = "Node Running";
+	diagnostic = diag;
+	return diag;
 }
 
 icarus_rover_v2::diagnostic CommandNodeProcess::new_targetmsg(std::string target)
@@ -260,6 +272,8 @@ icarus_rover_v2::diagnostic CommandNodeProcess::new_targetmsg(std::string target
 		return diagnostic;
 	}
 }
+/*! \brief Setup Process Device info
+ */
 icarus_rover_v2::diagnostic CommandNodeProcess::new_devicemsg(icarus_rover_v2::device newdevice)
 {
 	if((newdevice.DeviceName == myhostname) && (all_device_info_received == false))
@@ -271,11 +285,113 @@ icarus_rover_v2::diagnostic CommandNodeProcess::new_devicemsg(icarus_rover_v2::d
 	}
 	return diagnostic;
 }
-icarus_rover_v2::diagnostic CommandNodeProcess::init_PeriodicCommands(std::vector<PeriodicCommand> commands)
+/*! \brief Process Command Message
+ */
+std::vector<icarus_rover_v2::diagnostic> CommandNodeProcess::new_commandmsg(icarus_rover_v2::command cmd)
 {
+	std::vector<icarus_rover_v2::diagnostic> diaglist;
+	icarus_rover_v2::diagnostic diag = diagnostic;
+	if (cmd.Command ==  DIAGNOSTIC_ID)
+	{
+		if(cmd.Option1 == LEVEL1)
+		{
+			diaglist.push_back(diag);
+			return diaglist;
+		}
+		else if(cmd.Option1 == LEVEL2)
+		{
+			diaglist = check_program_variables();
+			return diaglist;
+		}
+		else if(cmd.Option1 == LEVEL3)
+		{
+		}
+		else if(cmd.Option1 == LEVEL4)
+		{
+		}
+	}
+	diaglist.push_back(diag);
+	return diaglist;
+}
+/*! \brief Self-Diagnostic-Check Program Variables
+ */
+std::vector<icarus_rover_v2::diagnostic> CommandNodeProcess::check_program_variables()
+{
+	std::vector<icarus_rover_v2::diagnostic> diaglist;
+	bool status = true;
+
+	if(status == true)
+	{
+		icarus_rover_v2::diagnostic diag=diagnostic;
+		diag.Diagnostic_Type = SOFTWARE;
+		diag.Level = NOTICE;
+		diag.Diagnostic_Message = DIAGNOSTIC_PASSED;
+		diag.Description = "Checked Program Variables -> PASSED";
+		diaglist.push_back(diag);
+	}
+	else
+	{
+		icarus_rover_v2::diagnostic diag=diagnostic;
+		diag.Diagnostic_Type = SOFTWARE;
+		diag.Level = WARN;
+		diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
+		diag.Description = "Checked Program Variables -> FAILED";
+		diaglist.push_back(diag);
+	}
+	return diaglist;
+}
+std::vector<icarus_rover_v2::command> CommandNodeProcess::get_PeriodicCommands()
+{
+	std::vector<icarus_rover_v2::command> sendlist;
+	for(std::size_t i = 0; i < periodic_commands.size(); i++)
+	{
+		if(periodic_commands.at(i).send_me == true)
+		{
+			sendlist.push_back(periodic_commands.at(i).command);
+			periodic_commands.at(i).send_me = false;
+		}
+	}
+	return sendlist;
+}
+icarus_rover_v2::diagnostic CommandNodeProcess::init_PeriodicCommands()
+{
+	std::vector<PeriodicCommand> commands;
+	{
+		icarus_rover_v2::command cmd;
+		cmd.Command = ROVERCOMMAND_RUNDIAGNOSTIC;
+		cmd.Option1 = LEVEL1;
+		cmd.Description = "Low-Level Diagnostics";
+		PeriodicCommand period_cmd;
+		period_cmd.command = cmd;
+		period_cmd.rate_hz = 10.0;
+		commands.push_back(period_cmd);
+	}
+	{
+		icarus_rover_v2::command cmd;
+		cmd.Command = ROVERCOMMAND_RUNDIAGNOSTIC;
+		cmd.Option1 = LEVEL1;
+		cmd.Description = "Mid-Level Diagnostics";
+		PeriodicCommand period_cmd;
+		period_cmd.command = cmd;
+		period_cmd.rate_hz = 1.0;
+		commands.push_back(period_cmd);
+	}
+	{
+		icarus_rover_v2::command cmd;
+		cmd.Command = ROVERCOMMAND_RUNDIAGNOSTIC;
+		cmd.Option1 = LEVEL1;
+		cmd.Description = "High-Level Diagnostics";
+		PeriodicCommand period_cmd;
+		period_cmd.command = cmd;
+		period_cmd.rate_hz = 0.1;
+		commands.push_back(period_cmd);
+	}
+
+
 	for(int i = 0; i < commands.size(); i++)
 	{
 		commands.at(i).lasttime_ran = 0.0;
+		commands.at(i).send_me = true;
 	}
 	periodic_commands = commands;
 	diagnostic.Level = INFO;

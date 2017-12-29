@@ -86,6 +86,7 @@ double ros_rate;
 //End Template Code: Define Global Variables
 
 //Start User Code: Define Global Variables
+double run_time;
 ros::Publisher pps01_pub;
 ros::Publisher pps1_pub;
 ros::Time pps01_timer;

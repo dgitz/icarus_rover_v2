@@ -1,6 +1,7 @@
 #include "simulate_node_process.h"
 SimulateNodeProcess::SimulateNodeProcess()
 {
+	initialized = false;
 	action_index = 0;
 	time_in_action = 0.0;
 	pose_ready = false;
@@ -11,6 +12,10 @@ SimulateNodeProcess::~SimulateNodeProcess()
 
 }
 
+icarus_rover_v2::diagnostic SimulateNodeProcess::new_devicemsg(icarus_rover_v2::device v)
+{
+	return diagnostic;
+}
 icarus_rover_v2::diagnostic SimulateNodeProcess::update(double dt)
 {
 	icarus_rover_v2::diagnostic diag = diagnostic;

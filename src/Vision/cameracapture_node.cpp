@@ -5,6 +5,8 @@
 #define CAMERACAPTURENODE_BUILD_NUMBER 0
 //End User Code: Firmware Definition
 //Start User Code: Functions
+/*! \brief User Loop1 Code
+ */
 bool run_loop1_code()
 {
 	if(operation_mode == "capture")
@@ -15,10 +17,14 @@ bool run_loop1_code()
 	}
 	return true;
 }
+/*! \brief User Loop2 Code
+ */
 bool run_loop2_code()
 {
  	return true;
 }
+/*! \brief User Loop3 Code
+ */
 bool run_loop3_code()
 {
  	return true;
@@ -150,6 +156,8 @@ bool Edge_Detection(cv::Mat gray_image,int,void*)
 	proc_image_pub.publish(proc_image.toImageMsg());
 	return true;
 }
+/*! \brief 0.1 PULSE PER SECOND User Code
+ */
 void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
 	icarus_rover_v2::firmware fw;
@@ -161,6 +169,8 @@ void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg)
 	fw.Build_Number = CAMERACAPTURENODE_BUILD_NUMBER;
 	firmware_pub.publish(fw);
 }
+/*! \brief 1.0 PULSE PER SECOND User Code
+ */
 void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
 	received_pps = true;
@@ -184,7 +194,27 @@ void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 			resource_pub.publish(resources_used);
 		}
 	}
+	else
+    {
+    	{
+			icarus_rover_v2::srv_device srv;
+			srv.request.query = "SELF";
+			if(srv_device.call(srv) == true)
+			{
+				if(srv.response.data.size() != 1)
+				{
+					logger->log_error("Got unexpected device message");
+				}
+				else
+				{
+					bool status = new_devicemsg(srv.request.query,srv.response.data.at(0));
+				}
+			}
+    	}
+    }
 }
+/*! \brief Self-Diagnostic-Check Program Variables
+ */
 std::vector<icarus_rover_v2::diagnostic> check_program_variables()
 {
 	std::vector<icarus_rover_v2::diagnostic> diaglist;
@@ -278,10 +308,9 @@ int main(int argc, char **argv)
 		else if(require_pps_to_start == true && received_pps == true) { ok_to_start = true; }
     	if(ok_to_start == true)
     	{
-    		now = ros::Time::now();
             if(run_loop1 == true)
             {
-                mtime = measure_time_diff(now,last_loop1_timer);
+                mtime = measure_time_diff(ros::Time::now(),last_loop1_timer);
                 if(mtime >= (1.0/loop1_rate))
                 {
                     run_loop1_code();
@@ -290,7 +319,7 @@ int main(int argc, char **argv)
             }
             if(run_loop2 == true)
             {
-                mtime = measure_time_diff(now,last_loop2_timer);
+                mtime = measure_time_diff(ros::Time::now(),last_loop2_timer);
                 if(mtime >= (1.0/loop2_rate))
                 {
                     run_loop2_code();
@@ -299,7 +328,7 @@ int main(int argc, char **argv)
             }
             if(run_loop3 == true)
             {
-                mtime = measure_time_diff(now,last_loop3_timer);
+                mtime = measure_time_diff(ros::Time::now(),last_loop3_timer);
                 if(mtime >= (1.0/loop3_rate))
                 {
                     run_loop3_code();
@@ -307,7 +336,7 @@ int main(int argc, char **argv)
                 }
             }
             
-            mtime = measure_time_diff(now,last_10Hz_timer);
+            mtime = measure_time_diff(ros::Time::now(),last_10Hz_timer);
             if(mtime >= 0.1)
             {
                 run_10Hz_code();
@@ -371,8 +400,11 @@ bool initialize(ros::NodeHandle nh)
     std::string heartbeat_topic = "/" + node_name + "/heartbeat";
     heartbeat_pub = nh.advertise<icarus_rover_v2::heartbeat>(heartbeat_topic,1000);
     beat.Node_Name = node_name;
-    std::string device_topic = "/" + std::string(hostname) +"_master_node/device";
-    device_sub = nh.subscribe<icarus_rover_v2::device>(device_topic,1000,Device_Callback);
+    std::string device_topic = "/" + std::string(hostname) + "_master_node/srv_device";
+    srv_device = nh.serviceClient<icarus_rover_v2::srv_device>(device_topic);
+
+    //std::string device_topic = "/" + std::string(hostname) +"_master_node/device";
+    //device_sub = nh.subscribe<icarus_rover_v2::device>(device_topic,1000,Device_Callback);
     pps01_sub = nh.subscribe<std_msgs::Bool>("/01PPS",1000,PPS01_Callback); 
     pps1_sub = nh.subscribe<std_msgs::Bool>("/1PPS",1000,PPS1_Callback); 
     command_sub = nh.subscribe<icarus_rover_v2::command>("/command",1000,Command_Callback);
@@ -384,8 +416,8 @@ bool initialize(ros::NodeHandle nh)
 	}
     std::string firmware_topic = "/" + node_name + "/firmware";
     firmware_pub =  nh.advertise<icarus_rover_v2::firmware>(firmware_topic,1000);
-
-	double max_rate = 0.0;
+    
+    double max_rate = 0.0;
     std::string param_loop1_rate = node_name + "/loop1_rate";
     if(nh.getParam(param_loop1_rate,loop1_rate) == false)
     {
@@ -615,18 +647,28 @@ double measure_time_diff(ros::Time timer_a, ros::Time timer_b)
 	ros::Duration etime = timer_a - timer_b;
 	return etime.toSec();
 }
-void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg)
+bool new_devicemsg(std::string query,icarus_rover_v2::device device)
 {
-	icarus_rover_v2::device newdevice;
-	newdevice.DeviceName = msg->DeviceName;
-	newdevice.Architecture = msg->Architecture;
 
-	if((newdevice.DeviceName == hostname) && (device_initialized == false))
+	if(query == "SELF")
 	{
-		myDevice = newdevice;
-		resourcemonitor = new ResourceMonitor(diagnostic_status,myDevice.Architecture,myDevice.DeviceName,node_name);
-		device_initialized = true;
+		if((device.DeviceName == hostname))
+		{
+			myDevice = device;
+			resourcemonitor = new ResourceMonitor(diagnostic_status,myDevice.Architecture,myDevice.DeviceName,node_name);
+			process->set_mydevice(device);
+			device_initialized = true;
+		}
 	}
+
+	if((device_initialized == true))
+	{
+		icarus_rover_v2::diagnostic diag = process->new_devicemsg(device);
+		if(process->get_initialized() == true)
+		{
+		}
+	}
+	return true;
 }
 void signalinterrupt_handler(int sig)
 {

@@ -28,8 +28,21 @@ public:
 	~SampleNodeProcess();
 	icarus_rover_v2::diagnostic init(icarus_rover_v2::diagnostic indiag,std::string hostname);
 	icarus_rover_v2::diagnostic update(double dt);
+	void set_diagnostic(icarus_rover_v2::diagnostic v) { diagnostic = v; }
+	icarus_rover_v2::diagnostic get_diagnostic() { return diagnostic; }
+	double get_runtime() { return run_time; }
+	icarus_rover_v2::device get_mydevice() { return mydevice; }
+	icarus_rover_v2::diagnostic new_devicemsg(icarus_rover_v2::device device);
+	void set_mydevice(icarus_rover_v2::device device) { mydevice = device; }
+	bool get_initialized() { return initialized; }
+	std::vector<icarus_rover_v2::diagnostic> new_commandmsg(icarus_rover_v2::command cmd);
+	std::vector<icarus_rover_v2::diagnostic> check_program_variables();
     
 private:
+	double run_time;
 	icarus_rover_v2::diagnostic diagnostic;
+	icarus_rover_v2::device mydevice;
+	std::string myhostname;
+	bool initialized;
 };
 #endif

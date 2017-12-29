@@ -65,6 +65,9 @@ public:
 	~SimulateNodeProcess();
 	icarus_rover_v2::diagnostic init(icarus_rover_v2::diagnostic indiag,std::string hostname);
 	icarus_rover_v2::diagnostic update(double dt);
+	void set_mydevice(icarus_rover_v2::device v) { mydevice = v; }
+	icarus_rover_v2::diagnostic new_devicemsg(icarus_rover_v2::device v);
+	bool get_initialized() { return initialized; }
 	bool load_scriptfile(std::string path);
 	icarus_rover_v2::pose get_pose() { return pose; }
 	void set_throttlecommand(double v) { throttle_command = v; }
@@ -102,6 +105,8 @@ public:
 	std::string get_currentcommand() { return current_action.Command; }
     
 private:
+	icarus_rover_v2::device mydevice;
+	bool initialized;
 	bool load_configfiles();
 	double get_rand();
 	bool pose_ready;

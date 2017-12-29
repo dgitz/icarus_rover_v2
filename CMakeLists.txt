@@ -75,16 +75,14 @@ add_message_files(
   pose.msg
   controlgroup.msg
   encoder.msg
-  leverarm.msg
 )
 
 ## Generate services in the 'srv' folder
- add_service_files(
-   FILES
-   srv_device.srv
-   srv_connection.srv
-   srv_leverarm.srv
- )
+# add_service_files(
+#   FILES
+#   Service1.srv
+#   Service2.srv
+# )
 
 ## Generate actions in the 'action' folder
 # add_action_files(
@@ -162,7 +160,6 @@ include_directories(
 ## either from message generation or dynamic reconfigure
 # add_dependencies(icarus_rover_v2 ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
-
 ## Declare a C++ executable
 # add_executable(icarus_rover_v2_node src/icarus_rover_v2_node.cpp)
 
@@ -235,15 +232,14 @@ add_library(command_node_process src/Control/command_node_process.cpp)
 add_library(hatcontroller_node_process src/Board/hatcontroller_node_process.cpp)
 add_library(safety_node_process src/Diagnostics/safety_node_process.cpp)
 add_library(network_transceiver_node_process src/Communication/network_transceiver_node_process.cpp)
-add_library(pose_node_process src/Pose/pose_node_process.cpp src/Pose/blocks/time_compensate/time_compensate.cpp)
 #add_library(powermonitor_node_process src/Control/powermonitor_node_process.cpp)
 add_library(autodrive_node_process src/Control/autodrive_node_process.cpp)
 add_library(boardcontroller_node_process src/Board/boardcontroller_node_process.cpp)
 add_library(commandlauncher_node_process src/Control/commandlauncher_node_process.cpp)
-add_library(imu_node_process src/Pose/imu_node_process.cpp util/serialmessage.cpp)
-add_library(truth_node_process src/Pose/truth_node_process.cpp util/serialmessage.cpp)
-add_library(master_node_process src/Control/master_node_process.cpp util/serialmessage.cpp)
 add_library(simulate_node_process src/Simulate/simulate_node_process.cpp)
+add_library(master_node_process src/Control/master_node_process.cpp util/serialmessage.cpp)
+add_library(diagnostic_node_process src/Diagnostics/diagnostic_node_process.cpp)
+add_library(pose_node_process src/Pose/pose_node_process.cpp src/Pose/blocks/time_compensate/time_compensate.cpp)
 
 add_executable(sample_node src_templates/sample_node.cpp)
 target_link_libraries(sample_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor sample_node_process)
@@ -255,7 +251,7 @@ add_executable(timemaster_node src/Timing/timemaster_node.cpp)
 target_link_libraries(timemaster_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor)
 
 add_executable(diagnostic_node src/Diagnostics/diagnostic_node.cpp)
-target_link_libraries(diagnostic_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} logger resourcemonitor)
+target_link_libraries(diagnostic_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} diagnostic_node_process logger resourcemonitor)
 
 add_executable(network_transceiver_node src/Communication/network_transceiver_node.cpp)
 target_link_libraries(network_transceiver_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} logger udpmessage resourcemonitor network_transceiver_node_process)
@@ -269,7 +265,6 @@ add_executable(master_node src/Control/master_node.cpp)
 target_link_libraries(master_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} master_node_process serialmessage logger resourcemonitor)
 catkin_add_gtest(test_master_node_process src/Control/unit_tests/test_master_node_process.cpp)
 target_link_libraries(test_master_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} master_node_process logger)
-
 
 add_executable(topicremapper_node src/Communication/topicremapper_node.cpp)
 target_link_libraries(topicremapper_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} logger resourcemonitor)
@@ -319,13 +314,3 @@ add_executable(simulate_node src/Simulate/simulate_node.cpp)
 target_link_libraries(simulate_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor simulate_node_process)
 catkin_add_gtest(test_simulate_node_process src/Simulate/unit_tests/test_simulate_node_process.cpp)
 target_link_libraries(test_simulate_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} simulate_node_process logger)
-
-add_executable(imu_node src/Pose/imu_node.cpp)
-target_link_libraries(imu_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} ${Eigen_LIBRARIES} serialmessage logger resourcemonitor imu_node_process)
-catkin_add_gtest(test_imu_node_process src/Pose/unit_tests/test_imu_node_process.cpp)
-target_link_libraries(test_imu_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${Eigen_LIBRARIES} serialmessage imu_node_process logger)
-
-add_executable(truth_node src/Pose/truth_node.cpp)
-target_link_libraries(truth_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} ${Eigen_LIBRARIES} serialmessage logger resourcemonitor truth_node_process)
-catkin_add_gtest(test_truth_node_process src/Pose/unit_tests/test_truth_node_process.cpp)
-target_link_libraries(test_truth_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${Eigen_LIBRARIES} serialmessage truth_node_process logger)

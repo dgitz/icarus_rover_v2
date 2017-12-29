@@ -5,19 +5,27 @@
 #define SIMULATENODE_BUILD_NUMBER 1
 //End User Code: Firmware Definition
 //Start User Code: Functions
+/*! \brief Throttle Command Callback
+ */
 void throttle_command_Callback(const std_msgs::Float32::ConstPtr& msg)
 {
     process->set_throttlecommand(msg->data);
 }
+/*! \brief Steer Command Callback
+ */
 void steer_command_Callback(const std_msgs::Float32::ConstPtr& msg)
 {
 	process->set_steercommand(msg->data);
 }
+/*! \brief User Loop1 Code
+ */
 bool run_loop1_code()
 {
 	logger->log_diagnostic(process->update(measure_time_diff(ros::Time::now(),last_loop1_timer)));
 	return true;
 }
+/*! \brief User Loop2 Code
+ */
 bool run_loop2_code()
 {
 	if(process->is_poseready() == true)
@@ -28,6 +36,8 @@ bool run_loop2_code()
 	}
  	return true;
 }
+/*! \brief User Loop3 Code
+ */
 bool run_loop3_code()
 {
 	icarus_rover_v2::encoder encoders;
@@ -41,6 +51,8 @@ bool run_loop3_code()
 	imu_pub.publish(imu);
  	return true;
 }
+/*! \brief 0.1 PULSE PER SECOND User Code
+ */
 void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
 	icarus_rover_v2::firmware fw;
@@ -52,6 +64,8 @@ void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg)
 	fw.Build_Number = SIMULATENODE_BUILD_NUMBER;
 	firmware_pub.publish(fw);
 }
+/*! \brief 1.0 PULSE PER SECOND User Code
+ */
 void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
 	received_pps = true;
@@ -75,7 +89,27 @@ void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 			resource_pub.publish(resources_used);
 		}
 	}
+	else
+    {
+    	{
+			icarus_rover_v2::srv_device srv;
+			srv.request.query = "SELF";
+			if(srv_device.call(srv) == true)
+			{
+				if(srv.response.data.size() != 1)
+				{
+					logger->log_error("Got unexpected device message");
+				}
+				else
+				{
+					bool status = new_devicemsg(srv.request.query,srv.response.data.at(0));
+				}
+			}
+    	}
+    }
 }
+/*! \brief Self-Diagnostic-Check Program Variables
+ */
 std::vector<icarus_rover_v2::diagnostic> check_program_variables()
 {
 	std::vector<icarus_rover_v2::diagnostic> diaglist;
@@ -263,8 +297,11 @@ bool initialize(ros::NodeHandle nh)
     std::string heartbeat_topic = "/" + node_name + "/heartbeat";
     heartbeat_pub = nh.advertise<icarus_rover_v2::heartbeat>(heartbeat_topic,1000);
     beat.Node_Name = node_name;
-    std::string device_topic = "/" + std::string(hostname) +"_master_node/device";
-    device_sub = nh.subscribe<icarus_rover_v2::device>(device_topic,1000,Device_Callback);
+    std::string device_topic = "/" + std::string(hostname) + "_master_node/srv_device";
+    srv_device = nh.serviceClient<icarus_rover_v2::srv_device>(device_topic);
+
+    //std::string device_topic = "/" + std::string(hostname) +"_master_node/device";
+    //device_sub = nh.subscribe<icarus_rover_v2::device>(device_topic,1000,Device_Callback);
     pps01_sub = nh.subscribe<std_msgs::Bool>("/01PPS",1000,PPS01_Callback); 
     pps1_sub = nh.subscribe<std_msgs::Bool>("/1PPS",1000,PPS1_Callback); 
     command_sub = nh.subscribe<icarus_rover_v2::command>("/command",1000,Command_Callback);
@@ -395,18 +432,27 @@ double measure_time_diff(ros::Time timer_a, ros::Time timer_b)
 	ros::Duration etime = timer_a - timer_b;
 	return etime.toSec();
 }
-void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg)
+bool new_devicemsg(std::string query,icarus_rover_v2::device device)
 {
-	icarus_rover_v2::device newdevice;
-	newdevice.DeviceName = msg->DeviceName;
-	newdevice.Architecture = msg->Architecture;
-
-	if((newdevice.DeviceName == hostname) && (device_initialized == false))
+	if(query == "SELF")
 	{
-		myDevice = newdevice;
-		resourcemonitor = new ResourceMonitor(diagnostic_status,myDevice.Architecture,myDevice.DeviceName,node_name);
-		device_initialized = true;
+		if((device.DeviceName == hostname))
+		{
+			myDevice = device;
+			resourcemonitor = new ResourceMonitor(diagnostic_status,myDevice.Architecture,myDevice.DeviceName,node_name);
+			process->set_mydevice(device);
+			device_initialized = true;
+		}
 	}
+
+	if((device_initialized == true))
+	{
+		icarus_rover_v2::diagnostic diag = process->new_devicemsg(device);
+		if(process->get_initialized() == true)
+		{
+		}
+	}
+	return true;
 }
 void signalinterrupt_handler(int sig)
 {

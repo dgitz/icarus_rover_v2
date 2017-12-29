@@ -50,17 +50,26 @@ public:
     	std::string name;
     	std::string reference;
     };
+
 	MasterNodeProcess();
 	~MasterNodeProcess();
-
 	icarus_rover_v2::diagnostic init(icarus_rover_v2::diagnostic indiag,std::string hostname);
 	icarus_rover_v2::diagnostic update(double dt);
-	icarus_rover_v2::diagnostic new_devicemsg(icarus_rover_v2::device devicemsg);
+	void set_diagnostic(icarus_rover_v2::diagnostic v) { diagnostic = v; }
+	icarus_rover_v2::diagnostic get_diagnostic() { return diagnostic; }
+	double get_runtime() { return run_time; }
 	icarus_rover_v2::device get_mydevice() { return mydevice; }
+	icarus_rover_v2::diagnostic new_devicemsg(icarus_rover_v2::device device);
+	void set_mydevice(icarus_rover_v2::device device) { mydevice = device; }
+	bool get_initialized() { return initialized; }
+	std::vector<icarus_rover_v2::diagnostic> new_commandmsg(icarus_rover_v2::command cmd);
+	std::vector<icarus_rover_v2::diagnostic> check_program_variables();
+
+
+	void set_initialized(bool v) { initialized = v; }
     std::vector<icarus_rover_v2::device> get_alldevices() { return allDevices; }
     std::vector<icarus_rover_v2::device> get_childdevices() { return childDevices; }
     std::vector<LeverArm> get_allleverarms() { return leverarms; }
-	bool is_finished_initializing() { return all_device_info_received; }
     icarus_rover_v2::diagnostic load_devicefile(std::string path);
     icarus_rover_v2::diagnostic load_systemfile(std::string path);
     void print_device(std::vector<icarus_rover_v2::device> devices);
@@ -74,15 +83,17 @@ public:
     void print_leverarm(LeverArm leverarm);
     void print_leverarm(std::string name,std::string reference,icarus_rover_v2::leverarm la);
     bool get_leverarm(icarus_rover_v2::leverarm *leverarm,std::string name);
+   
 
 	
 protected:
 
 private:
+    bool initialized;
     SerialMessageHandler *serialmessagehandler;
+    double run_time;
     bool build_childDevices();
 	std::string myhostname;
-	bool all_device_info_received;
 	icarus_rover_v2::device mydevice;
     std::vector<icarus_rover_v2::device> allDevices;
     std::vector<icarus_rover_v2::device> childDevices;

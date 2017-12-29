@@ -1,3 +1,4 @@
+//OBSOLETE!
 #ifndef POWERMONITORNODE_H
 #define POWERMONITORNODE_H
 //Start Template Code: Includes

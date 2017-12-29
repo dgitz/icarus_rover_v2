@@ -13,6 +13,9 @@
 #include <icarus_rover_v2/Definitions.h>
 #include <icarus_rover_v2/diagnostic.h>
 #include <icarus_rover_v2/device.h>
+#include <icarus_rover_v2/srv_device.h>
+#include <icarus_rover_v2/srv_connection.h>
+#include <icarus_rover_v2/srv_leverarm.h>
 #include <icarus_rover_v2/resource.h>
 #include <icarus_rover_v2/pin.h>
 #include <icarus_rover_v2/command.h>
@@ -51,7 +54,7 @@ bool initializenode();
 void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg);
 void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg);
 double measure_time_diff(ros::Time timer_a, ros::Time tiber_b);
-void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg);
+bool new_devicemsg(std::string query,icarus_rover_v2::device device);
 void Command_Callback(const icarus_rover_v2::command& msg);
 std::vector<icarus_rover_v2::diagnostic> check_program_variables();
 bool run_loop3_code();
@@ -63,19 +66,18 @@ void signalinterrupt_handler(int sig);
 
 //Start User Code: Function Prototypes
 void ArmedState_Callback(const std_msgs::UInt8::ConstPtr& msg);
-icarus_rover_v2::diagnostic rescan_topics(icarus_rover_v2::diagnostic diag);
 void ControlGroup_Callback(const icarus_rover_v2::controlgroup::ConstPtr& msg);
 void Pose_Callback(const icarus_rover_v2::pose::ConstPtr& msg);
 void Joy_Callback(const sensor_msgs::Joy::ConstPtr& msg);
 //End User Code: Function Prototypes
 
 //Start Template Code: Define Global variables
+ros::ServiceClient srv_device;
 boost::shared_ptr<ros::NodeHandle> n;
 std::string node_name;
 std::string verbosity_level;
 ros::Subscriber pps01_sub;
 ros::Subscriber pps1_sub;
-ros::Subscriber device_sub;
 ros::Publisher diagnostic_pub;
 ros::Publisher resource_pub;
 ros::Subscriber command_sub;
