@@ -45,22 +45,22 @@ public:
 	CommandNodeProcess();
 	~CommandNodeProcess();
 
-	icarus_rover_v2::diagnostic init(icarus_rover_v2::diagnostic indiag,Logger *log,std::string hostname);
+	icarus_rover_v2::diagnostic init(icarus_rover_v2::diagnostic indiag,std::string hostname);
 	icarus_rover_v2::diagnostic update(double dt);
 	void set_diagnostic(icarus_rover_v2::diagnostic v) { diagnostic = v; }
 	icarus_rover_v2::diagnostic get_diagnostic() { return diagnostic; }
 	double get_runtime() { return run_time; }
 	icarus_rover_v2::device get_mydevice() { return mydevice; }
 	icarus_rover_v2::diagnostic new_devicemsg(icarus_rover_v2::device device);
-	void set_mydevice(icarus_rover_v2::device device) { mydevice = device; }
-	bool get_initialized() { return all_device_info_received; }
+	void set_mydevice(icarus_rover_v2::device device) { mydevice = device; initialized = true; }
+	bool get_initialized() { return initialized; }
+    bool get_ready() { return ready; }
 	std::vector<icarus_rover_v2::diagnostic> new_commandmsg(icarus_rover_v2::command cmd);
-	std::vector<icarus_rover_v2::diagnostic> check_program_variables();
 
 	int get_armeddisarmed_state() { return armeddisarmed_state; }
     icarus_rover_v2::diagnostic new_readytoarmmsg(std::string topic, bool value);
     icarus_rover_v2::diagnostic init_readytoarm_list(std::vector<std::string> topics);
-    icarus_rover_v2::diagnostic init_PeriodicCommands();
+
     icarus_rover_v2::diagnostic new_user_commandmsg(icarus_rover_v2::command msg);
     icarus_rover_v2::diagnostic new_targetmsg(std::string target);
   //  int get_armcommand() { return armedcommand; }
@@ -82,32 +82,35 @@ public:
 	std::string map_RoverCommand_ToString(int v);
 	std::vector<ReadyToArm> get_ReadyToArmList() { return ReadyToArmList; }
 	std::vector<icarus_rover_v2::command> get_PeriodicCommands();
+	icarus_rover_v2::diagnostic get_disarmedreason();
 
 protected:
 
 private:
-	std::string myhostname;
-	bool all_device_info_received;
-	icarus_rover_v2::device mydevice;
+	std::vector<icarus_rover_v2::diagnostic> check_program_variables();
+
+	double run_time;
 	icarus_rover_v2::diagnostic diagnostic;
-	Logger *mylogger;
+	icarus_rover_v2::device mydevice;
+	std::string myhostname;
+	bool initialized;
+    bool ready;
+
+    icarus_rover_v2::diagnostic init_PeriodicCommands();
 	long ms_timer;
 	long timeout_value_ms;
-   // ros::Time init_time;
 	struct timeval init_time;
-	double run_time;
 	bool timer_timeout;
-	//double time_diff(ros::Time timer_a, ros::Time timer_b);
 	double time_diff(struct timeval timea,struct timeval timeb);
     std::vector<ReadyToArm> ReadyToArmList;
     bool readytoarm;
 	int armeddisarmed_state;
-	//int armedcommand;
 	int node_state;
 	icarus_rover_v2::command current_command;
 	icarus_rover_v2::command last_command;
 	std::vector<icarus_rover_v2::command> command_history;
 	double batterylevel_perc;
 	std::vector<PeriodicCommand> periodic_commands;
+	std::string disarmed_reason;
 };
 #endif

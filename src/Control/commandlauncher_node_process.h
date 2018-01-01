@@ -52,13 +52,19 @@ public:
 	~CommandLauncherNodeProcess();
 	icarus_rover_v2::diagnostic init(icarus_rover_v2::diagnostic indiag,std::string hostname);
 	icarus_rover_v2::diagnostic update(double dt);
-	void set_mydevice(icarus_rover_v2::device v) { mydevice = v; }
+	void set_diagnostic(icarus_rover_v2::diagnostic v) { diagnostic = v; }
+	icarus_rover_v2::diagnostic get_diagnostic() { return diagnostic; }
+	double get_runtime() { return run_time; }
+	icarus_rover_v2::device get_mydevice() { return mydevice; }
+	icarus_rover_v2::diagnostic new_devicemsg(icarus_rover_v2::device device);
+	void set_mydevice(icarus_rover_v2::device device) { mydevice = device; initialized = true; }
 	bool get_initialized() { return initialized; }
+	std::vector<icarus_rover_v2::diagnostic> new_commandmsg(icarus_rover_v2::command cmd);
+	std::vector<icarus_rover_v2::diagnostic> check_program_variables();
+
 	double measure_timediff(struct timeval a, struct timeval b);
 	bool is_ready() { return ready; }
-    icarus_rover_v2::diagnostic new_devicemsg(icarus_rover_v2::device newdevice);
-	icarus_rover_v2::device get_mydevice() { return mydevice; }
-	bool set_camerastream(std::string address);
+	bool set_camerastream(std::string portname);
 	std::string lookup_deviceIP(std::string hostname); //Returns "" on failure
 	uint32_t lookup_port(std::string portname); //Returns 0 on failure
 	std::vector<IPMap> get_ipmap() { return ipmap; }

@@ -827,7 +827,7 @@ bool initializenode()
     process.init(diagnostic_status,std::string(hostname));
 	udpmessagehandler = new UDPMessageHandler();
 
-
+	process.set_initialized(true);
     //Finish User Code: Initialization and Parameters
 
     //Start Template Code: Final Initialization.

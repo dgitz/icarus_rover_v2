@@ -53,25 +53,23 @@ public:
 
 	MasterNodeProcess();
 	~MasterNodeProcess();
-	icarus_rover_v2::diagnostic init(icarus_rover_v2::diagnostic indiag,std::string hostname);
+	icarus_rover_v2::diagnostic init(icarus_rover_v2::diagnostic indiag,std::string hostname,std::string devicefilepath,std::string systemfilepath);
 	icarus_rover_v2::diagnostic update(double dt);
 	void set_diagnostic(icarus_rover_v2::diagnostic v) { diagnostic = v; }
 	icarus_rover_v2::diagnostic get_diagnostic() { return diagnostic; }
 	double get_runtime() { return run_time; }
 	icarus_rover_v2::device get_mydevice() { return mydevice; }
 	icarus_rover_v2::diagnostic new_devicemsg(icarus_rover_v2::device device);
-	void set_mydevice(icarus_rover_v2::device device) { mydevice = device; }
+	void set_mydevice(icarus_rover_v2::device device) { mydevice = device; initialized = true; }
 	bool get_initialized() { return initialized; }
+    bool get_ready() { return ready; }
 	std::vector<icarus_rover_v2::diagnostic> new_commandmsg(icarus_rover_v2::command cmd);
-	std::vector<icarus_rover_v2::diagnostic> check_program_variables();
 
-
-	void set_initialized(bool v) { initialized = v; }
+	void set_initialized(bool v) { initialized = v; ready = true; }
     std::vector<icarus_rover_v2::device> get_alldevices() { return allDevices; }
     std::vector<icarus_rover_v2::device> get_childdevices() { return childDevices; }
     std::vector<LeverArm> get_allleverarms() { return leverarms; }
-    icarus_rover_v2::diagnostic load_devicefile(std::string path);
-    icarus_rover_v2::diagnostic load_systemfile(std::string path);
+
     void print_device(std::vector<icarus_rover_v2::device> devices);
     void print_device(icarus_rover_v2::device device);
     icarus_rover_v2::diagnostic set_serialportlist(std::vector<std::string> list);
@@ -89,15 +87,22 @@ public:
 protected:
 
 private:
-    bool initialized;
-    SerialMessageHandler *serialmessagehandler;
-    double run_time;
-    bool build_childDevices();
-	std::string myhostname;
+	std::vector<icarus_rover_v2::diagnostic> check_program_variables();
+
+    icarus_rover_v2::diagnostic load_devicefile(std::string path);
+    icarus_rover_v2::diagnostic load_systemfile(std::string path);
+
+	double run_time;
+	icarus_rover_v2::diagnostic diagnostic;
 	icarus_rover_v2::device mydevice;
+	std::string myhostname;
+	bool initialized;
+    bool ready;
+
+    SerialMessageHandler *serialmessagehandler;
+    bool build_childDevices();
     std::vector<icarus_rover_v2::device> allDevices;
     std::vector<icarus_rover_v2::device> childDevices;
-	icarus_rover_v2::diagnostic diagnostic;
     std::vector<SerialPort> serialports;
     std::vector<std::string> serialport_baudrates;
     std::vector<LeverArm> leverarms;

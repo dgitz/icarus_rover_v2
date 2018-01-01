@@ -16,7 +16,56 @@ double FAST_RATE = 10.0f;
 int DeviceID = 123;
 
 
-CommandNodeProcess initialize_process();
+CommandNodeProcess* initializeprocess()
+{
+	icarus_rover_v2::diagnostic diagnostic;
+    diagnostic.DeviceName = ros_DeviceName;
+    diagnostic.Node_Name = Node_Name;
+    diagnostic.System = ROVER;
+    diagnostic.SubSystem = ROBOT_CONTROLLER;
+    diagnostic.Component = CONTROLLER_NODE;
+
+    diagnostic.Diagnostic_Type = NOERROR;
+    diagnostic.Level = INFO;
+    diagnostic.Diagnostic_Message = INITIALIZING;
+    diagnostic.Description = "Node Initializing";
+
+	icarus_rover_v2::device device;
+    device.DeviceName = diagnostic.DeviceName;
+    device.BoardCount = 0;
+    device.SensorCount = 0;
+    device.DeviceParent = "None";
+    device.Architecture = "x86_64";
+
+	CommandNodeProcess* process;
+	process = new CommandNodeProcess;
+	diagnostic = process->init(diagnostic,std::string(Host_Name));
+    EXPECT_TRUE(diagnostic.Level <= NOTICE);
+    EXPECT_TRUE(process->get_initialized() == false);
+    process->set_mydevice(device);
+    EXPECT_TRUE(process->get_initialized() == true);
+    EXPECT_TRUE(process->get_mydevice().DeviceName == device.DeviceName);
+	EXPECT_EQ(process->get_currentcommand().Command,ROVERCOMMAND_BOOT);
+	EXPECT_EQ(process->get_currentstate(),NODESTATE_BOOTING);
+	diagnostic = process->new_devicemsg(device);
+	EXPECT_TRUE(diagnostic.Level <= NOTICE);
+	process->set_batterylevel_perc(100.0);
+
+	return process;
+}
+CommandNodeProcess* readyprocess(CommandNodeProcess* process)
+{
+    icarus_rover_v2::diagnostic diag = process->update(0);
+    EXPECT_TRUE(diag.Level <= NOTICE);
+    EXPECT_TRUE(process->get_ready() == true);
+	EXPECT_EQ(process->get_currentstate(),NODESTATE_RUNNING);
+	EXPECT_EQ(process->get_currentcommand().Command,ROVERCOMMAND_NONE);
+    return process;
+}
+TEST(Template,Process_Initialization)
+{
+    CommandNodeProcess* process = initializeprocess();
+}
 TEST(PeriodicCommands,TestA)
 {
 	/*
@@ -24,47 +73,53 @@ TEST(PeriodicCommands,TestA)
 	 DIAGNOSTIC LEVEL2 @ MEDIUM RATE
 	 DIAGNOSTIC LEVEL3 @ SLOW RATE
 	 */
-	icarus_rover_v2::diagnostic diagnostic_status;
-	CommandNodeProcess process = initialize_process();
+	icarus_rover_v2::diagnostic diagnostic;
+	CommandNodeProcess* process = initializeprocess();
+	process = readyprocess(process);
 
-	std::vector<PeriodicCommand> p_commands = process.get_PeriodicCommands();
+	double time_to_run = 20.0;
+	double dt = 0.001;
+	double current_time = 0.0;
+
 	int level1_counter = 0;
 	int level2_counter = 0;
 	int level3_counter = 0;
-	double run_time = 0.0;
-	for(int i = 0; i < 10600; i++)
+	while(current_time <= time_to_run)
 	{
-		double dt = 1.0/(10.0*FAST_RATE);
-		run_time += dt;
-		diagnostic_status = process.update(dt);
-		EXPECT_TRUE(diagnostic_status.Level <= NOTICE);
-		if(process.get_currentcommand().Command == ROVERCOMMAND_RUNDIAGNOSTIC)
+		icarus_rover_v2::diagnostic diag = process->update(dt);
+		EXPECT_TRUE(diag.Level <= NOTICE);
+		std::vector<icarus_rover_v2::command> p_commands = process->get_PeriodicCommands();
+		for(std::size_t i = 0; i < p_commands.size(); i++)
 		{
-			if(process.get_currentcommand().Option1 		== LEVEL1){ level1_counter++;}
-			else if(process.get_currentcommand().Option1	== LEVEL2){ level2_counter++;}
-			else if(process.get_currentcommand().Option1 	== LEVEL3){ level3_counter++;}
+			EXPECT_TRUE(p_commands.at(i).Command == ROVERCOMMAND_RUNDIAGNOSTIC);
+			if(p_commands.at(i).Option1 		== LEVEL1){ level1_counter++;}
+			else if(p_commands.at(i).Option1	== LEVEL2){ level2_counter++;}
+			else if(p_commands.at(i).Option1 	== LEVEL3){ level3_counter++;}
 		}
+		current_time += dt;
 	}
-	EXPECT_TRUE(level1_counter == 1009);
-	EXPECT_TRUE(level2_counter == 105);
-	EXPECT_TRUE(level3_counter == 10);
+	EXPECT_TRUE(process->get_runtime() >= time_to_run);
+	EXPECT_TRUE(level1_counter == ((int)time_to_run*10)-1);
+	EXPECT_TRUE(level2_counter == ((int)time_to_run));
+	EXPECT_TRUE(level3_counter == ((int)time_to_run/10));
 }
 
 TEST(ArmDisarm,TestA)
 {
 
-	icarus_rover_v2::diagnostic diagnostic_status;
-	CommandNodeProcess process = initialize_process();
+	icarus_rover_v2::diagnostic diagnostic;
+	CommandNodeProcess* process = initializeprocess();
+	process = readyprocess(process);
 
-	diagnostic_status = process.update(1.0/(FAST_RATE*1000.0));
-	EXPECT_TRUE(diagnostic_status.Level <= NOTICE);
-	EXPECT_EQ(process.get_currentstate(),NODESTATE_RUNNING);
-	EXPECT_EQ(process.get_currentcommand().Command,ROVERCOMMAND_NONE);
+	diagnostic = process->update(1.0/(FAST_RATE*1000.0));
+	EXPECT_TRUE(diagnostic.Level <= NOTICE);
+	EXPECT_EQ(process->get_currentstate(),NODESTATE_RUNNING);
+	EXPECT_EQ(process->get_currentcommand().Command,ROVERCOMMAND_NONE);
 	for(int i = 0; i < 10; i++)
 	{
-		diagnostic_status = process.update(1.0/(FAST_RATE*1000.0));
-		EXPECT_TRUE(diagnostic_status.Level <= NOTICE);
-		EXPECT_EQ(process.get_armeddisarmed_state(),ARMEDSTATUS_DISARMED_CANNOTARM);
+		diagnostic = process->update(1.0/(FAST_RATE*1000.0));
+		EXPECT_TRUE(diagnostic.Level <= NOTICE);
+		EXPECT_EQ(process->get_armeddisarmed_state(),ARMEDSTATUS_DISARMED_CANNOTARM);
 	}
 	std::vector<std::string> ready_to_arm_topics;
 	for(int i = 0; i < 7; i++)
@@ -72,160 +127,89 @@ TEST(ArmDisarm,TestA)
 		std::string topic = "topic" + boost::lexical_cast<std::string>(i);
 		ready_to_arm_topics.push_back(topic);
 	}
-	diagnostic_status = process.init_readytoarm_list(ready_to_arm_topics);
-	EXPECT_TRUE(diagnostic_status.Level <= NOTICE);
-	EXPECT_EQ(process.get_armeddisarmed_state(),ARMEDSTATUS_DISARMED_CANNOTARM);
-	EXPECT_EQ(process.get_ReadyToArmList().size(),ready_to_arm_topics.size());
-	EXPECT_TRUE(process.get_ReadyToArmList().size() > 0);
+	diagnostic = process->init_readytoarm_list(ready_to_arm_topics);
+	EXPECT_TRUE(diagnostic.Level <= NOTICE);
+	EXPECT_EQ(process->get_armeddisarmed_state(),ARMEDSTATUS_DISARMED_CANNOTARM);
+	EXPECT_EQ(process->get_ReadyToArmList().size(),ready_to_arm_topics.size());
+	EXPECT_TRUE(process->get_ReadyToArmList().size() > 0);
 	for(int i = 0; i < ready_to_arm_topics.size(); i++)
 	{
-		diagnostic_status = process.new_readytoarmmsg(ready_to_arm_topics.at(i),false);
-		EXPECT_TRUE(diagnostic_status.Level <= NOTICE);
-		diagnostic_status = process.update(1.0/(FAST_RATE*1000.0));
-		EXPECT_TRUE(diagnostic_status.Level <= NOTICE);
-		EXPECT_EQ(process.get_armeddisarmed_state(),ARMEDSTATUS_DISARMED_CANNOTARM);
+		diagnostic = process->new_readytoarmmsg(ready_to_arm_topics.at(i),false);
+		EXPECT_TRUE(diagnostic.Level > NOTICE);
+		diagnostic = process->update(1.0/(FAST_RATE*1000.0));
+		EXPECT_TRUE(diagnostic.Level <= NOTICE);
+		EXPECT_EQ(process->get_armeddisarmed_state(),ARMEDSTATUS_DISARMED_CANNOTARM);
 	}
 	for(int i = 0; i < (ready_to_arm_topics.size()-1); i++)
 	{
-		diagnostic_status = process.new_readytoarmmsg(ready_to_arm_topics.at(i),true);
-		EXPECT_TRUE(diagnostic_status.Level <= NOTICE);
-		diagnostic_status =process.update(1.0/(FAST_RATE*1000.0));
-		EXPECT_TRUE(diagnostic_status.Level <= NOTICE);
-		EXPECT_EQ(process.get_armeddisarmed_state(),ARMEDSTATUS_DISARMED_CANNOTARM);
+		diagnostic = process->new_readytoarmmsg(ready_to_arm_topics.at(i),true);
+		EXPECT_TRUE(diagnostic.Level > NOTICE);
+		diagnostic = process->update(1.0/(FAST_RATE*1000.0));
+		EXPECT_TRUE(diagnostic.Level <= NOTICE);
+		EXPECT_EQ(process->get_armeddisarmed_state(),ARMEDSTATUS_DISARMED_CANNOTARM);
 	}
-	diagnostic_status = process.new_readytoarmmsg(ready_to_arm_topics.at(ready_to_arm_topics.size()-1),true);
-	EXPECT_TRUE(diagnostic_status.Level <= NOTICE);
-	EXPECT_TRUE(diagnostic_status.Level <= NOTICE);
-	diagnostic_status = process.update(1.0/(FAST_RATE*1000.0));
-	EXPECT_EQ(process.get_armeddisarmed_state(),ARMEDSTATUS_DISARMED);
-	diagnostic_status = process.new_readytoarmmsg(ready_to_arm_topics.at(0),false);
-	EXPECT_TRUE(diagnostic_status.Level <= NOTICE);
-	EXPECT_TRUE(diagnostic_status.Level <= NOTICE);
-	diagnostic_status = process.update(1.0/(FAST_RATE*1000.0));
-	EXPECT_EQ(process.get_armeddisarmed_state(),ARMEDSTATUS_DISARMED_CANNOTARM);
-	diagnostic_status = process.new_readytoarmmsg(ready_to_arm_topics.at(0),true);
-	EXPECT_TRUE(diagnostic_status.Level <= NOTICE);
-	diagnostic_status = process.update(1.0/(FAST_RATE*1000.0));
-	EXPECT_TRUE(diagnostic_status.Level <= NOTICE);
-	EXPECT_EQ(process.get_armeddisarmed_state(),ARMEDSTATUS_DISARMED);
+	diagnostic = process->new_readytoarmmsg(ready_to_arm_topics.at(ready_to_arm_topics.size()-1),true);
+	EXPECT_TRUE(diagnostic.Level <= NOTICE);
+	diagnostic = process->update(1.0/(FAST_RATE*1000.0));
+	EXPECT_EQ(process->get_armeddisarmed_state(),ARMEDSTATUS_DISARMED);
+	diagnostic = process->new_readytoarmmsg(ready_to_arm_topics.at(0),false);
+	EXPECT_TRUE(diagnostic.Level > NOTICE);
+	diagnostic = process->update(1.0/(FAST_RATE*1000.0));
+    EXPECT_TRUE(diagnostic.Level <= NOTICE);
+	EXPECT_EQ(process->get_armeddisarmed_state(),ARMEDSTATUS_DISARMED_CANNOTARM);
+	diagnostic = process->new_readytoarmmsg(ready_to_arm_topics.at(0),true);
+	EXPECT_TRUE(diagnostic.Level <= NOTICE);
+	diagnostic = process->update(1.0/(FAST_RATE*1000.0));
+	EXPECT_TRUE(diagnostic.Level <= NOTICE);
+	EXPECT_EQ(process->get_armeddisarmed_state(),ARMEDSTATUS_DISARMED);
     icarus_rover_v2::command arm_command;
     arm_command.Command = ROVERCOMMAND_ARM;
-	diagnostic_status = process.new_user_commandmsg(arm_command);
-	EXPECT_TRUE(diagnostic_status.Level <= NOTICE);
-	EXPECT_EQ(process.get_currentcommand().Command,ROVERCOMMAND_ARM);
+	diagnostic = process->new_user_commandmsg(arm_command);
+	EXPECT_TRUE(diagnostic.Level <= NOTICE);
+	EXPECT_EQ(process->get_currentcommand().Command,ROVERCOMMAND_ARM);
 	for(int i = 0; i < 10; i++)
 	{
-		diagnostic_status = process.update(1.0/(FAST_RATE*1000.0));
-		EXPECT_TRUE(diagnostic_status.Level <= NOTICE);
-		EXPECT_EQ(process.get_armeddisarmed_state(),ARMEDSTATUS_ARMED);
+		diagnostic = process->update(1.0/(FAST_RATE*1000.0));
+		EXPECT_TRUE(diagnostic.Level <= NOTICE);
+		EXPECT_EQ(process->get_armeddisarmed_state(),ARMEDSTATUS_ARMED);
 	}
 
 }
-
+/*
 TEST(AutoRecharge,TestA)
 {
-	icarus_rover_v2::diagnostic diagnostic_status;
-	CommandNodeProcess process = initialize_process();
-	diagnostic_status = process.update(1.0/(FAST_RATE*1000.0));
-	EXPECT_TRUE(diagnostic_status.Level <= NOTICE);
-	EXPECT_EQ(process.get_currentstate(),NODESTATE_RUNNING);
-	EXPECT_EQ(process.get_currentcommand().Command,ROVERCOMMAND_NONE);
-	diagnostic_status = process.update(1.0/(FAST_RATE*1000.0));
-	EXPECT_TRUE(diagnostic_status.Level <= NOTICE);
-	process.set_batterylevel_perc(20.0);
+	icarus_rover_v2::diagnostic diagnostic;
+	CommandNodeProcess* process = initializeprocess();
+	process = readyprocess(process);
 
-	diagnostic_status = process.update(1.0/(FAST_RATE*1000.0));
-	EXPECT_TRUE(diagnostic_status.Level <= NOTICE);
-	EXPECT_EQ(process.get_currentcommand().Command,ROVERCOMMAND_SEARCHFOR_RECHARGE_FACILITY);
-	EXPECT_EQ(process.get_currentstate(),NODESTATE_SEARCHING_FOR_RECHARGE_FACILITY);
-	diagnostic_status = process.update(1.0/(FAST_RATE*1000.0));
-	EXPECT_TRUE(diagnostic_status.Level <= NOTICE);
-	diagnostic_status = process.new_targetmsg("unknownA");  //Should result in a WARN
-	EXPECT_TRUE(diagnostic_status.Level == WARN);
-	diagnostic_status = process.new_targetmsg("outlet");
-	EXPECT_TRUE(diagnostic_status.Level <= NOTICE);
-	EXPECT_EQ(process.get_currentcommand().Command,ROVERCOMMAND_STOPSEARCHFOR_RECHARGE_FACILITY);
-	EXPECT_EQ(process.get_currentstate(),NODESTATE_ACQUIRING_TARGET);
-	diagnostic_status = process.update(1.0/(FAST_RATE*1000.0));
-	EXPECT_TRUE(diagnostic_status.Level <= NOTICE);
-	EXPECT_EQ(process.get_currentcommand().Command,ROVERCOMMAND_ACQUIRE_TARGET);
-	EXPECT_EQ(process.get_currentstate(),NODESTATE_ACQUIRING_TARGET);
+	diagnostic = process->update(1.0/(FAST_RATE*1000.0));
+	EXPECT_TRUE(diagnostic.Level <= NOTICE);
+	EXPECT_EQ(process->get_currentstate(),NODESTATE_RUNNING);
+	EXPECT_EQ(process->get_currentcommand().Command,ROVERCOMMAND_NONE);
+	diagnostic = process->update(1.0/(FAST_RATE*1000.0));
+	EXPECT_TRUE(diagnostic.Level <= NOTICE);
+	process->set_batterylevel_perc(20.0);
+
+	diagnostic = process->update(1.0/(FAST_RATE*1000.0));
+	EXPECT_TRUE(diagnostic.Level <= NOTICE);
+	EXPECT_EQ(process->get_currentcommand().Command,ROVERCOMMAND_SEARCHFOR_RECHARGE_FACILITY);
+	EXPECT_EQ(process->get_currentstate(),NODESTATE_SEARCHING_FOR_RECHARGE_FACILITY);
+	diagnostic = process->update(1.0/(FAST_RATE*1000.0));
+	EXPECT_TRUE(diagnostic.Level <= NOTICE);
+	diagnostic = process->new_targetmsg("unknownA");  //Should result in a WARN
+	EXPECT_TRUE(diagnostic.Level == WARN);
+	diagnostic = process->new_targetmsg("outlet");
+	EXPECT_TRUE(diagnostic.Level <= NOTICE);
+	EXPECT_EQ(process->get_currentcommand().Command,ROVERCOMMAND_STOPSEARCHFOR_RECHARGE_FACILITY);
+	EXPECT_EQ(process->get_currentstate(),NODESTATE_ACQUIRING_TARGET);
+	diagnostic = process->update(1.0/(FAST_RATE*1000.0));
+	EXPECT_TRUE(diagnostic.Level <= NOTICE);
+	EXPECT_EQ(process->get_currentcommand().Command,ROVERCOMMAND_ACQUIRE_TARGET);
+	EXPECT_EQ(process->get_currentstate(),NODESTATE_ACQUIRING_TARGET);
 }
-
+*/
 int main(int argc, char **argv){
 	testing::InitGoogleTest(&argc, argv);
 	return RUN_ALL_TESTS();
 }
-CommandNodeProcess initialize_process()
-{
-	icarus_rover_v2::diagnostic diagnostic_status;
-	Logger *logger;
-	std::string log_output = Node_Name + boost::lexical_cast<std::string>(1);
-	logger = new Logger("DEBUG","UNIT_TESTS",log_output);
-	diagnostic_status.DeviceName = Host_Name;
-	diagnostic_status.Node_Name = Node_Name;
-	diagnostic_status.System = ROVER;
-	diagnostic_status.SubSystem = ROBOT_CONTROLLER;
-	diagnostic_status.Component = CONTROLLER_NODE;
 
-	diagnostic_status.Diagnostic_Type = NOERROR;
-	diagnostic_status.Level = INFO;
-	diagnostic_status.Diagnostic_Message = INITIALIZING;
-	diagnostic_status.Description = "Node Initializing";
-
-	CommandNodeProcess process;
-	diagnostic_status = process.init(diagnostic_status,logger,std::string(Host_Name));
-	EXPECT_TRUE(diagnostic_status.Level <= NOTICE);
-	EXPECT_EQ(process.get_currentcommand().Command,ROVERCOMMAND_BOOT);
-	EXPECT_EQ(process.get_currentstate(),NODESTATE_BOOTING);
-	icarus_rover_v2::device newdevicemsg;
-	newdevicemsg.DeviceName = ros_DeviceName;
-	newdevicemsg.BoardCount = 0;
-	newdevicemsg.Architecture = "x86_64";
-	newdevicemsg.DeviceParent = ros_ParentDevice;
-	newdevicemsg.DeviceType = ros_DeviceType;
-	newdevicemsg.ID = DeviceID;
-	newdevicemsg.SensorCount = 0;
-	newdevicemsg.ShieldCount = 0;
-	diagnostic_status = process.new_devicemsg(newdevicemsg);
-	EXPECT_TRUE(diagnostic_status.Level <= NOTICE);
-	EXPECT_EQ(process.is_finished_initializing(),true);
-	EXPECT_EQ(process.get_currentstate(),NODESTATE_RUNNING);
-	EXPECT_EQ(process.get_currentcommand().Command,ROVERCOMMAND_NONE);
-	process.set_batterylevel_perc(100.0);
-
-	std::vector<PeriodicCommand> pcommands;
-	icarus_rover_v2::command command1;
-	command1.Command = ROVERCOMMAND_RUNDIAGNOSTIC;
-	command1.Option1 = LEVEL1;
-	command1.Description = "Low-Level Diagnostics";
-	PeriodicCommand pcommand1;
-	pcommand1.command = command1;
-	pcommand1.rate_hz = FAST_RATE;
-	pcommands.push_back(pcommand1);
-
-	icarus_rover_v2::command command2;
-	command2.Command = ROVERCOMMAND_RUNDIAGNOSTIC;
-	command2.Option1 = LEVEL2;
-	command2.Description = "Mid-Level Diagnostics";
-	PeriodicCommand pcommand2;
-	pcommand2.command = command2;
-	pcommand2.rate_hz = MEDIUM_RATE;
-	pcommands.push_back(pcommand2);
-
-	icarus_rover_v2::command command3;
-	command3.Command = ROVERCOMMAND_RUNDIAGNOSTIC;
-	command3.Option1 = LEVEL3;
-	command3.Description = "High-Level Diagnostics";
-	PeriodicCommand pcommand3;
-	pcommand3.command = command3;
-	pcommand3.rate_hz = SLOW_RATE;
-	pcommands.push_back(pcommand3);
-	diagnostic_status = process.init_PeriodicCommands(pcommands);
-	EXPECT_TRUE(diagnostic_status.Level <= NOTICE);
-
-
-
-
-	return process;
-}

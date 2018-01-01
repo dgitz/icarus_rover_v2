@@ -3,8 +3,10 @@
  */
 MasterNodeProcess::MasterNodeProcess()
 {
-	initialized = false;
 	run_time = 0.0;
+	initialized = false;
+    ready = false;
+
 	SerialMessageHandler *serialmessagehandler = new SerialMessageHandler;
 }
 /*! \brief Deconstructor
@@ -15,11 +17,21 @@ MasterNodeProcess::~MasterNodeProcess()
 }
 /*! \brief Initialize Process
  */
-icarus_rover_v2::diagnostic MasterNodeProcess::init(icarus_rover_v2::diagnostic indiag,std::string hostname)
+icarus_rover_v2::diagnostic MasterNodeProcess::init(icarus_rover_v2::diagnostic indiag,std::string hostname,std::string devicefilepath,std::string systemfilepath)
 {
 	myhostname = hostname;
 	diagnostic = indiag;
 	mydevice.DeviceName = hostname;
+	diagnostic = load_devicefile(devicefilepath);
+	if(diagnostic.Level > NOTICE)
+	{
+		return diagnostic;
+	}
+	diagnostic = load_systemfile(systemfilepath);
+	if(diagnostic.Level > NOTICE)
+	{
+		return diagnostic;
+	}
 	return diagnostic;
 }
 /*! \brief Time Update of Process
@@ -27,6 +39,10 @@ icarus_rover_v2::diagnostic MasterNodeProcess::init(icarus_rover_v2::diagnostic 
 icarus_rover_v2::diagnostic MasterNodeProcess::update(double dt)
 {
 	run_time += dt;
+	 if((mydevice.BoardCount == 0) and (mydevice.SensorCount == 0))
+    {
+        if(initialized == true) { ready = true; }
+    }
 	icarus_rover_v2::diagnostic diag = diagnostic;
 	diag.Diagnostic_Type = NOERROR;
 	diag.Level = INFO;
@@ -41,12 +57,10 @@ std::vector<icarus_rover_v2::diagnostic> MasterNodeProcess::new_commandmsg(icaru
 {
 	std::vector<icarus_rover_v2::diagnostic> diaglist;
 	icarus_rover_v2::diagnostic diag = diagnostic;
-	if (cmd.Command ==  DIAGNOSTIC_ID)
+	if (cmd.Command ==  ROVERCOMMAND_RUNDIAGNOSTIC)
 	{
 		if(cmd.Option1 == LEVEL1)
 		{
-			diaglist.push_back(diag);
-			return diaglist;
 		}
 		else if(cmd.Option1 == LEVEL2)
 		{
@@ -90,16 +104,14 @@ std::vector<icarus_rover_v2::diagnostic> MasterNodeProcess::check_program_variab
 	}
 	if(status == true)
 	{
-
 		diag.Diagnostic_Type = SOFTWARE;
-		diag.Level = NOTICE;
+		diag.Level = INFO;
 		diag.Diagnostic_Message = DIAGNOSTIC_PASSED;
 		diag.Description = "Checked Program Variables -> PASSED";
 		diaglist.push_back(diag);
 	}
 	else
 	{
-
 		diag.Diagnostic_Type = SOFTWARE;
 		diag.Level = WARN;
 		diag.Diagnostic_Message = DIAGNOSTIC_FAILED;

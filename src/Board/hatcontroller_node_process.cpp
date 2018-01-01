@@ -1,25 +1,37 @@
 #include "hatcontroller_node_process.h"
+/*! \brief Constructor
+ */
 HatControllerNodeProcess::HatControllerNodeProcess()
 {
-}
-HatControllerNodeProcess::~HatControllerNodeProcess()
-{
-
-}
-void HatControllerNodeProcess::init(std::string name,icarus_rover_v2::diagnostic diag)
-{
-    diagnostic = diag;
-    armed_state = ARMEDSTATUS_DISARMED_CANNOTARM;
-    ready_to_arm = false;
-    initialized = false;
+	run_time = 0.0;
+	initialized = false;
     ready = false;
+    ready_to_arm = false;
+    
+    armed_state = ARMEDSTATUS_DISARMED_CANNOTARM;
     hats.clear();
     hats_running.clear();
-    hostname = name;
     time_sincelast_pps = 0.0;
     pps_counter = 0;
     analyze_timing = false;
     timing_diff.clear();
+}
+/*! \brief Deconstructor
+ */
+HatControllerNodeProcess::~HatControllerNodeProcess()
+{
+
+}
+/*! \brief Initialize Process
+ */
+icarus_rover_v2::diagnostic HatControllerNodeProcess::init(icarus_rover_v2::diagnostic indiag,std::string hostname)
+{
+    
+
+	myhostname = hostname;
+	diagnostic = indiag;
+	mydevice.DeviceName = hostname;
+	return diagnostic;
 }
 icarus_rover_v2::diagnostic HatControllerNodeProcess::new_ppsmsg(std_msgs::Bool msg)
 {
@@ -180,17 +192,12 @@ icarus_rover_v2::diagnostic HatControllerNodeProcess::new_devicemsg(icarus_rover
     icarus_rover_v2::diagnostic diag = diagnostic;
     if(initialized == false)
     {
-        if(hostname == newdevice.DeviceName)
-        {
-            mydevice = newdevice;
-            initialized = true;
-        }
     }
     else
     {
         if(ready == false)
         {
-            if(newdevice.DeviceParent == hostname)
+            if(newdevice.DeviceParent == myhostname)
             {
                 if(board_present(newdevice) == true)
                 {
@@ -274,6 +281,60 @@ icarus_rover_v2::diagnostic HatControllerNodeProcess::new_devicemsg(icarus_rover
     diag.Description = std::string(tempstr);
     return diag;
 }
+/*! \brief Process Command Message
+ */
+std::vector<icarus_rover_v2::diagnostic> HatControllerNodeProcess::new_commandmsg(icarus_rover_v2::command cmd)
+{
+	std::vector<icarus_rover_v2::diagnostic> diaglist;
+	icarus_rover_v2::diagnostic diag = diagnostic;
+	if (cmd.Command ==  ROVERCOMMAND_RUNDIAGNOSTIC)
+	{
+		if(cmd.Option1 == LEVEL1)
+		{
+			diaglist.push_back(diag);
+			return diaglist;
+		}
+		else if(cmd.Option1 == LEVEL2)
+		{
+			diaglist = check_program_variables();
+			return diaglist;
+		}
+		else if(cmd.Option1 == LEVEL3)
+		{
+		}
+		else if(cmd.Option1 == LEVEL4)
+		{
+		}
+	}
+	diaglist.push_back(diag);
+	return diaglist;
+}
+/*! \brief Self-Diagnostic-Check Program Variables
+ */
+std::vector<icarus_rover_v2::diagnostic> HatControllerNodeProcess::check_program_variables()
+{
+	std::vector<icarus_rover_v2::diagnostic> diaglist;
+	icarus_rover_v2::diagnostic diag=diagnostic;
+	bool status = true;
+
+	if(status == true)
+	{
+		diag.Diagnostic_Type = SOFTWARE;
+		diag.Level = INFO;
+		diag.Diagnostic_Message = DIAGNOSTIC_PASSED;
+		diag.Description = "Checked Program Variables -> PASSED";
+		diaglist.push_back(diag);
+	}
+	else
+	{
+		diag.Diagnostic_Type = SOFTWARE;
+		diag.Level = WARN;
+		diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
+		diag.Description = "Checked Program Variables -> FAILED";
+		diaglist.push_back(diag);
+	}
+	return diaglist;
+}
 icarus_rover_v2::diagnostic HatControllerNodeProcess::update(double dt)
 {
     icarus_rover_v2::diagnostic diag = diagnostic;
@@ -322,8 +383,20 @@ icarus_rover_v2::diagnostic HatControllerNodeProcess::update(double dt)
         sprintf(tempstr,"PPS Counter: %ld Time since last: %f",pps_counter,time_sincelast_pps);
         diag.Description = std::string(tempstr);   
     }
+    
     ready_to_arm = status;
-    if(status == false) { armed_state = ARMEDSTATUS_DISARMED_CANNOTARM; }
+    if(status == false) 
+    { 
+        armed_state = ARMEDSTATUS_DISARMED_CANNOTARM; 
+    }
+    else
+    {
+        diag.Level = INFO;
+        diag.Diagnostic_Type = SOFTWARE;
+        diag.Diagnostic_Message = NOERROR;
+        diag.Description = "Node Running";
+    }
+    diagnostic = diag;
     return diag;
 }
 icarus_rover_v2::diagnostic HatControllerNodeProcess::new_armedstatemsg(uint8_t msg)
@@ -338,18 +411,27 @@ icarus_rover_v2::diagnostic HatControllerNodeProcess::new_armedstatemsg(uint8_t 
 	diag.Description = std::string(tempstr);
 	return diag;
 }
-icarus_rover_v2::diagnostic HatControllerNodeProcess::new_commandmsg(icarus_rover_v2::command msg)
+bool HatControllerNodeProcess::is_servohat_running(uint16_t id)
 {
-	icarus_rover_v2::diagnostic diag = diagnostic;
-    diag.Level = INFO;
-    diag.Diagnostic_Type = SOFTWARE;
-    diag.Diagnostic_Message = NOERROR;
-    char tempstr[512];
-    sprintf(tempstr,"Rover Command: %d Processed.",msg.Command);
-    diag.Description = std::string(tempstr);
-    return diag;
+    bool found = false;
+    for(std::size_t i = 0; i < hats.size(); i++)
+    {
+        if((hats.at(i).DeviceType == "ServoHat") and (hats.at(i).ID == id))
+        {
+            found = true;
+            if(hats_running.at(i) == true)
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+    }
+    return false;
 }
-icarus_rover_v2::diagnostic HatControllerNodeProcess::set_servohat_initialized(uint16_t id)
+icarus_rover_v2::diagnostic HatControllerNodeProcess::set_servohat_running(uint16_t id)
 {
     icarus_rover_v2::diagnostic diag = diagnostic;
     bool found = false;

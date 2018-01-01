@@ -30,24 +30,33 @@ class HatControllerNodeProcess
 public:
 	HatControllerNodeProcess();
 	~HatControllerNodeProcess();    
-    void init(std::string name,icarus_rover_v2::diagnostic diag);
-    icarus_rover_v2::diagnostic new_devicemsg(icarus_rover_v2::device newdevice);
+	icarus_rover_v2::diagnostic init(icarus_rover_v2::diagnostic indiag,std::string hostname);
+	icarus_rover_v2::diagnostic update(double dt);
+	void set_diagnostic(icarus_rover_v2::diagnostic v) { diagnostic = v; }
+	icarus_rover_v2::diagnostic get_diagnostic() { return diagnostic; }
+	double get_runtime() { return run_time; }
+	icarus_rover_v2::device get_mydevice() { return mydevice; }
+	icarus_rover_v2::diagnostic new_devicemsg(icarus_rover_v2::device device);
+	void set_mydevice(icarus_rover_v2::device device) { mydevice = device; initialized = true; }
+	bool get_initialized() { return initialized; }
+	std::vector<icarus_rover_v2::diagnostic> new_commandmsg(icarus_rover_v2::command cmd);
+	std::vector<icarus_rover_v2::diagnostic> check_program_variables();
+
     uint8_t get_armedstate() { return armed_state; }
     bool get_ready_to_arm() { return ready_to_arm; }
-    bool is_initialized() { return initialized; }
     bool is_ready() { return ready; }
     void set_analyzetiming(bool v) { analyze_timing = v; }
     bool get_analyzetiming() { return analyze_timing; }
     double get_timedelay();
-    icarus_rover_v2::diagnostic update(double dt);
-    icarus_rover_v2::diagnostic new_commandmsg(icarus_rover_v2::command msg);
+
     icarus_rover_v2::diagnostic new_armedstatemsg(uint8_t msg);
     icarus_rover_v2::diagnostic new_pinsmsg(icarus_rover_v2::iopins msg);
     icarus_rover_v2::diagnostic new_pinmsg(icarus_rover_v2::pin msg);
     icarus_rover_v2::diagnostic new_ppsmsg(std_msgs::Bool msg);
      
     //Servo Hat Functions
-    icarus_rover_v2::diagnostic set_servohat_initialized(uint16_t id);
+    icarus_rover_v2::diagnostic set_servohat_running(uint16_t id);
+    bool is_servohat_running(uint16_t id);
     std::vector<icarus_rover_v2::pin> get_servohatpins(uint16_t id);
     std::vector<uint16_t> get_servohataddresses();
     
@@ -58,6 +67,7 @@ public:
     
 protected:
 private:
+	double run_time;
     bool board_present(icarus_rover_v2::device device);
     double measure_time_diff(struct timeval start, struct timeval end);
     double measure_time_diff(ros::Time start, struct timeval end);
@@ -67,7 +77,7 @@ private:
     
     bool initialized;
     bool ready;
-    std::string hostname;
+    std::string myhostname;
     icarus_rover_v2::device mydevice;
     icarus_rover_v2::diagnostic diagnostic;
     uint8_t armed_state;

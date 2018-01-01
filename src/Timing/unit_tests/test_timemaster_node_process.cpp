@@ -4,21 +4,21 @@
 #include "icarus_rover_v2/command.h"
 #include "icarus_rover_v2/device.h"
 #include "icarus_rover_v2/diagnostic.h"
-#include "../sample_node_process.h"
+#include "../timemaster_node_process.h"
 
-std::string Node_Name = "/unittest_sample_node_process";
+std::string Node_Name = "/unittest_timemaster_node_process";
 std::string Host_Name = "unittest";
 std::string ros_DeviceName = Host_Name;
 
 
-SampleNodeProcess* initializeprocess()
+TimeMasterNodeProcess* initializeprocess()
 {
     icarus_rover_v2::diagnostic diagnostic;
     diagnostic.DeviceName = ros_DeviceName;
     diagnostic.Node_Name = Node_Name;
     diagnostic.System = ROVER;
     diagnostic.SubSystem = ROBOT_CONTROLLER;
-    diagnostic.Component = COMMUNICATION_NODE;
+    diagnostic.Component = TIMING_NODE;
 
     diagnostic.Diagnostic_Type = NOERROR;
     diagnostic.Level = INFO;
@@ -32,8 +32,8 @@ SampleNodeProcess* initializeprocess()
     device.DeviceParent = "None";
     device.Architecture = "x86_64";
 
-    SampleNodeProcess *process;
-    process = new SampleNodeProcess;
+    TimeMasterNodeProcess *process;
+    process = new TimeMasterNodeProcess;
 	diagnostic = process->init(diagnostic,std::string(Host_Name));
     EXPECT_TRUE(diagnostic.Level <= NOTICE);
     EXPECT_TRUE(process->get_initialized() == false);
@@ -42,7 +42,7 @@ SampleNodeProcess* initializeprocess()
     EXPECT_TRUE(process->get_mydevice().DeviceName == device.DeviceName);
     return process;
 }
-SampleNodeProcess* readyprocess(SampleNodeProcess* process)
+TimeMasterNodeProcess* readyprocess(TimeMasterNodeProcess* process)
 {
     icarus_rover_v2::diagnostic diag = process->update(0);
     EXPECT_TRUE(diag.Level <= NOTICE);
@@ -51,12 +51,12 @@ SampleNodeProcess* readyprocess(SampleNodeProcess* process)
 }
 TEST(Template,Process_Initialization)
 {
-    SampleNodeProcess* process = initializeprocess();
+	TimeMasterNodeProcess* process = initializeprocess();
 }
 
 TEST(Template,Process_Command)
 {
-    SampleNodeProcess* process = initializeprocess();
+	TimeMasterNodeProcess* process = initializeprocess();
     process = readyprocess(process);
     double time_to_run = 20.0;
     double dt = 0.001;
@@ -121,6 +121,34 @@ TEST(Template,Process_Command)
         current_time += dt;   
     }
     EXPECT_TRUE(process->get_runtime() >= time_to_run);
+}
+TEST(NormalOperation,PPS_Outputs)
+{
+	TimeMasterNodeProcess* process = initializeprocess();
+    process = readyprocess(process);
+    double time_to_run = 100.0;
+    double dt = 0.001;
+    double current_time = 0.0;
+    int pps1_counter = 0;
+    int pps01_counter = 0;
+    while(current_time <= time_to_run)
+    {
+        icarus_rover_v2::diagnostic diag = process->update(dt);
+        EXPECT_TRUE(diag.Level <= NOTICE);
+        if(process->publish_1pps())
+        {
+        	pps1_counter++;
+        }
+        if(process->publish_01pps())
+        {
+        	pps01_counter++;
+        }
+        current_time += dt;
+    }
+    EXPECT_TRUE(process->get_runtime() >= time_to_run);
+    EXPECT_TRUE((pps1_counter == ((int)time_to_run)));
+    EXPECT_TRUE((pps01_counter == ((int)time_to_run/10)-1));
+
 }
 int main(int argc, char **argv){
   testing::InitGoogleTest(&argc, argv);

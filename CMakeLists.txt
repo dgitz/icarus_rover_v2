@@ -239,6 +239,8 @@ add_library(commandlauncher_node_process src/Control/commandlauncher_node_proces
 add_library(simulate_node_process src/Simulate/simulate_node_process.cpp)
 add_library(master_node_process src/Control/master_node_process.cpp util/serialmessage.cpp)
 add_library(diagnostic_node_process src/Diagnostics/diagnostic_node_process.cpp)
+add_library(topicremapper_node_process src/Communication/topicremapper_node_process.cpp)
+add_library(timemaster_node_process src/Timing/timemaster_node_process.cpp)
 add_library(pose_node_process src/Pose/pose_node_process.cpp src/Pose/blocks/time_compensate/time_compensate.cpp)
 
 add_executable(sample_node src_templates/sample_node.cpp)
@@ -248,7 +250,10 @@ target_link_libraries(test_sample_node_process ${catkin_LIBRARIES} ${Boost_LIBRA
 
 
 add_executable(timemaster_node src/Timing/timemaster_node.cpp)
-target_link_libraries(timemaster_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor)
+target_link_libraries(timemaster_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} timemaster_node_process logger resourcemonitor)
+catkin_add_gtest(test_timemaster_node_process src/Timing/unit_tests/test_timemaster_node_process.cpp)
+target_link_libraries(test_timemaster_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} timemaster_node_process logger serialmessage)
+
 
 add_executable(diagnostic_node src/Diagnostics/diagnostic_node.cpp)
 target_link_libraries(diagnostic_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} diagnostic_node_process logger resourcemonitor)
@@ -267,7 +272,7 @@ catkin_add_gtest(test_master_node_process src/Control/unit_tests/test_master_nod
 target_link_libraries(test_master_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} master_node_process logger)
 
 add_executable(topicremapper_node src/Communication/topicremapper_node.cpp)
-target_link_libraries(topicremapper_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} logger resourcemonitor)
+target_link_libraries(topicremapper_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} topicremapper_node_process logger resourcemonitor)
 
 #add_executable(cameracapture_node src/Vision/cameracapture_node.cpp)
 #target_link_libraries(cameracapture_node ${OpenCV_LIBRARIES} ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor visionhelper)

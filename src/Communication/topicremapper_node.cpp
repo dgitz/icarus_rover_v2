@@ -2,32 +2,63 @@
 //Start User Code: Firmware Definition
 #define TOPICREMAPPERNODE_MAJOR_RELEASE 3
 #define TOPICREMAPPERNODE_MINOR_RELEASE 0
-#define TOPICREMAPPERNODE_BUILD_NUMBER 0
+#define TOPICREMAPPERNODE_BUILD_NUMBER 1
 //End User Code: Firmware Definition
 //Start User Code: Functions
+/*! \brief User Loop1 Code
+ */
 bool run_loop1_code()
 {
+    icarus_rover_v2::diagnostic diag = process->update(1.0/(double)loop1_rate);
+    if(diag.Level > NOTICE)
+    {
+        logger->log_diagnostic(diag);
+        diagnostic_pub.publish(diag);
+    }
 	return true;
 }
+/*! \brief User Loop2 Code
+ */
 bool run_loop2_code()
 {
+    {
+        std::vector<icarus_rover_v2::pin> outs = process->get_outputs_pins();
+        for(std::size_t i = 0; i < pin_pubs.size(); i++)
+        {
+            pin_pubs.at(i).publish(outs.at(i));
+        }
+    }
+    {
+        std::vector<std_msgs::Float32> outs = process->get_outputs_float32();
+        for(std::size_t i = 0; i < float32_pubs.size(); i++)
+        {
+            float32_pubs.at(i).publish(outs.at(i));
+        }
+    }
  	return true;
 }
+/*! \brief User Loop3 Code
+ */
 bool run_loop3_code()
 {
  	return true;
 }
+/*! \brief 0.1 PULSE PER SECOND User Code
+ */
 void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
 	icarus_rover_v2::firmware fw;
 	fw.Generic_Node_Name = "topicremapper_node";
 	fw.Node_Name = node_name;
-	fw.Description = "Latest Rev: 25-May-2017";
+	fw.Description = "Latest Rev: 30-December-2017";
 	fw.Major_Release = TOPICREMAPPERNODE_MAJOR_RELEASE;
 	fw.Minor_Release = TOPICREMAPPERNODE_MINOR_RELEASE;
 	fw.Build_Number = TOPICREMAPPERNODE_BUILD_NUMBER;
 	firmware_pub.publish(fw);
+	printf("t=%4.2f (sec) [%s]: %s\n",ros::Time::now().toSec(),node_name.c_str(),process->get_diagnostic().Description.c_str());
 }
+/*! \brief 1.0 PULSE PER SECOND User Code
+ */
 void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
 	received_pps = true;
@@ -44,6 +75,7 @@ void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 			resources_used = resourcemonitor->get_resourceused();
 			resource_pub.publish(resources_used);
 			diagnostic_pub.publish(resource_diagnostic);
+			logger->log_diagnostic(resource_diagnostic);
 		}
 		else if(resource_diagnostic.Level <= NOTICE)
 		{
@@ -56,514 +88,45 @@ void Joystick_Callback(const sensor_msgs::Joy::ConstPtr& msg,const std::string &
 {
     //icarus_rover_v2::iopins p_pwmoutputs;
     //icarus_rover_v2::iopins p_digitaloutputs;
-	for(int i = 0; i < TopicMaps.size();i++)
-	{
-        TopicMap map = TopicMaps.at(i);
-		if(map.in.topic == topic)
-		{
-			char tempstr[128];
-            if(map.in.name == "axis")
-            {
-
-
-                for(std::size_t j = 0; j < TopicMaps.at(i).outs.size();j++)
-                {
-                	bool update_output = false;
-                	if(TopicMaps.at(i).outputmode.mode == "Direct")
-                	{
-                		update_output = true;
-                	}
-                	else
-                	{
-                		if(TopicMaps.at(i).outputmode.mode == "Switch")
-                		{
-                			if(TopicMaps.at(i).outputmode.topic == map.in.topic)
-                			{
-                				if(TopicMaps.at(i).outputmode.name == "button")
-                				{
-                					if(msg->buttons[TopicMaps.at(i).outputmode.index] == TopicMaps.at(i).outputmode.required_value)
-                					{
-                						update_output = true;
-                					}
-                				}
-                			}
-                		}
-                	}
-                	OutputChannel ch = TopicMaps.at(i).outs.at(j);
-                	if(update_output == true)
-                	{
-                		double in_value = msg->axes[map.in.index];
-
-						if(ch.type == "icarus_rover_v2/pin")
-						{
-							double out = scale_value(in_value,ch.neutralvalue,map.in.minvalue,map.in.maxvalue,ch.minvalue,ch.maxvalue,ch.deadband);
-							icarus_rover_v2::pin newpin;
-							newpin.stamp = msg->header.stamp;
-							newpin.ParentDevice = ch.parentdevice;
-							newpin.DefaultValue = (int)ch.neutralvalue;
-							newpin.Function = ch.function;
-							newpin.Number = ch.pinnumber;
-							newpin.Value = (int)out;
-							//p_pwmoutputs.pins.push_back(newpin);
-							map.outs.at(j).value = newpin.Value;
-							map.pubs.at(j).publish(newpin);
-						}
-						else if(ch.type == "std_msgs/Float32")
-						{
-							double out = scale_value(in_value,ch.neutralvalue,map.in.minvalue,map.in.maxvalue,ch.minvalue,ch.maxvalue,ch.deadband);
-							std_msgs::Float32 value;
-							value.data = out;
-							map.outs.at(j).value = out;
-							map.pubs.at(j).publish(value);
-						}
-						else if(ch.type == "sensor_msgs/JointState")
-						{
-							std::string member = TopicMaps.at(i).outs.at(j).topic;
-							double out = scale_value(in_value,ch.neutralvalue,map.in.minvalue,map.in.maxvalue,ch.minvalue,ch.maxvalue,ch.deadband);
-							sensor_msgs::JointState joint;
-							joint.header.stamp = ros::Time::now();
-							joint.name.resize(1);
-
-							std::size_t found1 = member.substr(1).find("/");
-							std::size_t found2 = member.substr(found1+2).find("/")+found1;
-							std::string variable = member.substr(found1+2,found2-found1);
-							std::string name = member.substr(found2+3);
-							joint.name[0] = name;
-							if(variable == "position")
-							{
-								joint.position.resize(1);
-								joint.position[0] = out;
-
-							}
-							else if(variable == "velocity")
-							{
-								joint.velocity.resize(1);
-								joint.velocity[0] = out;
-							}
-							else if(variable == "effort")
-							{
-								joint.effort.resize(1);
-								joint.effort[0] = out;
-							}
-							else
-							{
-								char tempstr[512];
-								sprintf(tempstr,"OutputChannel JointState Not Supported: %s\n",member.c_str());
-								printf("%s\n",tempstr);
-								logger->log_warn(std::string(tempstr));
-							}
-							map.outs.at(j).value = out;
-							map.pubs.at(j).publish(joint);
-						}
-
-                	}
-                	else
-                	{
-
-                		if(ch.type == "icarus_rover_v2/pin")
-                		{
-                			icarus_rover_v2::pin newpin;
-                			newpin.stamp = msg->header.stamp;
-                			newpin.ParentDevice = ch.parentdevice;
-                			newpin.DefaultValue = (int)ch.neutralvalue;
-                			newpin.Function = ch.function;
-                			newpin.Number = ch.pinnumber;
-                			newpin.Value = map.outs.at(j).value;
-                			map.pubs.at(j).publish(newpin);
-                		}
-
-                		else if(ch.type == "std_msgs/Float32")
-                		{
-                			std_msgs::Float32 value;
-                			value.data = map.outs.at(j).value;
-                			map.pubs.at(j).publish(value);
-                		}
-
-                		else if(ch.type == "sensor_msgs/JointState")
-                		{
-                			std::string member = TopicMaps.at(i).outs.at(j).topic;
-                			sensor_msgs::JointState joint;
-                			joint.header.stamp = ros::Time::now();
-                			joint.name.resize(1);
-
-                			std::size_t found1 = member.substr(1).find("/");
-                			std::size_t found2 = member.substr(found1+2).find("/")+found1;
-                			std::string variable = member.substr(found1+2,found2-found1);
-                			std::string name = member.substr(found2+3);
-                			joint.name[0] = name;
-                			if(variable == "position")
-                			{
-                				joint.position.resize(1);
-                				joint.position[0] = map.outs.at(j).value;
-
-                			}
-                			else if(variable == "velocity")
-                			{
-                				joint.velocity.resize(1);
-                				joint.velocity[0] = map.outs.at(j).value;
-                			}
-                			else if(variable == "effort")
-                			{
-                				joint.effort.resize(1);
-                				joint.effort[0] = map.outs.at(j).value;
-                			}
-                			else
-                			{
-                				char tempstr[512];
-                				sprintf(tempstr,"OutputChannel JointState Not Supported: %s\n",member.c_str());
-                				printf("%s\n",tempstr);
-                				logger->log_warn(std::string(tempstr));
-                			}
-                			map.pubs.at(j).publish(joint);
-                		}
-
-                	}
-                }
-            }
-            if(map.in.name == "button")
-            {
-
-            	for(std::size_t j = 0; j < TopicMaps.at(i).outs.size();j++)
-				{
-            		OutputChannel ch = TopicMaps.at(i).outs.at(j);
-            		icarus_rover_v2::pin newpin;
-					newpin.stamp = msg->header.stamp;
-					newpin.ParentDevice = ch.parentdevice;
-					newpin.Function = ch.function;
-					newpin.Number = ch.pinnumber;
-					newpin.Value = msg->buttons[map.in.index];
-					//p_digitaloutputs.pins.push_back(newpin);
-					map.pubs.at(j).publish(newpin);
-				}
-            }
-		}
-		TopicMaps.at(i) = map;
-	}
+    sensor_msgs::Joy joy;
+    joy.header = msg->header;
+    joy.buttons = msg->buttons;
+    joy.axes = msg->axes;
+    icarus_rover_v2::diagnostic diag = process->new_joymsg(joy,topic);
+    if(diag.Level > NOTICE)
+    {
+        logger->log_diagnostic(diag);
+        diagnostic_pub.publish(diag);
+    }
+    /*
+	
     //pwmoutput_pub.publish(p_pwmoutputs);
     //digitaloutput_pub.publish(p_digitaloutputs);
-}
-int parse_topicmapfile(TiXmlDocument doc)
-{
-	TiXmlElement *l_pRootElement = doc.RootElement();
-
-	if( NULL != l_pRootElement )
-	{
-		// set of &lt;person&gt; tags
-		TiXmlElement *l_pTopicMapList = l_pRootElement->FirstChildElement( "TopicMapList" );
-
-		if ( NULL != l_pTopicMapList )
-		{
-			TiXmlElement *l_pTopicMap = l_pTopicMapList->FirstChildElement( "TopicMap" );
-
-			while( l_pTopicMap )
-			{
-				TopicMap newtopicmap;
-				OutputMode outputmode;
-				TiXmlElement *l_pOutputMode = l_pTopicMap->FirstChildElement("OutputMode");
-				if(NULL != l_pOutputMode)
-				{
-					TiXmlElement *l_pMode = l_pOutputMode->FirstChildElement("Mode");
-					if(NULL != l_pMode)
-					{
-						outputmode.mode = l_pMode->GetText();
-					}
-
-					TiXmlElement *l_pType = l_pOutputMode->FirstChildElement("Type");
-					if(NULL != l_pType)
-					{
-						outputmode.type = l_pType->GetText();
-					}
-
-					TiXmlElement *l_pTopic = l_pOutputMode->FirstChildElement("Topic");
-					if(NULL != l_pTopic)
-					{
-						outputmode.topic = l_pTopic->GetText();
-					}
-
-					TiXmlElement *l_pName = l_pOutputMode->FirstChildElement("Name");
-					if(NULL != l_pName)
-					{
-						outputmode.name = l_pName->GetText();
-					}
-
-					TiXmlElement *l_pIndex = l_pOutputMode->FirstChildElement("Index");
-					if(NULL != l_pIndex)
-					{
-						outputmode.index = std::atoi(l_pIndex->GetText());
-					}
-
-					TiXmlElement *l_pRequiredValue = l_pOutputMode->FirstChildElement("RequiredValue");
-					if(NULL != l_pRequiredValue)
-					{
-						outputmode.required_value = std::atoi(l_pRequiredValue->GetText());
-					}
-				}
-				else
-				{
-					outputmode.mode = "Direct";
-				}
-				newtopicmap.outputmode = outputmode;
-
-                InputChannel in;
-
-				//Input
-				TiXmlElement *l_pInput = l_pTopicMap->FirstChildElement( "InputChannel" );
-				if(NULL != l_pInput)
-				{
-					TiXmlElement *l_pInputType = l_pInput->FirstChildElement( "Type" );
-					if(NULL != l_pInputType)
-					{
-						std::string input_type = l_pInputType->GetText();
-						if(input_type == "sensor_msgs/Joy")
-						{
-							in.type = input_type;
-							TiXmlElement *l_pTopic = l_pInput->FirstChildElement( "Topic" );
-							if(NULL != l_pTopic)
-							{
-								in.topic = l_pTopic->GetText();
-							}
-                            else { return -1; }
-							TiXmlElement *l_pName = l_pInput->FirstChildElement( "Name" );
-							if(NULL != l_pName)
-							{
-								in.name = l_pName->GetText();
-							}
-                            else { return -1; }
-                            
-                            TiXmlElement *l_pIndex = l_pInput->FirstChildElement("Index");
-                            if(NULL != l_pIndex)
-                            {
-                                in.index = std::atoi(l_pIndex->GetText());
-                            }
-                            
-                            TiXmlElement *l_pMinValue = l_pInput->FirstChildElement("MinValue");
-                            if(NULL != l_pMinValue)
-                            {
-                                in.minvalue = std::atof(l_pMinValue->GetText());
-                            }
-                            else
-                            {
-                            	in.minvalue = 0.0;
-                            }
-                            
-                            TiXmlElement *l_pMaxValue = l_pInput->FirstChildElement("MaxValue");
-                            if(NULL != l_pMaxValue)
-                            {
-                                in.maxvalue = std::atof(l_pMaxValue->GetText());
-                            }
-                            else
-                            {
-                            	in.maxvalue = 0.0;
-                            }
-						}
-						else
-						{
-							char tempstr[128];
-							sprintf(tempstr,"Input Topic: %s not supported.  Exiting.",input_type.c_str());
-							return 0;
-						}
-					}
-				}
-        
-				//Outputs
-				std::vector<OutputChannel> outputs;
-				std::vector<ros::Publisher> pubs;
-				TiXmlElement *l_Outputs = l_pTopicMap->FirstChildElement("Outputs");
-				if ( NULL != l_Outputs )
-				{
-					TiXmlElement *l_pOutputChannel = l_Outputs->FirstChildElement( "OutputChannel" );
-					while( l_pOutputChannel )
-					{
-						OutputChannel out;
-						TiXmlElement *l_pOutputType = l_pOutputChannel->FirstChildElement( "Type" );
-						if(NULL != l_pOutputType)
-						{
-							std::string output_type = l_pOutputType->GetText();
-							if((output_type == "icarus_rover_v2/pin") || (output_type == "std_msgs/Float32") || (output_type == "sensor_msgs/JointState"))
-							{
-								out.type = output_type;
-								TiXmlElement *l_pTopic = l_pOutputChannel->FirstChildElement( "Topic" );
-								if(NULL != l_pTopic)
-								{
-									out.topic = l_pTopic->GetText();
-								}
-								else { return -1; }
-
-								TiXmlElement *l_pParentDevice = l_pOutputChannel->FirstChildElement( "ParentDevice" );
-								if(NULL != l_pParentDevice)
-								{
-									out.parentdevice = l_pParentDevice->GetText();
-								}
-								else { return -1; }
-
-								TiXmlElement *l_pPinNumber = l_pOutputChannel->FirstChildElement( "PinNumber" );
-								if(NULL != l_pPinNumber)
-								{
-									out.pinnumber = std::atoi(l_pPinNumber->GetText());
-								}
-								else
-								{
-									if(output_type == "icarus_rover_v2/pin")
-									{
-										printf("Output: %s Requires the OutputChannel Tag: PinNumber\n",out.topic.c_str());
-										return -1;
-									}
-									else
-									{
-										out.pinnumber = -1;
-									}
-
-								}
-
-								TiXmlElement *l_pFunction = l_pOutputChannel->FirstChildElement( "Function" );
-								if(NULL != l_pFunction)
-								{
-									out.function = l_pFunction->GetText();
-								}
-								else
-								{
-									if(output_type == "icarus_rover_v2/pin")
-									{
-										printf("Output: %s Requires the OutputChannel Tag: Function\n",out.topic.c_str());
-										return -1;
-									}
-									else
-									{
-										out.function = "PINMODE_UNDEFINED";;
-									}
-								}
-
-								TiXmlElement *l_pMaxValue = l_pOutputChannel->FirstChildElement( "MaxValue" );
-								if(NULL != l_pMaxValue)
-								{
-									out.maxvalue = std::atof(l_pMaxValue->GetText());
-								}
-								else { out.maxvalue = 0.0; }
-
-								TiXmlElement *l_pMinValue = l_pOutputChannel->FirstChildElement( "MinValue" );
-								if(NULL != l_pMinValue)
-								{
-									out.minvalue = std::atof(l_pMinValue->GetText());
-								}
-								else { out.minvalue = 0.0; }
-
-								TiXmlElement *l_pNeutralValue = l_pOutputChannel->FirstChildElement( "NeutralValue" );
-								if(NULL != l_pNeutralValue)
-								{
-									out.neutralvalue = std::atof(l_pNeutralValue->GetText());
-								}
-								else { out.neutralvalue = 0.0; }
-								out.value = out.neutralvalue;
-
-								TiXmlElement *l_pDeadband = l_pOutputChannel->FirstChildElement( "Deadband" );
-								if(NULL != l_pDeadband)
-								{
-									out.deadband = std::atof(l_pDeadband->GetText());
-								}
-								else { out.deadband = 0.0; }
-							}
-							else
-							{
-								char tempstr[128];
-								sprintf(tempstr,"Output Topic: %s not supported.  Exiting.",output_type.c_str());
-								printf("%s\n",tempstr);
-							}
-						}
-						ros::Publisher pub;
-						pubs.push_back(pub);
-						outputs.push_back(out);
-						l_pOutputChannel = l_pOutputChannel->NextSiblingElement( "OutputChannel" );
-					}
-
-				}
-                newtopicmap.in = in;
-                newtopicmap.outs = outputs;
-                newtopicmap.pubs = pubs;
-				TopicMaps.push_back(newtopicmap);
-				l_pTopicMap = l_pTopicMap->NextSiblingElement( "TopicMap" );
-			}
-		}
-	}
-	return TopicMaps.size();
-}
-std::vector<icarus_rover_v2::diagnostic> check_program_variables()
-{
-	std::vector<icarus_rover_v2::diagnostic> diaglist;
-	bool status = true;
-	logger->log_notice("checking program variables.");
-
-	if(status == true)
-	{
-		icarus_rover_v2::diagnostic diag=diagnostic_status;
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Level = NOTICE;
-		diag.Diagnostic_Message = DIAGNOSTIC_PASSED;
-		diag.Description = "Checked Program Variables -> PASSED";
-		diaglist.push_back(diag);
-	}
-	else
-	{
-		icarus_rover_v2::diagnostic diag=diagnostic_status;
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Level = WARN;
-		diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
-		diag.Description = "Checked Program Variables -> FAILED";
-		diaglist.push_back(diag);
-	}
-	return diaglist;
+    */
 }
 
 void Command_Callback(const icarus_rover_v2::command::ConstPtr& msg)
 {
-	//logger->log_info("Got command");
-	if (msg->Command ==  DIAGNOSTIC_ID)
+	icarus_rover_v2::command command;
+	command.Command = msg->Command;
+	command.Option1 = msg->Option1;
+	command.Option2 = msg->Option2;
+	command.Option3 = msg->Option3;
+	command.CommandText = msg->CommandText;
+	command.Description = msg->Description;
+	std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(command);
+	for(std::size_t i = 0; i < diaglist.size(); i++)
 	{
-		if(msg->Option1 == LEVEL1)
-		{
-			diagnostic_pub.publish(diagnostic_status);
-		}
-		else if(msg->Option1 == LEVEL2)
-		{
-			std::vector<icarus_rover_v2::diagnostic> diaglist = check_program_variables();
-			for(int i = 0; i < diaglist.size();i++) { diagnostic_pub.publish(diaglist.at(i)); }
-		}
-		else if(msg->Option1 == LEVEL3)
-		{
-		}
-		else if(msg->Option1 == LEVEL4)
-		{
-		}
-		else
-		{
-			logger->log_error("Shouldn't get here!!!");
-		}
+		logger->log_diagnostic(diaglist.at(i));
+		diagnostic_pub.publish(diaglist.at(i));
 	}
 }
-double scale_value(double x,double neutral,double x1,double x2,double y1,double y2, double deadband)
-{
-    double out = 0.0;
-    if(x < (-1.0*deadband))
-    {
-        double m = (y1-neutral)/(x1-(-1.0*deadband));
-        out = m*(x-x1)+y1;    
-    }
-    else if(x > deadband)
-    {
-    	double m = (y2-neutral)/(x2-(deadband));
-    	out = m*(x-x2)+y2;
-    }
-    else
-    {
-        out = neutral;
-    }
-    return out;
-}
+
 //End User Code: Functions
 bool run_10Hz_code()
 {
     beat.stamp = ros::Time::now();
 	heartbeat_pub.publish(beat);
-
     if(diagnostic_status.Level > NOTICE)
     {
         diagnostic_pub.publish(diagnostic_status);
@@ -589,7 +152,6 @@ int main(int argc, char **argv)
     }
     ros::Rate loop_rate(ros_rate);
 	boot_time = ros::Time::now();
-    now = ros::Time::now();
     last_10Hz_timer = ros::Time::now();
     double mtime;
     while (ros::ok() && (kill_node == 0))
@@ -599,10 +161,9 @@ int main(int argc, char **argv)
 		else if(require_pps_to_start == true && received_pps == true) { ok_to_start = true; }
     	if(ok_to_start == true)
     	{
-    		now = ros::Time::now();
             if(run_loop1 == true)
             {
-                mtime = measure_time_diff(now,last_loop1_timer);
+                mtime = measure_time_diff(ros::Time::now(),last_loop1_timer);
                 if(mtime >= (1.0/loop1_rate))
                 {
                     run_loop1_code();
@@ -611,7 +172,7 @@ int main(int argc, char **argv)
             }
             if(run_loop2 == true)
             {
-                mtime = measure_time_diff(now,last_loop2_timer);
+                mtime = measure_time_diff(ros::Time::now(),last_loop2_timer);
                 if(mtime >= (1.0/loop2_rate))
                 {
                     run_loop2_code();
@@ -620,7 +181,7 @@ int main(int argc, char **argv)
             }
             if(run_loop3 == true)
             {
-                mtime = measure_time_diff(now,last_loop3_timer);
+                mtime = measure_time_diff(ros::Time::now(),last_loop3_timer);
                 if(mtime >= (1.0/loop3_rate))
                 {
                     run_loop3_code();
@@ -628,7 +189,7 @@ int main(int argc, char **argv)
                 }
             }
             
-            mtime = measure_time_diff(now,last_10Hz_timer);
+            mtime = measure_time_diff(ros::Time::now(),last_10Hz_timer);
             if(mtime >= 0.1)
             {
                 run_10Hz_code();
@@ -687,11 +248,12 @@ bool initialize(ros::NodeHandle nh)
     std::string heartbeat_topic = "/" + node_name + "/heartbeat";
     heartbeat_pub = nh.advertise<icarus_rover_v2::heartbeat>(heartbeat_topic,1000);
     beat.Node_Name = node_name;
-    std::string device_topic = "/" + std::string(hostname) +"_master_node/device";
-    device_sub = nh.subscribe<icarus_rover_v2::device>(device_topic,1000,Device_Callback);
+    std::string device_topic = "/" + std::string(hostname) + "_master_node/srv_device";
+    srv_device = nh.serviceClient<icarus_rover_v2::srv_device>(device_topic);
+
     pps01_sub = nh.subscribe<std_msgs::Bool>("/01PPS",1000,PPS01_Callback); 
     pps1_sub = nh.subscribe<std_msgs::Bool>("/1PPS",1000,PPS1_Callback); 
-    command_sub = nh.subscribe<icarus_rover_v2::command>("/command",1000,Command_Callback);
+    command_sub = nh.subscribe<icarus_rover_v2::command>("/command",5,Command_Callback);
     std::string param_require_pps_to_start = node_name +"/require_pps_to_start";
     if(nh.getParam(param_require_pps_to_start,require_pps_to_start) == false)
 	{
@@ -699,7 +261,7 @@ bool initialize(ros::NodeHandle nh)
 		return false;
 	}
     std::string firmware_topic = "/" + node_name + "/firmware";
-    firmware_pub =  nh.advertise<icarus_rover_v2::firmware>(firmware_topic,1000);
+    firmware_pub =  nh.advertise<icarus_rover_v2::firmware>(firmware_topic,1);
     
     double max_rate = 0.0;
     std::string param_loop1_rate = node_name + "/loop1_rate";
@@ -748,121 +310,63 @@ bool initialize(ros::NodeHandle nh)
     //End Template Code: Initialization and Parameters
 
     //Start User Code: Initialization and Parameters
-    TiXmlDocument topicmap_doc("/home/robot/config/TopicMap.xml");
-
-
-	bool topicmapfile_loaded = topicmap_doc.LoadFile();
-	if(topicmapfile_loaded == true)
-	{
-        
-		if(parse_topicmapfile(topicmap_doc) <= 0)
-		{
-			logger->log_fatal("Unable to parse TopicMap.xml.  Exiting.");
-			return false;
-		}
-		logger->log_debug("------ Topic Map -----");
-		for(int i = 0; i < TopicMaps.size();i++)
-		{
-			if(TopicMaps.at(i).outputmode.mode == "Direct")
-			{
-				char tempstr[512];
-				sprintf(tempstr,"i: %d Output Mode: %s",i,TopicMaps.at(i).outputmode.mode.c_str());
-				logger->log_debug(tempstr);
-			}
-			else
-			{
-				char tempstr[512];
-				sprintf(tempstr,"i: %d Output Mode: %s Type: %s topic: %s name: %s index: %d required value: %d",
-						i,
-						TopicMaps.at(i).outputmode.mode.c_str(),
-						TopicMaps.at(i).outputmode.type.c_str(),
-						TopicMaps.at(i).outputmode.topic.c_str(),
-						TopicMaps.at(i).outputmode.name.c_str(),
-						TopicMaps.at(i).outputmode.index,
-						TopicMaps.at(i).outputmode.required_value);
-				logger->log_debug(tempstr);
-			}
-
+    process = new TopicRemapperNodeProcess;
+	diagnostic_status = process->init(diagnostic_status,std::string(hostname));
+    diagnostic_status = process->load("/home/robot/config/TopicMap.xml");
+    if(diagnostic_status.Level > NOTICE)
+    {
+        printf("[%s]: %s\n",node_name.c_str(),diagnostic_status.Description.c_str());
+        logger->log_diagnostic(diagnostic_status);
+        return false;
+    }
+    logger->log_debug(process->print_topicmaps().c_str());
+    //printf("%s\n",process->print_topicmaps().c_str());
+    std::vector<TopicRemapperNodeProcess::TopicMap> TopicMaps = process->get_topicmaps();
+    for(int i = 0; i < TopicMaps.size();i++)
+    {
+        if(TopicMaps.at(i).in.type == "sensor_msgs/Joy")
+        {
+            ros::Subscriber sub = nh.subscribe<sensor_msgs::Joy>(TopicMaps.at(i).in.topic,1000,boost::bind(Joystick_Callback,_1,TopicMaps.at(i).in.topic));
+            char tempstr[255];
+            sprintf(tempstr,"Subscribing to: %s",TopicMaps.at(i).in.topic.c_str());
+            logger->log_info(tempstr);
+            process->set_topicmap_sub(i,sub);
+            //TopicMaps.at(i).sub = sub;
+        }
+        for(int j = 0; j < TopicMaps.at(i).outs.size();j++)
+        {
+            if(TopicMaps.at(i).outs.at(j).type == "icarus_rover_v2/pin")
             {
-                char tempstr[512];
-                sprintf(tempstr,"i: %d Input Channel: Type: %s topic: %s name: %s index: %d Min: %f Max: %f",
-                    i,
-                    TopicMaps.at(i).in.type.c_str(),
-                    TopicMaps.at(i).in.topic.c_str(),
-                    TopicMaps.at(i).in.name.c_str(),
-                    TopicMaps.at(i).in.index,
-                    TopicMaps.at(i).in.minvalue,
-                    TopicMaps.at(i).in.maxvalue);
-                logger->log_debug(tempstr);
+                ros::Publisher pub = nh.advertise<icarus_rover_v2::pin>(TopicMaps.at(i).outs.at(j).topic,10);
+                pin_pubs.push_back(pub);
+                //process->set_topicmap_pub(i,j,pub);
+                //TopicMaps.at(i).pubs.at(j) = pub;
             }
+            else if(TopicMaps.at(i).outs.at(j).type == "std_msgs/Float32")
             {
-            	for(std::size_t j = 0; j < TopicMaps.at(i).outs.size();j++)
-            	{
-            		char tempstr[512];
-					sprintf(tempstr,"i: %d Output Channel[%d]: Type: %s topic: %s ParentDevice: %s Pin: %d Function: %s Max Value: %f Neutral: %f Min Value: %f Deadband: %f",
-						i,
-						j,
-						TopicMaps.at(i).outs.at(j).type.c_str(),
-						TopicMaps.at(i).outs.at(j).topic.c_str(),
-						TopicMaps.at(i).outs.at(j).parentdevice.c_str(),
-						TopicMaps.at(i).outs.at(j).pinnumber,
-						TopicMaps.at(i).outs.at(j).function.c_str(),
-						TopicMaps.at(i).outs.at(j).maxvalue,
-						TopicMaps.at(i).outs.at(j).neutralvalue,
-						TopicMaps.at(i).outs.at(j).minvalue,
-						TopicMaps.at(i).outs.at(j).deadband);
-
-					logger->log_debug(tempstr);
-            	}
+                ros::Publisher pub = nh.advertise<std_msgs::Float32>(TopicMaps.at(i).outs.at(j).topic,10);
+                float32_pubs.push_back(pub);
+                //process->set_topicmap_pub(i,j,pub);
+                //TopicMaps.at(i).pubs.at(j) = pub;
             }
-		}
-        
-		for(int i = 0; i < TopicMaps.size();i++)
-		{
-			if(TopicMaps.at(i).in.type == "sensor_msgs/Joy")
-			{
-				ros::Subscriber sub = nh.subscribe<sensor_msgs::Joy>(TopicMaps.at(i).in.topic,1000,boost::bind(Joystick_Callback,_1,TopicMaps.at(i).in.topic));
-                char tempstr[255];
-                sprintf(tempstr,"Subscribing to: %s",TopicMaps.at(i).in.topic.c_str());
-                logger->log_info(tempstr);
-				TopicMaps.at(i).sub = sub;
+            else if(TopicMaps.at(i).outs.at(j).type == "sensor_msgs/JointState")
+            {
+                std::size_t found = TopicMaps.at(i).outs.at(j).topic.substr(1).find("/");
+                std::string topic = TopicMaps.at(i).outs.at(j).topic.substr(0,found+1);
+                ros::Publisher pub = nh.advertise<sensor_msgs::JointState>(topic,10);
+                //process->set_topicmap_pub(i,j,pub);
             }
-			for(int j = 0; j < TopicMaps.at(i).outs.size();j++)
-			{
-				if(TopicMaps.at(i).outs.at(j).type == "icarus_rover_v2/pin")
-				{
-					ros::Publisher pub = nh.advertise<icarus_rover_v2::pin>(TopicMaps.at(i).outs.at(j).topic,10);
-					TopicMaps.at(i).pubs.at(j) = pub;
-				}
-				else if(TopicMaps.at(i).outs.at(j).type == "std_msgs/Float32")
-				{
-					ros::Publisher pub = nh.advertise<std_msgs::Float32>(TopicMaps.at(i).outs.at(j).topic,10);
-					TopicMaps.at(i).pubs.at(j) = pub;
-				}
-				else if(TopicMaps.at(i).outs.at(j).type == "sensor_msgs/JointState")
-				{
-					std::size_t found = TopicMaps.at(i).outs.at(j).topic.substr(1).find("/");
-					std::string topic = TopicMaps.at(i).outs.at(j).topic.substr(0,found+1);
-					ros::Publisher pub = nh.advertise<sensor_msgs::JointState>(topic,10);
-					TopicMaps.at(i).pubs.at(j) = pub;
-				}
-			}
+        }
+    }
 
-
-		}
+		
 		/*
         std::string pwmoutput_topic = "/" + node_name + "/PWMOutput";
         pwmoutput_pub = nh.advertise<icarus_rover_v2::iopins>(pwmoutput_topic,1);
         std::string digitaloutput_topic = "/" + node_name + "/DigitalOutput";
         digitaloutput_pub = nh.advertise<icarus_rover_v2::iopins>(digitaloutput_topic,1);
-		resourcemonitor = new ResourceMonitor(diagnostic_status,myDevice.Architecture,myDevice.DeviceName,node_name);
 		*/
-	}
-	else
-	{
-		logger->log_fatal("Could not load or parse /home/robot/config/TopicMap.xml. Exiting.");
-		return false;
-	}
+	
     //Finish User Code: Initialization and Parameters
 
     //Start Template Code: Final Initialization.
@@ -870,6 +374,7 @@ bool initialize(ros::NodeHandle nh)
 	diagnostic_status.Level = INFO;
 	diagnostic_status.Diagnostic_Message = NOERROR;
 	diagnostic_status.Description = "Node Initialized";
+	process->set_diagnostic(diagnostic_status);
 	diagnostic_pub.publish(diagnostic_status);
     logger->log_info("Initialized!");
     return true;
@@ -881,19 +386,28 @@ double measure_time_diff(ros::Time timer_a, ros::Time timer_b)
 	ros::Duration etime = timer_a - timer_b;
 	return etime.toSec();
 }
-void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg)
+bool new_devicemsg(std::string query,icarus_rover_v2::device device)
 {
-	icarus_rover_v2::device newdevice;
-	newdevice.DeviceName = msg->DeviceName;
-	newdevice.Architecture = msg->Architecture;
-	newdevice.DeviceType = msg->DeviceType;
-	newdevice.DeviceParent = msg->DeviceParent;
-	if((device_initialized == false) and newdevice.DeviceName == hostname)
+
+	if(query == "SELF")
 	{
-		myDevice = newdevice;
-		resourcemonitor = new ResourceMonitor(diagnostic_status,myDevice.Architecture,myDevice.DeviceName,node_name);
-		device_initialized = true;
+		if((device.DeviceName == hostname))
+		{
+			myDevice = device;
+			resourcemonitor = new ResourceMonitor(diagnostic_status,myDevice.Architecture,myDevice.DeviceName,node_name);
+			process->set_mydevice(device);
+			device_initialized = true;
+		}
 	}
+
+	if((device_initialized == true))
+	{
+		icarus_rover_v2::diagnostic diag = process->new_devicemsg(device);
+		if(process->get_initialized() == true)
+		{
+		}
+	}
+	return true;
 }
 void signalinterrupt_handler(int sig)
 {

@@ -23,11 +23,12 @@ int ServoHatDriver::init(int address_)
     wiringPiI2CWriteReg8(ServoHatfd, __MODE1, __ALLCALL);
 
     int mode1 = wiringPiI2CReadReg8(ServoHatfd, __MODE1);
+    //printf("model: %d\n",model);
     mode1 = mode1 & ~__SLEEP;
     wiringPiI2CWriteReg8(ServoHatfd, __MODE1, mode1);
 
     setPWMFreq(60);
-    return ServoHatfd;
+    return mode1;
 }
 
 void ServoHatDriver::setPWMFreq(int freq)

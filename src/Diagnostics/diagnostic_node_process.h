@@ -15,6 +15,7 @@
 #include "icarus_rover_v2/command.h"
 #include "icarus_rover_v2/pin.h"
 #include "icarus_rover_v2/firmware.h"
+#include "icarus_rover_v2/resource.h"
 #include <std_msgs/UInt8.h>
 #include <serialmessage.h>
 #include "logger.h"
@@ -26,9 +27,9 @@ public:
 	struct Task
 	{
 		std::string Task_Name;
-		ros::Time last_diagnostic_received;
-		ros::Time last_resource_received;
-		ros::Time last_heartbeat_received;
+		double last_diagnostic_received;
+		double last_resource_received;
+		double last_heartbeat_received;
 		int16_t PID;
 		int16_t CPU_Perc;
 		int64_t RAM_MB;
@@ -39,6 +40,13 @@ public:
 		ros::Subscriber resource_sub;
 		ros::Subscriber diagnostic_sub;
 		ros::Subscriber heartbeat_sub;
+	};
+
+	struct DeviceResourceAvailable
+	{
+		std::string Device_Name;
+		int16_t CPU_Perc_Available;
+		int64_t RAM_Mb_Available;
 	};
 
 	DiagnosticNodeProcess();
@@ -54,12 +62,33 @@ public:
 	bool get_initialized() { return initialized; }
 	std::vector<icarus_rover_v2::diagnostic> new_commandmsg(icarus_rover_v2::command cmd);
 	std::vector<icarus_rover_v2::diagnostic> check_program_variables();
+
+	void set_resourcethresholds(int RAM_usage_threshold_MB_,int CPU_usage_threshold_percent_)
+	{
+		RAM_usage_threshold_MB = RAM_usage_threshold_MB_;
+		CPU_usage_threshold_percent = CPU_usage_threshold_percent_;
+	}
+	std::vector<Task> get_TaskList() { return TaskList; }
+	std::vector<DeviceResourceAvailable> get_DeviceResourceAvailableList() { return DeviceResourceAvailableList; }
+	void add_Task(Task v);
+	void new_heartbeatmsg(std::string topicname);
+	void new_resourcemsg(std::string topicname,icarus_rover_v2::resource resource);
+	void new_diagnosticmsg(std::string topicname,icarus_rover_v2::diagnostic diagnostic);
+	bool get_readytoarm() { return ready_to_arm; }
+	void set_nodename(std::string v) { node_name = v; }
     
 private:
+	std::vector<icarus_rover_v2::diagnostic> check_tasks();
 	double run_time;
 	icarus_rover_v2::diagnostic diagnostic;
 	icarus_rover_v2::device mydevice;
+	std::string node_name;
 	std::string myhostname;
 	bool initialized;
+	std::vector<Task> TaskList;
+	std::vector<DeviceResourceAvailable> DeviceResourceAvailableList;
+	int RAM_usage_threshold_MB;
+	int CPU_usage_threshold_percent;
+	bool ready_to_arm;
 };
 #endif

@@ -66,7 +66,7 @@ std::vector<icarus_rover_v2::diagnostic> NetworkTransceiverNodeProcess::new_comm
 {
 	std::vector<icarus_rover_v2::diagnostic> diaglist;
 	icarus_rover_v2::diagnostic diag = diagnostic;
-	if (cmd.Command ==  DIAGNOSTIC_ID)
+	if (cmd.Command ==  ROVERCOMMAND_RUNDIAGNOSTIC)
 	{
 		if(cmd.Option1 == LEVEL1)
 		{
@@ -125,9 +125,8 @@ std::vector<icarus_rover_v2::diagnostic> NetworkTransceiverNodeProcess::check_pr
 
 	if(status == true)
 	{
-
 		diag.Diagnostic_Type = SOFTWARE;
-		diag.Level = NOTICE;
+		diag.Level = INFO;
 		diag.Diagnostic_Message = DIAGNOSTIC_PASSED;
 		diag.Description = "Checked Program Variables -> PASSED";
 		diaglist.push_back(diag);

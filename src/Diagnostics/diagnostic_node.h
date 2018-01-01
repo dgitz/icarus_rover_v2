@@ -33,29 +33,6 @@ bool log_resources();
 //End User Code: Includes
 
 //Start User Code: Data Structures
-struct Task
-{
-	std::string Task_Name;
-	ros::Time last_diagnostic_received;
-	ros::Time last_resource_received;
-	ros::Time last_heartbeat_received;
-	int16_t PID;
-	int16_t CPU_Perc;
-	int64_t RAM_MB;
-	uint8_t last_diagnostic_level;
-	std::string resource_topic;
-	std::string diagnostic_topic;
-	std::string heartbeat_topic;
-	ros::Subscriber resource_sub;
-	ros::Subscriber diagnostic_sub;
-	ros::Subscriber heartbeat_sub;
-};
-struct DeviceResourceAvailable
-{
-	std::string Device_Name;
-	int16_t CPU_Perc_Available;
-	int64_t RAM_Mb_Available;
-};
 //End User Code: Data Structures
 
 //Start Template Code: Function Prototypes
@@ -77,7 +54,6 @@ icarus_rover_v2::diagnostic rescan_topics(icarus_rover_v2::diagnostic diag);
 void heartbeat_Callback(const icarus_rover_v2::heartbeat::ConstPtr& msg,const std::string &topicname);
 void resource_Callback(const icarus_rover_v2::resource::ConstPtr& msg,const std::string &topicname);
 void diagnostic_Callback(const icarus_rover_v2::diagnostic::ConstPtr& msg,const std::string &topicname);
-bool check_tasks();
 //End User Code: Function Prototypes
 
 //Start Template Code: Define Global variables
@@ -119,12 +95,7 @@ double ros_rate;
 //Start User Code: Define Global Variables
 DiagnosticNodeProcess *process;
 ros::Publisher ready_to_arm_pub;
-bool ready_to_arm;
 boost::shared_ptr<ros::NodeHandle> n;
-std::vector<Task> TaskList;
-std::vector<DeviceResourceAvailable> DeviceResourceAvailableList;
-int RAM_usage_threshold_MB;
-int CPU_usage_threshold_percent;
 int Log_Resources_Used;
 bool logging_initialized;
 ofstream ram_used_file;

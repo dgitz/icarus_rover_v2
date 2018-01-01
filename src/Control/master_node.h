@@ -13,6 +13,9 @@
 #include <icarus_rover_v2/Definitions.h>
 #include <icarus_rover_v2/diagnostic.h>
 #include <icarus_rover_v2/device.h>
+#include <icarus_rover_v2/srv_device.h>
+#include <icarus_rover_v2/srv_connection.h>
+#include <icarus_rover_v2/srv_leverarm.h>
 #include <icarus_rover_v2/resource.h>
 #include <icarus_rover_v2/pin.h>
 #include <icarus_rover_v2/command.h>
@@ -21,6 +24,9 @@
 #include <signal.h>
 //End Template Code: Includes
 
+//Start User Code: Defines
+//End User Code: Defines
+
 //Start User Code: Includes
 #include "master_node_process.h"
 #include <boost/algorithm/string.hpp>
@@ -28,9 +34,6 @@
 #include <string>
 #include <ros/package.h>
 #include <stdlib.h>
-#include "icarus_rover_v2/srv_device.h"
-#include "icarus_rover_v2/srv_connection.h"
-#include "icarus_rover_v2/srv_leverarm.h"
 #include <dirent.h>
 #include <errno.h>
 
@@ -39,9 +42,11 @@
 #include <termios.h>    // POSIX terminal control definitions
 //End User Code: Includes
 
+//Start User Code: Data Structures
+//End User Code: Data Structures
 
 //Start Template Code: Function Prototypes
-bool initialize(ros::NodeHandle nh);
+bool initializenode();
 void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg);
 void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg);
 double measure_time_diff(ros::Time timer_a, ros::Time tiber_b);
@@ -67,6 +72,7 @@ bool check_serialports();
 
 
 //Start Template Code: Define Global variables
+boost::shared_ptr<ros::NodeHandle> n;
 std::string node_name;
 std::string verbosity_level;
 ros::Subscriber pps01_sub;
@@ -75,14 +81,12 @@ ros::Publisher diagnostic_pub;
 ros::Publisher resource_pub;
 ros::Subscriber command_sub;
 ros::Publisher firmware_pub;
-icarus_rover_v2::diagnostic diagnostic_status;
 icarus_rover_v2::resource resources_used;
 Logger *logger;
 ResourceMonitor *resourcemonitor;
 bool require_pps_to_start;
 bool received_pps;
 ros::Time boot_time;
-bool device_initialized;
 char hostname[1024];
 ros::Publisher heartbeat_pub;
 icarus_rover_v2::heartbeat beat;
@@ -101,7 +105,7 @@ double ros_rate;
 //End Template Code: Define Global Variables
 
 //Start User Code: Global Variables
-MasterNodeProcess process;
+MasterNodeProcess *process;
 SerialMessageHandler *serialmessagehandler;
 std::vector<icarus_rover_v2::device> devices_to_publish;
 std::vector<std::string> NodeList;

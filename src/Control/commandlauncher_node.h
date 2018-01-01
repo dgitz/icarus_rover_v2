@@ -43,7 +43,6 @@ void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg);
 double measure_time_diff(ros::Time timer_a, ros::Time tiber_b);
 bool new_devicemsg(std::string query,icarus_rover_v2::device device);
 void Command_Callback(const icarus_rover_v2::command& msg);
-std::vector<icarus_rover_v2::diagnostic> check_program_variables();
 bool run_loop3_code();
 bool run_loop2_code();
 bool run_loop1_code();
@@ -56,6 +55,7 @@ uint32_t get_pid_byname(std::string name);
 //End User Code: Function Prototypes
 
 //Start Template Code: Define Global variables
+boost::shared_ptr<ros::NodeHandle> n;
 ros::ServiceClient srv_device;
 std::string node_name;
 std::string verbosity_level;
@@ -92,7 +92,6 @@ double ros_rate;
 //End Template Code: Define Global Variables
 
 //Start User Code: Define Global Variables
-boost::shared_ptr<ros::NodeHandle> n;
 CommandLauncherNodeProcess *process;
 std::string camerastream_port;
 //End User Code: Define Global Variables

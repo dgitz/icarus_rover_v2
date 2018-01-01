@@ -1,21 +1,24 @@
-#include "sample_node_process.h"
+#include "timemaster_node_process.h"
 /*! \brief Constructor
  */
-SampleNodeProcess::SampleNodeProcess()
+TimeMasterNodeProcess::TimeMasterNodeProcess()
 {
 	run_time = 0.0;
 	initialized = false;
-    ready = false;
+    pps01_delay = 0;
+    pps1_delay = 0;
+    time_since_last_1pps = 0.0;
+    time_since_last_01pps = 0.0;
 }
 /*! \brief Deconstructor
  */
-SampleNodeProcess::~SampleNodeProcess()
+TimeMasterNodeProcess::~TimeMasterNodeProcess()
 {
 
 }
 /*! \brief Initialize Process
  */
-icarus_rover_v2::diagnostic SampleNodeProcess::init(icarus_rover_v2::diagnostic indiag,std::string hostname)
+icarus_rover_v2::diagnostic TimeMasterNodeProcess::init(icarus_rover_v2::diagnostic indiag,std::string hostname)
 {
    	myhostname = hostname;
 	diagnostic = indiag;
@@ -24,13 +27,15 @@ icarus_rover_v2::diagnostic SampleNodeProcess::init(icarus_rover_v2::diagnostic 
 }
 /*! \brief Time Update of Process
  */
-icarus_rover_v2::diagnostic SampleNodeProcess::update(double dt)
+icarus_rover_v2::diagnostic TimeMasterNodeProcess::update(double dt)
 {
 	run_time += dt;
-    if((mydevice.BoardCount == 0) and (mydevice.SensorCount == 0))
+	if((mydevice.BoardCount == 0) and (mydevice.SensorCount == 0))
     {
         if(initialized == true) { ready = true; }
     }
+    time_since_last_1pps += dt;
+    time_since_last_01pps += dt;
 	icarus_rover_v2::diagnostic diag = diagnostic;
 	diag.Diagnostic_Type = NOERROR;
 	diag.Level = INFO;
@@ -41,7 +46,7 @@ icarus_rover_v2::diagnostic SampleNodeProcess::update(double dt)
 }
 /*! \brief Setup Process Device info
  */
-icarus_rover_v2::diagnostic SampleNodeProcess::new_devicemsg(icarus_rover_v2::device device)
+icarus_rover_v2::diagnostic TimeMasterNodeProcess::new_devicemsg(icarus_rover_v2::device device)
 {
     icarus_rover_v2::diagnostic diag = diagnostic;
 	bool new_device = true;
@@ -53,7 +58,7 @@ icarus_rover_v2::diagnostic SampleNodeProcess::new_devicemsg(icarus_rover_v2::de
 }
 /*! \brief Process Command Message
  */
-std::vector<icarus_rover_v2::diagnostic> SampleNodeProcess::new_commandmsg(icarus_rover_v2::command cmd)
+std::vector<icarus_rover_v2::diagnostic> TimeMasterNodeProcess::new_commandmsg(icarus_rover_v2::command cmd)
 {
 	std::vector<icarus_rover_v2::diagnostic> diaglist;
 	icarus_rover_v2::diagnostic diag = diagnostic;
@@ -79,7 +84,7 @@ std::vector<icarus_rover_v2::diagnostic> SampleNodeProcess::new_commandmsg(icaru
 }
 /*! \brief Self-Diagnostic-Check Program Variables
  */
-std::vector<icarus_rover_v2::diagnostic> SampleNodeProcess::check_program_variables()
+std::vector<icarus_rover_v2::diagnostic> TimeMasterNodeProcess::check_program_variables()
 {
 	std::vector<icarus_rover_v2::diagnostic> diaglist;
 	icarus_rover_v2::diagnostic diag=diagnostic;
@@ -102,4 +107,31 @@ std::vector<icarus_rover_v2::diagnostic> SampleNodeProcess::check_program_variab
 		diaglist.push_back(diag);
 	}
 	return diaglist;
+}
+bool TimeMasterNodeProcess::set_ppssource(std::string v)
+{
+    if(v == "self")
+    {
+        pps_source = v; 
+        return true;
+    }
+    return false;
+}
+bool TimeMasterNodeProcess::publish_1pps()
+{
+    if(time_since_last_1pps >= 1.0)
+    {
+        time_since_last_1pps = 0.0;
+        return true;
+    }
+    return false;
+}
+bool TimeMasterNodeProcess::publish_01pps()
+{
+   if(time_since_last_01pps >= 10.0)
+    {
+        time_since_last_01pps = 0.0;
+        return true;
+    }
+    return false; 
 }

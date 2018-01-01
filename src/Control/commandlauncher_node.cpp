@@ -2,7 +2,7 @@
 //Start User Code: Firmware Definition
 #define COMMANDLAUNCHERNODE_MAJOR_RELEASE 0
 #define COMMANDLAUNCHERNODE_MINOR_RELEASE 0
-#define COMMANDLAUNCHERNODE_BUILD_NUMBER 1
+#define COMMANDLAUNCHERNODE_BUILD_NUMBER 2
 //End User Code: Firmware Definition
 //Start User Code: Functions
 /*! \brief User Loop1 Code
@@ -34,9 +34,6 @@ bool run_loop1_code()
 
 			logger->log_info(std::string(tempstr));
 			int ret = system (processlist.at(i).command_text.c_str());
-			//char tempstr2[256];
-			//sprintf(tempstr2,"Command result: %d",ret);
-			//logger->log_notice(std::string(tempstr2));
 			process->set_process_restarted(processlist.at(i).name);
 			check_pid = true;
 		}
@@ -85,11 +82,12 @@ void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg)
 	icarus_rover_v2::firmware fw;
 	fw.Generic_Node_Name = "commandlauncher_node";
 	fw.Node_Name = node_name;
-	fw.Description = "Latest Rev: 28-December-2017";
+	fw.Description = "Latest Rev: 30-December-2017";
 	fw.Major_Release = COMMANDLAUNCHERNODE_MAJOR_RELEASE;
 	fw.Minor_Release = COMMANDLAUNCHERNODE_MINOR_RELEASE;
 	fw.Build_Number = COMMANDLAUNCHERNODE_BUILD_NUMBER;
 	firmware_pub.publish(fw);
+	printf("t=%4.2f (sec) [%s]: %s\n",ros::Time::now().toSec(),node_name.c_str(),process->get_diagnostic().Description.c_str());
 }
 /*! \brief 1.0 PULSE PER SECOND User Code
  */
@@ -135,60 +133,23 @@ void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 			}
     	}
     }
-}
-/*! \brief Self-Diagnostic-Check Program Variables
- */
-std::vector<icarus_rover_v2::diagnostic> check_program_variables()
-{
-	std::vector<icarus_rover_v2::diagnostic> diaglist;
-	bool status = true;
-	logger->log_notice("checking program variables.");
-
-	if(status == true)
-	{
-		icarus_rover_v2::diagnostic diag=diagnostic_status;
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Level = NOTICE;
-		diag.Diagnostic_Message = DIAGNOSTIC_PASSED;
-		diag.Description = "Checked Program Variables -> PASSED";
-		diaglist.push_back(diag);
-	}
-	else
-	{
-		icarus_rover_v2::diagnostic diag=diagnostic_status;
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Level = WARN;
-		diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
-		diag.Description = "Checked Program Variables -> FAILED";
-		diaglist.push_back(diag);
-	}
-	return diaglist;
+    diagnostic_pub.publish(process->get_diagnostic());
 }
 
 void Command_Callback(const icarus_rover_v2::command::ConstPtr& msg)
 {
-	//logger->log_info("Got command");
-	if (msg->Command ==  DIAGNOSTIC_ID)
+	icarus_rover_v2::command command;
+	command.Command = msg->Command;
+	command.Option1 = msg->Option1;
+	command.Option2 = msg->Option2;
+	command.Option3 = msg->Option3;
+	command.CommandText = msg->CommandText;
+	command.Description = msg->Description;
+	std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(command);
+	for(std::size_t i = 0; i < diaglist.size(); i++)
 	{
-		if(msg->Option1 == LEVEL1)
-		{
-			diagnostic_pub.publish(diagnostic_status);
-		}
-		else if(msg->Option1 == LEVEL2)
-		{
-			std::vector<icarus_rover_v2::diagnostic> diaglist = check_program_variables();
-			for(int i = 0; i < diaglist.size();i++) { diagnostic_pub.publish(diaglist.at(i)); }
-		}
-		else if(msg->Option1 == LEVEL3)
-		{
-		}
-		else if(msg->Option1 == LEVEL4)
-		{
-		}
-		else
-		{
-			logger->log_error("Shouldn't get here!!!");
-		}
+		logger->log_diagnostic(diaglist.at(i));
+		diagnostic_pub.publish(diaglist.at(i));
 	}
 }
 uint32_t get_pid_byname(std::string name)
@@ -208,7 +169,6 @@ bool run_10Hz_code()
 {
     beat.stamp = ros::Time::now();
 	heartbeat_pub.publish(beat);
-
     if(diagnostic_status.Level > NOTICE)
     {
         diagnostic_pub.publish(diagnostic_status);
@@ -337,7 +297,7 @@ bool initializenode()
 
     pps01_sub = n->subscribe<std_msgs::Bool>("/01PPS",1000,PPS01_Callback);
     pps1_sub = n->subscribe<std_msgs::Bool>("/1PPS",1000,PPS1_Callback);
-    command_sub = n->subscribe<icarus_rover_v2::command>("/command",1000,Command_Callback);
+    command_sub = n->subscribe<icarus_rover_v2::command>("/command",5,Command_Callback);
     std::string param_require_pps_to_start = node_name +"/require_pps_to_start";
     if(n->getParam(param_require_pps_to_start,require_pps_to_start) == false)
 	{
@@ -345,7 +305,7 @@ bool initializenode()
 		return false;
 	}
     std::string firmware_topic = "/" + node_name + "/firmware";
-    firmware_pub =  n->advertise<icarus_rover_v2::firmware>(firmware_topic,1000);
+    firmware_pub =  n->advertise<icarus_rover_v2::firmware>(firmware_topic,1);
     
     double max_rate = 0.0;
     std::string param_loop1_rate = node_name + "/loop1_rate";
@@ -395,15 +355,16 @@ bool initializenode()
 
     //Start User Code: Initialization and Parameters
     process = new CommandLauncherNodeProcess;
-	diagnostic_status = process->init(diagnostic_status,std::string(hostname));
+	diagnostic_status = process->init(diagnostic_status,std::string(hostname));    
 	std::string param_cameraport = node_name + "/CameraStreamPort";
 	if(n->getParam(param_cameraport,camerastream_port) == false)
     {
         logger->log_error("Missing parameter: CameraStreamPort.  Exiting.");
         return false;
     }
-
+   
 	
+    
     //Finish User Code: Initialization and Parameters
 
     //Start Template Code: Final Initialization.
@@ -432,6 +393,14 @@ bool new_devicemsg(std::string query,icarus_rover_v2::device device)
 			myDevice = device;
 			resourcemonitor = new ResourceMonitor(diagnostic_status,myDevice.Architecture,myDevice.DeviceName,node_name);
 			process->set_mydevice(device);
+            if(process->set_camerastream(camerastream_port) == false)
+            {
+                char tempstr[512];
+                sprintf(tempstr,"Couldn't set Camera Stream Port. Exiting.");
+                logger->log_error(tempstr);
+                printf("%s\n",tempstr);
+                return false;
+            }
 			device_initialized = true;
 		}
 	}

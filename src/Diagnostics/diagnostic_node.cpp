@@ -9,10 +9,6 @@
  */
 bool run_loop1_code()
 {
-	if(check_tasks() == false)
-	{
-		logger->log_warn("Not able to check Tasks.");
-	}
 	return true;
 }
 /*! \brief User Loop2 Code
@@ -27,7 +23,7 @@ bool run_loop2_code()
 		}
 	}
 	std_msgs::Bool bool_ready_to_arm;
-	bool_ready_to_arm.data = ready_to_arm;
+	bool_ready_to_arm.data = process->get_readytoarm();
     ready_to_arm_pub.publish(bool_ready_to_arm);
  	return true;
 }
@@ -48,6 +44,7 @@ icarus_rover_v2::diagnostic rescan_topics(icarus_rover_v2::diagnostic diag)
 	ros::master::V_TopicInfo master_topics;
 	ros::master::getTopics(master_topics);
 	std::vector<std::string> topics_to_add;
+	std::vector<DiagnosticNodeProcess::Task> TaskList = process->get_TaskList();
 	for (ros::master::V_TopicInfo::iterator it = master_topics.begin() ; it != master_topics.end(); it++)
 	{
 		const ros::master::TopicInfo& info = *it;
@@ -71,25 +68,19 @@ icarus_rover_v2::diagnostic rescan_topics(icarus_rover_v2::diagnostic diag)
 	for(int i = 0; i < topics_to_add.size(); i++)
 	{
 		std::string taskname = topics_to_add.at(i).substr(1,topics_to_add.at(i).find("/diagnostic")-1);;
-		Task newTask;
+		DiagnosticNodeProcess::Task newTask;
 		newTask.Task_Name = taskname;
 		newTask.diagnostic_topic = topics_to_add.at(i);
 		newTask.heartbeat_topic = "/" + taskname + "/heartbeat";
 		newTask.resource_topic = "/" + taskname + "/resource";
-		newTask.CPU_Perc = 0;
-		newTask.PID = -1;
-		newTask.RAM_MB = 0;
-		newTask.last_diagnostic_level = WARN;
 		ros::Subscriber resource_sub = n->subscribe<icarus_rover_v2::resource>(newTask.resource_topic,1000,boost::bind(resource_Callback,_1,newTask.resource_topic));
 		newTask.resource_sub = resource_sub;
 		ros::Subscriber diagnostic_sub = n->subscribe<icarus_rover_v2::diagnostic>(newTask.diagnostic_topic,1000,boost::bind(diagnostic_Callback,_1,newTask.diagnostic_topic));
 		newTask.diagnostic_sub = diagnostic_sub;
 		ros::Subscriber heartbeat_sub = n->subscribe<icarus_rover_v2::heartbeat>(newTask.heartbeat_topic,1000,boost::bind(heartbeat_Callback,_1,newTask.heartbeat_topic));
 		newTask.heartbeat_sub = heartbeat_sub;
-		newTask.last_diagnostic_received = ros::Time::now();
-		newTask.last_heartbeat_received = ros::Time::now();
-		newTask.last_resource_received = ros::Time::now();
-		TaskList.push_back(newTask);
+		process->add_Task(newTask);
+		//TaskList.push_back(newTask);
 
 	}
 
@@ -112,17 +103,12 @@ icarus_rover_v2::diagnostic rescan_topics(icarus_rover_v2::diagnostic diag)
 }
 void heartbeat_Callback(const icarus_rover_v2::heartbeat::ConstPtr& msg,const std::string &topicname)
 {
-	for(int i = 0; i < TaskList.size(); i++)
-	{
-		if(	TaskList.at(i).heartbeat_topic == topicname)
-		{
-			TaskList.at(i).last_heartbeat_received = msg->stamp;
-		}
-	}
-
+	process->new_heartbeatmsg(topicname);
 }
 bool log_resources()
 {
+	std::vector<DiagnosticNodeProcess::Task> TaskList = process->get_TaskList();
+	std::vector<DiagnosticNodeProcess::DeviceResourceAvailable> DeviceResourceAvailableList = process->get_DeviceResourceAvailableList();
 	std::string ram_used_file_path = "/home/robot/logs/ram_used.csv";
 	std::string cpu_used_file_path = "/home/robot/logs/cpu_used.csv";
 	std::string ram_free_file_path = "/home/robot/logs/ram_free.csv";
@@ -167,6 +153,7 @@ bool log_resources()
 		else
 		{
 			ram_free_file << "Time (s),";
+
 			for(int i = 0; i < DeviceResourceAvailableList.size();i++)
 			{
 				ram_free_file << DeviceResourceAvailableList.at(i).Device_Name << ",";
@@ -262,134 +249,7 @@ bool log_resources()
 	}
 	return true;
 }
-bool check_tasks()
-{
-	std::vector<Task> TasksToCheck = TaskList;
-	int task_ok_counter = 0;
-	for(int i = 0; i < TasksToCheck.size(); i++)
-	{
-		bool task_ok = true;
-		Task newTask = TasksToCheck.at(i);
-		if(newTask.CPU_Perc > CPU_usage_threshold_percent)
-		{
-			task_ok = false;
-			char tempstr[512];
-			sprintf(tempstr,"Task: %s is using high CPU resource: %d/%d %",
-					newTask.Task_Name.c_str(),newTask.CPU_Perc,CPU_usage_threshold_percent);
-			diagnostic_status.Diagnostic_Message = HIGH_RESOURCE_USAGE;
-			diagnostic_status.Level = WARN;
-			diagnostic_status.Description = tempstr;
-			logger->log_diagnostic(diagnostic_status);
-			diagnostic_pub.publish(diagnostic_status);
-		}
-		if(newTask.RAM_MB > RAM_usage_threshold_MB)
-		{
-			task_ok = false;
-			char tempstr[512];
-			sprintf(tempstr,"Task: %s is using high RAM resource: %ld/%d (MB)",
-					newTask.Task_Name.c_str(),newTask.RAM_MB,RAM_usage_threshold_MB);
-			diagnostic_status.Diagnostic_Message = HIGH_RESOURCE_USAGE;
-			diagnostic_status.Level = WARN;
-			diagnostic_status.Description = tempstr;
-			logger->log_diagnostic(diagnostic_status);
-			diagnostic_pub.publish(diagnostic_status);
-		}
-		/*
-		if(newTask.PID <= 0)
-		{
-			task_ok = false;
-			char tempstr[512];
-			sprintf(tempstr,"Task: %s does not have a valid PID.",newTask.Task_Name.c_str());
-			logger->log_warn(tempstr);
-			diagnostic_status.Diagnostic_Message = HIGH_RESOURCE_USAGE;
-			diagnostic_status.Level = WARN;
-			diagnostic_status.Description = tempstr;
-			diagnostic_pub.publish(diagnostic_status);
-		}
-		double resource_time_duration = measure_time_diff(ros::Time::now(),newTask.last_resource_received);
-		//printf("Task: %s Resource Time: %f\r\n",newTask.Task_Name.c_str(),resource_time_duration);
-		if( resource_time_duration > 5.0)
-		{
-			task_ok = false;
-			char tempstr[512];
-			sprintf(tempstr,"Task: %s has not reported resources used in %.1f seconds",newTask.Task_Name.c_str(),resource_time_duration);
-			logger->log_warn(tempstr);
-			diagnostic_status.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
-			diagnostic_status.Level = WARN;
-			diagnostic_status.Description = tempstr;
-			diagnostic_pub.publish(diagnostic_status);
-		}
 
-		double diagnostic_time_duration = measure_time_diff(ros::Time::now(),newTask.last_diagnostic_received);
-		if( resource_time_duration > 5.0)
-		{
-			task_ok = false;
-			char tempstr[512];
-			sprintf(tempstr,"Task: %s has not reported diagnostics in %.1f seconds",newTask.Task_Name.c_str(),diagnostic_time_duration);
-			logger->log_warn(tempstr);
-			diagnostic_status.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
-			diagnostic_status.Level = WARN;
-			diagnostic_status.Description = tempstr;
-			diagnostic_pub.publish(diagnostic_status);
-		}
-		*/
-		double heartbeat_time_duration = measure_time_diff(ros::Time::now(),newTask.last_heartbeat_received);
-		if(heartbeat_time_duration > 5.0)
-		{
-			task_ok = false;
-			char tempstr[512];
-			sprintf(tempstr,"Task: %s has not reported heartbeats in %.1f seconds",newTask.Task_Name.c_str(),heartbeat_time_duration);
-			diagnostic_status.Diagnostic_Message = MISSING_HEARTBEATS;
-			diagnostic_status.Level = FATAL;
-			diagnostic_status.Description = tempstr;
-			logger->log_diagnostic(diagnostic_status);
-			diagnostic_pub.publish(diagnostic_status);
-
-		}
-
-		if(task_ok == true){task_ok_counter++;}
-	}
-	if(task_ok_counter == TasksToCheck.size())
-	{
-		if(TasksToCheck.size() > 0)
-		{
-			ready_to_arm = true;
-		}
-		else
-		{
-			ready_to_arm = false;
-			logger->log_fatal("No Tasks to report!");
-		}
-		char tempstr[255];
-		sprintf(tempstr,"%d/%d (All) Tasks Operational.",task_ok_counter,(int)TasksToCheck.size());
-        
-		logger->log_info(tempstr);
-		icarus_rover_v2::diagnostic system_diag;
-		system_diag.Node_Name = node_name;
-		system_diag.System = ROVER;
-		system_diag.SubSystem = ENTIRE_SUBSYSTEM;
-		system_diag.Component = DIAGNOSTIC_NODE;
-		system_diag.Diagnostic_Message = NOERROR;
-		system_diag.Diagnostic_Type = NOERROR;
-		system_diag.Level = NOTICE;
-		system_diag.Description = "System is Operational.";
-		logger->log_diagnostic(system_diag);
-		diagnostic_pub.publish(system_diag);
-	}
-	else
-	{
-		ready_to_arm = false;
-		char tempstr[255];
-		sprintf(tempstr,"%d/%d Tasks are in WARN state or Higher!",(int)TasksToCheck.size()-task_ok_counter,(int)TasksToCheck.size());
-		logger->log_warn(tempstr);
-		diagnostic_status.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
-		diagnostic_status.Level = WARN;
-		diagnostic_status.Description = tempstr;
-		logger->log_diagnostic(diagnostic_status);
-		diagnostic_pub.publish(diagnostic_status);
-	}
-	return true;
-}
 /*! \brief 0.1 PULSE PER SECOND User Code
  */
 void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg)
@@ -471,80 +331,27 @@ void Command_Callback(const icarus_rover_v2::command::ConstPtr& msg)
 
 void resource_Callback(const icarus_rover_v2::resource::ConstPtr& msg,const std::string &topicname)
 {
-	for(int i = 0; i < TaskList.size();i++)
-	{
-		//printf("------------------\r\n%s/%s\r\n",TaskList.at(i).Task_Name.c_str(),msg->Node_Name.c_str());
-		if(	TaskList.at(i).resource_topic == topicname)
-		{
-			TaskList.at(i).last_resource_received = ros::Time::now();//measure_time_diff(ros::Time::now(),boot_time);
-			TaskList.at(i).CPU_Perc = msg->CPU_Perc;
-			TaskList.at(i).RAM_MB = msg->RAM_MB;
-			TaskList.at(i).PID = msg->PID;
-		}
-	}
-	std::size_t resource_available_topic = topicname.find("resource_available");
-	if(resource_available_topic != std::string::npos)
-	{
-		bool found = true;
-		for(int i = 0; i < DeviceResourceAvailableList.size();i++)
-		{
-			if(DeviceResourceAvailableList.at(i).Device_Name == msg->Node_Name)
-			{
-				found = false;
-				DeviceResourceAvailableList.at(i).CPU_Perc_Available = msg->CPU_Perc;
-				DeviceResourceAvailableList.at(i).RAM_Mb_Available = msg->RAM_MB;
-				break;
-			}
-		}
-		if(found == true)
-		{
-			DeviceResourceAvailable newdevice;
-			newdevice.Device_Name = msg->Node_Name;
-			newdevice.CPU_Perc_Available = msg->CPU_Perc;
-			newdevice.RAM_Mb_Available = msg->RAM_MB;
-			DeviceResourceAvailableList.push_back(newdevice);
-		}
-	}
+	icarus_rover_v2::resource resource;
+	resource.Node_Name = msg->Node_Name;
+	resource.CPU_Perc = msg->CPU_Perc;
+	resource.PID = msg->PID;
+	resource.RAM_MB = msg->RAM_MB;
+	resource.stamp = msg->stamp;
+	process->new_resourcemsg(topicname,resource);
 }
 void diagnostic_Callback(const icarus_rover_v2::diagnostic::ConstPtr& msg,const std::string &topicname)
 {
-	bool add_me = true;
-	for(int i = 0; i < TaskList.size();i++)
-	{
-		if(	TaskList.at(i).diagnostic_topic == topicname)
-		{
-			TaskList.at(i).last_diagnostic_received = ros::Time::now();//measure_time_diff(ros::Time::now(),boot_time);
-			TaskList.at(i).last_diagnostic_level = msg->Level;
-		}
-	}
-	//sprintf(tempstr,"TaskList size: %d",TaskList.size());
-	//logger->log_debug(tempstr);
-	char tempstr[512];
-	sprintf(tempstr,"Node: %s: %s",msg->Node_Name.c_str(),msg->Description.c_str());
-
-	switch(msg->Level)
-	{
-		case DEBUG:
-			//logger->log_debug(tempstr);
-			break;
-		case INFO:
-			//logger->log_info(tempstr);
-			break;
-		case NOTICE:
-			logger->log_notice(tempstr);
-			break;
-		case WARN:
-			logger->log_warn(tempstr);
-			break;
-		case ERROR:
-			logger->log_error(tempstr);
-			break;
-		case FATAL:
-			logger->log_fatal(tempstr);
-			break;
-		default:
-			break;
-	}
+	icarus_rover_v2::diagnostic diag;
+	diag.DeviceName = msg->DeviceName;
+	diag.Component = msg->Component;
+	diag.Description = msg->Description;
+	diag.Diagnostic_Message = msg->Diagnostic_Message;
+	diag.Diagnostic_Type = msg->Diagnostic_Type;
+	diag.Level = msg->Level;
+	diag.Node_Name = msg->Node_Name;
+	diag.SubSystem = msg->SubSystem;
+	diag.System = msg->System;
+	process->new_diagnosticmsg(topicname,diag);
 }
 
 //End User Code: Functions
@@ -724,7 +531,6 @@ bool initializenode()
 	//End Template Code: Initialization, Parameters and Topics
 
 	//Start User Code: Initialization, Parameters and Topics
-    ready_to_arm = false;
     diagnostic_status.DeviceName = hostname;
 	diagnostic_status.Node_Name = node_name;
 	diagnostic_status.System = ROVER;
@@ -738,19 +544,23 @@ bool initializenode()
 	process = new DiagnosticNodeProcess;
 	diagnostic_status = process->init(diagnostic_status,std::string(hostname));
 	diagnostic_pub.publish(diagnostic_status);
+
 	std::string param_ram_usage_threshold = node_name +"/RAM_usage_threshold_MB";
+	int RAM_usage_threshold_MB;
 	if(n->getParam(param_ram_usage_threshold,RAM_usage_threshold_MB) == false)
 	{
 		logger->log_fatal("Missing Parameter: RAM_usage_threshold_MB.  Exiting.");
 		return false;
 	}
 	std::string param_CPU_usage_threshold = node_name + "/CPU_usage_threshold_percent";
+	int CPU_usage_threshold_percent;
 	if(n->getParam(param_CPU_usage_threshold,CPU_usage_threshold_percent) == false)
 	{
 		logger->log_fatal("Missing Parameter: CPU_usage_threshold_percent.  Exiting.");
 		return false;
 	}
-
+	process->set_resourcethresholds(RAM_usage_threshold_MB,CPU_usage_threshold_percent);
+	process->set_nodename(node_name);
 	std::string param_log_resources_used = node_name +"/Log_Resources_Used";
 	if(n->getParam(param_log_resources_used,Log_Resources_Used) == false)
 	{

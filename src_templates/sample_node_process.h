@@ -33,16 +33,20 @@ public:
 	double get_runtime() { return run_time; }
 	icarus_rover_v2::device get_mydevice() { return mydevice; }
 	icarus_rover_v2::diagnostic new_devicemsg(icarus_rover_v2::device device);
-	void set_mydevice(icarus_rover_v2::device device) { mydevice = device; }
+	void set_mydevice(icarus_rover_v2::device device) { mydevice = device; initialized = true; }
 	bool get_initialized() { return initialized; }
+    bool get_ready() { return ready; }
 	std::vector<icarus_rover_v2::diagnostic> new_commandmsg(icarus_rover_v2::command cmd);
-	std::vector<icarus_rover_v2::diagnostic> check_program_variables();
+	
     
 private:
+    std::vector<icarus_rover_v2::diagnostic> check_program_variables();
+    
 	double run_time;
 	icarus_rover_v2::diagnostic diagnostic;
 	icarus_rover_v2::device mydevice;
 	std::string myhostname;
 	bool initialized;
+    bool ready;
 };
 #endif
