@@ -28,6 +28,10 @@ icarus_rover_v2::diagnostic DiagnosticNodeProcess::init(icarus_rover_v2::diagnos
 icarus_rover_v2::diagnostic DiagnosticNodeProcess::update(double dt)
 {
 	run_time += dt;
+    if((mydevice.BoardCount == 0) and (mydevice.SensorCount == 0))
+    {
+        if(initialized == true) { ready = true; }
+    }
 	icarus_rover_v2::diagnostic diag = diagnostic;
 	diag.Diagnostic_Type = NOERROR;
 	diag.Level = INFO;
@@ -58,8 +62,6 @@ std::vector<icarus_rover_v2::diagnostic> DiagnosticNodeProcess::new_commandmsg(i
 	{
 		if(cmd.Option1 == LEVEL1)
 		{
-			diaglist.push_back(diag);
-			return diaglist;
 		}
 		else if(cmd.Option1 == LEVEL2)
 		{

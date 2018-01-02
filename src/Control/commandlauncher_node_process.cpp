@@ -3,10 +3,10 @@
  */
 CommandLauncherNodeProcess::CommandLauncherNodeProcess()
 {
-	initialized = false;
 	run_time = 0.0;
 	initialized = false;
-	ready = false;
+    ready = false;
+
 	init_processlist();
 }
 /*! \brief Deconstructor
@@ -21,6 +21,7 @@ icarus_rover_v2::diagnostic CommandLauncherNodeProcess::init(icarus_rover_v2::di
 {
 	myhostname = hostname;
     diagnostic = indiag;
+	mydevice.DeviceName = hostname;
 	if(load_configfiles() == false)
 	{
 		diagnostic.Level = ERROR;
@@ -30,7 +31,6 @@ icarus_rover_v2::diagnostic CommandLauncherNodeProcess::init(icarus_rover_v2::di
 		sprintf(tempstr,"Unable to load config files.");
 		diagnostic.Description = std::string(tempstr);
 	}
-	ready = true;
 	return diagnostic;
 }
 /*! \brief Time Update of Process
@@ -38,55 +38,62 @@ icarus_rover_v2::diagnostic CommandLauncherNodeProcess::init(icarus_rover_v2::di
 icarus_rover_v2::diagnostic CommandLauncherNodeProcess::update(double dt)
 {
 	run_time += dt;
-    icarus_rover_v2::diagnostic diag = diagnostic;
+    if((mydevice.BoardCount == 0) and (mydevice.SensorCount == 0))
+    {
+        if(initialized == true) { ready = true; }
+    }
+	icarus_rover_v2::diagnostic diag = diagnostic;
     bool processes_ok = true;
-    for(std::size_t i = 0; i < processlist.size(); i++)
+    if(initialized == true)
     {
-        if((processlist.at(i).running == true) and (processlist.at(i).initialized == true))
-        {
-            
-        }
-        else if(processlist.at(i).initialized == false)
-        {
-            processes_ok = false;
-            diag.Diagnostic_Type = SOFTWARE;
-            diag.Level = WARN;
-            diag.Diagnostic_Message = INITIALIZING_ERROR;
-            char tempstr[512];
-            sprintf(tempstr,"Unable to start process: %s",processlist.at(i).process_name.c_str());
-            diag.Description = std::string(tempstr);
-        }
-        else if(processlist.at(i).running == false)
-        {
-            processes_ok = false;
-            diag.Diagnostic_Type = SOFTWARE;
-            diag.Level = WARN;
-            diag.Diagnostic_Message = INITIALIZING_ERROR;
-            char tempstr[512];
-            sprintf(tempstr,"Process: %s is Not Running.",processlist.at(i).process_name.c_str());
-            diag.Description = std::string(tempstr);
-        }
-    }
-    if(processlist.size() == 0)
-    {
-        processes_ok = false;
-        diag.Diagnostic_Type = SOFTWARE;
-        diag.Level = WARN;
-        diag.Diagnostic_Message = INITIALIZING_ERROR;
-        char tempstr[512];
-        sprintf(tempstr,"No Processes Found.");
-        diag.Description = std::string(tempstr);
-        
-    }
-    if(processes_ok == true)
-    {
-        diag.Diagnostic_Type = NOERROR;
-        diag.Level = INFO;
-        diag.Diagnostic_Message = NOERROR;
-        diag.Description = "Node Running";
+    	for(std::size_t i = 0; i < processlist.size(); i++)
+    	{
+    		if((processlist.at(i).running == true) and (processlist.at(i).initialized == true))
+    		{
+
+    		}
+    		else if(processlist.at(i).initialized == false)
+    		{
+    			processes_ok = false;
+    			diag.Diagnostic_Type = SOFTWARE;
+    			diag.Level = WARN;
+    			diag.Diagnostic_Message = INITIALIZING_ERROR;
+    			char tempstr[512];
+    			sprintf(tempstr,"Unable to start process: %s",processlist.at(i).process_name.c_str());
+    			diag.Description = std::string(tempstr);
+    		}
+    		else if(processlist.at(i).running == false)
+    		{
+    			processes_ok = false;
+    			diag.Diagnostic_Type = SOFTWARE;
+    			diag.Level = WARN;
+    			diag.Diagnostic_Message = INITIALIZING_ERROR;
+    			char tempstr[512];
+    			sprintf(tempstr,"Process: %s is Not Running.",processlist.at(i).process_name.c_str());
+    			diag.Description = std::string(tempstr);
+    		}
+    	}
+
+    	if(processlist.size() == 0)
+    	{
+    		processes_ok = false;
+    		diag.Diagnostic_Type = SOFTWARE;
+    		diag.Level = WARN;
+    		diag.Diagnostic_Message = INITIALIZING_ERROR;
+    		char tempstr[512];
+    		sprintf(tempstr,"No Processes Found.");
+    		diag.Description = std::string(tempstr);
+
+    	}
+    	if(processes_ok == true)
+    	{
+    		diag.Diagnostic_Type = NOERROR;
+    		diag.Level = INFO;
+    		diag.Diagnostic_Message = NOERROR;
+    		diag.Description = "Node Running";
+    	}
     }
 	diagnostic = diag;
-    
 	return diag;
 }
 /*! \brief Setup Process Device info
@@ -111,8 +118,6 @@ std::vector<icarus_rover_v2::diagnostic> CommandLauncherNodeProcess::new_command
 	{
 		if(cmd.Option1 == LEVEL1)
 		{
-			diaglist.push_back(diag);
-			return diaglist;
 		}
 		else if(cmd.Option1 == LEVEL2)
 		{
@@ -155,7 +160,6 @@ std::vector<icarus_rover_v2::diagnostic> CommandLauncherNodeProcess::check_progr
 	}
 	return diaglist;
 }
-
 bool CommandLauncherNodeProcess::set_processrunning(std::string name,bool running)
 {
 	for(std::size_t i = 0; i < processlist.size(); i++)
@@ -192,7 +196,8 @@ bool CommandLauncherNodeProcess::set_process_restarted(std::string name)
 std::string CommandLauncherNodeProcess::get_processinfo()
 {
 	char tempstr[2048];
-	sprintf(tempstr,"");
+	tempstr[0] = 0;
+	//sprintf(tempstr,"");
 	for(std::size_t i = 0; i < processlist.size(); i++)
 	{
 		sprintf(tempstr,"%sProcess: %s Init: %d Running: %d PID: %d Restarted: %d",tempstr,

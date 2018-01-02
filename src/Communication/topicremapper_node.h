@@ -40,7 +40,7 @@
 //End User Code: Data Structures
 
 //Start Template Code: Function Prototypes
-bool initialize(ros::NodeHandle nh);
+bool initializenode();
 void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg);
 void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg);
 double measure_time_diff(ros::Time timer_a, ros::Time tiber_b);
@@ -58,6 +58,7 @@ void Joystick_Callback(const sensor_msgs::Joy::ConstPtr& msg,const std::string &
 //End User Code: Function Prototypes
 
 //Start Template Code: Define Global variables
+boost::shared_ptr<ros::NodeHandle> n;
 ros::ServiceClient srv_device;
 std::string node_name;
 std::string verbosity_level;
@@ -67,15 +68,12 @@ ros::Publisher diagnostic_pub;
 ros::Publisher resource_pub;
 ros::Subscriber command_sub;
 ros::Publisher firmware_pub;
-icarus_rover_v2::diagnostic diagnostic_status;
-icarus_rover_v2::device myDevice;
 icarus_rover_v2::resource resources_used;
 Logger *logger;
 ResourceMonitor *resourcemonitor;
 bool require_pps_to_start;
 bool received_pps;
 ros::Time boot_time;
-bool device_initialized;
 char hostname[1024];
 ros::Publisher heartbeat_pub;
 icarus_rover_v2::heartbeat beat;
@@ -94,6 +92,7 @@ double ros_rate;
 //End Template Code: Define Global Variables
 
 //Start User Code: Define Global Variables
+std::vector<ros::Subscriber> subs;
 TopicRemapperNodeProcess *process;
 //ros::Publisher pwmoutput_pub;
 //ros::Publisher digitaloutput_pub;

@@ -6,9 +6,9 @@ HatControllerNodeProcess::HatControllerNodeProcess()
 	run_time = 0.0;
 	initialized = false;
     ready = false;
+
     ready_to_arm = false;
-    
-    armed_state = ARMEDSTATUS_DISARMED_CANNOTARM;
+   	armed_state = ARMEDSTATUS_DISARMED_CANNOTARM;
     hats.clear();
     hats_running.clear();
     time_sincelast_pps = 0.0;
@@ -26,12 +26,221 @@ HatControllerNodeProcess::~HatControllerNodeProcess()
  */
 icarus_rover_v2::diagnostic HatControllerNodeProcess::init(icarus_rover_v2::diagnostic indiag,std::string hostname)
 {
-    
-
-	myhostname = hostname;
+   	myhostname = hostname;
 	diagnostic = indiag;
 	mydevice.DeviceName = hostname;
 	return diagnostic;
+}
+icarus_rover_v2::diagnostic HatControllerNodeProcess::update(double dt)
+{
+    icarus_rover_v2::diagnostic diag = diagnostic;
+    time_sincelast_pps+=dt;
+    run_time += dt;
+	if((mydevice.BoardCount == 0) and (mydevice.SensorCount == 0))
+    {
+        if(initialized == true) { ready = true; }
+    }
+    bool hats_ready = true;
+    bool pps_ok = false;
+    
+    //See if hats are ready yet
+    for(std::size_t i = 0; i < hats_running.size(); i++)
+    {
+        if(hats_running.at(i) == true) { hats_ready = hats_ready and true; }
+        else { hats_ready = false; }
+    }
+    if(hats_running.size() == 0) { hats_ready = false; }
+    
+    if((pps_counter > 0) and (time_sincelast_pps < 5.0)) { pps_ok = true; }
+    else { pps_ok = false; }
+        
+    bool status = true;    
+    if((hats_ready == true) ||
+    		((mydevice.BoardCount == 0) and (mydevice.SensorCount == 0)))
+    {
+        status = status and true;
+		ready = true;
+    }
+    else
+    {
+        status = false;
+        diag.Level = NOTICE;
+        diag.Diagnostic_Type = SOFTWARE;
+        diag.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
+        char tempstr[512];
+        sprintf(tempstr,"All info for Hats not received yet.");
+        diag.Description = std::string(tempstr);     
+    }
+    
+    if((pps_ok == true) || (run_time < 1.0))
+    {
+        status = status and true;
+    }
+    else
+    {
+        status = false;
+        diag.Level = WARN;
+        diag.Diagnostic_Type = COMMUNICATIONS;
+        diag.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
+        char tempstr[512];
+        sprintf(tempstr,"PPS Counter: %ld Time since last: %f",pps_counter,time_sincelast_pps);
+        diag.Description = std::string(tempstr);   
+    }
+    
+    ready_to_arm = status;
+    if(status == false) 
+    { 
+        armed_state = ARMEDSTATUS_DISARMED_CANNOTARM; 
+    }
+    else
+    {
+        diag.Level = INFO;
+        diag.Diagnostic_Type = SOFTWARE;
+        diag.Diagnostic_Message = NOERROR;
+        diag.Description = "Node Running";
+    }
+    diagnostic = diag;
+    return diag;
+}
+icarus_rover_v2::diagnostic HatControllerNodeProcess::new_devicemsg(icarus_rover_v2::device newdevice)
+{
+    icarus_rover_v2::diagnostic diag = diagnostic;
+    if(initialized == false)
+    {
+    }
+    else
+    {
+        if(ready == false)
+        {
+            if(newdevice.DeviceParent == myhostname)
+            {
+                if(board_present(newdevice) == true)
+                {
+                    diag.Level = WARN;
+                    diag.Diagnostic_Type = SOFTWARE;
+                    diag.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
+                    char tempstr[512];
+                    sprintf(tempstr,"Hat: %s already loaded.",
+                        newdevice.DeviceName.c_str());
+                    diag.Description = std::string(tempstr);
+                    return diag;
+                }
+                std::size_t hat_message = newdevice.DeviceType.find("Hat");
+                if(hat_message != std::string::npos)
+                {
+                    if(newdevice.DeviceType == "ServoHat")
+                    {
+                        for(std::size_t i = 0; i < newdevice.pins.size(); i++)
+                        {
+                            if((newdevice.pins.at(i).Function == "PWMOutput") or 
+                               (newdevice.pins.at(i).Function == "PWMOutput-NonActuator")) {}
+                            else
+                            {
+                                diag.Level = ERROR;
+                                diag.Diagnostic_Type = SOFTWARE;
+                                diag.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
+                                char tempstr[512];
+                                sprintf(tempstr,"Hat Type: %s Pin Function: %s Not supported.",
+                                    newdevice.DeviceType.c_str(),newdevice.pins.at(i).Function.c_str());
+                                diag.Description = std::string(tempstr);
+                                return diag;
+                            }
+                        }
+                    }
+                    else if(newdevice.DeviceType == "TerminalHat")
+                    {
+                        for(std::size_t i = 0; i < newdevice.pins.size(); i++)
+                        {
+                            if((newdevice.pins.at(i).Function == "DigitalInput") or 
+                               (newdevice.pins.at(i).Function == "DigitalOutput-NonActuator") or 
+                               (newdevice.pins.at(i).Function == "DigitalOutput")) {}
+                            else
+                            {
+                                diag.Level = ERROR;
+                                diag.Diagnostic_Type = SOFTWARE;
+                                diag.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
+                                char tempstr[512];
+                                sprintf(tempstr,"Hat Type: %s Pin Function: %s Not supported.",
+                                    newdevice.DeviceType.c_str(),newdevice.pins.at(i).Function.c_str());
+                                diag.Description = std::string(tempstr);
+                                return diag;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        diag.Level = ERROR;
+                        diag.Diagnostic_Type = SOFTWARE;
+                        diag.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
+                        char tempstr[512];
+                        sprintf(tempstr,"Hat Type: %s Not supported.",newdevice.DeviceType.c_str());
+                        diag.Description = std::string(tempstr);
+                        return diag;
+                    }
+                    hats.push_back(newdevice);
+                    hats_running.push_back(false);
+                    if(hats.size() == mydevice.BoardCount) { ready = true; }
+                }
+            }
+        }
+        else
+        {
+
+        }
+    }
+    return diag;
+}
+/*! \brief Process Command Message
+ */
+std::vector<icarus_rover_v2::diagnostic> HatControllerNodeProcess::new_commandmsg(icarus_rover_v2::command cmd)
+{
+	std::vector<icarus_rover_v2::diagnostic> diaglist;
+	icarus_rover_v2::diagnostic diag = diagnostic;
+	if (cmd.Command ==  ROVERCOMMAND_RUNDIAGNOSTIC)
+	{
+		if(cmd.Option1 == LEVEL1)
+		{
+		}
+		else if(cmd.Option1 == LEVEL2)
+		{
+			diaglist = check_program_variables();
+			return diaglist;
+		}
+		else if(cmd.Option1 == LEVEL3)
+		{
+		}
+		else if(cmd.Option1 == LEVEL4)
+		{
+		}
+	}
+	diaglist.push_back(diag);
+	return diaglist;
+}
+/*! \brief Self-Diagnostic-Check Program Variables
+ */
+std::vector<icarus_rover_v2::diagnostic> HatControllerNodeProcess::check_program_variables()
+{
+	std::vector<icarus_rover_v2::diagnostic> diaglist;
+	icarus_rover_v2::diagnostic diag=diagnostic;
+	bool status = true;
+
+	if(status == true)
+	{
+		diag.Diagnostic_Type = SOFTWARE;
+		diag.Level = INFO;
+		diag.Diagnostic_Message = DIAGNOSTIC_PASSED;
+		diag.Description = "Checked Program Variables -> PASSED";
+		diaglist.push_back(diag);
+	}
+	else
+	{
+		diag.Diagnostic_Type = SOFTWARE;
+		diag.Level = WARN;
+		diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
+		diag.Description = "Checked Program Variables -> FAILED";
+		diaglist.push_back(diag);
+	}
+	return diaglist;
 }
 icarus_rover_v2::diagnostic HatControllerNodeProcess::new_ppsmsg(std_msgs::Bool msg)
 {
@@ -187,218 +396,8 @@ icarus_rover_v2::diagnostic HatControllerNodeProcess::new_pinsmsg(icarus_rover_v
     return diag;
     
 }
-icarus_rover_v2::diagnostic HatControllerNodeProcess::new_devicemsg(icarus_rover_v2::device newdevice)
-{
-    icarus_rover_v2::diagnostic diag = diagnostic;
-    if(initialized == false)
-    {
-    }
-    else
-    {
-        if(ready == false)
-        {
-            if(newdevice.DeviceParent == myhostname)
-            {
-                if(board_present(newdevice) == true)
-                {
-                    diag.Level = WARN;
-                    diag.Diagnostic_Type = SOFTWARE;
-                    diag.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
-                    char tempstr[512];
-                    sprintf(tempstr,"Hat: %s already loaded.",
-                        newdevice.DeviceName.c_str());
-                    diag.Description = std::string(tempstr);
-                    return diag;
-                }
-                std::size_t hat_message = newdevice.DeviceType.find("Hat");
-                if(hat_message != std::string::npos)
-                {
-                    if(newdevice.DeviceType == "ServoHat")
-                    {
-                        for(std::size_t i = 0; i < newdevice.pins.size(); i++)
-                        {
-                            if((newdevice.pins.at(i).Function == "PWMOutput") or 
-                               (newdevice.pins.at(i).Function == "PWMOutput-NonActuator")) {}
-                            else
-                            {
-                                diag.Level = ERROR;
-                                diag.Diagnostic_Type = SOFTWARE;
-                                diag.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
-                                char tempstr[512];
-                                sprintf(tempstr,"Hat Type: %s Pin Function: %s Not supported.",
-                                    newdevice.DeviceType.c_str(),newdevice.pins.at(i).Function.c_str());
-                                diag.Description = std::string(tempstr);
-                                return diag;
-                            }
-                        }
-                    }
-                    else if(newdevice.DeviceType == "TerminalHat")
-                    {
-                        for(std::size_t i = 0; i < newdevice.pins.size(); i++)
-                        {
-                            if((newdevice.pins.at(i).Function == "DigitalInput") or 
-                               (newdevice.pins.at(i).Function == "DigitalOutput-NonActuator") or 
-                               (newdevice.pins.at(i).Function == "DigitalOutput")) {}
-                            else
-                            {
-                                diag.Level = ERROR;
-                                diag.Diagnostic_Type = SOFTWARE;
-                                diag.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
-                                char tempstr[512];
-                                sprintf(tempstr,"Hat Type: %s Pin Function: %s Not supported.",
-                                    newdevice.DeviceType.c_str(),newdevice.pins.at(i).Function.c_str());
-                                diag.Description = std::string(tempstr);
-                                return diag;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        diag.Level = ERROR;
-                        diag.Diagnostic_Type = SOFTWARE;
-                        diag.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
-                        char tempstr[512];
-                        sprintf(tempstr,"Hat Type: %s Not supported.",newdevice.DeviceType.c_str());
-                        diag.Description = std::string(tempstr);
-                        return diag;
-                    }
-                    hats.push_back(newdevice);
-                    hats_running.push_back(false);
-                    if(hats.size() == mydevice.BoardCount) { ready = true; }
-                }
-            }
-        }
-        else
-        {
 
-        }
-    }
-    diag.Level = INFO;
-    diag.Diagnostic_Type = COMMUNICATIONS;
-    diag.Diagnostic_Message = NOERROR;
-    char tempstr[512];
-    sprintf(tempstr,"Initialized: %d Ready: %d",initialized,ready);
-    diag.Description = std::string(tempstr);
-    return diag;
-}
-/*! \brief Process Command Message
- */
-std::vector<icarus_rover_v2::diagnostic> HatControllerNodeProcess::new_commandmsg(icarus_rover_v2::command cmd)
-{
-	std::vector<icarus_rover_v2::diagnostic> diaglist;
-	icarus_rover_v2::diagnostic diag = diagnostic;
-	if (cmd.Command ==  ROVERCOMMAND_RUNDIAGNOSTIC)
-	{
-		if(cmd.Option1 == LEVEL1)
-		{
-			diaglist.push_back(diag);
-			return diaglist;
-		}
-		else if(cmd.Option1 == LEVEL2)
-		{
-			diaglist = check_program_variables();
-			return diaglist;
-		}
-		else if(cmd.Option1 == LEVEL3)
-		{
-		}
-		else if(cmd.Option1 == LEVEL4)
-		{
-		}
-	}
-	diaglist.push_back(diag);
-	return diaglist;
-}
-/*! \brief Self-Diagnostic-Check Program Variables
- */
-std::vector<icarus_rover_v2::diagnostic> HatControllerNodeProcess::check_program_variables()
-{
-	std::vector<icarus_rover_v2::diagnostic> diaglist;
-	icarus_rover_v2::diagnostic diag=diagnostic;
-	bool status = true;
 
-	if(status == true)
-	{
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Level = INFO;
-		diag.Diagnostic_Message = DIAGNOSTIC_PASSED;
-		diag.Description = "Checked Program Variables -> PASSED";
-		diaglist.push_back(diag);
-	}
-	else
-	{
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Level = WARN;
-		diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
-		diag.Description = "Checked Program Variables -> FAILED";
-		diaglist.push_back(diag);
-	}
-	return diaglist;
-}
-icarus_rover_v2::diagnostic HatControllerNodeProcess::update(double dt)
-{
-    icarus_rover_v2::diagnostic diag = diagnostic;
-    time_sincelast_pps+=dt;
-    bool hats_ready = true;
-    bool pps_ok = false;
-    
-    //See if hats are ready yet
-    for(std::size_t i = 0; i < hats_running.size(); i++)
-    {
-        if(hats_running.at(i) == true) { hats_ready = hats_ready and true; }
-        else { hats_ready = false; }
-    }
-    if(hats_running.size() == 0) { hats_ready = false; }
-    
-    if((pps_counter > 0) and (time_sincelast_pps < 5.0)) { pps_ok = true; }
-    else { pps_ok = false; }
-        
-    bool status = true;    
-    if(hats_ready == true)
-    {
-        status = status and true;
-    }
-    else
-    {
-        status = false;
-        diag.Level = NOTICE;
-        diag.Diagnostic_Type = SOFTWARE;
-        diag.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
-        char tempstr[512];
-        sprintf(tempstr,"All info for Hats not received yet.");
-        diag.Description = std::string(tempstr);     
-    }
-    
-    if(pps_ok == true)
-    {
-        status = status and true;
-    }
-    else
-    {
-        status = false;
-        diag.Level = WARN;
-        diag.Diagnostic_Type = COMMUNICATIONS;
-        diag.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
-        char tempstr[512];
-        sprintf(tempstr,"PPS Counter: %ld Time since last: %f",pps_counter,time_sincelast_pps);
-        diag.Description = std::string(tempstr);   
-    }
-    
-    ready_to_arm = status;
-    if(status == false) 
-    { 
-        armed_state = ARMEDSTATUS_DISARMED_CANNOTARM; 
-    }
-    else
-    {
-        diag.Level = INFO;
-        diag.Diagnostic_Type = SOFTWARE;
-        diag.Diagnostic_Message = NOERROR;
-        diag.Description = "Node Running";
-    }
-    diagnostic = diag;
-    return diag;
-}
 icarus_rover_v2::diagnostic HatControllerNodeProcess::new_armedstatemsg(uint8_t msg)
 {
 	icarus_rover_v2::diagnostic diag = diagnostic;

@@ -28,6 +28,10 @@ icarus_rover_v2::diagnostic NetworkTransceiverNodeProcess::update(double dt)
 {
 	icarus_rover_v2::diagnostic diag = diagnostic;
 	run_time += dt;
+	if((mydevice.BoardCount == 0) and (mydevice.SensorCount == 0))
+    {
+        if(initialized == true) { ready = true; }
+    }
     for(std::size_t i = 0; i < messages.size(); i++)
     {
         if(messages.at(i).sent_counter > 0)
@@ -70,8 +74,6 @@ std::vector<icarus_rover_v2::diagnostic> NetworkTransceiverNodeProcess::new_comm
 	{
 		if(cmd.Option1 == LEVEL1)
 		{
-			diaglist.push_back(diag);
-			return diaglist;
 		}
 		else if(cmd.Option1 == LEVEL2)
 		{

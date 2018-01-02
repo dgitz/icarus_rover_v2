@@ -59,8 +59,8 @@ public:
 	icarus_rover_v2::diagnostic new_devicemsg(icarus_rover_v2::device device);
 	void set_mydevice(icarus_rover_v2::device device) { mydevice = device; initialized = true; }
 	bool get_initialized() { return initialized; }
+	bool get_ready() { return ready; }
 	std::vector<icarus_rover_v2::diagnostic> new_commandmsg(icarus_rover_v2::command cmd);
-	std::vector<icarus_rover_v2::diagnostic> check_program_variables();
 
 	double measure_timediff(struct timeval a, struct timeval b);
 	bool is_ready() { return ready; }
@@ -78,14 +78,17 @@ public:
 	
 
 private:
+	std::vector<icarus_rover_v2::diagnostic> check_program_variables();
+
+	double run_time;
+	icarus_rover_v2::diagnostic diagnostic;
+	icarus_rover_v2::device mydevice;
+	std::string myhostname;
+	bool initialized;
+    bool ready;
+
 	void init_processlist();
 	bool load_configfiles();
-	std::string myhostname;
-	icarus_rover_v2::diagnostic diagnostic;
-	double run_time;
-	icarus_rover_v2::device mydevice;
-    bool initialized;
-    bool ready;
 	std::vector<ProcessCommand> processlist;
 	std::vector<IPMap> ipmap;
 	std::vector<PortMap> portmap;

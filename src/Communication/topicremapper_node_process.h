@@ -64,9 +64,9 @@ public:
         InputChannel in;
         std::vector<OutputChannel> outs;
         //OutputChannel out;
-        ros::Subscriber sub;
+        //ros::Subscriber sub;
         //ros::Publisher pub;
-        std::vector<ros::Publisher> pubs;
+        //std::vector<ros::Publisher> pubs;
     };
 
 	TopicRemapperNodeProcess();
@@ -80,13 +80,14 @@ public:
 	icarus_rover_v2::diagnostic new_devicemsg(icarus_rover_v2::device device);
 	void set_mydevice(icarus_rover_v2::device device) { mydevice = device; initialized = true; }
 	bool get_initialized() { return initialized; }
+    bool get_ready() { return ready; }
 	std::vector<icarus_rover_v2::diagnostic> new_commandmsg(icarus_rover_v2::command cmd);
-	std::vector<icarus_rover_v2::diagnostic> check_program_variables();
+
     
     icarus_rover_v2::diagnostic load(std::string topicmapfilepath);
     std::string print_topicmaps();
     std::vector<TopicMap> get_topicmaps() { return TopicMaps; }
-    void set_topicmap_sub(std::size_t i,ros::Subscriber sub);
+    //void set_topicmap_sub(std::size_t i,ros::Subscriber sub);
     icarus_rover_v2::diagnostic new_joymsg(sensor_msgs::Joy joy,std::string topic);
     std::vector<icarus_rover_v2::pin> get_outputs_pins();
     std::vector<std_msgs::Float32> get_outputs_float32();
@@ -94,13 +95,18 @@ public:
     
     
 private:
-    int parse_topicmapfile(TiXmlDocument doc);
-    double scale_value(double in_value,double neutral_value,double in_min,double in_max,double out_min,double out_max, double deadband);
+	std::vector<icarus_rover_v2::diagnostic> check_program_variables();
+
 	double run_time;
 	icarus_rover_v2::diagnostic diagnostic;
 	icarus_rover_v2::device mydevice;
 	std::string myhostname;
 	bool initialized;
+    bool ready;
+
+    int parse_topicmapfile(TiXmlDocument doc);
+    double scale_value(double in_value,double neutral_value,double in_min,double in_max,double out_min,double out_max, double deadband);
+
     
     std::vector<TopicMap> TopicMaps;
 };

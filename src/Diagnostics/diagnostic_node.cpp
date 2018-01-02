@@ -74,11 +74,11 @@ icarus_rover_v2::diagnostic rescan_topics(icarus_rover_v2::diagnostic diag)
 		newTask.heartbeat_topic = "/" + taskname + "/heartbeat";
 		newTask.resource_topic = "/" + taskname + "/resource";
 		ros::Subscriber resource_sub = n->subscribe<icarus_rover_v2::resource>(newTask.resource_topic,1000,boost::bind(resource_Callback,_1,newTask.resource_topic));
-		newTask.resource_sub = resource_sub;
+		resource_subs.push_back(resource_sub);
 		ros::Subscriber diagnostic_sub = n->subscribe<icarus_rover_v2::diagnostic>(newTask.diagnostic_topic,1000,boost::bind(diagnostic_Callback,_1,newTask.diagnostic_topic));
-		newTask.diagnostic_sub = diagnostic_sub;
+		diagnostic_subs.push_back(diagnostic_sub);
 		ros::Subscriber heartbeat_sub = n->subscribe<icarus_rover_v2::heartbeat>(newTask.heartbeat_topic,1000,boost::bind(heartbeat_Callback,_1,newTask.heartbeat_topic));
-		newTask.heartbeat_sub = heartbeat_sub;
+		heartbeat_subs.push_back(heartbeat_sub);
 		process->add_Task(newTask);
 		//TaskList.push_back(newTask);
 
@@ -254,12 +254,12 @@ bool log_resources()
  */
 void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
-	diagnostic_status = rescan_topics(diagnostic_status);
-	diagnostic_pub.publish(diagnostic_status);
+	icarus_rover_v2::diagnostic diagnostic = rescan_topics(process->get_diagnostic());
+	diagnostic_pub.publish(diagnostic);
 	icarus_rover_v2::firmware fw;
 	fw.Generic_Node_Name = "diagnostic_node";
 	fw.Node_Name = node_name;
-	fw.Description = "Latest Rev: 29-December-2017";
+	fw.Description = "Latest Rev: 1-January-2018";
 	fw.Major_Release = DIAGNOSTICNODE_MAJOR_RELEASE;
 	fw.Minor_Release = DIAGNOSTICNODE_MINOR_RELEASE;
 	fw.Build_Number = DIAGNOSTICNODE_BUILD_NUMBER;
@@ -271,7 +271,7 @@ void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg)
 void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
 	received_pps = true;
-    if(device_initialized == true)
+    if((process->get_initialized() == true) and (process->get_ready() == true))
 	{
 		icarus_rover_v2::diagnostic resource_diagnostic = resourcemonitor->update();
 		if(resource_diagnostic.Diagnostic_Message == DEVICE_NOT_AVAILABLE)
@@ -292,7 +292,11 @@ void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 			resource_pub.publish(resources_used);
 		}
 	}
-	else
+    else if(process->get_ready() == false)
+    {
+        
+    }
+	else if(process->get_initialized() == false)
     {
     	{
 			icarus_rover_v2::srv_device srv;
@@ -359,10 +363,10 @@ bool run_10Hz_code()
 {
     beat.stamp = ros::Time::now();
 	heartbeat_pub.publish(beat);
-
-    if(diagnostic_status.Level > NOTICE)
+    if(process->get_diagnostic().Level > NOTICE)
     {
-        diagnostic_pub.publish(diagnostic_status);
+        diagnostic_pub.publish(process->get_diagnostic());
+        logger->log_diagnostic(process->get_diagnostic());
     }
     return true;
 }
@@ -372,15 +376,14 @@ int main(int argc, char **argv)
     ros::init(argc, argv, node_name);
     n.reset(new ros::NodeHandle);
     node_name = ros::this_node::getName();
-
+    ros::NodeHandle n;
+    
     if(initializenode() == false)
     {
-        logger->log_fatal("Unable to Initialize.  Exiting.");
-    	diagnostic_status.Diagnostic_Type = SOFTWARE;
-		diagnostic_status.Level = FATAL;
-		diagnostic_status.Diagnostic_Message = INITIALIZING_ERROR;
-		diagnostic_status.Description = "Node Initializing Error.";
-		diagnostic_pub.publish(diagnostic_status);
+        char tempstr[256];
+        sprintf(tempstr,"Unable to Initialize. Exiting.");
+        printf("[%s]: %s\n",node_name.c_str(),tempstr);
+        logger->log_fatal(tempstr);
 		kill_node = 1;
     }
     ros::Rate loop_rate(ros_rate);
@@ -442,49 +445,70 @@ int main(int argc, char **argv)
 bool initializenode()
 {
     //Start Template Code: Initialization, Parameters and Topics
-    myDevice.DeviceName = "";
-    myDevice.Architecture = "";
-    device_initialized = false;
+	kill_node = 0;
+	signal(SIGINT,signalinterrupt_handler);
+    hostname[1023] = '\0';
+    gethostname(hostname,1023);
     std::string diagnostic_topic = "/" + node_name + "/diagnostic";
-	diagnostic_pub =  n->advertise<icarus_rover_v2::diagnostic>(diagnostic_topic,1000);
+	diagnostic_pub =  n->advertise<icarus_rover_v2::diagnostic>(diagnostic_topic,5);
+    icarus_rover_v2::diagnostic diagnostic;
+    diagnostic.DeviceName = hostname;
+	diagnostic.Node_Name = node_name;
+	diagnostic.System = ROVER;
+	diagnostic.SubSystem = ROBOT_CONTROLLER;
+	diagnostic.Component = DIAGNOSTIC_NODE;
+
+	diagnostic.Diagnostic_Type = NOERROR;
+	diagnostic.Level = INFO;
+	diagnostic.Diagnostic_Message = INITIALIZING;
+	diagnostic.Description = "Node Initializing";
+	diagnostic_pub.publish(diagnostic);
+
 	std::string resource_topic = "/" + node_name + "/resource";
-	resource_pub = n->advertise<icarus_rover_v2::resource>(resource_topic,1000);
+	resource_pub = n->advertise<icarus_rover_v2::resource>(resource_topic,5);
 
-	std::string param_verbosity_level = node_name +"/verbosity_level";
-	if(n->getParam(param_verbosity_level,verbosity_level) == false)
-	{
-		logger = new Logger("FATAL",ros::this_node::getName());
-		logger->log_fatal("Missing Parameter: verbosity_level. Exiting");
-		return false;
-	}
-	else
-	{
-		logger = new Logger(verbosity_level,ros::this_node::getName());
-	}
-
-	hostname[1023] = '\0';
-	gethostname(hostname,1023);
-	std::string heartbeat_topic = "/" + node_name + "/heartbeat";
-	heartbeat_pub = n->advertise<icarus_rover_v2::heartbeat>(heartbeat_topic,1000);
-	beat.Node_Name = node_name;
- 	std::string device_topic = "/" + std::string(hostname) + "_master_node/srv_device";
+    std::string param_verbosity_level = node_name +"/verbosity_level";
+    if(n->getParam(param_verbosity_level,verbosity_level) == false)
+    {
+        logger = new Logger("WARN",ros::this_node::getName());
+        logger->log_warn("Missing Parameter: verbosity_level");
+        return false;
+    }
+    else
+    {
+        logger = new Logger(verbosity_level,ros::this_node::getName());      
+    }
+	std::string param_disabled = node_name +"/disable";
+    bool disable_node;
+    if(n->getParam(param_disabled,disable_node) == true)
+    {
+    	if(disable_node == true)
+    	{
+    		logger->log_notice("Node Disabled in Launch File.  Exiting.");
+    		printf("[%s]: Node Disabled in Launch File. Exiting.\n",node_name.c_str());
+    		return false;
+    	}
+    }
+    
+    std::string heartbeat_topic = "/" + node_name + "/heartbeat";
+    heartbeat_pub = n->advertise<icarus_rover_v2::heartbeat>(heartbeat_topic,5);
+    beat.Node_Name = node_name;
+    std::string device_topic = "/" + std::string(hostname) + "_master_node/srv_device";
     srv_device = n->serviceClient<icarus_rover_v2::srv_device>(device_topic);
 
-	command_sub = n->subscribe<icarus_rover_v2::command>("/command",1000,Command_Callback);
-	pps01_sub = n->subscribe<std_msgs::Bool>("/01PPS",1000,PPS01_Callback); 
-    pps1_sub = n->subscribe<std_msgs::Bool>("/1PPS",1000,PPS1_Callback); 
-
-
- 	std::string param_require_pps_to_start = node_name +"/require_pps_to_start";
+    pps01_sub = n->subscribe<std_msgs::Bool>("/01PPS",5,PPS01_Callback); 
+    pps1_sub = n->subscribe<std_msgs::Bool>("/1PPS",5,PPS1_Callback); 
+    command_sub = n->subscribe<icarus_rover_v2::command>("/command",5,Command_Callback);
+    std::string param_require_pps_to_start = node_name +"/require_pps_to_start";
     if(n->getParam(param_require_pps_to_start,require_pps_to_start) == false)
 	{
-		logger->log_fatal("Missing Parameter: require_pps_to_start.  Exiting.");
+		logger->log_warn("Missing Parameter: require_pps_to_start.");
 		return false;
 	}
-	std::string firmware_topic = "/" + node_name + "/firmware";
-    firmware_pub =  n->advertise<icarus_rover_v2::firmware>(firmware_topic,1000);
-
- 	double max_rate = 0.0;
+    std::string firmware_topic = "/" + node_name + "/firmware";
+    firmware_pub =  n->advertise<icarus_rover_v2::firmware>(firmware_topic,1);
+    
+    double max_rate = 0.0;
     std::string param_loop1_rate = node_name + "/loop1_rate";
     if(n->getParam(param_loop1_rate,loop1_rate) == false)
     {
@@ -531,19 +555,15 @@ bool initializenode()
 	//End Template Code: Initialization, Parameters and Topics
 
 	//Start User Code: Initialization, Parameters and Topics
-    diagnostic_status.DeviceName = hostname;
-	diagnostic_status.Node_Name = node_name;
-	diagnostic_status.System = ROVER;
-	diagnostic_status.SubSystem = ROBOT_CONTROLLER;
-	diagnostic_status.Component = DIAGNOSTIC_NODE;
-	
-	diagnostic_status.Diagnostic_Type = NOERROR;
-	diagnostic_status.Level = INFO;
-	diagnostic_status.Diagnostic_Message = INITIALIZING;
-	diagnostic_status.Description = "Node Initializing";
 	process = new DiagnosticNodeProcess;
-	diagnostic_status = process->init(diagnostic_status,std::string(hostname));
-	diagnostic_pub.publish(diagnostic_status);
+	diagnostic = process->init(diagnostic,std::string(hostname));
+	if(diagnostic.Level > NOTICE)
+	{
+		logger->log_fatal(diagnostic.Description);
+		printf("[%s]: %s\n",node_name.c_str(),diagnostic.Description.c_str());
+		return false;
+	}
+	diagnostic_pub.publish(diagnostic);
 
 	std::string param_ram_usage_threshold = node_name +"/RAM_usage_threshold_MB";
 	int RAM_usage_threshold_MB;
@@ -571,6 +591,16 @@ bool initializenode()
 	ready_to_arm_pub =  n->advertise<std_msgs::Bool>(ready_to_arm_topic,1000);
 	//End User Code: Initialization, Parameters and Topics
     logger->log_info("Initialized!");
+    //Finish User Code: Initialization and Parameters
+
+    //Start Template Code: Final Initialization.
+	diagnostic.Diagnostic_Type = NOERROR;
+	diagnostic.Level = INFO;
+	diagnostic.Diagnostic_Message = NOERROR;
+	diagnostic.Description = "Node Initialized";
+	process->set_diagnostic(diagnostic);
+	diagnostic_pub.publish(diagnostic);
+    logger->log_info("Initialized!");
     return true;
     //End Template Code: Finish Initialization.
 }
@@ -587,19 +617,14 @@ bool new_devicemsg(std::string query,icarus_rover_v2::device device)
 	{
 		if((device.DeviceName == hostname))
 		{
-			myDevice = device;
-			resourcemonitor = new ResourceMonitor(diagnostic_status,myDevice.Architecture,myDevice.DeviceName,node_name);
+			resourcemonitor = new ResourceMonitor(process->get_diagnostic(),device.Architecture,device.DeviceName,node_name);
 			process->set_mydevice(device);
-			device_initialized = true;
 		}
 	}
 
-	if((device_initialized == true))
+	if((process->get_initialized() == true))
 	{
 		icarus_rover_v2::diagnostic diag = process->new_devicemsg(device);
-		if(process->get_initialized() == true)
-		{
-		}
 	}
 	return true;
 }

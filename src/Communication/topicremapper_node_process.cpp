@@ -26,6 +26,10 @@ icarus_rover_v2::diagnostic TopicRemapperNodeProcess::init(icarus_rover_v2::diag
 icarus_rover_v2::diagnostic TopicRemapperNodeProcess::update(double dt)
 {
 	run_time += dt;
+    if((mydevice.BoardCount == 0) and (mydevice.SensorCount == 0))
+    {
+        if(initialized == true) { ready = true; }
+    }
 	icarus_rover_v2::diagnostic diag = diagnostic;
 	diag.Diagnostic_Type = NOERROR;
 	diag.Level = INFO;
@@ -56,8 +60,6 @@ std::vector<icarus_rover_v2::diagnostic> TopicRemapperNodeProcess::new_commandms
 	{
 		if(cmd.Option1 == LEVEL1)
 		{
-			diaglist.push_back(diag);
-			return diaglist;
 		}
 		else if(cmd.Option1 == LEVEL2)
 		{
@@ -225,7 +227,7 @@ int TopicRemapperNodeProcess::parse_topicmapfile(TiXmlDocument doc)
         
 				//Outputs
 				std::vector<OutputChannel> outputs;
-				std::vector<ros::Publisher> pubs;
+				//std::vector<ros::Publisher> pubs;
 				TiXmlElement *l_Outputs = l_pTopicMap->FirstChildElement("Outputs");
 				if ( NULL != l_Outputs )
 				{
@@ -327,8 +329,8 @@ int TopicRemapperNodeProcess::parse_topicmapfile(TiXmlDocument doc)
 								printf("%s\n",tempstr);
 							}
 						}
-						ros::Publisher pub;
-						pubs.push_back(pub);
+						//ros::Publisher pub;
+						//pubs.push_back(pub);
 						outputs.push_back(out);
 						l_pOutputChannel = l_pOutputChannel->NextSiblingElement( "OutputChannel" );
 					}
@@ -336,7 +338,7 @@ int TopicRemapperNodeProcess::parse_topicmapfile(TiXmlDocument doc)
 				}
                 newtopicmap.in = in;
                 newtopicmap.outs = outputs;
-                newtopicmap.pubs = pubs;
+                //newtopicmap.pubs = pubs;
 				TopicMaps.push_back(newtopicmap);
 				l_pTopicMap = l_pTopicMap->NextSiblingElement( "TopicMap" );
 			}
@@ -417,10 +419,12 @@ std::string TopicRemapperNodeProcess::print_topicmaps()
     }
     return ss.str();
 }
+/*
 void TopicRemapperNodeProcess::set_topicmap_sub(std::size_t i,ros::Subscriber sub)
 {
     TopicMaps.at(i).sub = sub;
 }
+*/
 double TopicRemapperNodeProcess::scale_value(double x,double neutral,double x1,double x2,double y1,double y2, double deadband)
 {
     double out = 0.0;

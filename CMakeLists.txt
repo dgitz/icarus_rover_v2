@@ -239,7 +239,7 @@ add_library(commandlauncher_node_process src/Control/commandlauncher_node_proces
 add_library(simulate_node_process src/Simulate/simulate_node_process.cpp)
 add_library(master_node_process src/Control/master_node_process.cpp util/serialmessage.cpp)
 add_library(diagnostic_node_process src/Diagnostics/diagnostic_node_process.cpp)
-add_library(topicremapper_node_process src/Communication/topicremapper_node_process.cpp)
+add_library(topicremapper_node_process src/Communication/topicremapper_node_process.cpp ${catkin_LIBRARIES})
 add_library(timemaster_node_process src/Timing/timemaster_node_process.cpp)
 add_library(pose_node_process src/Pose/pose_node_process.cpp src/Pose/blocks/time_compensate/time_compensate.cpp)
 
@@ -257,9 +257,13 @@ target_link_libraries(test_timemaster_node_process ${catkin_LIBRARIES} ${Boost_L
 
 add_executable(diagnostic_node src/Diagnostics/diagnostic_node.cpp)
 target_link_libraries(diagnostic_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} diagnostic_node_process logger resourcemonitor)
+catkin_add_gtest(test_diagnostic_node_process src/Diagnostics/unit_tests/test_diagnostic_node_process.cpp)
+target_link_libraries(test_diagnostic_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} diagnostic_node_process logger serialmessage)
 
 add_executable(network_transceiver_node src/Communication/network_transceiver_node.cpp)
 target_link_libraries(network_transceiver_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} logger udpmessage resourcemonitor network_transceiver_node_process)
+catkin_add_gtest(test_networktransceiver_node_process src/Communication/unit_tests/test_networktransceiver_node_process.cpp)
+target_link_libraries(test_networktransceiver_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} network_transceiver_node_process logger)
 
 add_executable(command_node src/Control/command_node.cpp)
 target_link_libraries(command_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor command_node_process)
@@ -273,6 +277,8 @@ target_link_libraries(test_master_node_process ${catkin_LIBRARIES} ${Boost_LIBRA
 
 add_executable(topicremapper_node src/Communication/topicremapper_node.cpp)
 target_link_libraries(topicremapper_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} topicremapper_node_process logger resourcemonitor)
+catkin_add_gtest(test_topicremapper_node_process src/Communication/unit_tests/test_topicremapper_node_process.cpp)
+target_link_libraries(test_topicremapper_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} topicremapper_node_process logger serialmessage)
 
 #add_executable(cameracapture_node src/Vision/cameracapture_node.cpp)
 #target_link_libraries(cameracapture_node ${OpenCV_LIBRARIES} ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor visionhelper)

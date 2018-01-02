@@ -39,8 +39,8 @@ public:
 	icarus_rover_v2::diagnostic new_devicemsg(icarus_rover_v2::device device);
 	void set_mydevice(icarus_rover_v2::device device) { mydevice = device; initialized = true; }
 	bool get_initialized() { return initialized; }
+    bool get_ready() { return ready; }
 	std::vector<icarus_rover_v2::diagnostic> new_commandmsg(icarus_rover_v2::command cmd);
-	std::vector<icarus_rover_v2::diagnostic> check_program_variables();
 
     uint8_t get_armedstate() { return armed_state; }
     bool get_ready_to_arm() { return ready_to_arm; }
@@ -67,7 +67,15 @@ public:
     
 protected:
 private:
+	std::vector<icarus_rover_v2::diagnostic> check_program_variables();
+
 	double run_time;
+	icarus_rover_v2::diagnostic diagnostic;
+	icarus_rover_v2::device mydevice;
+	std::string myhostname;
+	bool initialized;
+    bool ready;
+
     bool board_present(icarus_rover_v2::device device);
     double measure_time_diff(struct timeval start, struct timeval end);
     double measure_time_diff(ros::Time start, struct timeval end);
@@ -75,11 +83,7 @@ private:
     double measure_time_diff(double start, double end);
     double measure_time_diff(struct timeval start, double end);
     
-    bool initialized;
-    bool ready;
-    std::string myhostname;
-    icarus_rover_v2::device mydevice;
-    icarus_rover_v2::diagnostic diagnostic;
+
     uint8_t armed_state;
     bool ready_to_arm;
     std::vector<icarus_rover_v2::device> hats;

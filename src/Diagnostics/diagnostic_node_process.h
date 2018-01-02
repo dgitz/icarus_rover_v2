@@ -2,6 +2,7 @@
 #define DIAGNOSTICNODEPROCESS_H
 
 #include "Definitions.h"
+#include "ros/ros.h"
 #include <sys/time.h>
 #include <stdio.h>
 #include <iostream>
@@ -37,9 +38,9 @@ public:
 		std::string resource_topic;
 		std::string diagnostic_topic;
 		std::string heartbeat_topic;
-		ros::Subscriber resource_sub;
-		ros::Subscriber diagnostic_sub;
-		ros::Subscriber heartbeat_sub;
+		//ros::Subscriber resource_sub;
+		//ros::Subscriber diagnostic_sub;
+		//ros::Subscriber heartbeat_sub;
 	};
 
 	struct DeviceResourceAvailable
@@ -58,10 +59,10 @@ public:
 	double get_runtime() { return run_time; }
 	icarus_rover_v2::device get_mydevice() { return mydevice; }
 	icarus_rover_v2::diagnostic new_devicemsg(icarus_rover_v2::device device);
-	void set_mydevice(icarus_rover_v2::device device) { mydevice = device; }
+	void set_mydevice(icarus_rover_v2::device device) { mydevice = device; initialized = true; }
 	bool get_initialized() { return initialized; }
+	bool get_ready() { return ready; }
 	std::vector<icarus_rover_v2::diagnostic> new_commandmsg(icarus_rover_v2::command cmd);
-	std::vector<icarus_rover_v2::diagnostic> check_program_variables();
 
 	void set_resourcethresholds(int RAM_usage_threshold_MB_,int CPU_usage_threshold_percent_)
 	{
@@ -78,17 +79,22 @@ public:
 	void set_nodename(std::string v) { node_name = v; }
     
 private:
-	std::vector<icarus_rover_v2::diagnostic> check_tasks();
+	std::vector<icarus_rover_v2::diagnostic> check_program_variables();
+	
 	double run_time;
 	icarus_rover_v2::diagnostic diagnostic;
 	icarus_rover_v2::device mydevice;
-	std::string node_name;
 	std::string myhostname;
 	bool initialized;
+    bool ready;
+
+	std::vector<icarus_rover_v2::diagnostic> check_tasks();
+
 	std::vector<Task> TaskList;
 	std::vector<DeviceResourceAvailable> DeviceResourceAvailableList;
 	int RAM_usage_threshold_MB;
 	int CPU_usage_threshold_percent;
 	bool ready_to_arm;
+	std::string node_name;
 };
 #endif

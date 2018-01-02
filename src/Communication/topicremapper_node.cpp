@@ -1,7 +1,7 @@
 #include "topicremapper_node.h"
 //Start User Code: Firmware Definition
 #define TOPICREMAPPERNODE_MAJOR_RELEASE 3
-#define TOPICREMAPPERNODE_MINOR_RELEASE 0
+#define TOPICREMAPPERNODE_MINOR_RELEASE 1
 #define TOPICREMAPPERNODE_BUILD_NUMBER 1
 //End User Code: Firmware Definition
 //Start User Code: Functions
@@ -50,7 +50,7 @@ void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg)
 	icarus_rover_v2::firmware fw;
 	fw.Generic_Node_Name = "topicremapper_node";
 	fw.Node_Name = node_name;
-	fw.Description = "Latest Rev: 30-December-2017";
+	fw.Description = "Latest Rev: 2-January-2018";
 	fw.Major_Release = TOPICREMAPPERNODE_MAJOR_RELEASE;
 	fw.Minor_Release = TOPICREMAPPERNODE_MINOR_RELEASE;
 	fw.Build_Number = TOPICREMAPPERNODE_BUILD_NUMBER;
@@ -62,7 +62,7 @@ void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg)
 void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
 	received_pps = true;
-    if(device_initialized == true)
+    if((process->get_initialized() == true) and (process->get_ready() == true))
 	{
 		icarus_rover_v2::diagnostic resource_diagnostic = resourcemonitor->update();
 		if(resource_diagnostic.Diagnostic_Message == DEVICE_NOT_AVAILABLE)
@@ -83,6 +83,29 @@ void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 			resource_pub.publish(resources_used);
 		}
 	}
+	else if(process->get_ready() == false)
+    {
+        
+    }
+	else if(process->get_initialized() == false)
+    {
+    	{
+			icarus_rover_v2::srv_device srv;
+			srv.request.query = "SELF";
+			if(srv_device.call(srv) == true)
+			{
+				if(srv.response.data.size() != 1)
+				{
+					logger->log_error("Got unexpected device message");
+				}
+				else
+				{
+					bool status = new_devicemsg(srv.request.query,srv.response.data.at(0));
+				}
+			}
+    	}
+    }
+    diagnostic_pub.publish(process->get_diagnostic());
 }
 void Joystick_Callback(const sensor_msgs::Joy::ConstPtr& msg,const std::string &topic)
 {
@@ -121,15 +144,15 @@ void Command_Callback(const icarus_rover_v2::command::ConstPtr& msg)
 		diagnostic_pub.publish(diaglist.at(i));
 	}
 }
-
 //End User Code: Functions
 bool run_10Hz_code()
 {
     beat.stamp = ros::Time::now();
 	heartbeat_pub.publish(beat);
-    if(diagnostic_status.Level > NOTICE)
+    if(process->get_diagnostic().Level > NOTICE)
     {
-        diagnostic_pub.publish(diagnostic_status);
+        diagnostic_pub.publish(process->get_diagnostic());
+        logger->log_diagnostic(process->get_diagnostic());
     }
     return true;
 }
@@ -137,17 +160,16 @@ int main(int argc, char **argv)
 {
 	node_name = "topicremapper_node";
     ros::init(argc, argv, node_name);
+    n.reset(new ros::NodeHandle);
     node_name = ros::this_node::getName();
     ros::NodeHandle n;
     
-    if(initialize(n) == false)
+    if(initializenode() == false)
     {
-        logger->log_fatal("Unable to Initialize.  Exiting.");
-    	diagnostic_status.Diagnostic_Type = SOFTWARE;
-		diagnostic_status.Level = FATAL;
-		diagnostic_status.Diagnostic_Message = INITIALIZING_ERROR;
-		diagnostic_status.Description = "Node Initializing Error.";
-		diagnostic_pub.publish(diagnostic_status);
+        char tempstr[256];
+        sprintf(tempstr,"Unable to Initialize. Exiting.");
+        printf("[%s]: %s\n",node_name.c_str(),tempstr);
+        logger->log_fatal(tempstr);
 		kill_node = 1;
     }
     ros::Rate loop_rate(ros_rate);
@@ -206,35 +228,32 @@ int main(int argc, char **argv)
     logger->log_notice("Node Finished Safely.");
     return 0;
 }
-bool initialize(ros::NodeHandle nh)
+bool initializenode()
 {
     //Start Template Code: Initialization, Parameters and Topics
 	kill_node = 0;
 	signal(SIGINT,signalinterrupt_handler);
-    myDevice.DeviceName = "";
-    myDevice.Architecture = "";
-    device_initialized = false;
     hostname[1023] = '\0';
     gethostname(hostname,1023);
     std::string diagnostic_topic = "/" + node_name + "/diagnostic";
-	diagnostic_pub =  nh.advertise<icarus_rover_v2::diagnostic>(diagnostic_topic,1000);
-    diagnostic_status.DeviceName = hostname;
-	diagnostic_status.Node_Name = node_name;
-	diagnostic_status.System = ROVER;
-	diagnostic_status.SubSystem = ROBOT_CONTROLLER;
-	diagnostic_status.Component = TIMING_NODE;
+	diagnostic_pub =  n->advertise<icarus_rover_v2::diagnostic>(diagnostic_topic,5);
+    icarus_rover_v2::diagnostic diagnostic;
+    diagnostic.DeviceName = hostname;
+	diagnostic.Node_Name = node_name;
+	diagnostic.System = ROVER;
+	diagnostic.SubSystem = ROBOT_CONTROLLER;
+	diagnostic.Component = COMMUNICATION_NODE;
 
-	diagnostic_status.Diagnostic_Type = NOERROR;
-	diagnostic_status.Level = INFO;
-	diagnostic_status.Diagnostic_Message = INITIALIZING;
-	diagnostic_status.Description = "Node Initializing";
-	diagnostic_pub.publish(diagnostic_status);
+	diagnostic.Diagnostic_Type = NOERROR;
+	diagnostic.Level = INFO;
+	diagnostic.Diagnostic_Message = INITIALIZING;
+	diagnostic.Description = "Node Initializing";
 
 	std::string resource_topic = "/" + node_name + "/resource";
-	resource_pub = nh.advertise<icarus_rover_v2::resource>(resource_topic,1000);
+	resource_pub = n->advertise<icarus_rover_v2::resource>(resource_topic,5);
 
     std::string param_verbosity_level = node_name +"/verbosity_level";
-    if(nh.getParam(param_verbosity_level,verbosity_level) == false)
+    if(n->getParam(param_verbosity_level,verbosity_level) == false)
     {
         logger = new Logger("WARN",ros::this_node::getName());
         logger->log_warn("Missing Parameter: verbosity_level");
@@ -244,28 +263,39 @@ bool initialize(ros::NodeHandle nh)
     {
         logger = new Logger(verbosity_level,ros::this_node::getName());      
     }
+	std::string param_disabled = node_name +"/disable";
+    bool disable_node;
+    if(n->getParam(param_disabled,disable_node) == true)
+    {
+    	if(disable_node == true)
+    	{
+    		logger->log_notice("Node Disabled in Launch File.  Exiting.");
+    		printf("[%s]: Node Disabled in Launch File. Exiting.\n",node_name.c_str());
+    		return false;
+    	}
+    }
     
     std::string heartbeat_topic = "/" + node_name + "/heartbeat";
-    heartbeat_pub = nh.advertise<icarus_rover_v2::heartbeat>(heartbeat_topic,1000);
+    heartbeat_pub = n->advertise<icarus_rover_v2::heartbeat>(heartbeat_topic,5);
     beat.Node_Name = node_name;
     std::string device_topic = "/" + std::string(hostname) + "_master_node/srv_device";
-    srv_device = nh.serviceClient<icarus_rover_v2::srv_device>(device_topic);
+    srv_device = n->serviceClient<icarus_rover_v2::srv_device>(device_topic);
 
-    pps01_sub = nh.subscribe<std_msgs::Bool>("/01PPS",1000,PPS01_Callback); 
-    pps1_sub = nh.subscribe<std_msgs::Bool>("/1PPS",1000,PPS1_Callback); 
-    command_sub = nh.subscribe<icarus_rover_v2::command>("/command",5,Command_Callback);
+    pps01_sub = n->subscribe<std_msgs::Bool>("/01PPS",5,PPS01_Callback); 
+    pps1_sub = n->subscribe<std_msgs::Bool>("/1PPS",5,PPS1_Callback); 
+    command_sub = n->subscribe<icarus_rover_v2::command>("/command",5,Command_Callback);
     std::string param_require_pps_to_start = node_name +"/require_pps_to_start";
-    if(nh.getParam(param_require_pps_to_start,require_pps_to_start) == false)
+    if(n->getParam(param_require_pps_to_start,require_pps_to_start) == false)
 	{
 		logger->log_warn("Missing Parameter: require_pps_to_start.");
 		return false;
 	}
     std::string firmware_topic = "/" + node_name + "/firmware";
-    firmware_pub =  nh.advertise<icarus_rover_v2::firmware>(firmware_topic,1);
+    firmware_pub =  n->advertise<icarus_rover_v2::firmware>(firmware_topic,1);
     
     double max_rate = 0.0;
     std::string param_loop1_rate = node_name + "/loop1_rate";
-    if(nh.getParam(param_loop1_rate,loop1_rate) == false)
+    if(n->getParam(param_loop1_rate,loop1_rate) == false)
     {
         logger->log_warn("Missing parameter: loop1_rate.  Not running loop1 code.");
         run_loop1 = false;
@@ -278,7 +308,7 @@ bool initialize(ros::NodeHandle nh)
     }
     
     std::string param_loop2_rate = node_name + "/loop2_rate";
-    if(nh.getParam(param_loop2_rate,loop2_rate) == false)
+    if(n->getParam(param_loop2_rate,loop2_rate) == false)
     {
         logger->log_warn("Missing parameter: loop2_rate.  Not running loop2 code.");
         run_loop2 = false;
@@ -291,7 +321,7 @@ bool initialize(ros::NodeHandle nh)
     }
     
     std::string param_loop3_rate = node_name + "/loop3_rate";
-    if(nh.getParam(param_loop3_rate,loop3_rate) == false)
+    if(n->getParam(param_loop3_rate,loop3_rate) == false)
     {
         logger->log_warn("Missing parameter: loop3_rate.  Not running loop3 code.");
         run_loop3 = false;
@@ -311,12 +341,20 @@ bool initialize(ros::NodeHandle nh)
 
     //Start User Code: Initialization and Parameters
     process = new TopicRemapperNodeProcess;
-	diagnostic_status = process->init(diagnostic_status,std::string(hostname));
-    diagnostic_status = process->load("/home/robot/config/TopicMap.xml");
-    if(diagnostic_status.Level > NOTICE)
+
+	diagnostic = process->init(diagnostic,std::string(hostname));
+	if(diagnostic.Level > NOTICE)
+	{
+		logger->log_fatal(diagnostic.Description);
+		printf("[%s]: %s\n",node_name.c_str(),diagnostic.Description.c_str());
+		return false;
+	}
+
+    diagnostic = process->load("/home/robot/config/TopicMap.xml");
+    if(diagnostic.Level > NOTICE)
     {
-        printf("[%s]: %s\n",node_name.c_str(),diagnostic_status.Description.c_str());
-        logger->log_diagnostic(diagnostic_status);
+        printf("[%s]: %s\n",node_name.c_str(),diagnostic.Description.c_str());
+        logger->log_diagnostic(diagnostic);
         return false;
     }
     logger->log_debug(process->print_topicmaps().c_str());
@@ -326,25 +364,26 @@ bool initialize(ros::NodeHandle nh)
     {
         if(TopicMaps.at(i).in.type == "sensor_msgs/Joy")
         {
-            ros::Subscriber sub = nh.subscribe<sensor_msgs::Joy>(TopicMaps.at(i).in.topic,1000,boost::bind(Joystick_Callback,_1,TopicMaps.at(i).in.topic));
+            ros::Subscriber sub = n->subscribe<sensor_msgs::Joy>(TopicMaps.at(i).in.topic,1000,boost::bind(Joystick_Callback,_1,TopicMaps.at(i).in.topic));
             char tempstr[255];
             sprintf(tempstr,"Subscribing to: %s",TopicMaps.at(i).in.topic.c_str());
             logger->log_info(tempstr);
-            process->set_topicmap_sub(i,sub);
+            subs.push_back(sub);
+            //process->set_topicmap_sub(i,sub);
             //TopicMaps.at(i).sub = sub;
         }
         for(int j = 0; j < TopicMaps.at(i).outs.size();j++)
         {
             if(TopicMaps.at(i).outs.at(j).type == "icarus_rover_v2/pin")
             {
-                ros::Publisher pub = nh.advertise<icarus_rover_v2::pin>(TopicMaps.at(i).outs.at(j).topic,10);
+                ros::Publisher pub = n->advertise<icarus_rover_v2::pin>(TopicMaps.at(i).outs.at(j).topic,10);
                 pin_pubs.push_back(pub);
                 //process->set_topicmap_pub(i,j,pub);
                 //TopicMaps.at(i).pubs.at(j) = pub;
             }
             else if(TopicMaps.at(i).outs.at(j).type == "std_msgs/Float32")
             {
-                ros::Publisher pub = nh.advertise<std_msgs::Float32>(TopicMaps.at(i).outs.at(j).topic,10);
+                ros::Publisher pub = n->advertise<std_msgs::Float32>(TopicMaps.at(i).outs.at(j).topic,10);
                 float32_pubs.push_back(pub);
                 //process->set_topicmap_pub(i,j,pub);
                 //TopicMaps.at(i).pubs.at(j) = pub;
@@ -353,7 +392,7 @@ bool initialize(ros::NodeHandle nh)
             {
                 std::size_t found = TopicMaps.at(i).outs.at(j).topic.substr(1).find("/");
                 std::string topic = TopicMaps.at(i).outs.at(j).topic.substr(0,found+1);
-                ros::Publisher pub = nh.advertise<sensor_msgs::JointState>(topic,10);
+                ros::Publisher pub = n->advertise<sensor_msgs::JointState>(topic,10);
                 //process->set_topicmap_pub(i,j,pub);
             }
         }
@@ -362,20 +401,20 @@ bool initialize(ros::NodeHandle nh)
 		
 		/*
         std::string pwmoutput_topic = "/" + node_name + "/PWMOutput";
-        pwmoutput_pub = nh.advertise<icarus_rover_v2::iopins>(pwmoutput_topic,1);
+        pwmoutput_pub = n->advertise<icarus_rover_v2::iopins>(pwmoutput_topic,1);
         std::string digitaloutput_topic = "/" + node_name + "/DigitalOutput";
-        digitaloutput_pub = nh.advertise<icarus_rover_v2::iopins>(digitaloutput_topic,1);
+        digitaloutput_pub = n->advertise<icarus_rover_v2::iopins>(digitaloutput_topic,1);
 		*/
 	
     //Finish User Code: Initialization and Parameters
 
     //Start Template Code: Final Initialization.
-	diagnostic_status.Diagnostic_Type = NOERROR;
-	diagnostic_status.Level = INFO;
-	diagnostic_status.Diagnostic_Message = NOERROR;
-	diagnostic_status.Description = "Node Initialized";
-	process->set_diagnostic(diagnostic_status);
-	diagnostic_pub.publish(diagnostic_status);
+	diagnostic.Diagnostic_Type = NOERROR;
+	diagnostic.Level = INFO;
+	diagnostic.Diagnostic_Message = NOERROR;
+	diagnostic.Description = "Node Initialized";
+	process->set_diagnostic(diagnostic);
+	diagnostic_pub.publish(diagnostic);
     logger->log_info("Initialized!");
     return true;
     //End Template Code: Finish Initialization.
@@ -393,19 +432,14 @@ bool new_devicemsg(std::string query,icarus_rover_v2::device device)
 	{
 		if((device.DeviceName == hostname))
 		{
-			myDevice = device;
-			resourcemonitor = new ResourceMonitor(diagnostic_status,myDevice.Architecture,myDevice.DeviceName,node_name);
+			resourcemonitor = new ResourceMonitor(process->get_diagnostic(),device.Architecture,device.DeviceName,node_name);
 			process->set_mydevice(device);
-			device_initialized = true;
 		}
 	}
 
-	if((device_initialized == true))
+	if((process->get_initialized() == true))
 	{
 		icarus_rover_v2::diagnostic diag = process->new_devicemsg(device);
-		if(process->get_initialized() == true)
-		{
-		}
 	}
 	return true;
 }

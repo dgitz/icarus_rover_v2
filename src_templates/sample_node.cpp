@@ -303,6 +303,12 @@ bool initializenode()
     process = new SampleNodeProcess;
     
 	diagnostic = process->init(diagnostic,std::string(hostname));
+	if(diagnostic.Level > NOTICE)
+	{
+		logger->log_fatal(diagnostic.Description);
+		printf("[%s]: %s\n",node_name.c_str(),diagnostic.Description.c_str());
+		return false;
+	}
     //Finish User Code: Initialization and Parameters
 
     //Start Template Code: Final Initialization.
