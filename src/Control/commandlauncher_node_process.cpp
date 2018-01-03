@@ -38,10 +38,7 @@ icarus_rover_v2::diagnostic CommandLauncherNodeProcess::init(icarus_rover_v2::di
 icarus_rover_v2::diagnostic CommandLauncherNodeProcess::update(double dt)
 {
 	run_time += dt;
-    if((mydevice.BoardCount == 0) and (mydevice.SensorCount == 0))
-    {
-        if(initialized == true) { ready = true; }
-    }
+	if(initialized == true) { ready = true; }
 	icarus_rover_v2::diagnostic diag = diagnostic;
     bool processes_ok = true;
     if(initialized == true)

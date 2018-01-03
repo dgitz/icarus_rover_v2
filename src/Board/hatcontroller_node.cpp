@@ -407,7 +407,7 @@ int main(int argc, char **argv)
                 mtime = measure_time_diff(ros::Time::now(),last_loop3_timer);
                 if(mtime >= (1.0/loop3_rate))
                 {
-                    run_loop3_code();
+                    //run_loop3_code();
                     last_loop3_timer = ros::Time::now();
                 }
             }
@@ -545,6 +545,7 @@ bool initializenode()
     //End Template Code: Initialization and Parameters
 
     //Start User Code: Initialization and Parameters
+    process = new HatControllerNodeProcess;
     std::string sensor_spec_path;
     std::string armed_state_topic = "/armed_state";
     armed_state_sub = n->subscribe<std_msgs::UInt8>(armed_state_topic,1,ArmedState_Callback);

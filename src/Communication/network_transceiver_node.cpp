@@ -463,7 +463,6 @@ bool initialize_recvsocket()
 		logger->log_error("Failed to bind recv socket. Exiting.");
 		return false;
 	}
-
 	return true;
 }
 bool initialize_sendsocket()
@@ -507,6 +506,7 @@ void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 	received_pps = true;
     if((process->get_initialized() == true) and (process->get_ready() == true))
 	{
+    	printf("updating\n");
 		icarus_rover_v2::diagnostic resource_diagnostic = resourcemonitor->update();
 		if(resource_diagnostic.Diagnostic_Message == DEVICE_NOT_AVAILABLE)
 		{
@@ -526,6 +526,7 @@ void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 			resource_pub.publish(resources_used);
 		}
 	}
+
     else if(process->get_ready() == false)
     {
         
@@ -859,7 +860,6 @@ bool initializenode()
 
 	udpmessagehandler = new UDPMessageHandler();
 
-	process->set_initialized(true);
     //Finish User Code: Initialization and Parameters
 
     //Start Template Code: Final Initialization.
@@ -886,6 +886,7 @@ bool new_devicemsg(std::string query,icarus_rover_v2::device device)
 	{
 		if((device.DeviceName == hostname))
 		{
+			printf("creating\n");
 			resourcemonitor = new ResourceMonitor(process->get_diagnostic(),device.Architecture,device.DeviceName,node_name);
 			process->set_mydevice(device);
 		}

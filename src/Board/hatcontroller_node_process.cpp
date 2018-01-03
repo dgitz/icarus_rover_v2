@@ -55,11 +55,9 @@ icarus_rover_v2::diagnostic HatControllerNodeProcess::update(double dt)
     else { pps_ok = false; }
         
     bool status = true;    
-    if((hats_ready == true) ||
-    		((mydevice.BoardCount == 0) and (mydevice.SensorCount == 0)))
+    if((hats_ready == true))
     {
         status = status and true;
-		ready = true;
     }
     else
     {

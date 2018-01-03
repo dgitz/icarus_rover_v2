@@ -379,8 +379,8 @@ bool initializenode()
         logger->log_error("Missing parameter: CameraStreamPort.  Exiting.");
         return false;
     }
-   
 	
+
     
     //Finish User Code: Initialization and Parameters
 
@@ -409,16 +409,15 @@ bool new_devicemsg(std::string query,icarus_rover_v2::device device)
 		if((device.DeviceName == hostname))
 		{
 			resourcemonitor = new ResourceMonitor(process->get_diagnostic(),device.Architecture,device.DeviceName,node_name);
-
+            process->set_mydevice(device);
             if(process->set_camerastream(camerastream_port) == false)
             {
-                char tempstr[512];
-                sprintf(tempstr,"Couldn't set Camera Stream Port. Exiting.");
-                logger->log_error(tempstr);
-                printf("%s\n",tempstr);
-                return false;
+            	char tempstr[512];
+            	sprintf(tempstr,"Couldn't set Camera Stream Port. Exiting.");
+            	logger->log_error(tempstr);
+            	printf("[%s]: %s\n",node_name.c_str(),tempstr);
+            	return false;
             }
-            process->set_mydevice(device);
 		}
 	}
 

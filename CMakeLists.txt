@@ -239,7 +239,7 @@ add_library(commandlauncher_node_process src/Control/commandlauncher_node_proces
 add_library(simulate_node_process src/Simulate/simulate_node_process.cpp)
 add_library(master_node_process src/Control/master_node_process.cpp util/serialmessage.cpp)
 add_library(diagnostic_node_process src/Diagnostics/diagnostic_node_process.cpp)
-add_library(topicremapper_node_process src/Communication/topicremapper_node_process.cpp ${catkin_LIBRARIES})
+add_library(topicremapper_node_process src/Communication/topicremapper_node_process.cpp)
 add_library(timemaster_node_process src/Timing/timemaster_node_process.cpp)
 add_library(pose_node_process src/Pose/pose_node_process.cpp src/Pose/blocks/time_compensate/time_compensate.cpp)
 

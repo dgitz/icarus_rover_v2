@@ -5,6 +5,7 @@ NetworkTransceiverNodeProcess::NetworkTransceiverNodeProcess()
 {
     run_time = 0.0;
 	initialized = false;
+	ready = false;
     init_messages();
 }
 /*! \brief Deconstructor

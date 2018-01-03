@@ -253,7 +253,7 @@ bool run_loop1_code()
 	device_resource_available.PID = 0;
 	device_resource_available.CPU_Perc = resourcemonitor->get_CPUFree_perc();
 	device_resource_available.RAM_MB = (double)(resourcemonitor->get_RAMFree_kB()/1000.0);
-	//device_resourceavail_pub.publish(device_resource_available);
+	device_resourceavail_pub.publish(device_resource_available);
 	if(process->get_mydevice().Architecture == "armv7l")
 	{
 		device_temperature = read_device_temperature();
@@ -267,7 +267,7 @@ bool run_loop1_code()
 			sprintf(tempstr,"Device Temperature: %f",device_temperature);
 			logger->log_info(tempstr);
 			diagnostic.Description = tempstr;
-			//diagnostic_pub.publish(diagnostic);
+			diagnostic_pub.publish(diagnostic);
 		}
 		else if(device_temperature < 50.0)
 		{
@@ -278,7 +278,7 @@ bool run_loop1_code()
 			sprintf(tempstr,"Device Temperature: %f",device_temperature);
 			logger->log_info(tempstr);
 			diagnostic.Description = tempstr;
-			//diagnostic_pub.publish(diagnostic);
+			diagnostic_pub.publish(diagnostic);
 		}
 	}
 	return true;
@@ -290,7 +290,7 @@ bool run_loop2_code()
 	icarus_rover_v2::diagnostic diag = process->update(1.0/(double)loop2_rate);
 	if(diag.Level > WARN)
 	{
-		//diagnostic_pub.publish(diagnostic);
+		diagnostic_pub.publish(diag);
 		logger->log_diagnostic(diag);
 		printf("[%s]:%s\n",node_name.c_str(),diag.Description.c_str());
 	}
@@ -333,7 +333,7 @@ void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg)
 	fw.Major_Release = MASTERNODE_MAJOR_RELEASE;
 	fw.Minor_Release = MASTERNODE_MINOR_RELEASE;
 	fw.Build_Number = MASTERNODE_BUILD_NUMBER;
-	//firmware_pub.publish(fw);
+	firmware_pub.publish(fw);
 	printf("t=%4.2f (sec) [%s]: %s\n",ros::Time::now().toSec(),node_name.c_str(),process->get_diagnostic().Description.c_str());
 }
 /*! \brief 1.0 PULSE PER SECOND User Code
@@ -346,20 +346,20 @@ void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 		icarus_rover_v2::diagnostic resource_diagnostic = resourcemonitor->update();
 		if(resource_diagnostic.Diagnostic_Message == DEVICE_NOT_AVAILABLE)
 		{
-			//diagnostic_pub.publish(resource_diagnostic);
+			diagnostic_pub.publish(resource_diagnostic);
 			logger->log_warn("Couldn't read resources used.");
 		}
 		else if(resource_diagnostic.Level >= WARN)
 		{
 			resources_used = resourcemonitor->get_resourceused();
-			//resource_pub.publish(resources_used);
-			//diagnostic_pub.publish(resource_diagnostic);
+			resource_pub.publish(resources_used);
+			diagnostic_pub.publish(resource_diagnostic);
 			logger->log_diagnostic(resource_diagnostic);
 		}
 		else if(resource_diagnostic.Level <= NOTICE)
 		{
 			resources_used = resourcemonitor->get_resourceused();
-			//resource_pub.publish(resources_used);
+			resource_pub.publish(resources_used);
 		}
 	}
     else if(process->get_ready() == false)
@@ -369,7 +369,7 @@ void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 	else if(process->get_initialized() == false)
 	{
 	}
-	//diagnostic_pub.publish(process->get_diagnostic());
+	diagnostic_pub.publish(process->get_diagnostic());
 }
 void Command_Callback(const icarus_rover_v2::command::ConstPtr& msg)
 {
@@ -384,17 +384,17 @@ void Command_Callback(const icarus_rover_v2::command::ConstPtr& msg)
 	for(std::size_t i = 0; i < diaglist.size(); i++)
 	{
 		logger->log_diagnostic(diaglist.at(i));
-		//diagnostic_pub.publish(diaglist.at(i));
+		diagnostic_pub.publish(diaglist.at(i));
 	}
 }
 //End User Code: Functions
 bool run_10Hz_code()
 {
     beat.stamp = ros::Time::now();
-	//heartbeat_pub.publish(beat);
+	heartbeat_pub.publish(beat);
     if(process->get_diagnostic().Level > NOTICE)
     {
-        //diagnostic_pub.publish(process->get_diagnostic());
+        diagnostic_pub.publish(process->get_diagnostic());
         logger->log_diagnostic(process->get_diagnostic());
     }
     return true;
@@ -632,6 +632,8 @@ bool initializenode()
 	resourcemonitor = new ResourceMonitor(process->get_diagnostic(),process->get_mydevice().Architecture,process->get_mydevice().DeviceName,node_name);
     process->set_initialized(true);
 
+    std::string device_resourceavail_topic = "/" + process->get_mydevice().DeviceName + "/resource_available";
+	device_resourceavail_pub = n->advertise<icarus_rover_v2::resource>(device_resourceavail_topic,5);
     //Finish User Code: Initialization and Parameters
 
     //Start Template Code: Final Initialization.
@@ -640,7 +642,7 @@ bool initializenode()
 	diagnostic.Diagnostic_Message = NOERROR;
 	diagnostic.Description = "Node Initialized";
 	process->set_diagnostic(diagnostic);
-	//diagnostic_pub.publish(diagnostic);
+	diagnostic_pub.publish(diagnostic);
     logger->log_info("Initialized!");
     return true;
     //End Template Code: Finish Initialization.

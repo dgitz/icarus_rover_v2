@@ -248,6 +248,7 @@ bool initializenode()
 	diagnostic.Level = INFO;
 	diagnostic.Diagnostic_Message = INITIALIZING;
 	diagnostic.Description = "Node Initializing";
+	diagnostic_pub.publish(diagnostic);
 
 	std::string resource_topic = "/" + node_name + "/resource";
 	resource_pub = n->advertise<icarus_rover_v2::resource>(resource_topic,5);
@@ -368,8 +369,8 @@ bool initializenode()
             char tempstr[255];
             sprintf(tempstr,"Subscribing to: %s",TopicMaps.at(i).in.topic.c_str());
             logger->log_info(tempstr);
-            subs.push_back(sub);
             //process->set_topicmap_sub(i,sub);
+            subs.push_back(sub);
             //TopicMaps.at(i).sub = sub;
         }
         for(int j = 0; j < TopicMaps.at(i).outs.size();j++)

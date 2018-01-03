@@ -1,5 +1,5 @@
 /***************AUTO-GENERATED.  DO NOT EDIT********************/
-/***Created on:2017-11-24 09:51:43.776186***/
+/***Created on:2018-01-02 21:22:45.393945***/
 #ifndef UDPMESSAGE_H
 #define UDPMESSAGE_H
 #include "ros/ros.h"
@@ -29,6 +29,7 @@ public:
 		UDP_Power_ID = 0xAB37,
 		UDP_EStop_ID = 0xAB38,
 		UDP_TuneControlGroup_ID = 0xAB39,
+		UDP_Firmware_ID = 0xAB41,
 	};
 	UDPMessageHandler();
 	~UDPMessageHandler();
@@ -44,6 +45,7 @@ public:
 	std::string encode_PowerUDP(std::string BatteryName,uint8_t PowerLevel,uint8_t PowerState);
 	std::string encode_EStopUDP(std::string DeviceName,uint8_t State);
 	int decode_TuneControlGroupUDP(std::vector<std::string> items,std::string* ControlGroupName,std::string* Type,double* value1,double* value2,double* value3,int* maxvalue,int* minvalue,int* defaultvalue);
+	std::string encode_FirmwareUDP(std::string NodeName,std::string DateModified,uint16_t MajorReleaseVersion,uint16_t MinorReleaseVersion,uint16_t BuildNumber);
 private:
 };
 #endif
