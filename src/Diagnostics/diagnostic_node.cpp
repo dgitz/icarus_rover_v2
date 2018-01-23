@@ -35,6 +35,7 @@ bool run_loop3_code()
 	if(diag.Level > NOTICE)
 	{
 		diagnostic_pub.publish(diag);
+		printf("[%s]: %s\n",node_name.c_str(),diag.Description.c_str());
 	}
  	return true;
 }
@@ -255,7 +256,17 @@ bool log_resources()
 void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
 	icarus_rover_v2::diagnostic diagnostic = rescan_topics(process->get_diagnostic());
-	diagnostic_pub.publish(diagnostic);
+	if(diagnostic.Level > NOTICE)
+	{
+		diagnostic_pub.publish(diagnostic);
+		logger->log_diagnostic(diagnostic);
+	}
+	diagnostic = process->new_01ppsmsg();
+	if(diagnostic.Level > NOTICE)
+	{
+		diagnostic_pub.publish(diagnostic);
+		logger->log_diagnostic(diagnostic);
+	}
 	icarus_rover_v2::firmware fw;
 	fw.Generic_Node_Name = "diagnostic_node";
 	fw.Node_Name = node_name;
@@ -264,6 +275,7 @@ void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg)
 	fw.Minor_Release = DIAGNOSTICNODE_MINOR_RELEASE;
 	fw.Build_Number = DIAGNOSTICNODE_BUILD_NUMBER;
 	firmware_pub.publish(fw);
+
 	printf("t=%4.2f (sec) [%s]: %s\n",ros::Time::now().toSec(),node_name.c_str(),process->get_diagnostic().Description.c_str());
 }
 /*! \brief 1.0 PULSE PER SECOND User Code
@@ -271,7 +283,13 @@ void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg)
 void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
 	received_pps = true;
-    if((process->get_initialized() == true) and (process->get_ready() == true))
+	icarus_rover_v2::diagnostic diagnostic = process->new_1ppsmsg();
+	if(diagnostic.Level > NOTICE)
+	{
+		diagnostic_pub.publish(diagnostic);
+		logger->log_diagnostic(diagnostic);
+	}
+	if((process->get_initialized() == true) and (process->get_ready() == true))
 	{
 		icarus_rover_v2::diagnostic resource_diagnostic = resourcemonitor->update();
 		if(resource_diagnostic.Diagnostic_Message == DEVICE_NOT_AVAILABLE)
@@ -292,7 +310,7 @@ void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 			resource_pub.publish(resources_used);
 		}
 	}
-    else if(process->get_ready() == false)
+    else if((process->get_ready() == false) and (process->get_initialized() == true))
     {
         
     }
@@ -328,8 +346,15 @@ void Command_Callback(const icarus_rover_v2::command::ConstPtr& msg)
 	std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(command);
 	for(std::size_t i = 0; i < diaglist.size(); i++)
 	{
-		logger->log_diagnostic(diaglist.at(i));
-		diagnostic_pub.publish(diaglist.at(i));
+		if(diaglist.at(i).Level >= NOTICE)
+        {
+            logger->log_diagnostic(diaglist.at(i));
+            diagnostic_pub.publish(diaglist.at(i));
+        }
+        if((diaglist.at(i).Level > NOTICE) and (process->get_runtime() > 10.0))
+        {
+            printf("[%s]: %s\n",node_name.c_str(),diaglist.at(i).Description.c_str());
+        }
 	}
 }
 
@@ -552,7 +577,7 @@ bool initializenode()
     char tempstr[512];
     sprintf(tempstr,"Running Node at Rate: %f",ros_rate);
     logger->log_notice(std::string(tempstr));
-	//End Template Code: Initialization, Parameters and Topics
+    //End Template Code: Initialization and Parameters
 
 	//Start User Code: Initialization, Parameters and Topics
 	process = new DiagnosticNodeProcess;

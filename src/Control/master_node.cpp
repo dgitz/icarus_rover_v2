@@ -362,7 +362,7 @@ void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 			resource_pub.publish(resources_used);
 		}
 	}
-    else if(process->get_ready() == false)
+    else if((process->get_ready() == false) and (process->get_initialized() == true))
     {
         
     }
@@ -383,8 +383,15 @@ void Command_Callback(const icarus_rover_v2::command::ConstPtr& msg)
 	std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(command);
 	for(std::size_t i = 0; i < diaglist.size(); i++)
 	{
-		logger->log_diagnostic(diaglist.at(i));
-		diagnostic_pub.publish(diaglist.at(i));
+		if(diaglist.at(i).Level >= NOTICE)
+        {
+            logger->log_diagnostic(diaglist.at(i));
+            diagnostic_pub.publish(diaglist.at(i));
+        }
+        if((diaglist.at(i).Level > NOTICE) and (process->get_runtime() > 10.0))
+        {
+            printf("[%s]: %s\n",node_name.c_str(),diaglist.at(i).Description.c_str());
+        }
 	}
 }
 //End User Code: Functions
@@ -491,6 +498,7 @@ bool initializenode()
 	diagnostic.Level = INFO;
 	diagnostic.Diagnostic_Message = INITIALIZING;
 	diagnostic.Description = "Node Initializing";
+	diagnostic_pub.publish(diagnostic);
 
 	std::string resource_topic = "/" + node_name + "/resource";
 	resource_pub = n->advertise<icarus_rover_v2::resource>(resource_topic,5);
@@ -583,7 +591,7 @@ bool initializenode()
     //Start User Code: Initialization and Parameters
 	process = new MasterNodeProcess;
 	diagnostic = process->init(diagnostic,std::string(hostname),"/home/robot/config/DeviceFile.xml","/home/robot/config/SystemFile.xml");
-    if(diagnostic.Level >= WARN)
+    if(diagnostic.Level > NOTICE)
     {
         logger->log_diagnostic(diagnostic);
         printf("[%s] ERROR: %s\n",node_name.c_str(),diagnostic.Description.c_str());

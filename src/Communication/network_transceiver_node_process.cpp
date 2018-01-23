@@ -29,10 +29,7 @@ icarus_rover_v2::diagnostic NetworkTransceiverNodeProcess::update(double dt)
 {
 	icarus_rover_v2::diagnostic diag = diagnostic;
 	run_time += dt;
-	if((mydevice.BoardCount == 0) and (mydevice.SensorCount == 0))
-    {
-        if(initialized == true) { ready = true; }
-    }
+    if(initialized == true) { ready = true; }
     for(std::size_t i = 0; i < messages.size(); i++)
     {
         if(messages.at(i).sent_counter > 0)
@@ -327,6 +324,13 @@ void NetworkTransceiverNodeProcess::init_messages()
     	Message newmessage;
     	newmessage.id = TUNECONTROLGROUP_ID;
     	newmessage.name = "Tune ControlGroup";
+    	messages.push_back(newmessage);
+    }
+    
+    {
+    	Message newmessage;
+    	newmessage.id = FIRMWARE_ID;
+    	newmessage.name = "Firmware";
     	messages.push_back(newmessage);
     }
     

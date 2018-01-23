@@ -274,7 +274,7 @@ void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
     pps.data = msg->data;
     icarus_rover_v2::diagnostic diagnostic = process->new_ppsmsg(pps);
     if(diagnostic.Level > NOTICE) {   diagnostic_pub.publish(diagnostic); }
-    if((process->get_initialized() == true) && (process->is_ready() == true))
+    if((process->get_initialized() == true) and (process->get_ready() == true))
 	{
 		icarus_rover_v2::diagnostic resource_diagnostic = resourcemonitor->update();
 		if(resource_diagnostic.Diagnostic_Message == DEVICE_NOT_AVAILABLE)
@@ -295,6 +295,20 @@ void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 			resource_pub.publish(resources_used);
 		}
 	}
+    else if((process->get_ready() == false) and (process->get_initialized() == true))
+    {
+        {
+            icarus_rover_v2::srv_device srv;
+            srv.request.query = "DeviceType=ServoHat";
+			if(srv_device.call(srv) == true)
+			{
+                for(std::size_t i = 0; i < srv.response.data.size(); i++)
+                {
+                    bool status = new_devicemsg(srv.request.query,srv.response.data.at(i));
+                }
+			}
+    	}
+    }
 	else if(process->get_initialized() == false)
     {
     	{
@@ -310,21 +324,6 @@ void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 				{
 					bool status = new_devicemsg(srv.request.query,srv.response.data.at(0));
 				}
-			}
-        }
-    }
-    else if(process->is_ready() == false)
-    {
-        
-        {
-            icarus_rover_v2::srv_device srv;
-            srv.request.query = "DeviceType=ServoHat";
-			if(srv_device.call(srv) == true)
-			{
-                for(std::size_t i = 0; i < srv.response.data.size(); i++)
-                {
-                    bool status = new_devicemsg(srv.request.query,srv.response.data.at(i));
-                }
 			}
     	}
     }
@@ -342,8 +341,15 @@ void Command_Callback(const icarus_rover_v2::command::ConstPtr& msg)
 	std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(command);
 	for(std::size_t i = 0; i < diaglist.size(); i++)
 	{
-		logger->log_diagnostic(diaglist.at(i));
-		diagnostic_pub.publish(diaglist.at(i));
+		if(diaglist.at(i).Level >= NOTICE)
+        {
+            logger->log_diagnostic(diaglist.at(i));
+            diagnostic_pub.publish(diaglist.at(i));
+        }
+        if((diaglist.at(i).Level > NOTICE) and (process->get_runtime() > 10.0))
+        {
+            printf("[%s]: %s\n",node_name.c_str(),diaglist.at(i).Description.c_str());
+        }
 	}
 }
 //End User Code: Functions
@@ -354,6 +360,7 @@ bool run_10Hz_code()
     if(process->get_diagnostic().Level > NOTICE)
     {
         diagnostic_pub.publish(process->get_diagnostic());
+        logger->log_diagnostic(process->get_diagnostic());
     }
     return true;
 }
@@ -431,7 +438,6 @@ int main(int argc, char **argv)
     logger->log_notice("Node Finished Safely.");
     return 0;
 }
-
 bool initializenode()
 {
     //Start Template Code: Initialization, Parameters and Topics

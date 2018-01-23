@@ -75,7 +75,7 @@ TEST(Template,Process_Command)
 {
 	DiagnosticNodeProcess* process = initializeprocess();
     process = readyprocess(process);
-    double time_to_run = 20.0;
+    double time_to_run = 50.0;
     double dt = 0.001;
     double current_time = 0.0;
     bool fastrate_fire = false; //10 Hz
@@ -128,6 +128,7 @@ TEST(Template,Process_Command)
                 EXPECT_TRUE(diaglist.at(i).Level <= NOTICE);
             }
             EXPECT_TRUE(diaglist.size() > 0);
+            process->new_1ppsmsg();
             
         }
         if(slowrate_fire == true)
@@ -138,7 +139,8 @@ TEST(Template,Process_Command)
             {
                 EXPECT_TRUE(diaglist.at(i).Level <= NOTICE);
             }
-             EXPECT_TRUE(diaglist.size() > 0);
+            EXPECT_TRUE(diaglist.size() > 0);
+            process->new_01ppsmsg();
         }
         current_time += dt;   
     }

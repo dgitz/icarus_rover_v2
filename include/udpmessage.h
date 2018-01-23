@@ -1,5 +1,5 @@
 /***************AUTO-GENERATED.  DO NOT EDIT********************/
-/***Created on:2018-01-02 21:22:45.393945***/
+/***Created on:2018-01-03 07:22:16.202736***/
 #ifndef UDPMESSAGE_H
 #define UDPMESSAGE_H
 #include "ros/ros.h"
@@ -45,7 +45,7 @@ public:
 	std::string encode_PowerUDP(std::string BatteryName,uint8_t PowerLevel,uint8_t PowerState);
 	std::string encode_EStopUDP(std::string DeviceName,uint8_t State);
 	int decode_TuneControlGroupUDP(std::vector<std::string> items,std::string* ControlGroupName,std::string* Type,double* value1,double* value2,double* value3,int* maxvalue,int* minvalue,int* defaultvalue);
-	std::string encode_FirmwareUDP(std::string NodeName,std::string DateModified,uint16_t MajorReleaseVersion,uint16_t MinorReleaseVersion,uint16_t BuildNumber);
+	std::string encode_FirmwareUDP(std::string NodeName,std::string Description,uint8_t MajorRelease,uint8_t MinorRelease,uint8_t BuildNumber);
 private:
 };
 #endif

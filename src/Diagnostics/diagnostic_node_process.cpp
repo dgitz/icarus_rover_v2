@@ -7,6 +7,9 @@ DiagnosticNodeProcess::DiagnosticNodeProcess()
 	run_time = 0.0;
 	initialized = false;
 	node_name = "";
+	last_1pps_timer = 0.0;
+	last_01pps_timer = 0.0;
+	last_cmddiagnostic_timer = 0.0;
 }
 /*! \brief Deconstructor
  */
@@ -28,15 +31,49 @@ icarus_rover_v2::diagnostic DiagnosticNodeProcess::init(icarus_rover_v2::diagnos
 icarus_rover_v2::diagnostic DiagnosticNodeProcess::update(double dt)
 {
 	run_time += dt;
-    if((mydevice.BoardCount == 0) and (mydevice.SensorCount == 0))
-    {
-        if(initialized == true) { ready = true; }
-    }
+	last_1pps_timer += dt;
+	last_01pps_timer += dt;
+	last_cmddiagnostic_timer += dt;
+    if(initialized == true) { ready = true; }
 	icarus_rover_v2::diagnostic diag = diagnostic;
-	diag.Diagnostic_Type = NOERROR;
-	diag.Level = INFO;
-	diag.Diagnostic_Message = NOERROR;
-	diag.Description = "Node Running";
+	bool status = true;
+	if(last_1pps_timer > 5.0)
+	{
+		status = false;
+		diag.Diagnostic_Type = COMMUNICATIONS;
+		diag.Level = ERROR;
+		diag.Diagnostic_Message = MISSING_HEARTBEATS;
+		char tempstr[512];
+		sprintf(tempstr,"Have not received 1PPS in: %f Seconds",last_1pps_timer);
+		diag.Description = std::string(tempstr);
+	}
+	if(last_01pps_timer > 30.0)
+	{
+		status = false;
+		diag.Diagnostic_Type = COMMUNICATIONS;
+		diag.Level = ERROR;
+		diag.Diagnostic_Message = MISSING_HEARTBEATS;
+		char tempstr[512];
+		sprintf(tempstr,"Have not received 01PPS in: %f Seconds",last_01pps_timer);
+		diag.Description = std::string(tempstr);
+	}
+	if(last_cmddiagnostic_timer > 2.0)
+	{
+		status = false;
+		diag.Diagnostic_Type = COMMUNICATIONS;
+		diag.Level = ERROR;
+		diag.Diagnostic_Message = DROPPING_PACKETS;
+		char tempstr[512];
+		sprintf(tempstr,"Have not received CMD:DIAGNOSTIC in: %f Seconds",last_cmddiagnostic_timer);
+		diag.Description = std::string(tempstr);
+	}
+	if(status == true)
+	{
+		diag.Diagnostic_Type = NOERROR;
+		diag.Level = INFO;
+		diag.Diagnostic_Message = NOERROR;
+		diag.Description = "Node Running";
+	}
 	diagnostic = diag;
 	return diag;
 }
@@ -60,6 +97,7 @@ std::vector<icarus_rover_v2::diagnostic> DiagnosticNodeProcess::new_commandmsg(i
 	icarus_rover_v2::diagnostic diag = diagnostic;
 	if (cmd.Command ==  ROVERCOMMAND_RUNDIAGNOSTIC)
 	{
+		last_cmddiagnostic_timer = 0.0;
 		if(cmd.Option1 == LEVEL1)
 		{
 		}
@@ -268,7 +306,7 @@ std::vector<icarus_rover_v2::diagnostic> DiagnosticNodeProcess::check_tasks()
 	{
 		if(TaskList.size() > 0)
 		{
-			ready_to_arm = true;
+            if(ready == true) { ready_to_arm = true; }
 			char tempstr[255];
 			sprintf(tempstr,"%d/%d (All) Tasks Operational.",task_ok_counter,(int)TaskList.size());
 			icarus_rover_v2::diagnostic system_diag;
@@ -305,4 +343,16 @@ std::vector<icarus_rover_v2::diagnostic> DiagnosticNodeProcess::check_tasks()
 		diaglist.push_back(diag);
 	}
 	return diaglist;
+}
+icarus_rover_v2::diagnostic DiagnosticNodeProcess::new_1ppsmsg()
+{
+	icarus_rover_v2::diagnostic diag = diagnostic;
+	last_1pps_timer = 0.0;
+	return diag;
+}
+icarus_rover_v2::diagnostic DiagnosticNodeProcess::new_01ppsmsg()
+{
+	icarus_rover_v2::diagnostic diag = diagnostic;
+	last_01pps_timer = 0.0;
+	return diag;
 }

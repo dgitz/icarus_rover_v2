@@ -13,7 +13,6 @@ bool run_loop1_code()
 	if(diagnostic.Level > NOTICE)
 	{
 		diagnostic_pub.publish(diagnostic);
-    	logger->log_info(process->get_messageinfo(false));
 	}
  	return true;
 }
@@ -115,7 +114,7 @@ icarus_rover_v2::diagnostic rescan_topics(icarus_rover_v2::diagnostic diag)
 				char tempstr[255];
 				sprintf(tempstr,"Subscribing to resource topic: %s",info.name.c_str());
 				logger->log_info(tempstr);
-				ros::Subscriber sub = n->subscribe<icarus_rover_v2::resource>(info.name,1000,resource_Callback);
+				ros::Subscriber sub = n->subscribe<icarus_rover_v2::resource>(info.name,1,resource_Callback);
 				resource_subs.push_back(sub);
 			}
 		}
@@ -137,8 +136,30 @@ icarus_rover_v2::diagnostic rescan_topics(icarus_rover_v2::diagnostic diag)
 				char tempstr[255];
 				sprintf(tempstr,"Subscribing to diagnostic topic: %s",info.name.c_str());
 				logger->log_info(tempstr);
-				ros::Subscriber sub = n->subscribe<icarus_rover_v2::diagnostic>(info.name,1000,diagnostic_Callback);
+				ros::Subscriber sub = n->subscribe<icarus_rover_v2::diagnostic>(info.name,1,diagnostic_Callback);
 				diagnostic_subs.push_back(sub);
+			}
+		}
+        else if(info.datatype == "icarus_rover_v2/firmware")
+		{
+			bool found = true;
+			for(int i = 0; i < firmware_topics.size();i++)
+			{
+				if(firmware_topics.at(i) == info.name)
+				{
+					found = false;
+					break;
+				}
+			}
+			if(found == true)
+			{
+				found_new_topics++;
+				firmware_topics.push_back(info.name);
+				char tempstr[255];
+				sprintf(tempstr,"Subscribing to firmware topic: %s",info.name.c_str());
+				logger->log_info(tempstr);
+				ros::Subscriber sub = n->subscribe<icarus_rover_v2::firmware>(info.name,1,firmware_Callback);
+				firmware_subs.push_back(sub);
 			}
 		}
 		/*
@@ -240,6 +261,21 @@ void diagnostic_Callback(const icarus_rover_v2::diagnostic::ConstPtr& msg)
 		  logger->log_warn("Mismatch in number of bytes sent");
 	}
     else { process->new_message_sent(DIAGNOSTIC_ID); }
+}
+void firmware_Callback(const icarus_rover_v2::firmware::ConstPtr& msg)
+{
+	std::string send_string = udpmessagehandler->encode_FirmwareUDP(
+																		msg->Node_Name,
+																		msg->Description,
+																(uint8_t)msg->Major_Release,
+																(uint8_t)msg->Minor_Release,
+																(uint8_t)msg->Build_Number);
+																
+	if(sendto(senddevice_sock, send_string.c_str(), send_string.size(), 0, (struct sockaddr *)&senddevice_addr, sizeof(senddevice_addr))!=send_string.size())
+	{
+		  logger->log_warn("Mismatch in number of bytes sent");
+	}
+    else { process->new_message_sent(FIRMWARE_ID); }
 }
 void resource_Callback(const icarus_rover_v2::resource::ConstPtr& msg)
 {
@@ -498,6 +534,7 @@ void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg)
 	fw.Build_Number = NETWORKTRANSCEIVERNODE_BUILD_NUMBER;
 	firmware_pub.publish(fw);
 	printf("t=%4.2f (sec) [%s]: %s\n",ros::Time::now().toSec(),node_name.c_str(),process->get_diagnostic().Description.c_str());
+    logger->log_info(process->get_messageinfo(false));
 }
 /*! \brief 1.0 PULSE PER SECOND User Code
  */
@@ -506,7 +543,6 @@ void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 	received_pps = true;
     if((process->get_initialized() == true) and (process->get_ready() == true))
 	{
-    	printf("updating\n");
 		icarus_rover_v2::diagnostic resource_diagnostic = resourcemonitor->update();
 		if(resource_diagnostic.Diagnostic_Message == DEVICE_NOT_AVAILABLE)
 		{
@@ -526,8 +562,7 @@ void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 			resource_pub.publish(resources_used);
 		}
 	}
-
-    else if(process->get_ready() == false)
+    else if((process->get_ready() == false) and (process->get_initialized() == true))
     {
         
     }
@@ -563,8 +598,15 @@ void Command_Callback(const icarus_rover_v2::command::ConstPtr& msg)
 	std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(command);
 	for(std::size_t i = 0; i < diaglist.size(); i++)
 	{
-		logger->log_diagnostic(diaglist.at(i));
-		diagnostic_pub.publish(diaglist.at(i));
+		if(diaglist.at(i).Level >= NOTICE)
+        {
+            logger->log_diagnostic(diaglist.at(i));
+            diagnostic_pub.publish(diaglist.at(i));
+        }
+        if((diaglist.at(i).Level > NOTICE) and (process->get_runtime() > 10.0))
+        {
+            printf("[%s]: %s\n",node_name.c_str(),diaglist.at(i).Description.c_str());
+        }
 	}
 }
 //End User Code: Functions
@@ -655,7 +697,6 @@ int main(int argc, char **argv)
     logger->log_notice("Node Finished Safely.");
     return 0;
 }
-
 bool initializenode()
 {
     //Start Template Code: Initialization, Parameters and Topics
@@ -886,7 +927,6 @@ bool new_devicemsg(std::string query,icarus_rover_v2::device device)
 	{
 		if((device.DeviceName == hostname))
 		{
-			printf("creating\n");
 			resourcemonitor = new ResourceMonitor(process->get_diagnostic(),device.Architecture,device.DeviceName,node_name);
 			process->set_mydevice(device);
 		}

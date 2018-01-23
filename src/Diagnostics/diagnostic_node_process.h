@@ -77,6 +77,8 @@ public:
 	void new_diagnosticmsg(std::string topicname,icarus_rover_v2::diagnostic diagnostic);
 	bool get_readytoarm() { return ready_to_arm; }
 	void set_nodename(std::string v) { node_name = v; }
+	icarus_rover_v2::diagnostic new_1ppsmsg();
+	icarus_rover_v2::diagnostic new_01ppsmsg();
     
 private:
 	std::vector<icarus_rover_v2::diagnostic> check_program_variables();
@@ -96,5 +98,9 @@ private:
 	int CPU_usage_threshold_percent;
 	bool ready_to_arm;
 	std::string node_name;
+
+	double last_1pps_timer;
+	double last_01pps_timer;
+	double last_cmddiagnostic_timer;
 };
 #endif

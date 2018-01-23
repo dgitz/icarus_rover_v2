@@ -106,7 +106,7 @@ void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 			resource_pub.publish(resources_used);
 		}
 	}
-	else if(process->get_ready() == false)
+    else if((process->get_ready() == false) and (process->get_initialized() == true))
     {
         
     }
@@ -142,8 +142,15 @@ void Command_Callback(const icarus_rover_v2::command::ConstPtr& msg)
 	std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(command);
 	for(std::size_t i = 0; i < diaglist.size(); i++)
 	{
-		logger->log_diagnostic(diaglist.at(i));
-		diagnostic_pub.publish(diaglist.at(i));
+		if(diaglist.at(i).Level >= NOTICE)
+        {
+            logger->log_diagnostic(diaglist.at(i));
+            diagnostic_pub.publish(diaglist.at(i));
+        }
+        if((diaglist.at(i).Level > NOTICE) and (process->get_runtime() > 10.0))
+        {
+            printf("[%s]: %s\n",node_name.c_str(),diaglist.at(i).Description.c_str());
+        }
 	}
 }
 //End User Code: Functions
@@ -347,6 +354,12 @@ bool initializenode()
 	process = new CommandNodeProcess;
     robot_armdisarmed_state = ARMEDSTATUS_DISARMED_CANNOTARM;
     diagnostic = process->init(diagnostic,std::string(hostname));
+	if(diagnostic.Level > NOTICE)
+	{
+		logger->log_fatal(diagnostic.Description);
+		printf("[%s]: %s\n",node_name.c_str(),diagnostic.Description.c_str());
+		return false;
+	}
     std::string command_topic = "/command";
     command_pub =  n->advertise<icarus_rover_v2::command>(command_topic,1000);
 

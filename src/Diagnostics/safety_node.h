@@ -13,6 +13,9 @@
 #include <icarus_rover_v2/Definitions.h>
 #include <icarus_rover_v2/diagnostic.h>
 #include <icarus_rover_v2/device.h>
+#include <icarus_rover_v2/srv_device.h>
+#include <icarus_rover_v2/srv_connection.h>
+#include <icarus_rover_v2/srv_leverarm.h>
 #include <icarus_rover_v2/resource.h>
 #include <icarus_rover_v2/pin.h>
 #include <icarus_rover_v2/command.h>
@@ -48,13 +51,9 @@
 bool initializenode();
 void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg);
 void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg);
-void PPS10_Callback(const std_msgs::Bool::ConstPtr& msg);
-void PPS100_Callback(const std_msgs::Bool::ConstPtr& msg);
-void PPS1000_Callback(const std_msgs::Bool::ConstPtr& msg);
 double measure_time_diff(ros::Time timer_a, ros::Time tiber_b);
-void Device_Callback(const icarus_rover_v2::device::ConstPtr& msg);
+bool new_devicemsg(std::string query,icarus_rover_v2::device device);
 void Command_Callback(const icarus_rover_v2::command& msg);
-std::vector<icarus_rover_v2::diagnostic> check_program_variables();
 bool run_loop3_code();
 bool run_loop2_code();
 bool run_loop1_code();
@@ -69,24 +68,22 @@ void signalinterrupt_handler(int sig);
 
 
 //Start Template Code: Define Global variables
+boost::shared_ptr<ros::NodeHandle> n;
+ros::ServiceClient srv_device;
 std::string node_name;
 std::string verbosity_level;
 ros::Subscriber pps01_sub;
 ros::Subscriber pps1_sub;
-ros::Subscriber device_sub;
 ros::Publisher diagnostic_pub;
 ros::Publisher resource_pub;
 ros::Subscriber command_sub;
 ros::Publisher firmware_pub;
-icarus_rover_v2::diagnostic diagnostic_status;
-icarus_rover_v2::device myDevice;
 icarus_rover_v2::resource resources_used;
 Logger *logger;
 ResourceMonitor *resourcemonitor;
 bool require_pps_to_start;
 bool received_pps;
 ros::Time boot_time;
-bool device_initialized;
 char hostname[1024];
 ros::Publisher heartbeat_pub;
 icarus_rover_v2::heartbeat beat;
@@ -105,9 +102,8 @@ double ros_rate;
 //End Template Code: Define Global Variables
 
 //Start User Code: Define Global Variables
-boost::shared_ptr<ros::NodeHandle> n;
 ros::Time last_message_received_time;
-SafetyNodeProcess process;
+SafetyNodeProcess* process;
 ros::Publisher digitalinput_pub;
 ros::Subscriber pwmoutput_sub;
 ros::Time last_pwmoutput_sub_time;
@@ -138,7 +134,7 @@ bool ready_to_arm;
 ros::Publisher ready_to_arm_pub;
 ros::Publisher estop_pub;
 
-TerminalHatDriver TerminalHat;
+//TerminalHatDriver TerminalHat;
 bool TerminalHat_running;
 //End User Code: Define Global Variables
 #endif
