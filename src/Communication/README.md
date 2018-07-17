@@ -5,10 +5,21 @@ A. Test SerialComm
 Purpose: Test Serial Port Communication
 
   >>g++ -lm ../../../util/serialmessage.cpp test_serialcomm.cpp -o test_serialcomm
-  
+
 Documentation History:
 19-Nov-2017 David Gitz
 Created program
+
+B. test_spicomm
+Purpose: Test SPI Communication
+  Compile:
+  >>cd ~/catkin_ws/src/icarus_rover_v2/src/Communication/unit_tests/
+  >>g++ -o test_spicomm test_spicomm.cpp spicomm.cpp  
+  
+Documentation History:
+24-January-2018 David Gitz
+Created program
+
 Nodes:
 A. speaker_node
 Usage:
