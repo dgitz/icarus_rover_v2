@@ -8,7 +8,7 @@
 
 using namespace std;
 double compute_timediff(struct timeval a,struct timeval b);
-bool run_loopsimple()
+int run_loopsimple()
 {
 
 	int a[LOOP_COUNT][LOOP_COUNT];
@@ -22,8 +22,8 @@ bool run_loopsimple()
 		{
 
 			c[i][j] = 0;
-			//a[i][j] = i;
-			//b[i][j] = j;
+			a[i][j] = i;
+			b[i][j] = j;
 			for(int k = 0; k < LOOP_COUNT;k++)
 			{
 				c[i][j] += a[i][k] + b[k][j];
@@ -32,10 +32,17 @@ bool run_loopsimple()
 		}
 
 	}
-
-	return true;
+	int sum = 0;
+	for(int i = 0; i < LOOP_COUNT; i++)
+	{
+		for(int j = 0; j < LOOP_COUNT; j++)
+		{
+			sum += c[i][j];
+		}
+	}
+	return sum;
 }
-bool run_looppointer()
+int run_looppointer()
 {
 	int a[LOOP_COUNT][LOOP_COUNT];
 		int b[LOOP_COUNT][LOOP_COUNT];
@@ -46,16 +53,27 @@ bool run_looppointer()
 			int *bptr = b[0];
 			for(int j = 0; j < LOOP_COUNT; j++)
 			{
+				c[i][j] = 0;
+				a[i][j] = i;
+				b[i][j] = j;
 				int *aptr = a[i];
 				*cptr = (*aptr++) * (*bptr++);
-				for(int k = 1; k < LOOP_COUNT;k++)
+				for(int k = 0; k < LOOP_COUNT;k++)
 				{
 					*cptr += (*aptr++) * b[k][j];
 				}
 				cptr++;
 			}
 		}
-		return true;
+		int sum = 0;
+			for(int i = 0; i < LOOP_COUNT; i++)
+			{
+				for(int j = 0; j < LOOP_COUNT; j++)
+				{
+					sum += c[i][j];
+				}
+			}
+		return sum;
 }
 int main (void)
 {
