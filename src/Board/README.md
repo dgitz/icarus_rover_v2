@@ -47,6 +47,10 @@ Purpose: Communicates with an Arduino Board
 Unit Tests:
 1. Process Unit Tests:
   >>catkin_make run_tests_icarus_rover_v2_gtest_test_boardcontroller_node_process
+2. Arduino Board Unit Tests:
+  Compile:
+  >>cd ~/catkin_ws/src/icarus_rover_v2/src/Board/unit_tests/
+  >>g++ -lm -lwiringPi ../../../util/spimessage.cpp test_arduinoboard.cpp -o test_arduinoboard
   
 B. gpio_node --> OBSOLETE
 Usage: This node should be run for every device that has at least 1 GPIO Board installed.
