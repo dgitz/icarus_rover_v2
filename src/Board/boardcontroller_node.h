@@ -61,6 +61,7 @@ void signalinterrupt_handler(int sig);
 //Start User Code: Function Prototypes
 int spiTxRx(unsigned char txDat);
 int sendMessageQuery(unsigned char query, unsigned char * inputbuffer);
+int sendMessageCommand(unsigned char command,unsigned char * outputbuffer);
 //End User Code: Function Prototypes
 
 //Start Template Code: Define Global variables

@@ -17,12 +17,11 @@ static void show_usage(std::string name)
 			<< "\t-h,--help\t\tShow this help message\n"
 			<< "\t-d,--delay Delay in MicroSeconds between sending each message.  Default is 100000.\n"
 			<< "\t-q,--query Query Message.  Supported messages are:\n"
+
 			<< "\t\t [0] TestMessageCounter (0xAB14)\n"
 			<< "\t\t [1] Get_DIO_Port1 (0xAB19)\n"
 			<< "\t\t [2] Get_ANA_Port1 (0xAB20)\n"
-			<< "\t-c,--command Command Message.  Supported messages are:\n"
-			<< "\t\t [0] LED Strip Control (0xAB42)\n"
-			<< "\t\t\t [LEDPixelMode]\n"
+			<< "\t-t,--test Send Test Message.\n"
 			<< std::endl;
 }
 
@@ -42,7 +41,8 @@ Declare Functions
 
 int spiTxRx(unsigned char txDat);
 int sendQuery(unsigned char query, unsigned char * inputbuffer);
-int sendCommand(unsigned char command,unsigned char* outputbuffer);
+int sendMessage();
+void transfer(int fd);
 double dt(struct timeval a, struct timeval b);
 
 /**********************************************************
@@ -54,12 +54,7 @@ int main(int argc, char* argv[])
 	passed_checksum = 0;
 	failed_checksum = 0;
 	int query_message = 0;
-	int command_message = 0;
-	int param1 = 0;
-	int param2 = 0;
-	int param3 = 0;
 	unsigned char query_type;
-	unsigned char command_type;
 	long loop_delay = 100000;
 	if (argc < 2) {
 		show_usage(argv[0]);
@@ -84,7 +79,6 @@ int main(int argc, char* argv[])
 		}
 		else if ((arg == "-q") || (arg == "--query"))
 		{
-			command_message = 0;
 			query_message = 1;
 			if (i + 1 < argc)
 			{
@@ -107,27 +101,14 @@ int main(int argc, char* argv[])
 				i++;
 			}
 		}
-		else if ((arg == "-c") || (arg == "--command"))
-				{
-					command_message = 1;
-					query_message = 0;
-					if (i + 1 < argc)
-					{
-						int v = atoi(argv[i+1]);
-						switch(v)
-						{
-						case 0:
-							command_type = SPIMessageHandler::SPI_LEDStripControl_ID;
-							param1 = atoi(argv[i+2]);
-							break;
-						default:
-							printf("Unsupported Command Message.  Exiting.\n");
-							return 0;
-						}
-						i++;
-					}
-				}
+		else if((arg == "-t" ) || (arg == "--test"))
+		{
 
+			//printf("Sending: %s\n",argv[i+1]);
+			int send_count = sendMessage();//argv[i+1]);
+			printf("Sent: %d Bytes\n",send_count);
+			return 0;
+		}
 	}
 	first_message_received = 0;
 	fd = open("/dev/spidev0.0", O_RDWR);
@@ -153,118 +134,91 @@ commands to the Arduino and displays the results
 	char command[2];
 	while (1)
 	{
-		if(query_message == 1)
+		unsigned char query = query_type;
+		unsigned char inputbuffer[12];
+		int success;
+		int length;
+		int passed_checksum_calc = sendQuery(query,inputbuffer);
+		if(passed_checksum_calc > 0)
 		{
-			unsigned char query = query_type;
-			unsigned char inputbuffer[12];
-			int success;
-			int length;
-			int passed_checksum_calc = sendQuery(query,inputbuffer);
-			if(passed_checksum_calc > 0)
-			{
-				passed_checksum++;
-			}
-			else if(passed_checksum_calc == 0)
-			{
-				failed_checksum++;
-			}
-			else
-			{
-				return 0;
-			}
+			passed_checksum++;
+		}
+		else if(passed_checksum_calc == 0)
+		{
+			failed_checksum++;
+		}
+		else
+		{
+			return 0;
+		}
 
-			unsigned char v1,v2,v3,v4,v5,v6,v7,v8,v9,v10,v11,v12;
-			uint16_t a1,a2,a3,a4,a5,a6;
-			switch(query)
+		unsigned char v1,v2,v3,v4,v5,v6,v7,v8,v9,v10,v11,v12;
+		uint16_t a1,a2,a3,a4,a5,a6;
+		switch(query)
+		{
+		case SPIMessageHandler::SPI_TestMessageCounter_ID:
+			success = spimessagehandler->decode_TestMessageCounterSPI(inputbuffer,&length,&v1,&v2,&v3,&v4,&v5,&v6,&v7,&v8,&v9,&v10,&v11,&v12);
+			if(success == 1)
 			{
-			case SPIMessageHandler::SPI_TestMessageCounter_ID:
-				success = spimessagehandler->decode_TestMessageCounterSPI(inputbuffer,&length,&v1,&v2,&v3,&v4,&v5,&v6,&v7,&v8,&v9,&v10,&v11,&v12);
-				if(success == 1)
+				if(first_message_received == 0)
 				{
-					printf("%d %d %d %d %d %d %d %d %d %d %d %d\n",
-							v1,v2,v3,v4,v5,v6,v7,v8,v9,v10,v11,v12);
-					if(first_message_received == 0)
-					{
-						first_message_received = 1;
+					first_message_received = 1;
 
-					}
-					else
-					{
-						if((int)v1 < 255)
-						{
-							if(((int)v1-last_counter_received) != 6)
-							{
-								missed++;
-							}
-							else
-							{
-								passed++;
-							}
-						}
-
-					}
-					last_counter_received = (int)v1;
 				}
 				else
 				{
-					printf("Unable to Decode\n");
-				}
-				printf("Missed: %d @ %f Passed: %d @ %f Succeed Ratio: %f%\n",
-						missed,missed/(dt(start,now)),
-						passed,passed/(dt(start,now)),
-						100.0*(double)passed/((double)passed+(double)missed));
-				break;
-			case SPIMessageHandler::SPI_Get_ANA_Port1_ID:
-				success = spimessagehandler->decode_Get_ANA_Port1SPI(inputbuffer,&length,&a1,&a2,&a3,&a4,&a5,&a6);
-				if(success == 1)
-				{
-					printf("ANA Port1 0:%d 1:%d 2:%d 3:%d 4:%d 5:%d\n",
-							a1,a2,a3,a4,a5,a6);
-				}
-				break;
-			case SPIMessageHandler::SPI_Get_DIO_Port1_ID:
-				success = spimessagehandler->decode_Get_DIO_Port1SPI(inputbuffer,&length,&v1,&v2,&v3,&v4,&v5,&v6,&v7,&v8);
-				if(success == 1)
-				{
-					printf("DIO Port1 0:%d 1:%d 2:%d 3:%d 4:%d 5:%d 6: %d 7: %d\n",
-							v1,v2,v3,v4,v5,v6,v7,v8);
-				}
-				break;
-			default:
-				break;
-			}
-			gettimeofday(&now,NULL);
-			gettimeofday(&last,NULL);
-			if(dt(last_printtime,now) > 1.0)
-			{
-				printf("Passed Checksum: %d @ %f Failed Checksum: %d @ %f Succeed Ratio: %f%\n",
-						passed_checksum,passed_checksum/(dt(start,now)),
-						failed_checksum,failed_checksum/(dt(start,now)),
-						100.0*(double)passed_checksum/((double)passed_checksum+(double)failed_checksum));
-				gettimeofday(&last_printtime,NULL);
-			}
-			usleep(loop_delay);
+					if((int)v1 < 255)
+					{
+						if(((int)v1-last_counter_received) != 6)
+						{
+							missed++;
+						}
+						else
+						{
+							passed++;
+						}
+					}
 
+				}
+				last_counter_received = (int)v1;
+			}
+			printf("Missed: %d @ %f Passed: %d @ %f Succeed Ratio: %f%\n",
+					missed,missed/(dt(start,now)),
+					passed,passed/(dt(start,now)),
+					100.0*(double)passed/((double)passed+(double)missed));
+			break;
+		case SPIMessageHandler::SPI_Get_ANA_Port1_ID:
+			success = spimessagehandler->decode_Get_ANA_Port1SPI(inputbuffer,&length,&a1,&a2,&a3,&a4,&a5,&a6);
+			if(success == 1)
+			{
+				printf("ANA Port1 0:%d 1:%d 2:%d 3:%d 4:%d 5:%d\n",
+						a1,a2,a3,a4,a5,a6);
+			}
+			break;
+		case SPIMessageHandler::SPI_Get_DIO_Port1_ID:
+			success = spimessagehandler->decode_Get_DIO_Port1SPI(inputbuffer,&length,&v1,&v2,&v3,&v4,&v5,&v6,&v7,&v8);
+			if(success == 1)
+			{
+				printf("DIO Port1 0:%d 1:%d 2:%d 3:%d 4:%d 5:%d 6: %d 7: %d\n",
+						v1,v2,v3,v4,v5,v6,v7,v8);
+			}
+			break;
+		default:
+			break;
 		}
-		else if(command_message == 1)
+		gettimeofday(&now,NULL);
+		gettimeofday(&last,NULL);
+		if(dt(last_printtime,now) > 1.0)
 		{
-			unsigned char command = command_type;
-			unsigned char outputbuffer[12];
-			int success;
-			int length;
-			switch(command)
-			{
-			case SPIMessageHandler::SPI_LEDStripControl_ID:
-				success = spimessagehandler->encode_LEDStripControlSPI(outputbuffer,&length,param1,3,4);
-				break;
-			default:
-				break;
-			}
-
-			int v = sendCommand(command,outputbuffer);
+			printf("Passed Checksum: %d @ %f Failed Checksum: %d @ %f Succeed Ratio: %f%\n",
+					passed_checksum,passed_checksum/(dt(start,now)),
+					failed_checksum,failed_checksum/(dt(start,now)),
+					100.0*(double)passed_checksum/((double)passed_checksum+(double)failed_checksum));
+			gettimeofday(&last_printtime,NULL);
 		}
-	}
+		usleep(loop_delay);
 
+	}
 
 }
 double dt(struct timeval a, struct timeval b)
@@ -273,7 +227,103 @@ double dt(struct timeval a, struct timeval b)
 	double t2 = (double)(b.tv_sec) + (double)(b.tv_usec)/1000000.0;
 	return t2-t1;
 }
+int sendMessage()
+{
+	uint8_t bits = 8;
+	uint32_t speed = 500000;
+	uint16_t delay;
+	int fd = open("/dev/spidev0.0", O_RDWR);
+	if (fd < 0)
+	{
+		printf("can't open device\n");
+	}
+	uint8_t mode;
+	int ret = ioctl(fd, SPI_IOC_WR_MODE, &mode);
+	printf("mode: %d\n",mode);
+	/*if (ret == -1)
+	{
+		printf("can't set spi mode\n");
+	}
+	*/
+	ret = ioctl(fd, SPI_IOC_WR_BITS_PER_WORD, &bits);
+	if (ret == -1)
+	{
+		printf("can't set bits per word");
+	}
 
+	ret = ioctl(fd, SPI_IOC_RD_BITS_PER_WORD, &bits);
+	if (ret == -1)
+	{
+		printf("can't get bits per word");
+	}
+
+	/*
+	 * max speed hz
+	 */
+	ret = ioctl(fd, SPI_IOC_WR_MAX_SPEED_HZ, &speed);
+	if (ret == -1)
+	{
+		printf("can't set max speed hz");
+	}
+
+	ret = ioctl(fd, SPI_IOC_RD_MAX_SPEED_HZ, &speed);
+	if (ret == -1)
+	{
+		printf("can't get max speed hz");
+	}
+	char message[] = "Hello,World!";
+	transfer(fd);
+	/*for(int i = 0; i < (unsigned)strlen(message);i++)
+	{
+		spiTxRx(message[i]);
+	}
+	*/
+	close(fd);
+	return 0;
+}
+void transfer(int fd)
+{
+	int ret;
+	uint8_t tx[] = {
+        0x48, 0x45, 0x4C, 0x4C, 0x4F,
+        0x20,
+        0x57, 0x4F, 0x52, 0x4C, 0x44,
+        0x0A
+	};
+	uint8_t rx[ARRAY_SIZE(tx)] = {0, };
+	struct spi_ioc_transfer spi;
+
+		memset (&spi, 0, sizeof (spi));
+		spi.tx_buf = (unsigned long)&tx;
+		spi.rx_buf = (unsigned long)&rx;
+		spi.len = ARRAY_SIZE(tx);
+		spi.delay_usecs = 0;
+		spi.speed_hz = 500000;
+		spi.bits_per_word = 8;
+	/*
+	struct spi_ioc_transfer tr = {
+		.tx_buf = (unsigned long)tx,
+		.rx_buf = (unsigned long)rx,
+		.len = ARRAY_SIZE(tx),
+		.delay_usecs = 0,
+		.speed_hz = 500000,
+		.bits_per_word = 8,
+	};
+	*/
+
+	ret = ioctl(fd, SPI_IOC_MESSAGE(1), &tx);
+	if (ret < 1)
+		printf("can't send spi message");
+
+
+	for (ret = 0; ret < ARRAY_SIZE(tx); ret++) {
+		if (!(ret % 6))
+			puts("");
+		printf("%c ", rx[ret]);
+	}
+	puts("");
+
+}
 int spiTxRx(unsigned char txDat)
 {
 
@@ -288,56 +338,10 @@ int spiTxRx(unsigned char txDat)
 	spi.len           = 1;
 
 	ioctl (fd, SPI_IOC_MESSAGE(1), &spi);
+	printf("sent: %c\n",txDat);
 	return rxDat;
 }
-int sendCommand(unsigned char command,unsigned char* outputbuffer)
-{
-	unsigned char resultByte;
-		bool ack;
-		int wait_time_us = 1;
-		int counter = 0;
-		do
-		{
-			ack = false;
 
-			spiTxRx(0xAB);
-			usleep (wait_time_us);
-
-
-			resultByte = spiTxRx(command);
-			if (resultByte == 'a')
-			{
-				ack = true;
-			}
-			else { counter++; }
-			if(counter > 10000)
-			{
-				printf("No Comm with device after %d tries. Exiting.\n",counter);
-				return -1;
-			}
-			usleep (wait_time_us);
-		}
-
-		while (ack == false);
-		usleep(wait_time_us);
-		unsigned char v;
-		unsigned char running_checksum = 0;
-		for(int i = 0; i < 12; i++)
-		{
-			printf("%d",outputbuffer[i]);
-			v = spiTxRx(outputbuffer[i]);
-			running_checksum ^= v;
-			outputbuffer[i] = v;
-			//*p_outbuffer++ = v;
-			usleep(wait_time_us);
-
-		}
-
-		resultByte = spiTxRx(running_checksum);
-		usleep(wait_time_us);
-		printf("  %d %d\n",resultByte,running_checksum);
-		return 1;
-}
 int sendQuery(unsigned char query, unsigned char * inputbuffer)
 {
 	unsigned char resultByte;

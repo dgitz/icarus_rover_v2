@@ -7,13 +7,16 @@
 //Start User Code: Functions
 bool run_loop1_code()
 {
+	process->send_commandmessage(SPIMessageHandler::SPI_LEDStripControl_ID);
 	{
+		/*
 		icarus_rover_v2::diagnostic diag = process->send_querymessage(SPIMessageHandler::SPI_Get_ANA_Port1_ID);
 		if(diag.Level >= WARN)
 		{
 			diagnostic_pub.publish(diag);
 			logger->log_diagnostic(diag);
 		}
+		*/
 	}
 	/*
 	{
@@ -121,6 +124,25 @@ bool run_loop3_code()
 			printf("[BoardControllerNode]: No Comm with device.\n");
 		}
 	}
+	std::vector<Message> commandmessages_tosend = process->get_commandmessages_tosend();
+		for(std::size_t i = 0; i < commandmessages_tosend.size(); i++)
+		{
+			int success;
+			int length;
+			unsigned char outputbuffer[12];
+			unsigned char v1,v2,v3;
+			switch(commandmessages_tosend.at(i).id)
+			{
+			case SPIMessageHandler::SPI_LEDStripControl_ID:
+				diagnostic_status = process->get_LEDStripControlParameters(v1,v2,v3);
+				success = spimessagehandler->encode_LEDStripControlSPI(outputbuffer,&length,v1,v2,v3);
+				break;
+			default:
+				break;
+			}
+			sendMessageCommand(commandmessages_tosend.at(i).id,outputbuffer);
+			process->new_message_sent(SPIMessageHandler::SPI_LEDStripControl_ID);
+		}
  	return true;
 }
 
@@ -238,6 +260,46 @@ int spiTxRx(unsigned char txDat)
   spi.len           = 1;
   ioctl (spi_device, SPI_IOC_MESSAGE(1), &spi);
   return rxDat;
+}
+int sendMessageCommand(unsigned char command,unsigned char * outputbuffer)
+{
+	unsigned char resultByte;
+	bool ack;
+	int wait_time_us = 1;
+	int counter = 0;
+	do
+	{
+		ack = false;
+		spiTxRx(0xAB);
+		usleep (wait_time_us);
+		resultByte = spiTxRx(command);
+		if (resultByte == 'a')
+		{
+			ack = true;
+		}
+		else { counter++; }
+		if(counter > 10000)
+		{
+			printf("No Comm with device after %d tries. Exiting.\n",counter);
+			return -1;
+		}
+		usleep (wait_time_us);
+	}
+	while (ack == false);
+	usleep(wait_time_us);
+	unsigned char v;
+	unsigned char running_checksum = 0;
+	for(int i = 0; i < 12; i++)
+	{
+		v = spiTxRx(outputbuffer[i]);
+		running_checksum ^= v;
+		outputbuffer[i] = v;
+		usleep(wait_time_us);
+
+	}
+	resultByte = spiTxRx(running_checksum);
+	usleep(wait_time_us);
+	return 1;
 }
 int sendMessageQuery(unsigned char query, unsigned char * inputbuffer)
 {
