@@ -22,6 +22,7 @@ static void show_usage(std::string name)
 			<< "\t\t [2] Get_ANA_Port1 (0xAB20)\n"
 			<< "\t-c,--command Command Message.  Supported messages are:\n"
 			<< "\t\t [0] LED Strip Control (0xAB42)\n"
+			<< "\t\t\t [LEDPixelMode]\n"
 			<< std::endl;
 }
 

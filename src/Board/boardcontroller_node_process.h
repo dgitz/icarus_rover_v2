@@ -62,6 +62,9 @@ public:
 	std::string get_messageinfo(bool v);
 	icarus_rover_v2::diagnostic send_querymessage(unsigned char id);
 	std::vector<Message> get_querymessages_tosend();
+	icarus_rover_v2::diagnostic send_commandmessage(unsigned char id);
+	std::vector<Message> get_commandmessages_tosend();
+	icarus_rover_v2::diagnostic get_LEDStripControlParameters(unsigned char& LEDPixelMode,unsigned char& Param1,unsigned char& Param2);
 	bool is_ready() { return ready; }
     icarus_rover_v2::diagnostic new_devicemsg(icarus_rover_v2::device newdevice);
     
@@ -101,5 +104,7 @@ private:
     std::vector<bool> boards_running;
     bool initialized;
     bool ready;
+
+    unsigned char LEDPixelMode;
 };
 #endif

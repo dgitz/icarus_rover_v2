@@ -5,6 +5,7 @@ BoardControllerNodeProcess::BoardControllerNodeProcess()
 	init_messages();
 	initialized = false;
 	ready = false;
+	LEDPixelMode = LEDPIXELMODE_ERROR;
 }
 BoardControllerNodeProcess::~BoardControllerNodeProcess()
 {
@@ -20,6 +21,7 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::update(double dt)
 {
     icarus_rover_v2::diagnostic diag = diagnostic;
 	run_time += dt;
+	LEDPixelMode = LEDPIXELMODE_NORMAL;
     bool boards_ready = true;
     for(std::size_t i = 0; i < boards_running.size(); i++)
     {
@@ -39,6 +41,7 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::update(double dt)
 			messages.at(i).recv_rate = (double)(messages.at(i).recv_counter)/run_time;
 		}
 	}
+
     bool status = true;    
     if(boards_ready == true)
     {
@@ -69,6 +72,18 @@ std::vector<Message> BoardControllerNodeProcess::get_querymessages_tosend()
 	}
 	return querymessages;
 }
+std::vector<Message> BoardControllerNodeProcess::get_commandmessages_tosend()
+{
+	std::vector<Message> commandmessages;
+	for(std::size_t i = 0; i < messages.size(); i++)
+	{
+		if((messages.at(i).type == "Command") and (messages.at(i).send_me == true))
+		{
+			commandmessages.push_back(messages.at(i));
+		}
+	}
+	return commandmessages;
+}
 icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_message_sent(unsigned char id)
 {
     icarus_rover_v2::diagnostic diag = diagnostic;
@@ -96,6 +111,7 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_message_recv(unsigne
 }
 void BoardControllerNodeProcess::init_messages()
 {
+	/*
     {
         Message newmessage;
         newmessage.id = SPIMessageHandler::SPI_TestMessageCounter_ID;
@@ -120,6 +136,15 @@ void BoardControllerNodeProcess::init_messages()
     	newmessage.send_me = false;
     	messages.push_back(newmessage);
     }
+    */
+	{
+		Message newmessage;
+		newmessage.id = SPIMessageHandler::SPI_LEDStripControl_ID;
+		newmessage.name = "LEDStripControl";
+		newmessage.type = "Command";
+		newmessage.send_me = false;
+		messages.push_back(newmessage);
+	}
     for(std::size_t i = 0; i < messages.size(); i++)
     {
         messages.at(i).sent_counter = 0;
@@ -128,6 +153,39 @@ void BoardControllerNodeProcess::init_messages()
         messages.at(i).recv_rate = 0.0;
     }
 }
+icarus_rover_v2::diagnostic BoardControllerNodeProcess::get_LEDStripControlParameters
+	(unsigned char& Mode,unsigned char& Param1,unsigned char& Param2)
+{
+	icarus_rover_v2::diagnostic diag = diagnostic;
+	Mode = LEDPixelMode;
+	Param1 = 0;
+	Param2 = 0;
+	return diag;
+}
+icarus_rover_v2::diagnostic BoardControllerNodeProcess::send_commandmessage(unsigned char id)
+{
+	icarus_rover_v2::diagnostic diag;
+	diag = diagnostic;
+	for(std::size_t i = 0; i <messages.size(); i++)
+	{
+		if((messages.at(i).id == id) && (messages.at(i).type == "Command"))
+		{
+			messages.at(i).send_me = true;
+			diag.Diagnostic_Type = COMMUNICATIONS;
+			diag.Level = INFO;
+			diag.Diagnostic_Message = NOERROR;
+			return diag;
+		}
+	}
+	char tempstr[255];
+	diag.Diagnostic_Type = COMMUNICATIONS;
+	diag.Level = WARN;
+	diag.Diagnostic_Message = DROPPING_PACKETS;
+	sprintf(tempstr,"Couldn't send Command Message: AB%0X",id);
+	diag.Description = std::string(tempstr);
+	return diag;
+}
+
 icarus_rover_v2::diagnostic BoardControllerNodeProcess::send_querymessage(unsigned char id)
 {
 	icarus_rover_v2::diagnostic diag;
