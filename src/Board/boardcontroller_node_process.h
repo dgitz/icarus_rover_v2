@@ -72,8 +72,7 @@ public:
 	icarus_rover_v2::diagnostic new_message_TestMessageCounter(uint8_t boardid,unsigned char v1,unsigned char v2,unsigned char v3,unsigned char v4,
 															   unsigned char v5,unsigned char v6,unsigned char v7,unsigned char v8,
 															   unsigned char v9,unsigned char v10,unsigned char v11,unsigned char v12);
-	icarus_rover_v2::diagnostic new_message_GetDIOPort1(uint8_t boardid,unsigned char v1,unsigned char v2,unsigned char v3,unsigned char v4,
-														unsigned char v5,unsigned char v6,unsigned char v7,unsigned char v8);
+	icarus_rover_v2::diagnostic new_message_GetDIOPort1(uint8_t boardid,int16_t v1,int16_t v2);
 	icarus_rover_v2::diagnostic new_message_GetANAPort1(uint8_t boardid,uint16_t v1,uint16_t v2,uint16_t v3,
 														uint16_t v4,uint16_t v5,uint16_t v6);
 	bool board_present(icarus_rover_v2::device device);

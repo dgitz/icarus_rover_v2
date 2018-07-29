@@ -69,6 +69,7 @@ bool run_loop3_code()
 			int success;
 			unsigned char v1,v2,v3,v4,v5,v6,v7,v8,v9,v10,v11,v12;
 			uint16_t a1,a2,a3,a4,a5,a6;
+			int16_t b1,b2;
 			icarus_rover_v2::diagnostic diag;
 			switch(querymessages_tosend.at(i).id)
 			{
@@ -99,11 +100,11 @@ bool run_loop3_code()
 					}
 					break;
 				case SPIMessageHandler::SPI_Get_DIO_Port1_ID:
-					success = spimessagehandler->decode_Get_DIO_Port1SPI(inputbuffer,&length,&v1,&v2,&v3,&v4,&v5,&v6,&v7,&v8);
+					success = spimessagehandler->decode_Get_DIO_Port1SPI(inputbuffer,&length,&b1,&b2);
 					if(success == 1)
 					{
 						process->new_message_recv(querymessages_tosend.at(i).id);
-						diag = process->new_message_GetDIOPort1(BOARD_ID,v1,v2,v3,v4,v5,v6,v7,v8);
+						diag = process->new_message_GetDIOPort1(BOARD_ID,b1,b2);
 						if(diag.Level >= WARN)
 						{
 							diagnostic_pub.publish(diag);

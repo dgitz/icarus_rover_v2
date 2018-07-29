@@ -175,6 +175,7 @@ commands to the Arduino and displays the results
 
 			unsigned char v1,v2,v3,v4,v5,v6,v7,v8,v9,v10,v11,v12;
 			uint16_t a1,a2,a3,a4,a5,a6;
+			int16_t b1,b2;
 			switch(query)
 			{
 			case SPIMessageHandler::SPI_TestMessageCounter_ID:
@@ -223,11 +224,11 @@ commands to the Arduino and displays the results
 				}
 				break;
 			case SPIMessageHandler::SPI_Get_DIO_Port1_ID:
-				success = spimessagehandler->decode_Get_DIO_Port1SPI(inputbuffer,&length,&v1,&v2,&v3,&v4,&v5,&v6,&v7,&v8);
+				success = spimessagehandler->decode_Get_DIO_Port1SPI(inputbuffer,&length,&a1,&a2);
 				if(success == 1)
 				{
-					printf("DIO Port1 0:%d 1:%d 2:%d 3:%d 4:%d 5:%d 6: %d 7: %d\n",
-							v1,v2,v3,v4,v5,v6,v7,v8);
+					printf("%d DIO Port1 0:%d 1:%d\n",
+							passed_checksum_calc,a1-BYTE2_OFFSET,a2-BYTE2_OFFSET);
 				}
 				break;
 			default:
@@ -375,12 +376,14 @@ int sendQuery(unsigned char query, unsigned char * inputbuffer)
 	for(int i = 0; i < 12; i++)
 	{
 		v = spiTxRx(0);
+		printf(" %d",v);
 		running_checksum ^= v;
 		inputbuffer[i] = v;
 		//*p_outbuffer++ = v;
 		usleep(wait_time_us);
 
 	}
+	printf("\n");
 	resultByte = spiTxRx(0);
 	usleep(wait_time_us);
 	if(resultByte == running_checksum) { return 1; }
