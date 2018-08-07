@@ -4,6 +4,7 @@
 #include "ros/ros.h"
 #include "Definitions.h"
 #include <icarus_rover_v2/diagnostic.h>
+#include "../../eROS/include/DiagnosticClass.h"
 #include "ros/time.h"
 #include <stdio.h>
 #include <iostream>
@@ -33,5 +34,7 @@ private:
     char file_path[120];
     void print_log(int level,std::string tempstr);
     int get_verbosity_level(std::string level);
+    DiagnosticClass diagclass;
+
 };
 #endif

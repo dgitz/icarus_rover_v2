@@ -33,6 +33,7 @@ public:
     int get_RAMFree_kB();
     icarus_rover_v2::resource get_resourceused();
     ~ResourceMonitor();
+    std::string get_DeviceArchitecture() { return Device_Architecture; }
 private:
     icarus_rover_v2::diagnostic diagnostic;
     std::string Device_Architecture;

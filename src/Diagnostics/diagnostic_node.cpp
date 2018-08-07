@@ -381,6 +381,7 @@ void diagnostic_Callback(const icarus_rover_v2::diagnostic::ConstPtr& msg,const 
 	diag.SubSystem = msg->SubSystem;
 	diag.System = msg->System;
 	process->new_diagnosticmsg(topicname,diag);
+
 }
 
 //End User Code: Functions

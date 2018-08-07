@@ -69,6 +69,11 @@ DiagnosticNodeProcess* readyprocess(DiagnosticNodeProcess* process)
 TEST(Template,Process_Initialization)
 {
 	DiagnosticNodeProcess* process = initializeprocess();
+	DiagnosticClass diagclass;
+	printf("%s\n",diagclass.get_DiagTypeString(NOERROR).c_str());
+	printf("%s\n",diagclass.get_DiagTypeString(3).c_str());
+	printf("%s\n",diagclass.get_DiagTypeString(30).c_str());
+	printf("%s\n",diagclass.get_DiagTypeString(2).c_str());
 }
 
 TEST(Template,Process_Command)

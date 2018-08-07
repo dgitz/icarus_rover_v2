@@ -86,13 +86,23 @@ TEST(DeviceInitialization,DeviceInitialization_ArduinoBoard)
 	diagnostic = process->init(diagnostic,std::string(Host_Name));
     EXPECT_TRUE(diagnostic.Level <= NOTICE);
     
-    diagnostic = process->new_devicemsg(ros_device);
-    EXPECT_TRUE(diagnostic.Level <= NOTICE);
+    process->set_mydevice(ros_device);
+    EXPECT_TRUE(process->is_initialized() == true);
+    EXPECT_TRUE(process->is_ready() == false);
     
     diagnostic = process->new_devicemsg(arduinoboard1_device);
     EXPECT_TRUE(diagnostic.Level <= NOTICE);
 
     EXPECT_TRUE(process->is_ready() == true);
+    EXPECT_TRUE(process->get_boarddiagnostics().size() == 1);
+    diagnostic = process->new_message_Diagnostic(arduinoboard1_device.ID,ROVER,ENTIRE_SUBSYSTEM,GPIO_NODE,SENSORS,WARN,DROPPING_PACKETS);
+    EXPECT_TRUE(diagnostic.Level == WARN);
+    EXPECT_TRUE(process->get_ready_to_arm() == false);
+    diagnostic = process->new_message_Diagnostic(arduinoboard1_device.ID,ROVER,ENTIRE_SUBSYSTEM,GPIO_NODE,SENSORS,NOTICE,INITIALIZING);
+    EXPECT_TRUE(process->get_ready_to_arm() == false);
+    diagnostic = process->new_message_Diagnostic(arduinoboard1_device.ID,ROVER,ENTIRE_SUBSYSTEM,GPIO_NODE,SENSORS,NOTICE,NOERROR);
+    EXPECT_TRUE(process->get_ready_to_arm() == true);
+
     uint16_t v1 = 123;
     uint16_t v2 = 456;
     diagnostic = process->new_message_GetANAPort1(arduinoboard1_device.ID,v1,v2,0,0,0,0);
@@ -102,6 +112,7 @@ TEST(DeviceInitialization,DeviceInitialization_ArduinoBoard)
     EXPECT_TRUE(sensors.at(0).value > 0);
     EXPECT_TRUE(sensors.at(1).value > 0);
     print_sensordata(process->get_sensordata());
+
 
 
 }

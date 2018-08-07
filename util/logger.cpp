@@ -70,27 +70,61 @@ void Logger::log_fatal(std::string tempstr)
 }
 void Logger::log_diagnostic(icarus_rover_v2::diagnostic diagnostic)
 {
+
+	char tempstr[2048];
+
+	sprintf(tempstr,"System: %s Subsystem: %s Component: %s Type: %s Message: %s Description: %s",
+			diagclass.get_DiagSystemString(diagnostic.System).c_str(),
+			diagclass.get_DiagSubSystemString(diagnostic.SubSystem).c_str(),
+			diagclass.get_DiagComponentString(diagnostic.Component).c_str(),
+			diagclass.get_DiagTypeString(diagnostic.Diagnostic_Type).c_str(),
+			diagclass.get_DiagMessageString(diagnostic.Diagnostic_Message).c_str(),
+			diagnostic.Description.c_str());
+
 	switch(diagnostic.Level)
 	{
 		case DEBUG:
-			log_debug(diagnostic.Description);
+			log_debug(std::string(tempstr));
 			break;
 		case INFO:
-			log_info(diagnostic.Description);
+			log_info(std::string(tempstr));
 			break;
 		case NOTICE:
-			log_notice(diagnostic.Description);
+			log_notice(std::string(tempstr));
 			break;
 		case WARN:
-			log_warn(diagnostic.Description);
+			log_warn(std::string(tempstr));
 			break;
 		case ERROR:
-			log_error(diagnostic.Description);
+			log_error(std::string(tempstr));
 			break;
 		case FATAL:
-			log_fatal(diagnostic.Description);
+			log_fatal(std::string(tempstr));
 			break;
 	}
+	/*
+	switch(diagnostic.Level)
+		{
+			case DEBUG:
+				log_debug(diagnostic.Description);
+				break;
+			case INFO:
+				log_info(diagnostic.Description);
+				break;
+			case NOTICE:
+				log_notice(diagnostic.Description);
+				break;
+			case WARN:
+				log_warn(diagnostic.Description);
+				break;
+			case ERROR:
+				log_error(diagnostic.Description);
+				break;
+			case FATAL:
+				log_fatal(diagnostic.Description);
+				break;
+		}
+		*/
 }
 void Logger::print_log(int level,std::string tempstr)
 {

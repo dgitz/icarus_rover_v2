@@ -47,6 +47,12 @@ struct Sensor
     double min_outputvalue;
     double max_outputvalue;
 };
+struct BoardDiagnostic
+{
+	uint16_t id;
+	icarus_rover_v2::diagnostic diagnostic;
+	double lasttime_rx;
+};
 class BoardControllerNodeProcess
 {
 public:
@@ -55,7 +61,9 @@ public:
 	BoardControllerNodeProcess();
 	~BoardControllerNodeProcess();
 	icarus_rover_v2::diagnostic init(icarus_rover_v2::diagnostic indiag,std::string hostname);
+	void set_mydevice(icarus_rover_v2::device device) { mydevice = device; initialized = true; }
 	icarus_rover_v2::diagnostic update(double dt);
+	bool get_ready_to_arm() { return ready_to_arm; }
 	double measure_timediff(struct timeval a, struct timeval b);
 	icarus_rover_v2::diagnostic new_message_sent(unsigned char id);
 	icarus_rover_v2::diagnostic new_message_recv(unsigned char id);
@@ -66,6 +74,7 @@ public:
 	std::vector<Message> get_commandmessages_tosend();
 	icarus_rover_v2::diagnostic get_LEDStripControlParameters(unsigned char& LEDPixelMode,unsigned char& Param1,unsigned char& Param2);
 	bool is_ready() { return ready; }
+	bool is_initialized() { return initialized; }
     icarus_rover_v2::diagnostic new_devicemsg(icarus_rover_v2::device newdevice);
     
 	//Individual message processing
@@ -75,12 +84,16 @@ public:
 	icarus_rover_v2::diagnostic new_message_GetDIOPort1(uint8_t boardid,int16_t v1,int16_t v2);
 	icarus_rover_v2::diagnostic new_message_GetANAPort1(uint8_t boardid,uint16_t v1,uint16_t v2,uint16_t v3,
 														uint16_t v4,uint16_t v5,uint16_t v6);
+	icarus_rover_v2::diagnostic new_message_Diagnostic(uint8_t boardid,unsigned char System,unsigned char SubSystem,
+																unsigned char Component,unsigned char Diagnostic_Type,
+																unsigned char Level,unsigned char Message);
 	bool board_present(icarus_rover_v2::device device);
 	bool find_capability(std::vector<std::string> capabilities,std::string name);
 	Sensor find_sensor(std::string name);
 	bool update_sensorinfo(Sensor sensor);
 	std::vector<Sensor> get_sensordata() { return sensors; }
 	icarus_rover_v2::device get_mydevice() { return mydevice; }
+	std::vector<BoardDiagnostic> get_boarddiagnostics() { return board_diagnostics; }
 
 private:
 	void init_messages();
@@ -99,11 +112,13 @@ private:
 	std::vector<Message> messages;
 	icarus_rover_v2::device mydevice;
     std::vector<icarus_rover_v2::device> boards;
+    std::vector<BoardDiagnostic> board_diagnostics;
+
     std::vector<Sensor> sensors;
     std::vector<bool> boards_running;
     bool initialized;
     bool ready;
-
+    bool ready_to_arm;
     unsigned char LEDPixelMode;
 };
 #endif

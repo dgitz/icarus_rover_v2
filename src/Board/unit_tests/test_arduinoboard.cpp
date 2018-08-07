@@ -17,12 +17,13 @@ static void show_usage(std::string name)
 			<< "\t-h,--help\t\tShow this help message\n"
 			<< "\t-d,--delay Delay in MicroSeconds between sending each message.  Default is 100000.\n"
 			<< "\t-q,--query Query Message.  Supported messages are:\n"
-			<< "\t\t [0] TestMessageCounter (0xAB14)\n"
-			<< "\t\t [1] Get_DIO_Port1 (0xAB19)\n"
-			<< "\t\t [2] Get_ANA_Port1 (0xAB20)\n"
+			<< "\t\t [0] Get_Diagnostic (0xAB12)\n"
+			<< "\t\t [1] TestMessageCounter (0xAB14)\n"
+			<< "\t\t [2] Get_DIO_Port1 (0xAB19)\n"
+			<< "\t\t [3] Get_ANA_Port1 (0xAB20)\n"
 			<< "\t-c,--command Command Message.  Supported messages are:\n"
 			<< "\t\t [0] LED Strip Control (0xAB42)\n"
-			<< "\t\t\t [LEDPixelMode]\n"
+			<< "\t\t\t [0-5] [LEDPixelMode]\n"
 			<< std::endl;
 }
 
@@ -92,12 +93,15 @@ int main(int argc, char* argv[])
 				switch(v)
 				{
 				case 0:
-					query_type = SPIMessageHandler::SPI_TestMessageCounter_ID;
+					query_type = SPIMessageHandler::SPI_Diagnostic_ID;
 					break;
 				case 1:
-					query_type = SPIMessageHandler::SPI_Get_DIO_Port1_ID;
+					query_type = SPIMessageHandler::SPI_TestMessageCounter_ID;
 					break;
 				case 2:
+					query_type = SPIMessageHandler::SPI_Get_DIO_Port1_ID;
+					break;
+				case 3:
 					query_type = SPIMessageHandler::SPI_Get_ANA_Port1_ID;
 					break;
 				default:
@@ -178,6 +182,14 @@ commands to the Arduino and displays the results
 			int16_t b1,b2;
 			switch(query)
 			{
+			case SPIMessageHandler::SPI_Diagnostic_ID:
+							success = spimessagehandler->decode_DiagnosticSPI(inputbuffer,&length,&v1,&v2,&v3,&v4,&v5,&v6);
+							if(success == 1)
+							{
+								printf("%d Diagnostic: %d %d %d %d %d %d\n",
+										passed_checksum_calc,v1,v2,v3,v4,v5,v6);
+							}
+							break;
 			case SPIMessageHandler::SPI_TestMessageCounter_ID:
 				success = spimessagehandler->decode_TestMessageCounterSPI(inputbuffer,&length,&v1,&v2,&v3,&v4,&v5,&v6,&v7,&v8,&v9,&v10,&v11,&v12);
 				if(success == 1)
@@ -325,7 +337,6 @@ int sendCommand(unsigned char command,unsigned char* outputbuffer)
 		unsigned char running_checksum = 0;
 		for(int i = 0; i < 12; i++)
 		{
-			printf("%d",outputbuffer[i]);
 			v = spiTxRx(outputbuffer[i]);
 			running_checksum ^= v;
 			outputbuffer[i] = v;
@@ -336,7 +347,6 @@ int sendCommand(unsigned char command,unsigned char* outputbuffer)
 
 		resultByte = spiTxRx(running_checksum);
 		usleep(wait_time_us);
-		printf("  %d %d\n",resultByte,running_checksum);
 		return 1;
 }
 int sendQuery(unsigned char query, unsigned char * inputbuffer)
@@ -376,14 +386,11 @@ int sendQuery(unsigned char query, unsigned char * inputbuffer)
 	for(int i = 0; i < 12; i++)
 	{
 		v = spiTxRx(0);
-		printf(" %d",v);
 		running_checksum ^= v;
 		inputbuffer[i] = v;
-		//*p_outbuffer++ = v;
 		usleep(wait_time_us);
 
 	}
-	printf("\n");
 	resultByte = spiTxRx(0);
 	usleep(wait_time_us);
 	if(resultByte == running_checksum) { return 1; }

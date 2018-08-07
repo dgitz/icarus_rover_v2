@@ -212,11 +212,14 @@ bool CommandLauncherNodeProcess::set_camerastream(std::string portname)
 	{
 		if(processlist.at(i).name == "CameraStream")
 		{
+			/*
+			 raspivid -t 999999 -h 480 -w 640 -fps 25 -hf -b 2000000 -o - | gst-launch-1.0 -v fdsrc ! h264parse !  rtph264pay config-interval=1 pt=96 ! gdppay ! tcpserversink host=10.0.0.165 port=12345,
+			 */
 			uint32_t port = lookup_port(portname);
 			if(port == 0) { return false; }
 			processlist.at(i).param_uint32_1 = port;
 			char tempstr[1024];
-			sprintf(tempstr,"raspivid -t 999999 -h 480 -w 640 -fps 25 -hf -b 2000000 -o - "
+			sprintf(tempstr,"raspivid -t 999999 -vf -h 480 -w 640 -fps 25 -hf -b 2000000 -o - "
 					"| gst-launch-1.0 -v fdsrc ! h264parse !  rtph264pay config-interval=1 pt=96 ! gdppay ! tcpserversink host=%s port=%d > /dev/null 2>&1 &",
 					mydevice.PrimaryIP.c_str(),port);
 			processlist.at(i).command_text = std::string(tempstr);

@@ -5,6 +5,7 @@ BoardControllerNodeProcess::BoardControllerNodeProcess()
 	init_messages();
 	initialized = false;
 	ready = false;
+	ready_to_arm = false;
 	LEDPixelMode = LEDPIXELMODE_ERROR;
 }
 BoardControllerNodeProcess::~BoardControllerNodeProcess()
@@ -27,6 +28,29 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::update(double dt)
     {
         if(boards_running.at(i) == true) { boards_ready = boards_ready and true; }
         else { boards_ready = false; }
+        if((run_time - board_diagnostics.at(i).lasttime_rx > 5.0) and
+			(run_time - board_diagnostics.at(i).lasttime_rx < 10.0))
+		{
+        	diag.Level = WARN;
+        	diag.Diagnostic_Type = COMMUNICATIONS;
+        	diag.Diagnostic_Message = DROPPING_PACKETS;
+        	char tempstr[512];
+        	sprintf(tempstr,"Have not had comm with Board: %d in %f Seconds.  Disarming.",
+        			board_diagnostics.at(i).id,run_time - board_diagnostics.at(i).lasttime_rx);
+        	diag.Description = std::string(tempstr);
+        	ready_to_arm = false;
+		}
+        else if((run_time - board_diagnostics.at(i).lasttime_rx > 10.0))
+        {
+        	diag.Level = ERROR;
+        	diag.Diagnostic_Type = COMMUNICATIONS;
+        	diag.Diagnostic_Message = DROPPING_PACKETS;
+        	char tempstr[512];
+        	sprintf(tempstr,"Have not had comm with Board: %d in %f Seconds.  Disarming.",
+        			board_diagnostics.at(i).id,run_time - board_diagnostics.at(i).lasttime_rx);
+        	diag.Description = std::string(tempstr);
+        	ready_to_arm = false;
+        }
     }
     if(boards_running.size() == 0) { boards_ready = false; }
 	for(std::size_t i = 0; i < messages.size(); i++)
@@ -41,7 +65,6 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::update(double dt)
 			messages.at(i).recv_rate = (double)(messages.at(i).recv_counter)/run_time;
 		}
 	}
-
     bool status = true;    
     if(boards_ready == true)
     {
@@ -145,7 +168,15 @@ void BoardControllerNodeProcess::init_messages()
 		newmessage.send_me = false;
 		messages.push_back(newmessage);
 	}
-    for(std::size_t i = 0; i < messages.size(); i++)
+	{
+		Message newmessage;
+		newmessage.id = SPIMessageHandler::SPI_Diagnostic_ID;
+		newmessage.name = "Diagnostic";
+		newmessage.type = "Query";
+		newmessage.send_me = false;
+		messages.push_back(newmessage);
+	}
+	for(std::size_t i = 0; i < messages.size(); i++)
     {
         messages.at(i).sent_counter = 0;
         messages.at(i).recv_counter = 0;
@@ -255,6 +286,82 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_message_GetDIOPort1(
 	diag.Description = std::string(tempstr);
 	return diag;
 }
+icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_message_Diagnostic(uint8_t boardid,
+		unsigned char System,unsigned char SubSystem,
+		unsigned char Component,unsigned char Diagnostic_Type,
+		unsigned char Level,unsigned char Message)
+{
+	icarus_rover_v2::diagnostic diag = diagnostic;
+	icarus_rover_v2::diagnostic worst_diagnostic;
+	worst_diagnostic.Level = DEBUG;
+	icarus_rover_v2::device board = find_board(boardid);
+	if(board.DeviceName == "")
+	{
+		char tempstr[255];
+		diag.Diagnostic_Type = COMMUNICATIONS;
+		diag.Level = ERROR;
+		diag.Diagnostic_Message = DROPPING_PACKETS;
+		sprintf(tempstr,"Board ID: %d Not Found\n",boardid);
+		diag.Description = std::string(tempstr);
+		return diag;
+	}
+
+	bool should_i_arm = true;
+	bool found = false;
+	for(std::size_t i = 0; i < board_diagnostics.size(); i++)
+	{
+		if(board_diagnostics.at(i).id == boardid)
+		{
+			found = true;
+			board_diagnostics.at(i).lasttime_rx = run_time;
+			board_diagnostics.at(i).diagnostic.System = System;
+			board_diagnostics.at(i).diagnostic.SubSystem = SubSystem;
+			board_diagnostics.at(i).diagnostic.Component = Component;
+			board_diagnostics.at(i).diagnostic.Diagnostic_Type = Diagnostic_Type;
+			board_diagnostics.at(i).diagnostic.Level = Level;
+			board_diagnostics.at(i).diagnostic.Diagnostic_Message = Message;
+			board_diagnostics.at(i).diagnostic.Description = "";
+			if(Level > worst_diagnostic.Level)
+			{
+				worst_diagnostic = board_diagnostics.at(i).diagnostic;
+			}
+			if(Message == INITIALIZING)
+			{
+				should_i_arm = false;
+			}
+			else if((Level <= NOTICE) or (Message == NOERROR))
+			{
+				should_i_arm = should_i_arm and true;
+			}
+			else
+			{
+				should_i_arm = false;
+			}
+		}
+	}
+	if(found == false)
+	{
+		should_i_arm = false;
+	}
+	if(should_i_arm == true)
+	{
+		ready_to_arm = true;
+	}
+	if(worst_diagnostic.Level > NOTICE)
+	{
+		return worst_diagnostic;
+	}
+	else
+	{
+		char tempstr[255];
+		diag.Diagnostic_Type = COMMUNICATIONS;
+		diag.Level = INFO;
+		diag.Diagnostic_Message = NOERROR;
+		sprintf(tempstr,"Updated");
+		diag.Description = std::string(tempstr);
+		return diag;
+	}
+}
 icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_message_GetANAPort1(uint8_t boardid,uint16_t v1,uint16_t v2,uint16_t v3,
 		uint16_t v4,uint16_t v5,uint16_t v6)
 {
@@ -295,15 +402,7 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_message_GetANAPort1(
 icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_devicemsg(icarus_rover_v2::device newdevice)
 {
     icarus_rover_v2::diagnostic diag = diagnostic;
-    if(initialized == false)
-    {
-        if(myhostname == newdevice.DeviceName)
-        {
-            mydevice = newdevice;
-            initialized = true;
-        }
-    }
-    else
+    if(initialized == true)
     {
         if(ready == false)
         {
@@ -323,7 +422,6 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_devicemsg(icarus_rov
                 std::size_t board_message = newdevice.DeviceType.find("Board");
                 if((board_message != std::string::npos))
                 {
-
                     if(newdevice.DeviceType == "ArduinoBoard")
                     {
                         for(std::size_t i = 0; i < newdevice.pins.size(); i++)
@@ -362,7 +460,17 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_devicemsg(icarus_rov
                             }
                         }
                         boards.push_back(newdevice);
-                        boards_running.push_back(false);
+                        BoardDiagnostic board_diag;
+                        board_diag.id = newdevice.ID;
+                        board_diag.diagnostic.System = SYSTEM_UNKNOWN;
+                        board_diag.diagnostic.SubSystem = SUBSYSTEM_UNKNOWN;
+                        board_diag.diagnostic.Component = COMPONENT_UNKNOWN;
+                        board_diag.diagnostic.Diagnostic_Type = GENERAL_ERROR;
+                        board_diag.diagnostic.Diagnostic_Message = UNKNOWN_STATE;
+                        board_diag.diagnostic.Level = LEVEL_UNKNOWN;
+                        board_diag.diagnostic.Description = "No Info received yet for this Board.";
+                        board_diagnostics.push_back(board_diag);
+                        boards_running.push_back(true);
                     }
 
                     else
@@ -375,7 +483,6 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_devicemsg(icarus_rov
                         diag.Description = std::string(tempstr);
                         return diag;
                     }
-
                     if((boards.size() == mydevice.BoardCount) and (sensors.size() == mydevice.SensorCount) and (sensors_initialized() == true))
                     { ready = true; }
                 }
@@ -474,7 +581,7 @@ bool BoardControllerNodeProcess::sensors_initialized()
 {
 	if(sensors.size() == 0)
 	{
-		return false;
+		return true;
 	}
 	for(std::size_t i=0; i < sensors.size(); i++)
 	{

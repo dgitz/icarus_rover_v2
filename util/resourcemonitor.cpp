@@ -176,7 +176,9 @@ icarus_rover_v2::diagnostic ResourceMonitor::update()
 	{
 		diagnostic.Level = ERROR;
 		diagnostic.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
-		diagnostic.Description = "Device Architecture not Supported.";
+		char tempstr[256];
+		sprintf(tempstr,"Device Architecture: %s not Supported.",Device_Architecture.c_str());
+		diagnostic.Description = std::string(tempstr);
 		return diagnostic;
 	}
 	if(PID == -1)

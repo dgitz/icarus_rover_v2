@@ -21,6 +21,7 @@
 #include <serialmessage.h>
 #include "logger.h"
 #include <math.h>
+//#include "../../../eROS/include/DiagnosticClass.h"
 class DiagnosticNodeProcess
 {
 public:
@@ -81,6 +82,7 @@ public:
 	icarus_rover_v2::diagnostic new_01ppsmsg();
     
 private:
+	//DiagnosticClass diagclass;
 	std::vector<icarus_rover_v2::diagnostic> check_program_variables();
 	
 	double run_time;

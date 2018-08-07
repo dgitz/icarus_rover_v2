@@ -131,7 +131,8 @@ icarus_rover_v2::diagnostic HatControllerNodeProcess::new_devicemsg(icarus_rover
                         for(std::size_t i = 0; i < newdevice.pins.size(); i++)
                         {
                             if((newdevice.pins.at(i).Function == "PWMOutput") or 
-                               (newdevice.pins.at(i).Function == "PWMOutput-NonActuator")) {}
+                               (newdevice.pins.at(i).Function == "PWMOutput-NonActuator")) {
+                            }
                             else
                             {
                                 diag.Level = ERROR;
@@ -177,13 +178,12 @@ icarus_rover_v2::diagnostic HatControllerNodeProcess::new_devicemsg(icarus_rover
                     }
                     hats.push_back(newdevice);
                     hats_running.push_back(false);
-                    if(hats.size() == mydevice.BoardCount) { ready = true; }
+                    if(hats.size() == mydevice.BoardCount) { ready = true;  }
                 }
             }
         }
         else
         {
-
         }
     }
     return diag;
