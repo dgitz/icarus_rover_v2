@@ -259,6 +259,7 @@ void CommandLauncherNodeProcess::init_processlist()
 	{
 		ProcessCommand proc;
 		proc.name = "CameraStream";
+		proc.kill_name = "raspivid";
 		proc.max_restarts = -1;
 		processlist.push_back(proc);
 	}

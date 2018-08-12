@@ -178,7 +178,11 @@ icarus_rover_v2::diagnostic HatControllerNodeProcess::new_devicemsg(icarus_rover
                     }
                     hats.push_back(newdevice);
                     hats_running.push_back(false);
-                    if(hats.size() == mydevice.BoardCount) { ready = true;  }
+                    if(hats.size() == mydevice.BoardCount)
+                    {
+
+                    	ready = true;
+                    }
                 }
             }
         }

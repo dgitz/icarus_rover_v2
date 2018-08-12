@@ -16,11 +16,11 @@ static void show_usage(std::string name)
               << "\t-m,--mode\tMode: oneshot, sweep. Default=oneshot.\n"
               << "\toneshot: Sets a PWM Channel with a value. Options:\n"
               << "\t -c,--channel Channel\tPWM Channel.  Valid Range: 0-15. Default=0.\n"
-              << "\t -v,--value Value\tPWM Value. Valid Range: 0-4095. Default=2047.\n"
+              << "\t -v,--value Value\tPWM Value. Valid Range: 0-2000. Default=1000.\n"
               << "\tsweep: Sweeps a PWM Channel with a value between a start range and stop range. Options:\n"
               << "\t -c,--channel Channel\tPWM Channel.  Valid Range: 0-15. Default=0.\n"
-              << "\t -s,--start Start\tStart PWM Value.  Valid Range: 0-4095. Default=2047.\n"
-              << "\t -e,--end End\tStop PWM Value. Valid Range: 0-4095. Default=2047.\n"
+              << "\t -s,--start Start\tStart PWM Value.  Valid Range: 0-2000. Default=1000.\n"
+              << "\t -e,--end End\tStop PWM Value. Valid Range: 0-2000. Default=1000.\n"
               << "\t -i,---increment Increment\t Amount to increment sweep by.  Default: 1.\n"
               << std::endl;
 }
@@ -30,10 +30,10 @@ int main(int argc, char* argv[])
     std::string mode = "oneshot";
     int hat_address = 64;
     int channel = 0;
-    int value = 2047;
+    int value = 1000;
     int reset = 0;
     int start_sweep = 0;
-    int stop_sweep = 4095;
+    int stop_sweep = 2000;
     int increment = 1;
     if (argc < 2) {
         show_usage(argv[0]);

@@ -8,7 +8,6 @@
 //Start User Code: Function Prototypes
 bool check_serialports()
 {
-
 	std::vector<MasterNodeProcess::SerialPort> ports = process->get_serialports();
 	std::vector<std::string> baudrates = process->get_allserialbaudrates();
 	for(std::size_t i = 0; i < ports.size(); i++)
@@ -152,7 +151,6 @@ bool check_serialports()
 			logger->log_warn(std::string(tempstr));
 		}
 	}
-
 	return true;
 }
 std::vector<std::string> find_serialports()
@@ -192,6 +190,7 @@ std::vector<std::string> find_serialports()
 bool connection_service(icarus_rover_v2::srv_connection::Request &req,
 					icarus_rover_v2::srv_connection::Response &res)
 {
+
 	std::vector<MasterNodeProcess::SerialPort> ports = process->get_serialports();
 	for(std::size_t i = 0; i < ports.size(); i++)
 	{
@@ -370,6 +369,7 @@ void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 	{
 	}
 	diagnostic_pub.publish(process->get_diagnostic());
+
 }
 void Command_Callback(const icarus_rover_v2::command::ConstPtr& msg)
 {
@@ -499,7 +499,6 @@ bool initializenode()
 	diagnostic.Diagnostic_Message = INITIALIZING;
 	diagnostic.Description = "Node Initializing";
 	diagnostic_pub.publish(diagnostic);
-
 	std::string resource_topic = "/" + node_name + "/resource";
 	resource_pub = n->advertise<icarus_rover_v2::resource>(resource_topic,5);
 
@@ -529,6 +528,20 @@ bool initializenode()
     std::string heartbeat_topic = "/" + node_name + "/heartbeat";
     heartbeat_pub = n->advertise<icarus_rover_v2::heartbeat>(heartbeat_topic,5);
     beat.Node_Name = node_name;
+    std::string param_startup_delay = node_name + "/startup_delay";
+    double startup_delay = 0.0;
+    if(n->getParam(param_startup_delay,startup_delay) == false)
+    {
+    	logger->log_notice("Missing Parameter: startup_delay.  Using Default: 0.0 sec.");
+    }
+    else
+    {
+    	char tempstr[128];
+    	sprintf(tempstr,"Using Parameter: startup_delay = %4.2f sec.",startup_delay);
+    	logger->log_notice(std::string(tempstr));
+    }
+    printf("[%s] Using Parameter: startup_delay = %4.2f sec.\n",node_name.c_str(),startup_delay);
+    ros::Duration(startup_delay).sleep();
 
     pps01_sub = n->subscribe<std_msgs::Bool>("/01PPS",5,PPS01_Callback); 
     pps1_sub = n->subscribe<std_msgs::Bool>("/1PPS",5,PPS1_Callback); 
@@ -555,7 +568,6 @@ bool initializenode()
         run_loop1 = true; 
         if(loop1_rate > max_rate) { max_rate = loop1_rate; }
     }
-    
     std::string param_loop2_rate = node_name + "/loop2_rate";
     if(n->getParam(param_loop2_rate,loop2_rate) == false)
     {
@@ -617,7 +629,6 @@ bool initializenode()
     connection_srv = n->advertiseService(srv_connection_topic,connection_service);
     std::string srv_leverarm_topic = "/" + node_name + "/srv_leverarm";
     leverarm_srv = n->advertiseService(srv_leverarm_topic,leverarm_service);
-    
     diagnostic = process->set_serialportlist(find_serialports());
     if(diagnostic.Level > NOTICE)
     {

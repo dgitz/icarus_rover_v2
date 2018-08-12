@@ -25,6 +25,7 @@ bool run_loop2_code()
         std::vector<icarus_rover_v2::pin> outs = process->get_outputs_pins();
         for(std::size_t i = 0; i < pin_pubs.size(); i++)
         {
+        	outs.at(i).stamp = ros::Time::now();
             pin_pubs.at(i).publish(outs.at(i));
         }
     }
@@ -286,6 +287,22 @@ bool initializenode()
     std::string heartbeat_topic = "/" + node_name + "/heartbeat";
     heartbeat_pub = n->advertise<icarus_rover_v2::heartbeat>(heartbeat_topic,5);
     beat.Node_Name = node_name;
+
+    std::string param_startup_delay = node_name + "/startup_delay";
+    double startup_delay = 0.0;
+    if(n->getParam(param_startup_delay,startup_delay) == false)
+    {
+    	logger->log_notice("Missing Parameter: startup_delay.  Using Default: 0.0 sec.");
+    }
+    else
+    {
+    	char tempstr[128];
+    	sprintf(tempstr,"Using Parameter: startup_delay = %4.2f sec.",startup_delay);
+    	logger->log_notice(std::string(tempstr));
+    }
+    printf("[%s] Using Parameter: startup_delay = %4.2f sec.\n",node_name.c_str(),startup_delay);
+    ros::Duration(startup_delay).sleep();
+
     std::string device_topic = "/" + std::string(hostname) + "_master_node/srv_device";
     srv_device = n->serviceClient<icarus_rover_v2::srv_device>(device_topic);
 
@@ -372,7 +389,7 @@ bool initializenode()
     {
         if(TopicMaps.at(i).in.type == "sensor_msgs/Joy")
         {
-            ros::Subscriber sub = n->subscribe<sensor_msgs::Joy>(TopicMaps.at(i).in.topic,1000,boost::bind(Joystick_Callback,_1,TopicMaps.at(i).in.topic));
+            ros::Subscriber sub = n->subscribe<sensor_msgs::Joy>(TopicMaps.at(i).in.topic,10,boost::bind(Joystick_Callback,_1,TopicMaps.at(i).in.topic));
             char tempstr[255];
             sprintf(tempstr,"Subscribing to: %s",TopicMaps.at(i).in.topic.c_str());
             logger->log_info(tempstr);

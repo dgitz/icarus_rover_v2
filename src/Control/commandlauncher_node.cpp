@@ -256,6 +256,13 @@ int main(int argc, char **argv)
 		ros::spinOnce();
 		loop_rate.sleep();
     }
+    std::vector<ProcessCommand> process_list = process->get_processlist();
+    for(std::size_t i = 0; i < process_list.size(); i++)
+    {
+    	char tempstr[1024];
+    	sprintf(tempstr,"pkill %s",process_list.at(i).kill_name.c_str());
+    	system(tempstr);
+    }
     logger->log_notice("Node Finished Safely.");
     return 0;
 }
@@ -310,6 +317,22 @@ bool initializenode()
     std::string heartbeat_topic = "/" + node_name + "/heartbeat";
     heartbeat_pub = n->advertise<icarus_rover_v2::heartbeat>(heartbeat_topic,5);
     beat.Node_Name = node_name;
+
+    std::string param_startup_delay = node_name + "/startup_delay";
+    double startup_delay = 0.0;
+    if(n->getParam(param_startup_delay,startup_delay) == false)
+    {
+    	logger->log_notice("Missing Parameter: startup_delay.  Using Default: 0.0 sec.");
+    }
+    else
+    {
+    	char tempstr[128];
+    	sprintf(tempstr,"Using Parameter: startup_delay = %4.2f sec.",startup_delay);
+    	logger->log_notice(std::string(tempstr));
+    }
+    printf("[%s] Using Parameter: startup_delay = %4.2f sec.\n",node_name.c_str(),startup_delay);
+    ros::Duration(startup_delay).sleep();
+
     std::string device_topic = "/" + std::string(hostname) + "_master_node/srv_device";
     srv_device = n->serviceClient<icarus_rover_v2::srv_device>(device_topic);
 
@@ -386,7 +409,13 @@ bool initializenode()
         logger->log_error("Missing parameter: CameraStreamPort.  Exiting.");
         return false;
     }
-	
+	std::vector<ProcessCommand> process_list = process->get_processlist();
+	for(std::size_t i = 0; i < process_list.size(); i++)
+	{
+		char tempstr[1024];
+		sprintf(tempstr,"pkill %s",process_list.at(i).kill_name.c_str());
+		system(tempstr);
+	}
 
     
     //Finish User Code: Initialization and Parameters

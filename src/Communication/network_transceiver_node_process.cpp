@@ -166,174 +166,254 @@ icarus_rover_v2::diagnostic NetworkTransceiverNodeProcess::new_message_recv(uint
     }
     return diag;
 }
+std::vector<NetworkTransceiverNodeProcess::QueueElement> NetworkTransceiverNodeProcess::get_sendqueue(uint8_t level)
+{
+	std::vector<NetworkTransceiverNodeProcess::QueueElement> buffer;
+	if (level == PRIORITYLEVEL_HIGH)
+	{
+		buffer = sendqueue_highpriority;
+		sendqueue_highpriority.clear();
+	}
+	else if (level == PRIORITYLEVEL_MEDIUM)
+	{
+		buffer= sendqueue_mediumpriority;
+		sendqueue_mediumpriority.clear();
+	}
+	else if(level == PRIORITYLEVEL_LOW)
+								{
+		buffer= sendqueue_lowpriority;
+		sendqueue_lowpriority.clear();
+								}
+	else
+	{
+
+	}
+	return buffer;
+}
+bool NetworkTransceiverNodeProcess::push_sendqueue(uint16_t id,std::string msg)
+{
+	bool found = false;
+	bool state = false;
+	for(std::size_t i = 0; i < messages.size(); i++)
+	{
+		if(messages.at(i).id == id)
+		{
+			found = true;
+			if (messages.at(i).priority_level == PRIORITYLEVEL_HIGH)
+			{
+
+				state = push_sendhighqueue(id,msg);
+			}
+			else if (messages.at(i).priority_level == PRIORITYLEVEL_MEDIUM)
+			{
+				state = push_sendmediumqueue(id,msg);
+			}
+			else if (messages.at(i).priority_level == PRIORITYLEVEL_LOW)
+			{
+				state = push_sendlowqueue(id,msg);
+			}
+
+		}
+	}
+	return found and state;
+}
 void NetworkTransceiverNodeProcess::init_messages()
 {
-    {
-        Message newmessage;
+
+	{
+		Message newmessage;
         newmessage.id = ESTOP_ID;
         newmessage.name = "EStop";
+        newmessage.priority_level = PRIORITYLEVEL_HIGH;
+        newmessage.target_sendrate = 10.0;
         messages.push_back(newmessage);
     }
     {
         Message newmessage;
         newmessage.id = POWER_ID;
         newmessage.name = "Power";
+        newmessage.priority_level = PRIORITYLEVEL_MEDIUM;
+        newmessage.target_sendrate = 1.0;
         messages.push_back(newmessage);
     }
     {
         Message newmessage;
         newmessage.id = CONFIGURE_ANA_PORT_ID;
         newmessage.name = "Configure ANA Port ID";
+        newmessage.priority_level = PRIORITYLEVEL_LOW;
+        newmessage.target_sendrate = 1.0;
         messages.push_back(newmessage);
     }
     {
         Message newmessage;
         newmessage.id = PPS_ID;
         newmessage.name = "PPS";
+        newmessage.priority_level = PRIORITYLEVEL_HIGH;
+        newmessage.target_sendrate = 1.0;
         messages.push_back(newmessage);
     }
     {
         Message newmessage;
         newmessage.id = FINDTARGET_ID;
         newmessage.name = "Find Target";
+        newmessage.priority_level = PRIORITYLEVEL_LOW;
+        newmessage.target_sendrate = 0.5;
         messages.push_back(newmessage);
     }
     {
         Message newmessage;
         newmessage.id = SET_DIO_PORT_DEFAULTVALUE_ID;
         newmessage.name = "Set DIO Port Default Value";
+        newmessage.priority_level = PRIORITYLEVEL_LOW;
+        newmessage.target_sendrate = 1.0;
         messages.push_back(newmessage);
     }
+
     {
         Message newmessage;
         newmessage.id = HEARTBEAT_ID;
         newmessage.name = "Heartbeat";
+        newmessage.priority_level = PRIORITYLEVEL_HIGH;
+        newmessage.target_sendrate = 5.0;
         messages.push_back(newmessage);
     }
+
     {
         Message newmessage;
         newmessage.id = ARM_STATUS_ID;
         newmessage.name = "Arm Status";
+        newmessage.priority_level = PRIORITYLEVEL_HIGH;
+        newmessage.target_sendrate = 10.0;
         messages.push_back(newmessage);
     }
-    /*
-    {
-        Message newmessage;
-        newmessage.id = TUNE_CONTROLGROUP_ID;
-        newmessage.name = "Tune Control Group";
-        messages.push_back(newmessage);
-    }
-    {
-        Message newmessage;
-        newmessage.id = SETUP_CONTROLGROUP_ID;
-        newmessage.name = "Setup Control Group";
-        messages.push_back(newmessage);
-    }
-    */
     {
         Message newmessage;
         newmessage.id = ARMCONTROL_ID;
         newmessage.name = "Arm Control";
+        newmessage.priority_level = PRIORITYLEVEL_MEDIUM;
+        newmessage.target_sendrate = 2.0;
         messages.push_back(newmessage);
     }
     {
         Message newmessage;
         newmessage.id = FIRMWAREVERSION_ID;
         newmessage.name = "Firmware Version";
+        newmessage.priority_level = PRIORITYLEVEL_LOW;
+        newmessage.target_sendrate = 1.0;
         messages.push_back(newmessage);
     }
     {
         Message newmessage;
         newmessage.id = GET_ANA_PORT1_ID;
         newmessage.name = "Get ANA Port1";
+        newmessage.priority_level = PRIORITYLEVEL_LOW;
+        newmessage.target_sendrate = 1.0;
         messages.push_back(newmessage);
     }
     {
         Message newmessage;
         newmessage.id = GET_DIO_PORT1_ID;
         newmessage.name = "Get DIO Port1";
+        newmessage.priority_level = PRIORITYLEVEL_LOW;
+        newmessage.target_sendrate = 1.0;
         messages.push_back(newmessage);
     }
     {
         Message newmessage;
         newmessage.id = SET_DIO_PORT_ID;
         newmessage.name = "Set DIO Port";
+        newmessage.priority_level = PRIORITYLEVEL_LOW;
+        newmessage.target_sendrate = 1.0;
         messages.push_back(newmessage);
     }
     {
         Message newmessage;
         newmessage.id = MODE_ID;
         newmessage.name = "Mode";
+        newmessage.priority_level = PRIORITYLEVEL_MEDIUM;
+        newmessage.target_sendrate = 2.0;
         messages.push_back(newmessage);
     }
     {
         Message newmessage;
         newmessage.id = CONFIGURE_DIO_PORT_ID;
         newmessage.name = "Configure DIO Port";
+        newmessage.priority_level = PRIORITYLEVEL_LOW;
+        newmessage.target_sendrate = 1.0;
         messages.push_back(newmessage);
     }
     {
         Message newmessage;
         newmessage.id = TESTMESSAGECOMMAND_ID;
         newmessage.name = "Test Message Command";
+        newmessage.priority_level = PRIORITYLEVEL_MEDIUM;
+        newmessage.target_sendrate = 2.0;
         messages.push_back(newmessage);
     }
     {
         Message newmessage;
         newmessage.id = TESTMESSAGECOUNTER_ID;
         newmessage.name = "Test Message Counter";
+        newmessage.priority_level = PRIORITYLEVEL_MEDIUM;
+        newmessage.target_sendrate = 2.0;
         messages.push_back(newmessage);
     }
     {
         Message newmessage;
         newmessage.id = DEVICE_ID;
         newmessage.name = "Device";
+        newmessage.priority_level = PRIORITYLEVEL_LOW;
+        newmessage.target_sendrate = 2.0;
         messages.push_back(newmessage);
     }
     {
         Message newmessage;
         newmessage.id = DIAGNOSTIC_ID;
         newmessage.name = "Diagnostic";
+        newmessage.priority_level = PRIORITYLEVEL_LOW;
+        newmessage.target_sendrate = 2.0;
         messages.push_back(newmessage);
     }
     {
         Message newmessage;
         newmessage.id = RESOURCE_ID;
         newmessage.name = "Resource";
+        newmessage.priority_level = PRIORITYLEVEL_LOW;
+        newmessage.target_sendrate = 1.0;
         messages.push_back(newmessage);
     }
     {
         Message newmessage;
         newmessage.id = REMOTECONTROL_ID;
         newmessage.name = "Remote Control";
+        newmessage.priority_level = PRIORITYLEVEL_HIGH;
+        newmessage.target_sendrate = 10.0;
         messages.push_back(newmessage);
     }
     {
         Message newmessage;
         newmessage.id = COMMAND_ID;
         newmessage.name = "Command";
+        newmessage.priority_level = PRIORITYLEVEL_HIGH;
+        newmessage.target_sendrate = 10.0;
         messages.push_back(newmessage);
     }
     {
         Message newmessage;
         newmessage.id = USERMESSAGE_ID;
         newmessage.name = "User Message";
+        newmessage.priority_level = PRIORITYLEVEL_LOW;
+        newmessage.target_sendrate = 1.0;
         messages.push_back(newmessage);
     }
     {
     	Message newmessage;
     	newmessage.id = TUNECONTROLGROUP_ID;
     	newmessage.name = "Tune ControlGroup";
+    	newmessage.priority_level = PRIORITYLEVEL_MEDIUM;
+    	newmessage.target_sendrate = 10.0;
     	messages.push_back(newmessage);
     }
-    
-    {
-    	Message newmessage;
-    	newmessage.id = FIRMWARE_ID;
-    	newmessage.name = "Firmware";
-    	messages.push_back(newmessage);
-    }
-    
     for(std::size_t i = 0; i < messages.size(); i++)
     {
         messages.at(i).sent_counter = 0;

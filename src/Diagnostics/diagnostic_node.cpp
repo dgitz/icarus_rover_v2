@@ -470,6 +470,7 @@ int main(int argc, char **argv)
 }
 bool initializenode()
 {
+	sleep(3);
     //Start Template Code: Initialization, Parameters and Topics
 	kill_node = 0;
 	signal(SIGINT,signalinterrupt_handler);
@@ -519,12 +520,28 @@ bool initializenode()
     std::string heartbeat_topic = "/" + node_name + "/heartbeat";
     heartbeat_pub = n->advertise<icarus_rover_v2::heartbeat>(heartbeat_topic,5);
     beat.Node_Name = node_name;
+
+    std::string param_startup_delay = node_name + "/startup_delay";
+    double startup_delay = 0.0;
+    if(n->getParam(param_startup_delay,startup_delay) == false)
+    {
+    	logger->log_notice("Missing Parameter: startup_delay.  Using Default: 0.0 sec.");
+    }
+    else
+    {
+    	char tempstr[128];
+    	sprintf(tempstr,"Using Parameter: startup_delay = %4.2f sec.",startup_delay);
+    	logger->log_notice(std::string(tempstr));
+    }
+    printf("[%s] Using Parameter: startup_delay = %4.2f sec.\n",node_name.c_str(),startup_delay);
+    ros::Duration(startup_delay).sleep();
+
     std::string device_topic = "/" + std::string(hostname) + "_master_node/srv_device";
     srv_device = n->serviceClient<icarus_rover_v2::srv_device>(device_topic);
 
-    pps01_sub = n->subscribe<std_msgs::Bool>("/01PPS",5,PPS01_Callback); 
-    pps1_sub = n->subscribe<std_msgs::Bool>("/1PPS",5,PPS1_Callback); 
-    command_sub = n->subscribe<icarus_rover_v2::command>("/command",5,Command_Callback);
+    pps01_sub = n->subscribe<std_msgs::Bool>("/01PPS",30,PPS01_Callback);
+    pps1_sub = n->subscribe<std_msgs::Bool>("/1PPS",30,PPS1_Callback);
+    command_sub = n->subscribe<icarus_rover_v2::command>("/command",30,Command_Callback);
     std::string param_require_pps_to_start = node_name +"/require_pps_to_start";
     if(n->getParam(param_require_pps_to_start,require_pps_to_start) == false)
 	{

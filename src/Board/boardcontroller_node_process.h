@@ -15,11 +15,13 @@
 #include "icarus_rover_v2/command.h"
 #include "icarus_rover_v2/pin.h"
 #include "icarus_rover_v2/firmware.h"
+#include "icarus_rover_v2/float_timestamp.h"
 #include <std_msgs/UInt8.h>
 #include "logger.h"
 #include "spimessage.h"
 #include <math.h>
 #include <tinyxml.h>
+#define REQUIRED_ENCODER_COUNT 2
 struct Message
 {
 	unsigned char id;
@@ -33,9 +35,12 @@ struct Message
 };
 struct Sensor
 {
+	double tov;
+	uint8_t status;
 	bool initialized;
 	std::string type;
 	std::string name;
+	std::string remapped_topicname;
 	icarus_rover_v2::device connected_board;
 	icarus_rover_v2::pin connected_pin;
     bool convert;
@@ -61,6 +66,7 @@ public:
 	BoardControllerNodeProcess();
 	~BoardControllerNodeProcess();
 	icarus_rover_v2::diagnostic init(icarus_rover_v2::diagnostic indiag,std::string hostname);
+	icarus_rover_v2::diagnostic get_diagnostic() { return diagnostic; }
 	void set_mydevice(icarus_rover_v2::device device) { mydevice = device; initialized = true; }
 	icarus_rover_v2::diagnostic update(double dt);
 	bool get_ready_to_arm() { return ready_to_arm; }
@@ -81,8 +87,8 @@ public:
 	icarus_rover_v2::diagnostic new_message_TestMessageCounter(uint8_t boardid,unsigned char v1,unsigned char v2,unsigned char v3,unsigned char v4,
 															   unsigned char v5,unsigned char v6,unsigned char v7,unsigned char v8,
 															   unsigned char v9,unsigned char v10,unsigned char v11,unsigned char v12);
-	icarus_rover_v2::diagnostic new_message_GetDIOPort1(uint8_t boardid,int16_t v1,int16_t v2);
-	icarus_rover_v2::diagnostic new_message_GetANAPort1(uint8_t boardid,uint16_t v1,uint16_t v2,uint16_t v3,
+	icarus_rover_v2::diagnostic new_message_GetDIOPort1(uint8_t boardid,double tov,int16_t v1,int16_t v2);
+	icarus_rover_v2::diagnostic new_message_GetANAPort1(uint8_t boardid,double tov,uint16_t v1,uint16_t v2,uint16_t v3,
 														uint16_t v4,uint16_t v5,uint16_t v6);
 	icarus_rover_v2::diagnostic new_message_Diagnostic(uint8_t boardid,unsigned char System,unsigned char SubSystem,
 																unsigned char Component,unsigned char Diagnostic_Type,
@@ -101,11 +107,12 @@ private:
     double map_input_to_output(double input_value,double min_input,double max_input,double min_output,double max_output);
 	int map_PinFunction_ToInt(std::string Function);
 	bool sensors_initialized();
-	bool update_sensor(icarus_rover_v2::device,icarus_rover_v2::pin,double value);
+	bool update_sensor(icarus_rover_v2::device,icarus_rover_v2::pin,double tov,double value);
 	bool load_sensorinfo(std::string name);
 	bool parse_sensorfile(TiXmlDocument doc,std::string name);
 	icarus_rover_v2::device find_board(uint8_t boardid);
 	icarus_rover_v2::pin find_pin(icarus_rover_v2::device board,std::string pinfunction,uint8_t pinnumber);
+	icarus_rover_v2::pin find_pin(icarus_rover_v2::device board,std::string pinname);
 	std::string myhostname;
 	icarus_rover_v2::diagnostic diagnostic;
 	double run_time;
@@ -120,5 +127,6 @@ private:
     bool ready;
     bool ready_to_arm;
     unsigned char LEDPixelMode;
+    uint8_t encoder_count;
 };
 #endif

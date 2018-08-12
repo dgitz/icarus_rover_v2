@@ -9,17 +9,17 @@
  */
 bool run_loop1_code()
 {
-	/*if(process->is_initialized() == true)
+	if(process->get_initialized() == true)
 	{
-		diagnostic_status = process->new_pinvalue(TerminalHat.read_pin(process->get_estop_pinnumber()));
-		if(diagnostic_status.Level > INFO)
+		icarus_rover_v2::diagnostic diag = process->new_pinvalue(TerminalHat.read_pin(process->get_estop_pinnumber()));
+		if(diag.Level > INFO)
 		{
-			diagnostic_pub.publish(diagnostic_status);
-			logger->log_diagnostic(diagnostic_status);
+			diagnostic_pub.publish(diag);
+			logger->log_diagnostic(diag);
 		}
 	}
-	*/
-	icarus_rover_v2::diagnostic diagnostic = process->update(1.0/(double)loop2_rate);
+
+	icarus_rover_v2::diagnostic diagnostic = process->update(1.0/(double)loop1_rate);
     if(diagnostic.Level > INFO)
     {
     	diagnostic_pub.publish(diagnostic);
@@ -279,6 +279,22 @@ bool initializenode()
     std::string heartbeat_topic = "/" + node_name + "/heartbeat";
     heartbeat_pub = n->advertise<icarus_rover_v2::heartbeat>(heartbeat_topic,5);
     beat.Node_Name = node_name;
+
+    std::string param_startup_delay = node_name + "/startup_delay";
+    double startup_delay = 0.0;
+    if(n->getParam(param_startup_delay,startup_delay) == false)
+    {
+    	logger->log_notice("Missing Parameter: startup_delay.  Using Default: 0.0 sec.");
+    }
+    else
+    {
+    	char tempstr[128];
+    	sprintf(tempstr,"Using Parameter: startup_delay = %4.2f sec.",startup_delay);
+    	logger->log_notice(std::string(tempstr));
+    }
+    printf("[%s] Using Parameter: startup_delay = %4.2f sec.\n",node_name.c_str(),startup_delay);
+    ros::Duration(startup_delay).sleep();
+
     std::string device_topic = "/" + std::string(hostname) + "_master_node/srv_device";
     srv_device = n->serviceClient<icarus_rover_v2::srv_device>(device_topic);
 

@@ -2,13 +2,15 @@
 //Start User Code: Firmware Definition
 #define BOARDCONTROLLERNODE_MAJOR_RELEASE 0
 #define BOARDCONTROLLERNODE_MINOR_RELEASE 0
-#define BOARDCONTROLLERNODE_BUILD_NUMBER 0
+#define BOARDCONTROLLERNODE_BUILD_NUMBER 1
 //End User Code: Firmware Definition
 //Start User Code: Functions
 bool run_loop1_code()
 {
 	process->send_commandmessage(SPIMessageHandler::SPI_LEDStripControl_ID);
 	process->send_querymessage(SPIMessageHandler::SPI_Diagnostic_ID);
+	icarus_rover_v2::diagnostic diag = process->get_diagnostic();
+	diagnostic_pub.publish(diag);
 	{
 		/*
 		icarus_rover_v2::diagnostic diag = process->send_querymessage(SPIMessageHandler::SPI_Get_ANA_Port1_ID);
@@ -39,16 +41,21 @@ bool run_loop2_code()
 		diagnostic_pub.publish(diag);
 		logger->log_diagnostic(diag);
 	}
+	diag = process->send_querymessage(SPIMessageHandler::SPI_Get_DIO_Port1_ID);
 	std::vector<Sensor> sensors = process->get_sensordata();
 	for(std::size_t i = 0; i < sensors.size(); i++)
 	{
-		for(std::size_t j = 0; j < analog_sensor_names.size(); j++)
+		for(std::size_t j = 0; j < signal_sensor_names.size(); j++)
 		{
-			if(analog_sensor_names.at(j) == sensors.at(i).name)
+			if(signal_sensor_names.at(j) == sensors.at(i).name)
 			{
-				std_msgs::Float32 v;
-				v.data = sensors.at(i).value;
-				analog_sensor_pubs.at(j).publish(v);
+				icarus_rover_v2::signal v;
+				v.tov = ros::Time(sensors.at(i).tov);
+				v.value = sensors.at(i).value;
+				v.units = sensors.at(i).units;
+				v.status = sensors.at(i).status;
+				v.rms = -1.0;
+				signal_sensor_pubs.at(j).publish(v);
 			}
 		}
 	}
@@ -56,7 +63,6 @@ bool run_loop2_code()
 	std_msgs::Bool bool_ready_to_arm;
 	bool_ready_to_arm.data = ready_to_arm;
 	ready_to_arm_pub.publish(bool_ready_to_arm);
-	return true;
 	return true;
 }
 bool run_loop3_code()
@@ -97,7 +103,7 @@ bool run_loop3_code()
 				if(success == 1)
 				{
 					process->new_message_recv(querymessages_tosend.at(i).id);
-					diag = process->new_message_GetANAPort1(BOARD_ID,a1,a2,a3,a4,a5,a6);
+					diag = process->new_message_GetANAPort1(BOARD_ID,ros::Time::now().toSec(),a1,a2,a3,a4,a5,a6);
 					if(diag.Level >= WARN)
 					{
 						diagnostic_pub.publish(diag);
@@ -110,7 +116,8 @@ bool run_loop3_code()
 				if(success == 1)
 				{
 					process->new_message_recv(querymessages_tosend.at(i).id);
-					diag = process->new_message_GetDIOPort1(BOARD_ID,a1,a2);
+					diag = process->new_message_GetDIOPort1(BOARD_ID,ros::Time::now().toSec(),
+							a1-BYTE2_OFFSET,a2-BYTE2_OFFSET);
 					if(diag.Level >= WARN)
 					{
 						diagnostic_pub.publish(diag);
@@ -172,11 +179,12 @@ void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg)
 	icarus_rover_v2::firmware fw;
 	fw.Generic_Node_Name = "boardcontroller_node";
 	fw.Node_Name = node_name;
-	fw.Description = "Latest Rev: 14-Sep-2017";
+	fw.Description = "Latest Rev: 7-Aug-2018";
 	fw.Major_Release = BOARDCONTROLLERNODE_MAJOR_RELEASE;
 	fw.Minor_Release = BOARDCONTROLLERNODE_MINOR_RELEASE;
 	fw.Build_Number = BOARDCONTROLLERNODE_BUILD_NUMBER;
 	firmware_pub.publish(fw);
+	printf("t=%4.2f (sec) [%s]: %s\n",ros::Time::now().toSec(),node_name.c_str(),process->get_diagnostic().Description.c_str());
 }
 void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
@@ -256,7 +264,7 @@ void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 	logger->log_info(process->get_messageinfo(false));
 }
 std::vector<icarus_rover_v2::diagnostic> check_program_variables()
-				{
+						{
 	std::vector<icarus_rover_v2::diagnostic> diaglist;
 	bool status = true;
 	logger->log_notice("checking program variables.");
@@ -280,7 +288,7 @@ std::vector<icarus_rover_v2::diagnostic> check_program_variables()
 		diaglist.push_back(diag);
 	}
 	return diaglist;
-				}
+						}
 
 void Command_Callback(const icarus_rover_v2::command::ConstPtr& msg)
 {
@@ -532,6 +540,22 @@ bool initializenode()
 	std::string heartbeat_topic = "/" + node_name + "/heartbeat";
 	heartbeat_pub = n->advertise<icarus_rover_v2::heartbeat>(heartbeat_topic,1000);
 	beat.Node_Name = node_name;
+
+	std::string param_startup_delay = node_name + "/startup_delay";
+    double startup_delay = 0.0;
+    if(n->getParam(param_startup_delay,startup_delay) == false)
+    {
+    	logger->log_notice("Missing Parameter: startup_delay.  Using Default: 0.0 sec.");
+    }
+    else
+    {
+    	char tempstr[128];
+    	sprintf(tempstr,"Using Parameter: startup_delay = %4.2f sec.",startup_delay);
+    	logger->log_notice(std::string(tempstr));
+    }
+    printf("[%s] Using Parameter: startup_delay = %4.2f sec.\n",node_name.c_str(),startup_delay);
+    ros::Duration(startup_delay).sleep();
+
 	std::string device_topic = "/" + std::string(hostname) + "_master_node/srv_device";
 	srv_device = n->serviceClient<icarus_rover_v2::srv_device>(device_topic);
 	pps01_sub = n->subscribe<std_msgs::Bool>("/01PPS",1000,PPS01_Callback);
@@ -647,12 +671,12 @@ bool new_devicemsg(std::string query,icarus_rover_v2::device device)
 				std::vector<Sensor> sensors = process->get_sensordata();
 				for(std::size_t i = 0; i < sensors.size(); i++)
 				{
-					if(sensors.at(i).output_datatype == "double")
+					if(sensors.at(i).output_datatype == "signal")
 					{
-						std::string analog_topic = "/" + sensors.at(i).name;
-						ros::Publisher pub = n->advertise<std_msgs::Float32>(analog_topic,10);
-						analog_sensor_pubs.push_back(pub);
-						analog_sensor_names.push_back(sensors.at(i).name);
+						std::string topic = "/" + sensors.at(i).name;
+						ros::Publisher pub = n->advertise<icarus_rover_v2::signal>(topic,10);
+						signal_sensor_pubs.push_back(pub);
+						signal_sensor_names.push_back(sensors.at(i).name);
 					}
 				}
 				logger->log_notice("Device finished initializing.");

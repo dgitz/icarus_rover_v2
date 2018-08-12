@@ -74,7 +74,6 @@ add_message_files(
   signal.msg
   pose.msg
   controlgroup.msg
-  encoder.msg
 )
 
 ## Generate services in the 'srv' folder

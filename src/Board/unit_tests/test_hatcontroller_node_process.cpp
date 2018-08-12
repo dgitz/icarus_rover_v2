@@ -75,9 +75,81 @@ HatControllerNodeProcess* readyprocess(HatControllerNodeProcess* process)
     EXPECT_TRUE(process->get_ready() == true);
     return process;
 }
-TEST(Template,Process_Initialization)
+TEST(Template,Process_Initialization_ServoHat)
 {
 	HatControllerNodeProcess* process = initializeprocess();
+	icarus_rover_v2::diagnostic diagnostic;
+		diagnostic.DeviceName = ros_DeviceName;
+		diagnostic.Node_Name = Node_Name;
+		diagnostic.System = ROVER;
+		diagnostic.SubSystem = ROBOT_CONTROLLER;
+		diagnostic.Component = COMMUNICATION_NODE;
+
+		diagnostic.Diagnostic_Type = NOERROR;
+		diagnostic.Level = INFO;
+		diagnostic.Diagnostic_Message = INITIALIZING;
+		diagnostic.Description = "Node Initializing";
+
+		icarus_rover_v2::device ros_device;
+		ros_device.DeviceName = ros_DeviceName;
+		ros_device.DeviceParent = "";
+		ros_device.DeviceType = ros_DeviceType;
+		ros_device.BoardCount = 1;
+		ros_device.SensorCount = 0;
+		ros_device.ID = 17;
+
+		icarus_rover_v2::device servohat1_device;
+		servohat1_device.DeviceName = "ServoHat1";
+		servohat1_device.DeviceParent = ros_DeviceName;
+		servohat1_device.DeviceType = "ServoHat";
+		servohat1_device.BoardCount = 0;
+		servohat1_device.ID = 64;
+
+		{
+			icarus_rover_v2::pin newpin;
+			newpin.ConnectedDevice = "PWM1";
+			newpin.Number = 0;
+			newpin.Function = "PWMOutput-NonActuator";
+			servohat1_device.pins.push_back(newpin);
+		}
+
+		{
+			icarus_rover_v2::pin newpin;
+			newpin.ConnectedDevice = "PWM2";
+			newpin.Number = 1;
+			newpin.Function = "PWMOutput-NonActuator";
+			servohat1_device.pins.push_back(newpin);
+		}
+
+	    {
+	    	icarus_rover_v2::pin newpin;
+	    	newpin.ConnectedDevice = "PWM3";
+	    	newpin.Number = 0;
+	    	newpin.Function = "PWMOutput-NonActuator";
+	    	servohat1_device.pins.push_back(newpin);
+	    }
+
+	    {
+	    	icarus_rover_v2::pin newpin;
+	    	newpin.ConnectedDevice = "PWM4";
+	    	newpin.Number = 1;
+	    	newpin.Function = "PWMOutput-NonActuator";
+	    	servohat1_device.pins.push_back(newpin);
+	    }
+
+
+		diagnostic = process->init(diagnostic,std::string(Host_Name));
+		EXPECT_TRUE(diagnostic.Level <= NOTICE);
+
+		process->set_mydevice(ros_device);
+		EXPECT_TRUE(process->get_initialized() == true);
+		EXPECT_TRUE(process->is_ready() == false);
+
+		diagnostic = process->new_devicemsg(servohat1_device);
+		printf("%s\n",diagnostic.Description.c_str());
+		EXPECT_TRUE(diagnostic.Level <= NOTICE);
+
+		EXPECT_TRUE(process->is_ready() == true);
 }
 
 TEST(Template,Process_Command)

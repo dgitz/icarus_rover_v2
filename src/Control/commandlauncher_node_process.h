@@ -28,6 +28,7 @@ struct ProcessCommand
 	uint32_t param_uint32_1;
 	string command_text;
 	string process_name;
+	string kill_name;
 	uint32_t pid;
 	uint32_t restart_counter;
 	int32_t max_restarts;

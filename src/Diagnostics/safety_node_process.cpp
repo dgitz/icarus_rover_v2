@@ -35,6 +35,7 @@ icarus_rover_v2::diagnostic SafetyNodeProcess::update(double dt)
 	run_time += dt;
    	if(initialized == true) { ready = true; }
     icarus_rover_v2::diagnostic diag = diagnostic;
+    estop.state = ESTOP_DISACTIVATED;
     if(estop.state == ESTOP_DISACTIVATED)
     {
         ready_to_arm = true;
@@ -47,6 +48,7 @@ icarus_rover_v2::diagnostic SafetyNodeProcess::update(double dt)
     {
         ready_to_arm = false;
     }
+
     
     diag.Diagnostic_Type = NOERROR;
 	diag.Level = INFO;

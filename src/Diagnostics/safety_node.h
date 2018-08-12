@@ -134,7 +134,7 @@ bool ready_to_arm;
 ros::Publisher ready_to_arm_pub;
 ros::Publisher estop_pub;
 
-//TerminalHatDriver TerminalHat;
+TerminalHatDriver TerminalHat;
 bool TerminalHat_running;
 //End User Code: Define Global Variables
 #endif

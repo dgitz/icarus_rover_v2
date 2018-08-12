@@ -352,6 +352,7 @@ icarus_rover_v2::diagnostic DiagnosticNodeProcess::new_1ppsmsg()
 }
 icarus_rover_v2::diagnostic DiagnosticNodeProcess::new_01ppsmsg()
 {
+
 	icarus_rover_v2::diagnostic diag = diagnostic;
 	last_01pps_timer = 0.0;
 	return diag;

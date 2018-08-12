@@ -9,21 +9,63 @@
  */
 bool run_loop1_code()
 {
-	icarus_rover_v2::diagnostic diagnostic = rescan_topics(process->get_diagnostic());
-	if(diagnostic.Level > NOTICE)
 	{
-		diagnostic_pub.publish(diagnostic);
+		std::vector<NetworkTransceiverNodeProcess::QueueElement> buffer = process->get_sendqueue(PRIORITYLEVEL_HIGH);
+		for(std::size_t i = 0; i < buffer.size(); i++)
+		{
+			if(sendto(senddevice_sock, buffer.at(i).item.c_str(), buffer.at(i).item.size(), 0, (struct sockaddr *)&senddevice_addr, sizeof(senddevice_addr))!=buffer.at(i).item.size())
+			{
+				logger->log_warn("Mismatch in number of bytes sent");
+			}
+			else
+			{
+				process->new_message_sent(buffer.at(i).id);
+			}
+			usleep(1000);
+		}
 	}
- 	return true;
+
+	{
+		std::vector<NetworkTransceiverNodeProcess::QueueElement> buffer = process->get_sendqueue(PRIORITYLEVEL_MEDIUM);
+		for(std::size_t i = 0; i < buffer.size(); i++)
+		{
+			if(sendto(senddevice_sock, buffer.at(i).item.c_str(), buffer.at(i).item.size(), 0, (struct sockaddr *)&senddevice_addr, sizeof(senddevice_addr))!=buffer.at(i).item.size())
+			{
+				logger->log_warn("Mismatch in number of bytes sent");
+			}
+			else
+			{
+				process->new_message_sent(buffer.at(i).id);
+			}
+			usleep(1000);
+		}
+	}
+	{
+		std::vector<NetworkTransceiverNodeProcess::QueueElement> buffer = process->get_sendqueue(PRIORITYLEVEL_LOW);
+		for(std::size_t i = 0; i < buffer.size(); i++)
+		{
+			if(sendto(senddevice_sock, buffer.at(i).item.c_str(), buffer.at(i).item.size(), 0, (struct sockaddr *)&senddevice_addr, sizeof(senddevice_addr))!=buffer.at(i).item.size())
+			{
+				logger->log_warn("Mismatch in number of bytes sent");
+			}
+			else
+			{
+				process->new_message_sent(buffer.at(i).id);
+			}
+			usleep(1000);
+		}
+	}
+
+	return true;
 }
 /*! \brief User Loop2 Code
  */
 bool run_loop2_code()
 {
-       
+
 
 	if((remote_heartbeat_pass == true) and
-	   (1 == 1)) //Others??
+			(1 == 1)) //Others??
 	{
 		ready_to_arm = true;
 	}
@@ -34,19 +76,19 @@ bool run_loop2_code()
 	std_msgs::Bool bool_ready_to_arm;
 	bool_ready_to_arm.data = ready_to_arm;
 	ready_to_arm_pub.publish(bool_ready_to_arm);
- 	return true;
+	return true;
 }
 /*! \brief User Loop3 Code
  */
 bool run_loop3_code()
 {
-   	icarus_rover_v2::diagnostic diagnostic = process->update(measure_time_diff(ros::Time::now(),last_loop3_timer));
+	icarus_rover_v2::diagnostic diagnostic = process->update(measure_time_diff(ros::Time::now(),last_loop3_timer));
 	if(diagnostic.Level > NOTICE)
 	{
 		diagnostic_pub.publish(diagnostic);
-    	logger->log_info(process->get_messageinfo(false));
+		logger->log_info(process->get_messageinfo(false));
 	}
- 	return true;
+	return true;
 }
 bool check_remoteHeartbeats()
 {
@@ -140,7 +182,7 @@ icarus_rover_v2::diagnostic rescan_topics(icarus_rover_v2::diagnostic diag)
 				diagnostic_subs.push_back(sub);
 			}
 		}
-        else if(info.datatype == "icarus_rover_v2/firmware")
+		else if(info.datatype == "icarus_rover_v2/firmware")
 		{
 			bool found = true;
 			for(int i = 0; i < firmware_topics.size();i++)
@@ -185,7 +227,7 @@ icarus_rover_v2::diagnostic rescan_topics(icarus_rover_v2::diagnostic diag)
 				//device_subs.push_back(sub);
 			}
 		}
-		*/
+		 */
 
 	}
 	icarus_rover_v2::srv_device srv;
@@ -225,21 +267,12 @@ icarus_rover_v2::diagnostic rescan_topics(icarus_rover_v2::diagnostic diag)
 void estop_Callback(const icarus_rover_v2::estop::ConstPtr& msg)
 {
 	std::string send_string = udpmessagehandler->encode_EStopUDP(msg->name,msg->state);
-	if(sendto(senddevice_sock, send_string.c_str(), send_string.size(), 0, (struct sockaddr *)&senddevice_addr, sizeof(senddevice_addr))!=send_string.size())
-	{
-		logger->log_warn("Mismatch in number of bytes sent");
-	}
-    else { process->new_message_sent(ESTOP_ID); }
+	process->push_sendqueue(ESTOP_ID,send_string);
 }
 void ArmedState_Callback(const std_msgs::UInt8::ConstPtr& msg)
 {
-	std::string send_string = udpmessagehandler->encode_Arm_StatusUDP(
-																		msg->data);
-	if(sendto(senddevice_sock, send_string.c_str(), send_string.size(), 0, (struct sockaddr *)&senddevice_addr, sizeof(senddevice_addr))!=send_string.size())
-	{
-		logger->log_warn("Mismatch in number of bytes sent");
-	}
-    else { process->new_message_sent(ARM_STATUS_ID); }
+	std::string send_string = udpmessagehandler->encode_Arm_StatusUDP(msg->data);
+	process->push_sendqueue(ARM_STATUS_ID,send_string);
 }
 void diagnostic_Callback(const icarus_rover_v2::diagnostic::ConstPtr& msg)
 {
@@ -247,35 +280,27 @@ void diagnostic_Callback(const icarus_rover_v2::diagnostic::ConstPtr& msg)
 	//sprintf(tempstr,"Got Diagnostic from Task: %s with System: %d Level: %d",msg->Node_Name.c_str(),msg->Level,msg->System);
 	//logger->log_info(tempstr);
 	std::string send_string = udpmessagehandler->encode_DiagnosticUDP(
-																		msg->DeviceName,
-																		msg->Node_Name,
-																(uint8_t)msg->System,
-																(uint8_t)msg->SubSystem,
-																(uint8_t)msg->Component,
-																(uint8_t)msg->Diagnostic_Type,
-																(uint8_t)msg->Level,
-																(uint8_t)msg->Diagnostic_Message,
-																msg->Description);
-	if(sendto(senddevice_sock, send_string.c_str(), send_string.size(), 0, (struct sockaddr *)&senddevice_addr, sizeof(senddevice_addr))!=send_string.size())
-	{
-		  logger->log_warn("Mismatch in number of bytes sent");
-	}
-    else { process->new_message_sent(DIAGNOSTIC_ID); }
+			msg->DeviceName,
+			msg->Node_Name,
+			(uint8_t)msg->System,
+			(uint8_t)msg->SubSystem,
+			(uint8_t)msg->Component,
+			(uint8_t)msg->Diagnostic_Type,
+			(uint8_t)msg->Level,
+			(uint8_t)msg->Diagnostic_Message,
+			msg->Description);
+	process->push_sendqueue(DIAGNOSTIC_ID,send_string);
 }
 void firmware_Callback(const icarus_rover_v2::firmware::ConstPtr& msg)
 {
 	std::string send_string = udpmessagehandler->encode_FirmwareUDP(
-																		msg->Node_Name,
-																		msg->Description,
-																(uint8_t)msg->Major_Release,
-																(uint8_t)msg->Minor_Release,
-																(uint8_t)msg->Build_Number);
-																
-	if(sendto(senddevice_sock, send_string.c_str(), send_string.size(), 0, (struct sockaddr *)&senddevice_addr, sizeof(senddevice_addr))!=send_string.size())
-	{
-		  logger->log_warn("Mismatch in number of bytes sent");
-	}
-    else { process->new_message_sent(FIRMWARE_ID); }
+			msg->Node_Name,
+			msg->Description,
+			(uint8_t)msg->Major_Release,
+			(uint8_t)msg->Minor_Release,
+			(uint8_t)msg->Build_Number);
+
+	process->push_sendqueue(FIRMWARE_ID,send_string);
 }
 void resource_Callback(const icarus_rover_v2::resource::ConstPtr& msg)
 {
@@ -283,13 +308,9 @@ void resource_Callback(const icarus_rover_v2::resource::ConstPtr& msg)
 	//sprintf(tempstr,"Got Resource from Task: %s",msg->Node_Name.c_str());
 	//logger->log_info(tempstr);
 	std::string send_string = udpmessagehandler->encode_ResourceUDP(msg->Node_Name,
-																	msg->RAM_MB,
-																	msg->CPU_Perc);
-	if(sendto(senddevice_sock, send_string.c_str(), send_string.size(), 0, (struct sockaddr *)&senddevice_addr, sizeof(senddevice_addr))!=send_string.size())
-	{
-		  logger->log_warn("Mismatch in number of bytes sent");
-	}
-    else { process->new_message_sent(RESOURCE_ID); }
+			msg->RAM_MB,
+			msg->CPU_Perc);
+	process->push_sendqueue(RESOURCE_ID,send_string);
 }
 void device_callback(std::vector<icarus_rover_v2::device> devicelist)
 {
@@ -299,11 +320,7 @@ void device_callback(std::vector<icarus_rover_v2::device> devicelist)
 				devicelist.at(i).DeviceName,
 				devicelist.at(i).DeviceType,
 				devicelist.at(i).Architecture);
-		if(sendto(senddevice_sock, send_string.c_str(), send_string.size(), 0, (struct sockaddr *)&senddevice_addr, sizeof(senddevice_addr))!=send_string.size())
-		{
-			logger->log_warn("Mismatch in number of bytes sent");
-		}
-		else { process->new_message_sent(DEVICE_ID); }
+		process->push_sendqueue(DEVICE_ID,send_string);
 	}
 }
 
@@ -331,149 +348,149 @@ void process_udp_receive()
 		std::string tempstr1,tempstr2;
 		double v1, v2, v3;
 		uint64_t t,t2;
-        process->new_message_recv(id);
+		process->new_message_recv(id);
 		switch (id)
 		{
 
-			case UDPMessageHandler::UDP_Command_ID:
-				success = udpmessagehandler->decode_CommandUDP(items,&command,&option1,&option2,&option3,&tempstr1,&tempstr2);
-				if(success == 1)
+		case UDPMessageHandler::UDP_Command_ID:
+			success = udpmessagehandler->decode_CommandUDP(items,&command,&option1,&option2,&option3,&tempstr1,&tempstr2);
+			if(success == 1)
+			{
+				icarus_rover_v2::command newcommand;
+				newcommand.Command = command;
+				newcommand.Option1 = option1;
+				newcommand.Option2 = option2;
+				newcommand.Option3 = option3;
+				newcommand.CommandText = tempstr1;
+				newcommand.Description = tempstr2;
+				user_command_pub.publish(newcommand);
+			}
+			else
+			{
+				printf("Couldn't decode message.\n");
+			}
+			break;
+		case UDPMessageHandler::UDP_Heartbeat_ID:
+			success = udpmessagehandler->decode_HeartbeatUDP(items,&tempstr1,&t,&t2);
+			if(success == 1)
+			{
+				//printf("Dev: %s current t: %llu expected t: %llu\n",tempstr1.c_str(),t,t2);
+				bool add_new_entry = true;
+				for(int i = 0; i < remote_devices.size(); i++)
 				{
-					icarus_rover_v2::command newcommand;
-					newcommand.Command = command;
-					newcommand.Option1 = option1;
-					newcommand.Option2 = option2;
-					newcommand.Option3 = option3;
-					newcommand.CommandText = tempstr1;
-					newcommand.Description = tempstr2;
-					user_command_pub.publish(newcommand);
-				}
-				else
-				{
-					printf("Couldn't decode message.\n");
-				}
-				break;
-			case UDPMessageHandler::UDP_Heartbeat_ID:
-				success = udpmessagehandler->decode_HeartbeatUDP(items,&tempstr1,&t,&t2);
-				if(success == 1)
-				{
-					//printf("Dev: %s current t: %llu expected t: %llu\n",tempstr1.c_str(),t,t2);
-					bool add_new_entry = true;
-					for(int i = 0; i < remote_devices.size(); i++)
+					if(tempstr1 == remote_devices.at(i).Name)
 					{
-						if(tempstr1 == remote_devices.at(i).Name)
-						{
-							add_new_entry = false;
-							remote_devices.at(i).current_beatepoch_sec = t/1000.0;
-							remote_devices.at(i).expected_beatepoch_sec = t2/1000.0;
-							break;
-						}
-					}
-					if(add_new_entry == true)
-					{
-						RemoteDevice dev;
-						dev.Name = tempstr1;
-						dev.current_beatepoch_sec = t/1000.0;
-						dev.expected_beatepoch_sec = t2/1000.0;
-						double now_sec = ros::Time::now().sec + ros::Time::now().nsec/1000000000.0;
-						dev.offset_sec = now_sec-dev.current_beatepoch_sec;
-						remote_devices.push_back(dev);
+						add_new_entry = false;
+						remote_devices.at(i).current_beatepoch_sec = t/1000.0;
+						remote_devices.at(i).expected_beatepoch_sec = t2/1000.0;
+						break;
 					}
 				}
-				else
+				if(add_new_entry == true)
 				{
-					printf("Couldn't decode message.\n");
+					RemoteDevice dev;
+					dev.Name = tempstr1;
+					dev.current_beatepoch_sec = t/1000.0;
+					dev.expected_beatepoch_sec = t2/1000.0;
+					double now_sec = ros::Time::now().sec + ros::Time::now().nsec/1000000000.0;
+					dev.offset_sec = now_sec-dev.current_beatepoch_sec;
+					remote_devices.push_back(dev);
 				}
-				break;
-			case UDPMessageHandler::UDP_RemoteControl_ID:
+			}
+			else
+			{
+				printf("Couldn't decode message.\n");
+			}
+			break;
+		case UDPMessageHandler::UDP_RemoteControl_ID:
 
-				success = udpmessagehandler->decode_RemoteControlUDP(items,&t,&axis1,&axis2,&axis3,&axis4,&axis5,&axis6,&axis7,&axis8,
-																	&button1,&button2,&button3,&button4,&button5,&button6,&button7,&button8);
-				if(success == 1)
-				{
-					sensor_msgs::Joy newjoy;
-                    double send_time = t/1000.0;
-					newjoy.header.stamp.sec = floor(send_time);
-                    newjoy.header.stamp.nsec = (send_time-newjoy.header.stamp.sec)*1000000000;
-					newjoy.header.frame_id = "/world";
-					newjoy.axes.push_back((float)(axis1/32768.0));
-					newjoy.axes.push_back((float)(axis2/32768.0));
-					newjoy.axes.push_back((float)(axis3/32768.0));
-					newjoy.axes.push_back((float)(axis4/32768.0));
-					newjoy.axes.push_back((float)(axis5/32768.0));
-					newjoy.axes.push_back((float)(axis6/32768.0));
-					newjoy.axes.push_back((float)(axis7/32768.0));
-					newjoy.axes.push_back((float)(axis8/32768.0));
-					newjoy.buttons.push_back(button1);
-					newjoy.buttons.push_back(button2);
-					newjoy.buttons.push_back(button3);
-					newjoy.buttons.push_back(button4);
-					newjoy.buttons.push_back(button5);
-					newjoy.buttons.push_back(button6);
-					newjoy.buttons.push_back(button7);
-					newjoy.buttons.push_back(button8);
-					joy_pub.publish(newjoy);
-				}
-				else
-				{
-					printf("Couldn't decode message.\n");
-				}
-				break;
-			case UDPMessageHandler::UDP_ArmControl_ID:
-				success = udpmessagehandler->decode_ArmControlUDP(items,&device,&axis1,&axis2,&axis3,&axis4,&axis5,&axis6,
-						&button1,&button2,&button3,&button4,&button5,&button6);
-				if(success == 1)
-				{
-					sensor_msgs::Joy newjoy;
-					newjoy.header.stamp = ros::Time::now();
-					newjoy.header.frame_id = "/world";
-					newjoy.axes.push_back((float)(axis1/-32768.0));
-					newjoy.axes.push_back((float)(axis2/-32768.0));
-					newjoy.axes.push_back((float)(axis3/-32768.0));
-					newjoy.axes.push_back((float)(axis4/-32768.0));
-					newjoy.axes.push_back((float)(axis5/-32768.0));
-					newjoy.axes.push_back((float)(axis6/-32768.0));
-					newjoy.buttons.push_back(button1);
-					newjoy.buttons.push_back(button2);
-					newjoy.buttons.push_back(button3);
-					newjoy.buttons.push_back(button4);
-					newjoy.buttons.push_back(button5);
-					newjoy.buttons.push_back(button6);
-					arm1_joy_pub.publish(newjoy);
-				}
-				else
-				{
-					printf("Couldn't decode message.\n");
-				}
-				break;
-			case UDPMessageHandler::UDP_TuneControlGroup_ID:
-				success = udpmessagehandler->decode_TuneControlGroupUDP(items,&tempstr1,&tempstr2,&v1,&v2,&v3,&int_1,&int_2,&int_3);
-				if(success == 1)
-				{
-					icarus_rover_v2::controlgroup cg;
-					cg.name = tempstr1;
-					cg.type = tempstr2;
-					cg.value1 = v1;
-					cg.value2 = v2;
-					cg.value3 = v3;
-					cg.maxvalue = int_1;
-					cg.minvalue = int_2;
-					cg.defaultvalue = int_3;
-					controlgroup_pub.publish(cg);
-					
-				}
-				else
-				{
-					printf("Couldn't decode message.\n");
-				}
-				break;
-			default:
-				char tempstr[512];
+			success = udpmessagehandler->decode_RemoteControlUDP(items,&t,&axis1,&axis2,&axis3,&axis4,&axis5,&axis6,&axis7,&axis8,
+					&button1,&button2,&button3,&button4,&button5,&button6,&button7,&button8);
+			if(success == 1)
+			{
+				sensor_msgs::Joy newjoy;
+				double send_time = t/1000.0;
+				newjoy.header.stamp.sec = floor(send_time);
+				newjoy.header.stamp.nsec = (send_time-newjoy.header.stamp.sec)*1000000000;
+				newjoy.header.frame_id = "/world";
+				newjoy.axes.push_back((float)(axis1/32768.0));
+				newjoy.axes.push_back((float)(axis2/32768.0));
+				newjoy.axes.push_back((float)(axis3/32768.0));
+				newjoy.axes.push_back((float)(axis4/32768.0));
+				newjoy.axes.push_back((float)(axis5/32768.0));
+				newjoy.axes.push_back((float)(axis6/32768.0));
+				newjoy.axes.push_back((float)(axis7/32768.0));
+				newjoy.axes.push_back((float)(axis8/32768.0));
+				newjoy.buttons.push_back(button1);
+				newjoy.buttons.push_back(button2);
+				newjoy.buttons.push_back(button3);
+				newjoy.buttons.push_back(button4);
+				newjoy.buttons.push_back(button5);
+				newjoy.buttons.push_back(button6);
+				newjoy.buttons.push_back(button7);
+				newjoy.buttons.push_back(button8);
+				joy_pub.publish(newjoy);
+			}
+			else
+			{
+				printf("Couldn't decode message.\n");
+			}
+			break;
+		case UDPMessageHandler::UDP_ArmControl_ID:
+			success = udpmessagehandler->decode_ArmControlUDP(items,&device,&axis1,&axis2,&axis3,&axis4,&axis5,&axis6,
+					&button1,&button2,&button3,&button4,&button5,&button6);
+			if(success == 1)
+			{
+				sensor_msgs::Joy newjoy;
+				newjoy.header.stamp = ros::Time::now();
+				newjoy.header.frame_id = "/world";
+				newjoy.axes.push_back((float)(axis1/-32768.0));
+				newjoy.axes.push_back((float)(axis2/-32768.0));
+				newjoy.axes.push_back((float)(axis3/-32768.0));
+				newjoy.axes.push_back((float)(axis4/-32768.0));
+				newjoy.axes.push_back((float)(axis5/-32768.0));
+				newjoy.axes.push_back((float)(axis6/-32768.0));
+				newjoy.buttons.push_back(button1);
+				newjoy.buttons.push_back(button2);
+				newjoy.buttons.push_back(button3);
+				newjoy.buttons.push_back(button4);
+				newjoy.buttons.push_back(button5);
+				newjoy.buttons.push_back(button6);
+				arm1_joy_pub.publish(newjoy);
+			}
+			else
+			{
+				printf("Couldn't decode message.\n");
+			}
+			break;
+		case UDPMessageHandler::UDP_TuneControlGroup_ID:
+			success = udpmessagehandler->decode_TuneControlGroupUDP(items,&tempstr1,&tempstr2,&v1,&v2,&v3,&int_1,&int_2,&int_3);
+			if(success == 1)
+			{
+				icarus_rover_v2::controlgroup cg;
+				cg.name = tempstr1;
+				cg.type = tempstr2;
+				cg.value1 = v1;
+				cg.value2 = v2;
+				cg.value3 = v3;
+				cg.maxvalue = int_1;
+				cg.minvalue = int_2;
+				cg.defaultvalue = int_3;
+				controlgroup_pub.publish(cg);
 
-				sprintf(tempstr,"Message: %d Not Supported.",id);
-				printf("%s\n",tempstr);
-				logger->log_warn(std::string(tempstr));
-				break;
+			}
+			else
+			{
+				printf("Couldn't decode message.\n");
+			}
+			break;
+		default:
+			char tempstr[512];
+
+			sprintf(tempstr,"Message: %d Not Supported.",id);
+			printf("%s\n",tempstr);
+			logger->log_warn(std::string(tempstr));
+			break;
 		}
 
 	}
@@ -525,6 +542,12 @@ bool initialize_sendsocket()
  */
 void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
+	icarus_rover_v2::diagnostic diagnostic = rescan_topics(process->get_diagnostic());
+	if(diagnostic.Level > NOTICE)
+	{
+		diagnostic_pub.publish(diagnostic);
+	}
+
 	icarus_rover_v2::firmware fw;
 	fw.Generic_Node_Name = "network_transceiver_Node";
 	fw.Node_Name = node_name;
@@ -534,14 +557,14 @@ void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg)
 	fw.Build_Number = NETWORKTRANSCEIVERNODE_BUILD_NUMBER;
 	firmware_pub.publish(fw);
 	printf("t=%4.2f (sec) [%s]: %s\n",ros::Time::now().toSec(),node_name.c_str(),process->get_diagnostic().Description.c_str());
-    logger->log_info(process->get_messageinfo(false));
+	logger->log_info(process->get_messageinfo(false));
 }
 /*! \brief 1.0 PULSE PER SECOND User Code
  */
 void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
 	received_pps = true;
-    if((process->get_initialized() == true) and (process->get_ready() == true))
+	if((process->get_initialized() == true) and (process->get_ready() == true))
 	{
 		icarus_rover_v2::diagnostic resource_diagnostic = resourcemonitor->update();
 		if(resource_diagnostic.Diagnostic_Message == DEVICE_NOT_AVAILABLE)
@@ -562,13 +585,13 @@ void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 			resource_pub.publish(resources_used);
 		}
 	}
-    else if((process->get_ready() == false) and (process->get_initialized() == true))
-    {
-        
-    }
+	else if((process->get_ready() == false) and (process->get_initialized() == true))
+	{
+
+	}
 	else if(process->get_initialized() == false)
-    {
-    	{
+	{
+		{
 			icarus_rover_v2::srv_device srv;
 			srv.request.query = "SELF";
 			if(srv_device.call(srv) == true)
@@ -582,9 +605,10 @@ void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 					bool status = new_devicemsg(srv.request.query,srv.response.data.at(0));
 				}
 			}
-    	}
-    }
-    diagnostic_pub.publish(process->get_diagnostic());
+		}
+	}
+	diagnostic_pub.publish(process->get_diagnostic());
+
 }
 void Command_Callback(const icarus_rover_v2::command::ConstPtr& msg)
 {
@@ -599,115 +623,115 @@ void Command_Callback(const icarus_rover_v2::command::ConstPtr& msg)
 	for(std::size_t i = 0; i < diaglist.size(); i++)
 	{
 		if(diaglist.at(i).Level >= NOTICE)
-        {
-            logger->log_diagnostic(diaglist.at(i));
-            diagnostic_pub.publish(diaglist.at(i));
-        }
-        if((diaglist.at(i).Level > NOTICE) and (process->get_runtime() > 10.0))
-        {
-            printf("[%s]: %s\n",node_name.c_str(),diaglist.at(i).Description.c_str());
-        }
+		{
+			logger->log_diagnostic(diaglist.at(i));
+			diagnostic_pub.publish(diaglist.at(i));
+		}
+		if((diaglist.at(i).Level > NOTICE) and (process->get_runtime() > 10.0))
+		{
+			printf("[%s]: %s\n",node_name.c_str(),diaglist.at(i).Description.c_str());
+		}
 	}
 }
 //End User Code: Functions
 bool run_10Hz_code()
 {
-    beat.stamp = ros::Time::now();
+	beat.stamp = ros::Time::now();
 	heartbeat_pub.publish(beat);
-    if(process->get_diagnostic().Level > NOTICE)
-    {
-        diagnostic_pub.publish(process->get_diagnostic());
-        logger->log_diagnostic(process->get_diagnostic());
-    }
-    return true;
+	if(process->get_diagnostic().Level > NOTICE)
+	{
+		diagnostic_pub.publish(process->get_diagnostic());
+		logger->log_diagnostic(process->get_diagnostic());
+	}
+	return true;
 }
 int main(int argc, char **argv)
 {
 	node_name = "network_transceiver_node";
-    ros::init(argc, argv, node_name);
-    n.reset(new ros::NodeHandle);
-    node_name = ros::this_node::getName();
-    ros::NodeHandle n;
-    
-    if(initializenode() == false)
-    {
-        char tempstr[256];
-        sprintf(tempstr,"Unable to Initialize. Exiting.");
-        printf("[%s]: %s\n",node_name.c_str(),tempstr);
-        logger->log_fatal(tempstr);
+	ros::init(argc, argv, node_name);
+	n.reset(new ros::NodeHandle);
+	node_name = ros::this_node::getName();
+	ros::NodeHandle n;
+
+	if(initializenode() == false)
+	{
+		char tempstr[256];
+		sprintf(tempstr,"Unable to Initialize. Exiting.");
+		printf("[%s]: %s\n",node_name.c_str(),tempstr);
+		logger->log_fatal(tempstr);
 		kill_node = 1;
-    }
-    ros::Rate loop_rate(ros_rate);
+	}
+	ros::Rate loop_rate(ros_rate);
 	boot_time = ros::Time::now();
-    last_10Hz_timer = ros::Time::now();
-    double mtime;
+	last_10Hz_timer = ros::Time::now();
+	double mtime;
 	boost::thread process_udpreceive_thread(&process_udp_receive);
-    while (ros::ok() && (kill_node == 0))
-    {
-    	bool ok_to_start = false;
+	while (ros::ok() && (kill_node == 0))
+	{
+		bool ok_to_start = false;
 		if(require_pps_to_start == false) { ok_to_start = true;}
 		else if(require_pps_to_start == true && received_pps == true) { ok_to_start = true; }
-    	if(ok_to_start == true)
-    	{
-            if(run_loop1 == true)
-            {
-                mtime = measure_time_diff(ros::Time::now(),last_loop1_timer);
-                if(mtime >= (1.0/loop1_rate))
-                {
-                    run_loop1_code();
-                    last_loop1_timer = ros::Time::now();
-                }
-            }
-            if(run_loop2 == true)
-            {
-                mtime = measure_time_diff(ros::Time::now(),last_loop2_timer);
-                if(mtime >= (1.0/loop2_rate))
-                {
-                    run_loop2_code();
-                    last_loop2_timer = ros::Time::now();
-                }
-            }
-            if(run_loop3 == true)
-            {
-                mtime = measure_time_diff(ros::Time::now(),last_loop3_timer);
-                if(mtime >= (1.0/loop3_rate))
-                {
-                    run_loop3_code();
-                    last_loop3_timer = ros::Time::now();
-                }
-            }
-            
-            mtime = measure_time_diff(ros::Time::now(),last_10Hz_timer);
-            if(mtime >= 0.1)
-            {
-                run_10Hz_code();
-                last_10Hz_timer = ros::Time::now();
-            }
-    	}
+		if(ok_to_start == true)
+		{
+			if(run_loop1 == true)
+			{
+				mtime = measure_time_diff(ros::Time::now(),last_loop1_timer);
+				if(mtime >= (1.0/loop1_rate))
+				{
+					run_loop1_code();
+					last_loop1_timer = ros::Time::now();
+				}
+			}
+			if(run_loop2 == true)
+			{
+				mtime = measure_time_diff(ros::Time::now(),last_loop2_timer);
+				if(mtime >= (1.0/loop2_rate))
+				{
+					run_loop2_code();
+					last_loop2_timer = ros::Time::now();
+				}
+			}
+			if(run_loop3 == true)
+			{
+				mtime = measure_time_diff(ros::Time::now(),last_loop3_timer);
+				if(mtime >= (1.0/loop3_rate))
+				{
+					run_loop3_code();
+					last_loop3_timer = ros::Time::now();
+				}
+			}
+
+			mtime = measure_time_diff(ros::Time::now(),last_10Hz_timer);
+			if(mtime >= 0.1)
+			{
+				run_10Hz_code();
+				last_10Hz_timer = ros::Time::now();
+			}
+		}
 		else
 		{
 			logger->log_warn("Waiting on PPS to Start.");
 		}
 		ros::spinOnce();
 		loop_rate.sleep();
-    }
-    process_udpreceive_thread.join();
-    close(recvdevice_sock);
-    close(senddevice_sock);
-    logger->log_notice("Node Finished Safely.");
-    return 0;
+	}
+	process_udpreceive_thread.join();
+	close(recvdevice_sock);
+	close(senddevice_sock);
+	logger->log_notice("Node Finished Safely.");
+	return 0;
 }
 bool initializenode()
 {
-    //Start Template Code: Initialization, Parameters and Topics
+	//Start Template Code: Initialization, Parameters and Topics
 	kill_node = 0;
 	signal(SIGINT,signalinterrupt_handler);
-    hostname[1023] = '\0';
-    gethostname(hostname,1023);
-    std::string diagnostic_topic = "/" + node_name + "/diagnostic";
+	hostname[1023] = '\0';
+	gethostname(hostname,1023);
+	std::string diagnostic_topic = "/" + node_name + "/diagnostic";
 	diagnostic_pub =  n->advertise<icarus_rover_v2::diagnostic>(diagnostic_topic,5);
-    icarus_rover_v2::diagnostic diagnostic;
-    diagnostic.DeviceName = hostname;
+	icarus_rover_v2::diagnostic diagnostic;
+	diagnostic.DeviceName = hostname;
 	diagnostic.Node_Name = node_name;
 	diagnostic.System = ROVER;
 	diagnostic.SubSystem = ROBOT_CONTROLLER;
@@ -722,94 +746,110 @@ bool initializenode()
 	std::string resource_topic = "/" + node_name + "/resource";
 	resource_pub = n->advertise<icarus_rover_v2::resource>(resource_topic,5);
 
-    std::string param_verbosity_level = node_name +"/verbosity_level";
-    if(n->getParam(param_verbosity_level,verbosity_level) == false)
-    {
-        logger = new Logger("WARN",ros::this_node::getName());
-        logger->log_warn("Missing Parameter: verbosity_level");
-        return false;
-    }
-    else
-    {
-        logger = new Logger(verbosity_level,ros::this_node::getName());      
-    }
+	std::string param_verbosity_level = node_name +"/verbosity_level";
+	if(n->getParam(param_verbosity_level,verbosity_level) == false)
+	{
+		logger = new Logger("WARN",ros::this_node::getName());
+		logger->log_warn("Missing Parameter: verbosity_level");
+		return false;
+	}
+	else
+	{
+		logger = new Logger(verbosity_level,ros::this_node::getName());
+	}
 	std::string param_disabled = node_name +"/disable";
-    bool disable_node;
-    if(n->getParam(param_disabled,disable_node) == true)
-    {
-    	if(disable_node == true)
-    	{
-    		logger->log_notice("Node Disabled in Launch File.  Exiting.");
-    		printf("[%s]: Node Disabled in Launch File. Exiting.\n",node_name.c_str());
-    		return false;
-    	}
-    }
-    
-    std::string heartbeat_topic = "/" + node_name + "/heartbeat";
-    heartbeat_pub = n->advertise<icarus_rover_v2::heartbeat>(heartbeat_topic,5);
-    beat.Node_Name = node_name;
-    std::string device_topic = "/" + std::string(hostname) + "_master_node/srv_device";
-    srv_device = n->serviceClient<icarus_rover_v2::srv_device>(device_topic);
+	bool disable_node;
+	if(n->getParam(param_disabled,disable_node) == true)
+	{
+		if(disable_node == true)
+		{
+			logger->log_notice("Node Disabled in Launch File.  Exiting.");
+			printf("[%s]: Node Disabled in Launch File. Exiting.\n",node_name.c_str());
+			return false;
+		}
+	}
 
-    pps01_sub = n->subscribe<std_msgs::Bool>("/01PPS",5,PPS01_Callback); 
-    pps1_sub = n->subscribe<std_msgs::Bool>("/1PPS",5,PPS1_Callback); 
-    command_sub = n->subscribe<icarus_rover_v2::command>("/command",5,Command_Callback);
-    std::string param_require_pps_to_start = node_name +"/require_pps_to_start";
-    if(n->getParam(param_require_pps_to_start,require_pps_to_start) == false)
+	std::string heartbeat_topic = "/" + node_name + "/heartbeat";
+	heartbeat_pub = n->advertise<icarus_rover_v2::heartbeat>(heartbeat_topic,5);
+	beat.Node_Name = node_name;
+
+	std::string param_startup_delay = node_name + "/startup_delay";
+	double startup_delay = 0.0;
+	if(n->getParam(param_startup_delay,startup_delay) == false)
+	{
+		logger->log_notice("Missing Parameter: startup_delay.  Using Default: 0.0 sec.");
+	}
+	else
+	{
+		char tempstr[128];
+		sprintf(tempstr,"Using Parameter: startup_delay = %4.2f sec.",startup_delay);
+		logger->log_notice(std::string(tempstr));
+	}
+	printf("[%s] Using Parameter: startup_delay = %4.2f sec.\n",node_name.c_str(),startup_delay);
+	ros::Duration(startup_delay).sleep();
+
+	std::string device_topic = "/" + std::string(hostname) + "_master_node/srv_device";
+	srv_device = n->serviceClient<icarus_rover_v2::srv_device>(device_topic);
+
+	pps01_sub = n->subscribe<std_msgs::Bool>("/01PPS",5,PPS01_Callback);
+	pps1_sub = n->subscribe<std_msgs::Bool>("/1PPS",5,PPS1_Callback);
+	command_sub = n->subscribe<icarus_rover_v2::command>("/command",5,Command_Callback);
+	std::string param_require_pps_to_start = node_name +"/require_pps_to_start";
+	if(n->getParam(param_require_pps_to_start,require_pps_to_start) == false)
 	{
 		logger->log_warn("Missing Parameter: require_pps_to_start.");
 		return false;
 	}
-    std::string firmware_topic = "/" + node_name + "/firmware";
-    firmware_pub =  n->advertise<icarus_rover_v2::firmware>(firmware_topic,1);
-    
-    double max_rate = 0.0;
-    std::string param_loop1_rate = node_name + "/loop1_rate";
-    if(n->getParam(param_loop1_rate,loop1_rate) == false)
-    {
-        logger->log_warn("Missing parameter: loop1_rate.  Not running loop1 code.");
-        run_loop1 = false;
-    }
-    else 
-    { 
-        last_loop1_timer = ros::Time::now();
-        run_loop1 = true; 
-        if(loop1_rate > max_rate) { max_rate = loop1_rate; }
-    }
-    
-    std::string param_loop2_rate = node_name + "/loop2_rate";
-    if(n->getParam(param_loop2_rate,loop2_rate) == false)
-    {
-        logger->log_warn("Missing parameter: loop2_rate.  Not running loop2 code.");
-        run_loop2 = false;
-    }
-    else 
-    { 
-        last_loop2_timer = ros::Time::now();
-        run_loop2 = true; 
-        if(loop2_rate > max_rate) { max_rate = loop2_rate; }
-    }
-    
-    std::string param_loop3_rate = node_name + "/loop3_rate";
-    if(n->getParam(param_loop3_rate,loop3_rate) == false)
-    {
-        logger->log_warn("Missing parameter: loop3_rate.  Not running loop3 code.");
-        run_loop3 = false;
-    }
-    else 
-    { 
-        last_loop3_timer = ros::Time::now();
-        run_loop3 = true; 
-        if(loop3_rate > max_rate) { max_rate = loop3_rate; }
-    }
-    ros_rate = max_rate * 50.0;
-    if(ros_rate < 100.0) { ros_rate = 100.0; }
-    char tempstr[512];
-    sprintf(tempstr,"Running Node at Rate: %f",ros_rate);
-    logger->log_notice(std::string(tempstr));
-    //End Template Code: Initialization and Parameters
+	std::string firmware_topic = "/" + node_name + "/firmware";
+	firmware_pub =  n->advertise<icarus_rover_v2::firmware>(firmware_topic,1);
 
-    //Start User Code: Initialization and Parameters
+	double max_rate = 0.0;
+	std::string param_loop1_rate = node_name + "/loop1_rate";
+	if(n->getParam(param_loop1_rate,loop1_rate) == false)
+	{
+		logger->log_warn("Missing parameter: loop1_rate.  Not running loop1 code.");
+		run_loop1 = false;
+	}
+	else
+	{
+		last_loop1_timer = ros::Time::now();
+		run_loop1 = true;
+		if(loop1_rate > max_rate) { max_rate = loop1_rate; }
+	}
+
+	std::string param_loop2_rate = node_name + "/loop2_rate";
+	if(n->getParam(param_loop2_rate,loop2_rate) == false)
+	{
+		logger->log_warn("Missing parameter: loop2_rate.  Not running loop2 code.");
+		run_loop2 = false;
+	}
+	else
+	{
+		last_loop2_timer = ros::Time::now();
+		run_loop2 = true;
+		if(loop2_rate > max_rate) { max_rate = loop2_rate; }
+	}
+
+	std::string param_loop3_rate = node_name + "/loop3_rate";
+	if(n->getParam(param_loop3_rate,loop3_rate) == false)
+	{
+		logger->log_warn("Missing parameter: loop3_rate.  Not running loop3 code.");
+		run_loop3 = false;
+	}
+	else
+	{
+		last_loop3_timer = ros::Time::now();
+		run_loop3 = true;
+		if(loop3_rate > max_rate) { max_rate = loop3_rate; }
+	}
+	ros_rate = max_rate * 50.0;
+	if(ros_rate < 100.0) { ros_rate = 100.0; }
+	char tempstr[512];
+	sprintf(tempstr,"Running Node at Rate: %f",ros_rate);
+	logger->log_notice(std::string(tempstr));
+	//End Template Code: Initialization and Parameters
+
+	//Start User Code: Initialization and Parameters
 	process = new NetworkTransceiverNodeProcess;
 	diagnostic = process->init(diagnostic,std::string(hostname));
 	if(diagnostic.Level > NOTICE)
@@ -819,41 +859,41 @@ bool initializenode()
 		return false;
 	}
 
-    ros::Time::init();
-    ready_to_arm = false;
-    remote_heartbeat_pass = false;
-    std::string armed_disarmed_state_topic = "/armed_state";
-    armed_disarmed_state_sub = n->subscribe<std_msgs::UInt8>(armed_disarmed_state_topic,1000,ArmedState_Callback);
-    std::string param_send_multicast_address = node_name +"/Send_Multicast_Group";
-    if(n->getParam(param_send_multicast_address,send_multicast_group) == false)
-   	{
-   		logger->log_warn("Missing Parameter: Send_Multicast_Group. Exiting.");
-   		return false;
-   	}
+	ros::Time::init();
+	ready_to_arm = false;
+	remote_heartbeat_pass = false;
+	std::string armed_disarmed_state_topic = "/armed_state";
+	armed_disarmed_state_sub = n->subscribe<std_msgs::UInt8>(armed_disarmed_state_topic,1000,ArmedState_Callback);
+	std::string param_send_multicast_address = node_name +"/Send_Multicast_Group";
+	if(n->getParam(param_send_multicast_address,send_multicast_group) == false)
+	{
+		logger->log_warn("Missing Parameter: Send_Multicast_Group. Exiting.");
+		return false;
+	}
 
-    std::string param_send_multicast_port = node_name +"/Send_Multicast_Port";
-   	if(n->getParam(param_send_multicast_port,send_multicast_port) == false)
-   	{
-   		logger->log_warn("Missing Parameter: Send_Multicast_Port. Exiting.");
-   		return false;
-   	}
-   	std::string param_recv_unicast_port = node_name +"/Recv_Unicast_Port";
+	std::string param_send_multicast_port = node_name +"/Send_Multicast_Port";
+	if(n->getParam(param_send_multicast_port,send_multicast_port) == false)
+	{
+		logger->log_warn("Missing Parameter: Send_Multicast_Port. Exiting.");
+		return false;
+	}
+	std::string param_recv_unicast_port = node_name +"/Recv_Unicast_Port";
 	if(n->getParam(param_recv_unicast_port,recv_unicast_port) == false)
 	{
 		logger->log_warn("Missing Parameter: Recv_Unicast_Port. Exiting.");
 		return false;
 	}
-   	if(initialize_sendsocket() == false)
-   	{
-   		logger->log_error("Couldn't initialize send socket.  Exiting.");
-   		return false;
-   	}
-   	if(initialize_recvsocket() == false)
+	if(initialize_sendsocket() == false)
+	{
+		logger->log_error("Couldn't initialize send socket.  Exiting.");
+		return false;
+	}
+	if(initialize_recvsocket() == false)
 	{
 		logger->log_error("Couldn't initialize recv socket.  Exiting.");
 		return false;
 	}
-   	std::string param_Mode = node_name +"/Mode";
+	std::string param_Mode = node_name +"/Mode";
 	if(n->getParam(param_Mode,Mode) == false)
 	{
 		logger->log_warn("Missing Parameter: Mode.");
@@ -901,18 +941,18 @@ bool initializenode()
 
 	udpmessagehandler = new UDPMessageHandler();
 
-    //Finish User Code: Initialization and Parameters
+	//Finish User Code: Initialization and Parameters
 
-    //Start Template Code: Final Initialization.
+	//Start Template Code: Final Initialization.
 	diagnostic.Diagnostic_Type = NOERROR;
 	diagnostic.Level = INFO;
 	diagnostic.Diagnostic_Message = NOERROR;
 	diagnostic.Description = "Node Initialized";
 	process->set_diagnostic(diagnostic);
 	diagnostic_pub.publish(diagnostic);
-    logger->log_info("Initialized!");
-    return true;
-    //End Template Code: Finish Initialization.
+	logger->log_info("Initialized!");
+	return true;
+	//End Template Code: Finish Initialization.
 }
 //Start Template Code: Functions
 double measure_time_diff(ros::Time timer_a, ros::Time timer_b)

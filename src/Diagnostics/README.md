@@ -6,3 +6,9 @@ Usage: This node should be run on 1 device on the Robot.
 Purpose: 
 1. Report and respond to various health issues with different nodes.
 2. Generates ready_to_arm signal
+
+B. safety_node
+Usage: This node should be run on 1 device on the Robot, and only a ControlModule.
+Purpose:
+1. Read an E-Stop Pin and publish the estop state.
+

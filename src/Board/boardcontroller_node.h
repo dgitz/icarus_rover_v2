@@ -111,8 +111,8 @@ int spi_device;
 SPIMessageHandler *spimessagehandler;
 uint32_t passed_checksum;
 uint32_t failed_checksum;
-std::vector<ros::Publisher> analog_sensor_pubs;
-std::vector<std::string> analog_sensor_names;
+std::vector<ros::Publisher> signal_sensor_pubs;
+std::vector<std::string> signal_sensor_names;
 bool ready_to_arm;
 ros::Publisher ready_to_arm_pub;
 //End User Code: Define Global Variables

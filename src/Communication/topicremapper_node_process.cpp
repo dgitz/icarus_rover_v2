@@ -442,6 +442,16 @@ double TopicRemapperNodeProcess::scale_value(double x,double neutral,double x1,d
     {
         out = neutral;
     }
+    if(y2 > y1)
+    {
+    	if(out > y2) { out = y2; }
+    	if(out < y1) { out = y1; }
+    }
+    else
+    {
+    	if(out > y1) { out = y1; }
+    	if(out < y2) { out = y2; }
+    }
     return out;
 }
 icarus_rover_v2::diagnostic TopicRemapperNodeProcess::new_joymsg(sensor_msgs::Joy msg,std::string topic)
