@@ -39,7 +39,7 @@ icarus_rover_v2::diagnostic MasterNodeProcess::init(icarus_rover_v2::diagnostic 
 icarus_rover_v2::diagnostic MasterNodeProcess::update(double dt)
 {
 	run_time += dt;
-	 if((mydevice.BoardCount == 0) and (mydevice.SensorCount == 0))
+	 if((mydevice.BoardCount == 0) and (mydevice.SensorCount == 0) and (mydevice.HatCount == 0))
     {
         if(initialized == true) { ready = true; }
     }
@@ -474,6 +474,12 @@ icarus_rover_v2::diagnostic MasterNodeProcess::load_devicefile(std::string path)
 				{
 					newDevice.SensorCount = atoi(l_pSensorCount->GetText());
 				}
+
+				TiXmlElement *l_pHatCount = l_pDevice->FirstChildElement( "HatCount" );
+								if ( NULL != l_pHatCount )
+								{
+									newDevice.HatCount = atoi(l_pHatCount->GetText());
+								}
 
 				TiXmlElement *l_pShieldCount = l_pDevice->FirstChildElement( "ShieldCount" );
 				if ( NULL != l_pShieldCount )

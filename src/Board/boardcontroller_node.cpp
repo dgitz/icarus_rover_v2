@@ -42,7 +42,7 @@ bool run_loop2_code()
 		logger->log_diagnostic(diag);
 	}
 	diag = process->send_querymessage(SPIMessageHandler::SPI_Get_DIO_Port1_ID);
-	std::vector<Sensor> sensors = process->get_sensordata();
+	std::vector<BoardControllerNodeProcess::Sensor> sensors = process->get_sensordata();
 	for(std::size_t i = 0; i < sensors.size(); i++)
 	{
 		for(std::size_t j = 0; j < signal_sensor_names.size(); j++)
@@ -668,7 +668,7 @@ bool new_devicemsg(std::string query,icarus_rover_v2::device device)
 			if(diagnostic_status.Level > INFO) { diagnostic_pub.publish(diagnostic_status); }
 			if(process->is_ready() == true)
 			{
-				std::vector<Sensor> sensors = process->get_sensordata();
+				std::vector<BoardControllerNodeProcess::Sensor> sensors = process->get_sensordata();
 				for(std::size_t i = 0; i < sensors.size(); i++)
 				{
 					if(sensors.at(i).output_datatype == "signal")

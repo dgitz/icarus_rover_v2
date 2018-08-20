@@ -28,7 +28,11 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::update(double dt)
 	for(std::size_t i = 0; i < boards_running.size(); i++)
 	{
 		if(boards_running.at(i) == true) { boards_ready = boards_ready and true; }
-		else { boards_ready = false; }
+		else
+		{
+			boards_ready = false;
+
+		}
 		if((run_time - board_diagnostics.at(i).lasttime_rx > 5.0) and
 				(run_time - board_diagnostics.at(i).lasttime_rx < 10.0))
 		{
@@ -53,7 +57,9 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::update(double dt)
 			ready_to_arm = false;
 		}
 	}
-	if(boards_running.size() == 0) { boards_ready = false; }
+
+	if(boards_running.size() == 0) {
+		boards_ready = false; }
 	for(std::size_t i = 0; i < messages.size(); i++)
 	{
 		if(messages.at(i).sent_counter > 0)
@@ -70,6 +76,11 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::update(double dt)
 	if(boards_ready == true)
 	{
 		status = status and true;
+		diag.Level = INFO;
+		diag.Diagnostic_Type = SOFTWARE;
+		diag.Diagnostic_Message = NOERROR;
+		diag.Description = "Node Running";
+		diagnostic = diag;
 	}
 	else
 	{
@@ -78,10 +89,10 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::update(double dt)
 		diag.Diagnostic_Type = SOFTWARE;
 		diag.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
 		char tempstr[512];
-		sprintf(tempstr,"All info for Boards not received yet.");
+		sprintf(tempstr,"All info for Boards not received yet.",mydevice.DeviceName.c_str());
 		diag.Description = std::string(tempstr);
 	}
-
+	diagnostic = diag;
 	return diag;
 }
 std::vector<Message> BoardControllerNodeProcess::get_querymessages_tosend()
@@ -486,6 +497,7 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_devicemsg(icarus_rov
 								return diag;
 							}
 						}
+						printf("Added Board\n");
 						boards.push_back(newdevice);
 						BoardDiagnostic board_diag;
 						board_diag.id = newdevice.ID;
@@ -520,7 +532,6 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_devicemsg(icarus_rov
 		}
 	}
 	if((boards.size() == mydevice.BoardCount) and
-			(sensors.size() == mydevice.SensorCount) and
 			(sensors_initialized() == true))
 	{
 		ready = true;
@@ -582,7 +593,7 @@ bool BoardControllerNodeProcess::find_capability(std::vector<std::string> capabi
 	}
 	return false;
 }
-Sensor BoardControllerNodeProcess::find_sensor(std::string name)
+BoardControllerNodeProcess::Sensor BoardControllerNodeProcess::find_sensor(std::string name)
 {
 	for(std::size_t i = 0; i < sensors.size(); i++)
 	{

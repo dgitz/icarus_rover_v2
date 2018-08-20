@@ -19,6 +19,7 @@ Unit Tests:
   >>cd ~/catkin_ws/src/icarus_rover_v2/src/Board/unit_tests/
   >>g++ -lm -lwiringPi ../Driver/ServoHatDriver.cpp test_servohat.cpp -o test_servohat
   >>g++ -lm -lwiringPi ../Driver/TerminalHatDriver.cpp test_terminalhat.cpp -o test_terminalhat
+  >>g++ -lm -lwiringPi ../../../util/i2cmessage.cpp ../Driver/GPIOHatDriver.cpp test_gpiohat.cpp -o test_gpiohat
 
 Loops:
  * Loop1: Process Update, ServoHat(s) Update
