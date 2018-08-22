@@ -68,6 +68,7 @@ bool leverarm_service(icarus_rover_v2::srv_leverarm::Request &req,
 double read_device_temperature();
 std::vector<std::string> find_serialports();
 bool check_serialports();
+void print_deviceinfo();
 //End User Code: Function Prototypes
 
 

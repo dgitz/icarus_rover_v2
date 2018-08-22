@@ -14,7 +14,7 @@ BoardControllerNodeProcess *initialized_process;
 
 
 bool check_if_initialized(BoardControllerNodeProcess process);
-void print_sensordata(std::vector<Sensor> sensors);
+void print_sensordata(std::vector<BoardControllerNodeProcess::Sensor> sensors);
 TEST(Template,ProcessInitialization)
 {
 	icarus_rover_v2::diagnostic diagnostic;
@@ -53,7 +53,7 @@ TEST(DeviceInitialization,DeviceInitialization_ArduinoBoard)
 	ros_device.DeviceParent = "";
 	ros_device.DeviceType = ros_DeviceType;
 	ros_device.BoardCount = 1;
-	ros_device.SensorCount = 4;
+	ros_device.SensorCount = 0;
 	ros_device.ID = 17;
 
 	icarus_rover_v2::device arduinoboard1_device;
@@ -132,8 +132,7 @@ TEST(DeviceInitialization,DeviceInitialization_ArduinoBoard)
 	int16_t a2 = -456;
 	diagnostic = process->new_message_GetDIOPort1(arduinoboard1_device.ID,1.234,a1,a2);
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
-	std::vector<Sensor> sensors = process->get_sensordata();
-	EXPECT_TRUE(sensors.size() == ros_device.SensorCount);
+	std::vector<BoardControllerNodeProcess::Sensor> sensors = process->get_sensordata();
 	print_sensordata(process->get_sensordata());
 
 
@@ -143,7 +142,7 @@ int main(int argc, char **argv){
 	testing::InitGoogleTest(&argc, argv);
 	return RUN_ALL_TESTS();
 }
-void print_sensordata(std::vector<Sensor> sensors)
+void print_sensordata(std::vector<BoardControllerNodeProcess::Sensor> sensors)
 {
 	printf("-----Sensor Data-----\n");
 	for(std::size_t i = 0; i < sensors.size(); i++)

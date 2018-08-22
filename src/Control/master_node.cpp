@@ -394,6 +394,17 @@ void Command_Callback(const icarus_rover_v2::command::ConstPtr& msg)
         }
 	}
 }
+void print_deviceinfo()
+{
+	char tempstr[8192];
+	sprintf(tempstr,"Loading Devices:\n");
+	for(std::size_t i = 0; i < devices_to_publish.size(); i++)
+	{
+		sprintf(tempstr,"%s[%d] Device: %s\n",tempstr,i,devices_to_publish.at(i).DeviceName.c_str());
+	}
+	logger->log_notice(std::string(tempstr));
+	printf(tempstr);
+}
 //End User Code: Functions
 bool run_10Hz_code()
 {
@@ -622,6 +633,8 @@ bool initializenode()
     }
     device_temperature = -100.0;
     devices_to_publish = process->get_childdevices();
+    print_deviceinfo();
+
 
     std::string srv_device_topic = "/" + node_name + "/srv_device";
     device_srv = n->advertiseService(srv_device_topic,device_service);

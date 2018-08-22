@@ -33,25 +33,7 @@ struct Message
 	double recv_rate;
 	bool send_me;
 };
-struct Sensor
-{
-	double tov;
-	uint8_t status;
-	bool initialized;
-	std::string type;
-	std::string name;
-	std::string remapped_topicname;
-	icarus_rover_v2::device connected_board;
-	icarus_rover_v2::pin connected_pin;
-    bool convert;
-	double value;
-    std::string units;
-	std::string output_datatype;
-    double min_inputvalue;
-    double max_inputvalue;
-    double min_outputvalue;
-    double max_outputvalue;
-};
+
 struct BoardDiagnostic
 {
 	uint16_t id;
@@ -61,7 +43,25 @@ struct BoardDiagnostic
 class BoardControllerNodeProcess
 {
 public:
-
+	struct Sensor
+	{
+		double tov;
+		uint8_t status;
+		bool initialized;
+		std::string type;
+		std::string name;
+		std::string remapped_topicname;
+		icarus_rover_v2::device connected_board;
+		icarus_rover_v2::pin connected_pin;
+	    bool convert;
+		double value;
+	    std::string units;
+		std::string output_datatype;
+	    double min_inputvalue;
+	    double max_inputvalue;
+	    double min_outputvalue;
+	    double max_outputvalue;
+	};
 
 	BoardControllerNodeProcess();
 	~BoardControllerNodeProcess();

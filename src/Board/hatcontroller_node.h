@@ -32,9 +32,11 @@
 #include "hatcontroller_node_process.h"
 #include "Driver/ServoHatDriver.h"
 #include "Driver/TerminalHatDriver.h"
+#include "Driver/GPIOHatDriver.h"
 #include <stdio.h>
 #include <string.h>
 #include <serialmessage.h>
+#include <i2cmessage.h>
 #include <unistd.h>			//Used for UART
 #include <fcntl.h>			//Used for UART
 #include <termios.h>		//Used for UART
@@ -131,7 +133,11 @@ bool ready_to_arm;
 ros::Publisher ready_to_arm_pub;
 
 std::vector<ServoHatDriver> ServoHats;
-
-TerminalHatDriver TerminalHat;
+std::vector<GPIOHatDriver> GPIOHats;
+I2CMessageHandler *i2cmessagehandler;
+std::vector<ros::Publisher> signal_sensor_pubs;
+std::vector<std::string> signal_sensor_names;
+icarus_rover_v2::device myDevice;
+//TerminalHatDriver TerminalHat;
 //End User Code: Define Global Variables
 #endif
