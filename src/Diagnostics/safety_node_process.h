@@ -23,7 +23,6 @@
 #include <sys/time.h>
 #include "ros/time.h"
 
-#define PIN_ESTOP 11 //ControlModule 40-pin Connector
 using std::string;
 using namespace std;
 class SafetyNodeProcess
@@ -45,10 +44,10 @@ public:
 
 
     icarus_rover_v2::estop get_estop() { return estop; }
-    icarus_rover_v2::diagnostic new_pinmsg(icarus_rover_v2::pin msg);
-    icarus_rover_v2::diagnostic new_pinvalue(int v);
     bool get_ready_to_arm() { return ready_to_arm; }
-    int get_estop_pinnumber() { return PIN_ESTOP; }
+    icarus_rover_v2::diagnostic new_estopmsg(std_msgs::Bool v);
+    icarus_rover_v2::diagnostic new_estopmsg(icarus_rover_v2::estop v);
+    icarus_rover_v2::diagnostic new_armswitchmsg(std_msgs::Bool v);
     
 protected:
 private:
@@ -60,8 +59,9 @@ private:
 	std::string myhostname;
 	bool initialized;
     bool ready;
-
+    icarus_rover_v2::estop last_estop;
     icarus_rover_v2::estop estop;
     bool ready_to_arm;
+    bool arm_switch;
 };
 #endif

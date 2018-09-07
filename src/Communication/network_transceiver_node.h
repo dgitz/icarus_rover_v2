@@ -147,6 +147,7 @@ std::vector<ros::Subscriber> diagnostic_subs;
 std::vector<ros::Subscriber> firmware_subs;
 ros::Subscriber armed_disarmed_state_sub;
 ros::Subscriber estop_sub;
+ros::Publisher estop_pub;
 ros::Publisher user_command_pub;
 ros::Publisher ready_to_arm_pub;
 std::vector<RemoteDevice> remote_devices;

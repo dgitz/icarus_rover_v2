@@ -193,6 +193,7 @@ icarus_rover_v2::diagnostic HatControllerNodeProcess::new_devicemsg(icarus_rover
 					{
 						for(std::size_t i = 0; i < newdevice.pins.size(); i++)
 						{
+
 							if((newdevice.pins.at(i).Function == "DigitalInput") or
 									(newdevice.pins.at(i).Function == "DigitalOutput-NonActuator") or
 									(newdevice.pins.at(i).Function == "DigitalOutput")) {}
@@ -263,7 +264,6 @@ icarus_rover_v2::diagnostic HatControllerNodeProcess::new_devicemsg(icarus_rover
 					hats_running.push_back(false);
 					if(hats.size() == mydevice.HatCount)
 					{
-
 						ready = true;
 					}
 				}
@@ -737,7 +737,7 @@ std::vector<icarus_rover_v2::pin> HatControllerNodeProcess::get_terminalhatpins(
 			for(std::size_t j = 0; j < hats.at(i).pins.size(); j++)
 			{
 				icarus_rover_v2::pin pin;
-				if(hats.at(i).pins.at(j).Function == Function)
+				if((hats.at(i).pins.at(j).Function == Function) or (Function == ""))
 				{
 					pin = hats.at(i).pins.at(j);
 					if((Function == "DigitalOutput") and (armed_state != ARMEDSTATUS_ARMED))
