@@ -371,6 +371,8 @@ bool new_devicemsg(std::string query,icarus_rover_v2::device device)
 }
 void signalinterrupt_handler(int sig)
 {
+	exit(0);
+	system("sudo killall network_transceiver_node");
 	kill_node = 1;
 }
 //End Template Code: Functions
