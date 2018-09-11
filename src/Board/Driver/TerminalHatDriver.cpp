@@ -12,7 +12,11 @@ void TerminalHatDriver::init()
 bool TerminalHatDriver::configure_pin(int pinnumber,std::string mode)
 {
     int v = map_connectorpin_to_pinfile(pinnumber);
-    if(v == -1) { return false; }
+    if(v == -1)
+    {
+    	printf("Could not map pin: %d to connector.\n",pinnumber);
+    	return false;
+    }
     std::string export_str = "/sys/class/gpio/export";
     std::ofstream exportgpio(export_str.c_str()); // Open "export" file. Convert C++ string to C string. Required for all Linux pathnames
     if (exportgpio < 0)
@@ -20,7 +24,6 @@ bool TerminalHatDriver::configure_pin(int pinnumber,std::string mode)
         printf("OPERATION FAILED: Unable to export GPIO %d/%d\n",pinnumber,map_connectorpin_to_pinfile(pinnumber));
         return false;
     }
-
     exportgpio << map_connectorpin_to_pinfile(pinnumber); //write GPIO number to export
     exportgpio.close(); //close export file
     if(mode == "DigitalInput")
@@ -39,7 +42,6 @@ bool TerminalHatDriver::configure_pin(int pinnumber,std::string mode)
         char tempstr[128];
         sprintf(tempstr,"raspi-gpio set %d pu\n",map_connectorpin_to_pinfile(pinnumber));
         int v = system(tempstr);
-        printf("v: %d\n",v);
         /*
         std::ostringstream pullupdown_str;
         pullupdown_str << "raspi-gpio set " << map_connectorpin_to_pinfile(pinnumber) << "pu";
@@ -70,8 +72,11 @@ bool TerminalHatDriver::configure_pin(int pinnumber,std::string mode)
     
     else
     {
+    	printf("Unsupported Pin Function: %s\n",mode.c_str());
         return false;
     }
+    printf("7\n");
+    return false;
 }
 bool TerminalHatDriver::set_pin(int pinnumber, int v)
 {
@@ -118,30 +123,30 @@ int TerminalHatDriver::map_connectorpin_to_pinfile(int pinnumber)
 {
     switch(pinnumber)
     {
-        case 3:     return 2;   break;
-        case 5:     return 3;   break;
+        case 3:     return -1;   break; //USED FOR I2C
+        case 5:     return -1;   break; //USED FOR I2C
         case 7:     return 4;   break;
         case 11:    return 17;  break;
         case 13:    return 27;  break;
         case 15:    return 22;  break;
-        case 19:    return 10;  break;
-        case 21:    return 9;   break;
-        case 23:    return 11;  break;
-        case 27:    return 0;   break;
+        case 19:    return -1;  break; //USED FOR SPI
+        case 21:    return -1;   break; //USED FOR SPI
+        case 23:    return -1;  break; //USED FOR SPI
+        case 27:    return -1;   break; //USED FOR SPI
         case 29:    return 5;   break;
         case 31:    return 6;   break;
         case 33:    return 13;  break;
         case 35:    return 19;  break;
         case 37:    return 26;  break;
-        case 8:     return 14;  break;
-        case 10:    return 15;  break;
+        case 8:     return -1;  break; //USED FOR UART
+        case 10:    return -1;  break; //USED FOR UART
         case 12:    return 18;  break;
         case 16:    return 23;  break;
         case 18:    return 24;  break;
         case 22:    return 25;  break;
-        case 24:    return 8;   break;
-        case 26:    return 7;   break;
-        case 28:    return 1;   break;
+        case 24:    return -1;   break; //USED FOR SPI
+        case 26:    return -1;   break; //USED FOR SPI
+        case 28:    return -1;   break; //USED FOR I2C
         case 32:    return 12;  break;
         case 36:    return 16;  break;
         case 38:    return 20;  break;

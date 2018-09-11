@@ -44,11 +44,19 @@ public:
 		uint16_t id;
 		std::string item;
 	};
+	struct RemoteDevice
+	{
+		std::string Name;
+		double current_beatepoch_sec;
+		double expected_beatepoch_sec;
+		double offset_sec;
+
+	};
 	NetworkTransceiverNodeProcess();
 	~NetworkTransceiverNodeProcess();
 
 	icarus_rover_v2::diagnostic init(icarus_rover_v2::diagnostic indiag,std::string hostname);
-	icarus_rover_v2::diagnostic update(double dt);
+	icarus_rover_v2::diagnostic update(double dt,double timestamp);
 	void set_diagnostic(icarus_rover_v2::diagnostic v) { diagnostic = v; }
 	icarus_rover_v2::diagnostic get_diagnostic() { return diagnostic; }
 	double get_runtime() { return run_time; }
@@ -58,7 +66,7 @@ public:
 	bool get_initialized() { return initialized; }
 	bool get_ready() { return ready; }
 	std::vector<icarus_rover_v2::diagnostic> new_commandmsg(icarus_rover_v2::command cmd);
-
+	icarus_rover_v2::diagnostic new_remoteheartbeatmsg(double timestamp,std::string name,double current_beat,double expected_beat);
 	icarus_rover_v2::diagnostic new_message_sent(uint16_t id);
 	icarus_rover_v2::diagnostic new_message_recv(uint16_t id);
 	std::string get_messageinfo(bool v);
@@ -66,6 +74,7 @@ public:
 	std::vector<Message> get_messages() { return messages; };
 	bool push_sendqueue(uint16_t id,std::string msg);
 	std::vector<QueueElement> get_sendqueue(uint8_t level);
+	bool get_remoteheartbeatresult() { return remote_heartbeat_pass; }
 
 
 
@@ -73,6 +82,7 @@ protected:
 
 private:
 	std::vector<icarus_rover_v2::diagnostic> check_program_variables();
+	icarus_rover_v2::diagnostic check_remoteHeartbeats();
 	Message get_messagebyid(uint16_t id)
 	{
 		for(std::size_t i = 0; i < messages.size(); i++)
@@ -123,6 +133,7 @@ private:
 		return true;
 	}
 	double run_time;
+	double ros_time;
 	icarus_rover_v2::diagnostic diagnostic;
 	icarus_rover_v2::device mydevice;
 	std::string myhostname;
@@ -134,5 +145,7 @@ private:
 	std::vector<QueueElement> sendqueue_highpriority;
 	std::vector<QueueElement> sendqueue_mediumpriority;
 	std::vector<QueueElement> sendqueue_lowpriority;
+	std::vector<RemoteDevice> remote_devices;
+	bool remote_heartbeat_pass;
 };
 #endif

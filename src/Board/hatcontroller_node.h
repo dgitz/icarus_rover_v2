@@ -134,10 +134,13 @@ ros::Publisher ready_to_arm_pub;
 
 std::vector<ServoHatDriver> ServoHats;
 std::vector<GPIOHatDriver> GPIOHats;
+TerminalHatDriver TerminalHat;
 I2CMessageHandler *i2cmessagehandler;
 std::vector<ros::Publisher> signal_sensor_pubs;
 std::vector<std::string> signal_sensor_names;
 icarus_rover_v2::device myDevice;
+std::vector<ros::Publisher> digitalinput_pubs;
+std::vector<std::string> digitalinput_names;
 //TerminalHatDriver TerminalHat;
 //End User Code: Define Global Variables
 #endif

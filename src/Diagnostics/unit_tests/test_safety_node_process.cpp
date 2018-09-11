@@ -46,6 +46,11 @@ SafetyNodeProcess* initializeprocess()
     EXPECT_TRUE(process->get_ready_to_arm() == false);
     EXPECT_TRUE(process->get_estop().name == device.DeviceName);
     EXPECT_TRUE(process->get_estop().state == ESTOP_UNDEFINED);
+    std_msgs::Bool estop;
+    std_msgs::Bool armswitch;
+
+    estop.data = false;
+    EXPECT_TRUE(process->new_estopmsg(estop).Level <= NOTICE);
     return process;
 }
 SafetyNodeProcess* readyprocess(SafetyNodeProcess* process)
@@ -70,6 +75,7 @@ TEST(Template,Process_Command)
     bool fastrate_fire = false; //10 Hz
     bool mediumrate_fire = false; //1 Hz
     bool slowrate_fire = false; //0.1 Hz
+
     while(current_time <= time_to_run)
     {
         icarus_rover_v2::diagnostic diag = process->update(dt);
@@ -135,47 +141,38 @@ TEST(DeviceOperation,DeviceRunning)
     icarus_rover_v2::diagnostic diagnostic = process->update(0.0);
     EXPECT_TRUE(diagnostic.Level <= NOTICE);
     
-    {
-        icarus_rover_v2::pin estop_pin;
-        estop_pin.ParentDevice = ros_DeviceName;
-        estop_pin.Number = PIN_ESTOP;
-        estop_pin.Value = 0;
-        diagnostic = process->new_pinmsg(estop_pin);
-        EXPECT_TRUE(diagnostic.Level <= NOTICE);        
-    }
+    std_msgs::Bool estop;
+    std_msgs::Bool armswitch;
     
-    diagnostic = process->update(0.0);
-    EXPECT_TRUE(diagnostic.Level <= NOTICE);
-    EXPECT_TRUE(process->get_ready_to_arm() == true);
-    EXPECT_TRUE(process->get_estop().state == ESTOP_DISACTIVATED);
-    
-    {
-        icarus_rover_v2::pin estop_pin;
-        estop_pin.ParentDevice = ros_DeviceName;
-        estop_pin.Number = PIN_ESTOP;
-        estop_pin.Value = 1;
-        diagnostic = process->new_pinmsg(estop_pin);
-        EXPECT_TRUE(diagnostic.Level <= NOTICE);        
-    }
-    
-    diagnostic = process->update(0.0);
-    EXPECT_TRUE(diagnostic.Level <= NOTICE);
+    estop.data = false;
+    armswitch.data = false;
+    diagnostic = process->new_estopmsg(estop);
+    EXPECT_TRUE(diagnostic.Level <= NOTICE);   
+    EXPECT_TRUE(process->get_estop().state == ESTOP_DISACTIVATED);  
+    estop.data = true;
+    diagnostic = process->new_estopmsg(estop);
+    EXPECT_TRUE(diagnostic.Level <= NOTICE);   
+    EXPECT_TRUE(process->get_estop().state == ESTOP_ACTIVATED);  
+    estop.data = false;
+    diagnostic = process->new_estopmsg(estop);
+    EXPECT_TRUE(diagnostic.Level <= NOTICE);   
+    EXPECT_TRUE(process->get_estop().state == ESTOP_DISACTIVATED);  
+    EXPECT_TRUE(process->update(0.0).Level <= NOTICE);
     EXPECT_TRUE(process->get_ready_to_arm() == false);
-    EXPECT_TRUE(process->get_estop().state == ESTOP_ACTIVATED);
     
-    {
-        icarus_rover_v2::pin estop_pin;
-        estop_pin.ParentDevice = ros_DeviceName;
-        estop_pin.Number = PIN_ESTOP;
-        estop_pin.Value = 0;
-        diagnostic = process->new_pinmsg(estop_pin);
-        EXPECT_TRUE(diagnostic.Level <= NOTICE);        
-    }
-    
-    diagnostic = process->update(0.0);
+    armswitch.data = true;
+    diagnostic = process->new_armswitchmsg(armswitch);
     EXPECT_TRUE(diagnostic.Level <= NOTICE);
+    EXPECT_TRUE(process->update(0.0).Level <= WARN);
     EXPECT_TRUE(process->get_ready_to_arm() == true);
-    EXPECT_TRUE(process->get_estop().state == ESTOP_DISACTIVATED);
+    estop.data = true;
+    diagnostic = process->new_estopmsg(estop);
+    EXPECT_TRUE(diagnostic.Level <= NOTICE); 
+    EXPECT_TRUE(process->get_estop().state == ESTOP_ACTIVATED);  
+
+    EXPECT_TRUE(process->update(0.0).Level >= WARN);
+    EXPECT_TRUE(process->get_ready_to_arm() == false);
+    
     
 }
 int main(int argc, char **argv){

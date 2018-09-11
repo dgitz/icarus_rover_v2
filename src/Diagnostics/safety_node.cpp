@@ -9,16 +9,6 @@
  */
 bool run_loop1_code()
 {
-	if(process->get_initialized() == true)
-	{
-		icarus_rover_v2::diagnostic diag = process->new_pinvalue(TerminalHat.read_pin(process->get_estop_pinnumber()));
-		if(diag.Level > INFO)
-		{
-			diagnostic_pub.publish(diag);
-			logger->log_diagnostic(diag);
-		}
-	}
-
 	icarus_rover_v2::diagnostic diagnostic = process->update(1.0/(double)loop1_rate);
     if(diagnostic.Level > INFO)
     {
@@ -32,11 +22,12 @@ bool run_loop1_code()
  */
 bool run_loop2_code()
 {
-	estop_pub.publish(process->get_estop());
     bool ready_to_arm = process->get_ready_to_arm();
 	std_msgs::Bool bool_ready_to_arm;
     bool_ready_to_arm.data = ready_to_arm;
     ready_to_arm_pub.publish(bool_ready_to_arm);
+
+    estop_pub.publish(process->get_estop());
  	return true;
 }
 /*! \brief User Loop3 Code
@@ -49,6 +40,29 @@ void ArmedState_Callback(const std_msgs::UInt8::ConstPtr& msg)
 {
 	//diagnostic_status = process->new_armedstatemsg(msg->data);
 	icarus_rover_v2::diagnostic diagnostic = process->get_diagnostic();
+	if(diagnostic.Level > NOTICE)
+	{
+		diagnostic_pub.publish(diagnostic);
+		logger->log_diagnostic(diagnostic);
+	}
+}
+void EStop_Callback(const icarus_rover_v2::estop::ConstPtr& msg)
+{
+	icarus_rover_v2::estop estop;
+	estop.name = msg->name;
+	estop.state = msg->state;
+	icarus_rover_v2::diagnostic diagnostic = process->new_estopmsg(estop);
+	if(diagnostic.Level > NOTICE)
+	{
+		diagnostic_pub.publish(diagnostic);
+		logger->log_diagnostic(diagnostic);
+	}
+}
+void ArmSwitch_Callback(const std_msgs::Bool::ConstPtr& msg)
+{
+	std_msgs::Bool v;
+	v.data = msg->data;
+	icarus_rover_v2::diagnostic diagnostic = process->new_armswitchmsg(v);
 	if(diagnostic.Level > NOTICE)
 	{
 		diagnostic_pub.publish(diagnostic);
@@ -357,8 +371,6 @@ bool initializenode()
     //End Template Code: Initialization and Parameters
 
     //Start User Code: Initialization and Parameters
-    ready_to_arm  = false;
-    std::string sensor_spec_path;
     std::string armed_state_topic = "/armed_state";
     armed_state_sub = n->subscribe<std_msgs::UInt8>(armed_state_topic,1,ArmedState_Callback);
 
@@ -373,16 +385,12 @@ bool initializenode()
 	std::string ready_to_arm_topic = node_name + "/ready_to_arm";
 	ready_to_arm_pub = n->advertise<std_msgs::Bool>(ready_to_arm_topic,1);
 
-	estop_pub = n->advertise<icarus_rover_v2::estop>("/estop",1);
+	estop_pub = n->advertise<icarus_rover_v2::estop>("/EStop",10);
 
-    TerminalHat_running = false;
-
-	/*if(TerminalHat.configure_pin(process->get_estop_pinnumber(),"DigitalInput") == false)
-    {
-    	logger->log_error("Unable to setup EStop Pin. Exiting.");
-    	return false;
-    }
-    */
+	std::string arm_switch_topic = "/ArmSwitch";
+	armswitch_sub = n->subscribe<std_msgs::Bool>(arm_switch_topic,1,ArmSwitch_Callback);
+	estopswitch_sub = n->subscribe<icarus_rover_v2::estop>("/EStopSwitch",10,EStop_Callback);
+	estopcomm_sub = n->subscribe<icarus_rover_v2::estop>("/EStopComm",10,EStop_Callback);
     //Finish User Code: Initialization and Parameters
 
     //Start Template Code: Final Initialization.

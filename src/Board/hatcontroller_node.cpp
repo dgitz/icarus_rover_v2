@@ -111,112 +111,38 @@ bool run_loop1_code()
 			}
 
 		}
-		/*
-         if(TerminalHat_running == false) !!!THIS IS CAUSING NODE TO FREEZE
-         {
-             logger->log_notice("Initializing Terminal Hat.");
-             TerminalHat.init();
-             std::vector<icarus_rover_v2::pin> input_pins;
-             std::vector<icarus_rover_v2::pin> output_nonactuator_pins;
-             std::vector<icarus_rover_v2::pin> output_actuator_pins;
-             input_pins = process->get_terminalhatpins("DigitalInput");
-             output_nonactuator_pins = process->get_terminalhatpins("DigitalOutput-NonActuator");
-             output_actuator_pins = process->get_terminalhatpins("DigitalOutput");
+		if(process->is_hat_running("TerminalHat",0) == false)
+		{
+			TerminalHat.init();
+			{
+				bool any_error = false;
+				std::vector<icarus_rover_v2::pin> pins = process->get_terminalhatpins("");
+				for(std::size_t i = 0; i < pins.size(); i++)
+				{
+					if(TerminalHat.configure_pin(pins.at(i).Number,pins.at(i).Function) == false)
+					{
+						any_error = true;
+						diagnostic.Diagnostic_Type = SOFTWARE;
+						diagnostic.Level = ERROR;
+						diagnostic.Diagnostic_Message = INITIALIZING_ERROR;
+						char tempstr[512];
+						sprintf(tempstr,"[TerminalHat] Could not configure Pin: %d with Function: %s",pins.at(i).Number,pins.at(i).Function.c_str());
+						diagnostic.Description = std::string(tempstr);
+						process->set_diagnostic(diagnostic);
+						printf("%s\n",tempstr);
+						logger->log_error(std::string(tempstr));
+						kill_node = 1;
+					}
+				}
+				if(any_error == false)
+				{
+					diagnostic = process->set_hat_running("TerminalHat",0);
+					logger->log_diagnostic(diagnostic);
+					if(diagnostic.Level > INFO) { diagnostic_pub.publish(diagnostic); }
+				}
+			}
 
-             for(std::size_t i = 0; i < input_pins.size(); i++)
-             {
-                 if(TerminalHat.configure_pin(input_pins.at(i).Number,input_pins.at(i).Function) == false)
-                 {
-                     diagnostic.Diagnostic_Type = SOFTWARE;
-    				 diagnostic.Level = ERROR;
-    				 diagnostic.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
-    				 char tempstr[512];
-    				 sprintf(tempstr,"Failed to configure TerminalHat %s pin: %d",input_pins.at(i).Function.c_str(),input_pins.at(i).Number);
-    				 diagnostic.Description = std::string(tempstr);
-    				 logger->log_diagnostic(diagnostic);
-                     kill_node = 1;
-                 }
-             }
-             for(std::size_t i = 0; i < output_nonactuator_pins.size(); i++)
-             {
-                 if(TerminalHat.configure_pin(output_nonactuator_pins.at(i).Number,output_nonactuator_pins.at(i).Function) == false)
-                 {
-                     diagnostic.Diagnostic_Type = SOFTWARE;
-    				 diagnostic.Level = ERROR;
-    				 diagnostic.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
-    				 char tempstr[512];
-    				 sprintf(tempstr,"Failed to configure TerminalHat %s pin: %d",output_nonactuator_pins.at(i).Function.c_str(),output_nonactuator_pins.at(i).Number);
-    				 diagnostic.Description = std::string(tempstr);
-    				 logger->log_diagnostic(diagnostic);
-                     kill_node = 1;
-                 }
-             }
-             for(std::size_t i = 0; i < output_actuator_pins.size(); i++)
-             {
-                 if(TerminalHat.configure_pin(output_actuator_pins.at(i).Number,output_actuator_pins.at(i).Function) == false)
-                 {
-                     diagnostic.Diagnostic_Type = SOFTWARE;
-    				 diagnostic.Level = ERROR;
-    				 diagnostic.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
-    				 char tempstr[512];
-    				 sprintf(tempstr,"Failed to configure TerminalHat %s pin: %d",output_actuator_pins.at(i).Function.c_str(),output_actuator_pins.at(i).Number);
-    				 diagnostic.Description = std::string(tempstr);
-    				 logger->log_diagnostic(diagnostic);
-                     kill_node = 1;
-                 }
-             }
-             diagnostic = process->set_terminalhat_initialized();
-             TerminalHat_running = true;
-             logger->log_notice("Terminal Hat Initialized.");
-        }
-        else
-        {
-
-            std::vector<icarus_rover_v2::pin> output_nonactuator_pins;
-            std::vector<icarus_rover_v2::pin> output_actuator_pins;
-            output_nonactuator_pins = process->get_terminalhatpins("DigitalOutput-NonActuator");
-            output_actuator_pins = process->get_terminalhatpins("DigitalOutput");
-            for(std::size_t i = 0; i < output_nonactuator_pins.size(); i++)
-            {
-                if(TerminalHat.set_pin(output_nonactuator_pins.at(i).Number,output_nonactuator_pins.at(i).Value) == false)
-                {
-                    diagnostic.Diagnostic_Type = SOFTWARE;
-    				diagnostic.Level = ERROR;
-    				diagnostic.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
-    				char tempstr[512];
-    				sprintf(tempstr,"Failed to set TerminalHat %s pin: %d",output_nonactuator_pins.at(i).Function.c_str(),output_nonactuator_pins.at(i).Number);
-    				diagnostic.Description = std::string(tempstr);
-    				logger->log_diagnostic(diagnostic);
-                }
-            }
-            for(std::size_t i = 0; i < output_actuator_pins.size(); i++)
-            {
-                if(TerminalHat.set_pin(output_actuator_pins.at(i).Number,output_actuator_pins.at(i).Value) == false)
-                {
-                    diagnostic.Diagnostic_Type = SOFTWARE;
-    				diagnostic.Level = ERROR;
-    				diagnostic.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
-    				char tempstr[512];
-    				sprintf(tempstr,"Failed to set TerminalHat %s pin: %d",output_actuator_pins.at(i).Function.c_str(),output_actuator_pins.at(i).Number);
-    				diagnostic.Description = std::string(tempstr);
-    				logger->log_diagnostic(diagnostic);
-                }
-            }
-
-            std::vector<icarus_rover_v2::pin> input_pins;
-            input_pins = process->get_terminalhatpins("DigitalInput");
-            for(std::size_t i = 0; i < input_pins.size(); i++)
-            {
-                input_pins.at(i).Value = TerminalHat.read_pin(input_pins.at(i).Number);
-                diagnostic = process->new_pinmsg(input_pins.at(i));
-                logger->log_diagnostic(diagnostic);
-                if(diagnostic.Level > INFO) {   diagnostic_pub.publish(diagnostic); }
-                digitalinput_pub.publish(input_pins.at(i));
-            }
-
-        }
-		 */
-
+		}
 	}
 	if(diagnostic.Level > INFO)
 	{
@@ -269,6 +195,18 @@ bool run_loop2_code()
 		}
 
 	}
+	{
+		std::vector<icarus_rover_v2::pin> pins = process->get_terminalhatpins("DigitalInput");
+		for(std::size_t i = 0; i < pins.size(); i++)
+		{
+			if(pins.at(i).Name == digitalinput_names.at(i))
+			{
+				std_msgs::Bool v;
+				v.data = (bool)pins.at(i).Value;
+				digitalinput_pubs.at(i).publish(v);
+			}
+		}
+	}
 	bool ready_to_arm = process->get_ready_to_arm();
 	std_msgs::Bool bool_ready_to_arm;
 	bool_ready_to_arm.data = ready_to_arm;
@@ -296,7 +234,7 @@ void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg)
 	icarus_rover_v2::firmware fw;
 	fw.Generic_Node_Name = "hatcontroller_node";
 	fw.Node_Name = node_name;
-	fw.Description = "Latest Rev: 19-August-2018";
+	fw.Description = "Latest Rev: 22-August-2018";
 	fw.Major_Release = HATCONTROLLERNODE_MAJOR_RELEASE;
 	fw.Minor_Release = HATCONTROLLERNODE_MINOR_RELEASE;
 	fw.Build_Number = HATCONTROLLERNODE_BUILD_NUMBER;
@@ -396,6 +334,17 @@ void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 				}
 			}
 			srv.request.query = "DeviceType=GPIOHat";
+			if(srv_device.call(srv) == true)
+			{
+				for(std::size_t i = 0; i < srv.response.data.size(); i++)
+				{
+					bool status = new_devicemsg(srv.request.query,srv.response.data.at(i));
+				}
+			}
+			else
+			{
+			}
+			srv.request.query = "DeviceType=TerminalHat";
 			if(srv_device.call(srv) == true)
 			{
 				for(std::size_t i = 0; i < srv.response.data.size(); i++)
@@ -744,7 +693,7 @@ bool new_devicemsg(std::string query,icarus_rover_v2::device device)
 		if((device.DeviceName == hostname))
 		{
 			process->set_mydevice(device);
-						myDevice = process->get_mydevice();
+			myDevice = process->get_mydevice();
 			resourcemonitor = new ResourceMonitor(process->get_diagnostic(),device.Architecture,device.DeviceName,node_name);
 
 		}
@@ -769,6 +718,33 @@ bool new_devicemsg(std::string query,icarus_rover_v2::device device)
 						ros::Publisher pub = n->advertise<icarus_rover_v2::signal>(topic,10);
 						signal_sensor_pubs.push_back(pub);
 						signal_sensor_names.push_back(sensors.at(i).name);
+					}
+				}
+				{
+					std::vector<icarus_rover_v2::pin> pins = process->get_terminalhatpins("");
+					for(std::size_t i = 0; i < pins.size(); i++)
+					{
+						if(pins.at(i).Function == "DigitalInput")
+						{
+							std::string topic = "/" + pins.at(i).Name;
+							ros::Publisher pub = n->advertise<std_msgs::Bool>(topic,10);
+							digitalinput_names.push_back(pins.at(i).Name);
+							digitalinput_pubs.push_back(pub);
+						}
+						else
+						{
+							icarus_rover_v2::diagnostic diagnostic;
+							diagnostic.Diagnostic_Type = SOFTWARE;
+							diagnostic.Level = ERROR;
+							diagnostic.Diagnostic_Message = INITIALIZING_ERROR;
+							char tempstr[512];
+							sprintf(tempstr,"[TerminalHat] Unsupported Pin Function: %s",pins.at(i).Function.c_str());
+							diagnostic.Description = std::string(tempstr);
+							process->set_diagnostic(diagnostic);
+							printf("%s\n",tempstr);
+							logger->log_error(std::string(tempstr));
+							kill_node = 1;
+						}
 					}
 				}
 				logger->log_notice("Device finished initializing.");

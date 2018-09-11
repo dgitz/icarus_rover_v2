@@ -37,6 +37,10 @@ https://github.com/dgitz/icarus_rover_v2/wiki/ICARUS_ROVER_V2_COMM#udp-messages
 https://github.com/dgitz/icarus_rover_v2/wiki/ICARUS_ROVER_V2_COMM#udp-messages
 3. Generates ready_to_arm signal
 
+Documentation History
+10-Sep-2018 David Gitz
+Not able to fix BUG: https://github.com/dgitz/icarus_rover_v2/issues/109 except by moving node to ControlModule2.
+
 C. topicremapper_node
 Usage: This node should be run on one device on the Robot.
 Purpose:

@@ -193,6 +193,7 @@ icarus_rover_v2::diagnostic HatControllerNodeProcess::new_devicemsg(icarus_rover
 					{
 						for(std::size_t i = 0; i < newdevice.pins.size(); i++)
 						{
+
 							if((newdevice.pins.at(i).Function == "DigitalInput") or
 									(newdevice.pins.at(i).Function == "DigitalOutput-NonActuator") or
 									(newdevice.pins.at(i).Function == "DigitalOutput")) {}
@@ -263,7 +264,6 @@ icarus_rover_v2::diagnostic HatControllerNodeProcess::new_devicemsg(icarus_rover
 					hats_running.push_back(false);
 					if(hats.size() == mydevice.HatCount)
 					{
-
 						ready = true;
 					}
 				}
@@ -452,11 +452,17 @@ icarus_rover_v2::diagnostic HatControllerNodeProcess::new_message_GetDIOPort1(ui
 	icarus_rover_v2::device hat = find_hat(hatid);
 	if(hat.DeviceName == "")
 	{
-		char tempstr[255];
+		char tempstr[1024];
 		diag.Diagnostic_Type = COMMUNICATIONS;
 		diag.Level = ERROR;
 		diag.Diagnostic_Message = DROPPING_PACKETS;
-		sprintf(tempstr,"Hat ID: %d Not Found\n",hatid);
+		sprintf(tempstr,"Hat ID: %d Not Found.  Defined Hats: ",hatid);
+		char tempstr2[512];
+		for(int j = 0; j < hats.size(); j++)
+		{
+			sprintf(tempstr2,"%s:%ld,",hats.at(j).DeviceName.c_str(),hats.at(j).ID);
+		}
+		sprintf(tempstr,"%s%s\n",tempstr,tempstr2);
 		diag.Description = std::string(tempstr);
 		return diag;
 	}
@@ -653,7 +659,13 @@ icarus_rover_v2::diagnostic HatControllerNodeProcess::set_hat_running(std::strin
 		diag.Diagnostic_Type = SOFTWARE;
 		diag.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
 		char tempstr[512];
-		sprintf(tempstr,"Hat: %d Not Found",id);
+		sprintf(tempstr,"Hat ID: %d Not Found.  Defined Hats: ",id);
+		char tempstr2[512];
+		for(int j = 0; j < hats.size(); j++)
+		{
+			sprintf(tempstr2,"%s:%ld,",hats.at(j).DeviceName.c_str(),hats.at(j).ID);
+		}
+		sprintf(tempstr,"%s%s\n",tempstr,tempstr2);
 		diag.Description = std::string(tempstr);
 	}
 	else
@@ -737,7 +749,7 @@ std::vector<icarus_rover_v2::pin> HatControllerNodeProcess::get_terminalhatpins(
 			for(std::size_t j = 0; j < hats.at(i).pins.size(); j++)
 			{
 				icarus_rover_v2::pin pin;
-				if(hats.at(i).pins.at(j).Function == Function)
+				if((hats.at(i).pins.at(j).Function == Function) or (Function == ""))
 				{
 					pin = hats.at(i).pins.at(j);
 					if((Function == "DigitalOutput") and (armed_state != ARMEDSTATUS_ARMED))

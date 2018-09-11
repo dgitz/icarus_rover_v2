@@ -74,7 +74,6 @@ void resource_Callback(const icarus_rover_v2::resource::ConstPtr& msg);
 void firmware_Callback(const icarus_rover_v2::firmware::ConstPtr& msg);
 void ArmedState_Callback(const std_msgs::UInt8::ConstPtr& msg);
 void estop_Callback(const icarus_rover_v2::estop::ConstPtr& msg);
-bool check_remoteHeartbeats();
 void device_callback(std::vector<icarus_rover_v2::device> devicelist);
 //End User Code: Function Prototypes
 
@@ -113,15 +112,8 @@ double ros_rate;
 //End Template Code: Define Global Variables
 
 //Start User Code: Define Global Variables
-struct RemoteDevice
-{
-	std::string Name;
-	double current_beatepoch_sec;
-	double expected_beatepoch_sec;
-	double offset_sec;
 
-};
-bool remote_heartbeat_pass;
+
 bool ready_to_arm;
 UDPMessageHandler *udpmessagehandler;
 struct sockaddr_in senddevice_addr;
@@ -147,9 +139,10 @@ std::vector<ros::Subscriber> diagnostic_subs;
 std::vector<ros::Subscriber> firmware_subs;
 ros::Subscriber armed_disarmed_state_sub;
 ros::Subscriber estop_sub;
+ros::Publisher estop_pub;
 ros::Publisher user_command_pub;
 ros::Publisher ready_to_arm_pub;
-std::vector<RemoteDevice> remote_devices;
+
 struct timeval now2;
 NetworkTransceiverNodeProcess* process;
 //End User Code: Define Global Variables
