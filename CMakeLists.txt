@@ -240,6 +240,7 @@ add_library(topicremapper_node_process src/Communication/topicremapper_node_proc
 add_library(speaker_node_process src/Communication/speaker_node_process.cpp)
 add_library(diagnostic_node_process src/Diagnostics/diagnostic_node_process.cpp)
 add_library(safety_node_process src/Diagnostics/safety_node_process.cpp)
+add_library(lcddriver src/Diagnostics/Driver/LCDDriver.cpp)
 add_library(hatcontroller_node_process src/Board/hatcontroller_node_process.cpp)
 
 add_executable(master_node src/Control/master_node.cpp)
@@ -258,7 +259,7 @@ catkin_add_gtest(test_timemaster_node_process src/Timing/unit_tests/test_timemas
 target_link_libraries(test_timemaster_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} timemaster_node_process logger serialmessage)
 
 add_executable(diagnostic_node src/Diagnostics/diagnostic_node.cpp)
-target_link_libraries(diagnostic_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} logger resourcemonitor diagnostic_node_process)
+target_link_libraries(diagnostic_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} lcddriver logger resourcemonitor diagnostic_node_process)
 catkin_add_gtest(test_diagnostic_node_process src/Diagnostics/unit_tests/test_diagnostic_node_process.cpp)
 target_link_libraries(test_diagnostic_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} diagnostic_node_process logger serialmessage)
 

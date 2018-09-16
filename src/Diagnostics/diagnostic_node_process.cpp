@@ -4,13 +4,14 @@
 DiagnosticNodeProcess::DiagnosticNodeProcess()
 {
 	ready_to_arm = false;
+    ready = false;
 	run_time = 0.0;
 	initialized = false;
+	any_diagnostic_received = false;
 	node_name = "";
 	last_1pps_timer = 0.0;
 	last_01pps_timer = 0.0;
 	last_cmddiagnostic_timer = 0.0;
-	lcd_message = "";
 	lcd_partnumber = "617003";
 	lcd_width = 20;
 	lcd_height = 4;
@@ -19,6 +20,7 @@ DiagnosticNodeProcess::DiagnosticNodeProcess()
 	voltage_received = false;
 	armed_state = ARMEDSTATUS_DISARMED_CANNOTARM;
 	bad_diagnostic_received = false;
+    lcd_available = true;
 	init_diaglevels();
 }
 /*! \brief Deconstructor
@@ -36,37 +38,37 @@ icarus_rover_v2::diagnostic DiagnosticNodeProcess::init(icarus_rover_v2::diagnos
 	mydevice.DeviceName = hostname;
 	return diagnostic;
 }
-icarus_rover_v2::diagnostic DiagnosticNodeProcess::build_lcdmessage()
+std::string DiagnosticNodeProcess::build_lcdmessage()
 {
 	icarus_rover_v2::diagnostic diag = diagnostic;
 	if(lcd_partnumber == "617003")
 	{
 		char buffer[lcd_width*lcd_height];
+		//printf("a: %s\n",get_armedstatestr(armed_state).c_str());
+		//printf("b: %s\n",get_batteryvoltagestr().c_str());
+		//printf("c: %s\n",get_batterylevelstr(battery_level).c_str());
 		sprintf(buffer,"%s%s%s",get_armedstatestr(armed_state).c_str(),get_batteryvoltagestr().c_str(),get_batterylevelstr(battery_level).c_str());
+		//printf("1: %s\n",buffer);
 		std::string diag_str = get_diagstr();
+		//printf("2: %s\n",diag_str.c_str());
+		//printf("3: %d\n",bad_diagnostic_received);
 		if(bad_diagnostic_received == false)
 		{
 			sprintf(buffer,"%s%s",buffer,diag_str.c_str());
-			sprintf(buffer,"%sXXXXXXXXXXXXXXXXXXXX",buffer);
-			sprintf(buffer,"%sXXXXXXXXXXXXXXXXXXX%s",buffer,get_lcdclockstr(lcd_clock).c_str());
+            sprintf(buffer,"%s                    ",buffer);
+            sprintf(buffer,"%s                   %c",buffer,get_lcdclockchar(lcd_clock));
 		}
 		else
 		{
-			sprintf(buffer,"%s%s%s",buffer,diag_str.c_str(),get_lcdclockstr(lcd_clock).c_str());
+			sprintf(buffer,"%s%s%c",buffer,diag_str.c_str(),get_lcdclockchar(lcd_clock));
 		}
-		lcd_message = std::string(buffer);
+		return std::string(buffer);
 
 	}
 	else
 	{
-		diag.Diagnostic_Type = DATA_STORAGE;
-		diag.Level = ERROR;
-		diag.Diagnostic_Message = INITIALIZING_ERROR;
-		char tempstr[512];
-		sprintf(tempstr,"LCD Part Number: %s not supported.",lcd_partnumber.c_str());
-		diag.Description = std::string(tempstr);
+		return "";
 	}
-	return diag;
 }
 std::string DiagnosticNodeProcess::get_batterylevelstr(double v)
 {
@@ -91,18 +93,19 @@ std::string DiagnosticNodeProcess::get_batterylevelstr(double v)
 		return "----";
 	}
 }
-std::string DiagnosticNodeProcess::get_lcdclockstr(int v)
+unsigned char DiagnosticNodeProcess::get_lcdclockchar(int v)
 {
 	switch(v)
 	{
-	case 0: return "-"; break;
-	case 1: return "\\"; break;
-	case 2: return "!"; break;
-	case 3: return "/"; break;
-	case 4: return "-"; break;
-	case 5: return "\\"; break;
-	case 6: return "!"; break;
-	case 7: return "/"; break;
+	case 0: return '-'; break;
+	case 1: return 92; break;
+	case 2: return '!'; break;
+	case 3: return '/'; break;
+	case 4: return '-'; break;
+	case 5: return 92; break;
+	case 6: return '!'; break;
+	case 7: return '/'; break;
+	default: return 'X'; break;
 	}
 }
 std::string DiagnosticNodeProcess::get_batteryvoltagestr()
@@ -144,6 +147,10 @@ std::string DiagnosticNodeProcess::get_diagstr()
 {
 	std::string device,level,message,desc;
 	bool found_one = false;
+	if(any_diagnostic_received == false)
+	{
+		return "NO DIAG RECEIVED    ";
+	}
 	icarus_rover_v2::diagnostic worst_diag;
 	for(std::size_t i = diaglevels.size()-1; i >0; i--)
 	{
@@ -221,18 +228,16 @@ icarus_rover_v2::diagnostic DiagnosticNodeProcess::update(double dt)
 	last_1pps_timer += dt;
 	last_01pps_timer += dt;
 	last_cmddiagnostic_timer += dt;
-	if(initialized == true) { ready = true; }
 	icarus_rover_v2::diagnostic diag = diagnostic;
+    if(lcd_available == false)
+    {
+        if(initialized == true){ ready = true; }
+    }
 	bool status = true;
 	for(std::size_t i = 0; i < diaglevels.size(); i++)
 	{
 		diaglevels.at(i).last_time += dt;
 
-	}
-	diag = build_lcdmessage();
-	if(diag.Level > NOTICE)
-	{
-		status = false;
 	}
 	if(last_1pps_timer > 5.0)
 	{
@@ -284,6 +289,34 @@ icarus_rover_v2::diagnostic DiagnosticNodeProcess::new_devicemsg(icarus_rover_v2
 	{
 
 	}
+	else if(device.DeviceType == "LCD")
+	{
+		if(device.PartNumber == "617003")
+		{
+			lcd_height = 4;
+			lcd_width = 20;
+			ready = true;
+		}
+		else
+		{
+			diag.Level = ERROR;
+			diag.Diagnostic_Type = DATA_STORAGE;
+			diag.Diagnostic_Message = INITIALIZING_ERROR;
+			char tempstr[512];
+			sprintf(tempstr,"Unsupported Device: %s\n",device.PartNumber.c_str());
+			diag.Description = std::string(tempstr);
+		}
+	}
+	else
+	{
+		diag.Level = ERROR;
+		diag.Diagnostic_Type = DATA_STORAGE;
+		diag.Diagnostic_Message = INITIALIZING_ERROR;
+		char tempstr[512];
+		sprintf(tempstr,"Unsupported Device Message: %s\n",device.DeviceName.c_str());
+		diag.Description = std::string(tempstr);
+	}
+
 	return diag;
 }
 /*! \brief Process Command Message
@@ -292,6 +325,7 @@ std::vector<icarus_rover_v2::diagnostic> DiagnosticNodeProcess::new_commandmsg(i
 {
 	std::vector<icarus_rover_v2::diagnostic> diaglist;
 	icarus_rover_v2::diagnostic diag = diagnostic;
+	current_command = cmd;
 	if (cmd.Command ==  ROVERCOMMAND_RUNDIAGNOSTIC)
 	{
 		last_cmddiagnostic_timer = 0.0;
@@ -421,6 +455,7 @@ void DiagnosticNodeProcess::new_diagnosticmsg(std::string topicname,icarus_rover
 			}
 		}
 	}
+	any_diagnostic_received = true;
 }
 std::vector<icarus_rover_v2::diagnostic> DiagnosticNodeProcess::check_tasks()
 {

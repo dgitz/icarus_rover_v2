@@ -68,7 +68,7 @@ DiagnosticNodeProcess* readyprocess(DiagnosticNodeProcess* process)
 }
 void print_lcdmessage(DiagnosticNodeProcess* process)
 {
-    std::string msg = process->get_lcdmessage();
+    std::string msg = process->build_lcdmessage();
     int width = process->get_lcdwidth();
     int height = process->get_lcdheight();
     printf("\n\n");
@@ -92,6 +92,7 @@ TEST(Template,Process_Initialization)
 TEST(Template,Process_Command)
 {
 	DiagnosticNodeProcess* process = initializeprocess();
+    process->no_connectedlcd();
     process = readyprocess(process);
     double time_to_run = 50.0;
     double dt = 0.001;
@@ -167,6 +168,14 @@ TEST(Template,Process_Command)
 TEST(Template,LCDMessage)
 {
 	DiagnosticNodeProcess* process = initializeprocess();
+    icarus_rover_v2::device lcd;
+    lcd.DeviceName = "LCD1";
+    lcd.DeviceType = "LCD";
+    lcd.PartNumber = "617003";
+    lcd.DeviceParent = process->get_mydevice().DeviceName;
+    icarus_rover_v2::diagnostic diag = process->new_devicemsg(lcd);
+    EXPECT_TRUE(diag.Level <= NOTICE);
+
     process = readyprocess(process);
     double time_to_run = 100.0;
     double dt = 0.001;
@@ -196,7 +205,7 @@ TEST(Template,LCDMessage)
         	bad_diag.Description = "1234";
         	process->new_diagnosticmsg("test1",bad_diag);
         }
-        icarus_rover_v2::diagnostic diag = process->update(dt);
+        diag = process->update(dt);
         double battery_level = 100.0*current_time/time_to_run;
         process->set_batterylevel(battery_level);
         double battery_voltage = 12.0*current_time/time_to_run;

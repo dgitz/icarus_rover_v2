@@ -2,6 +2,11 @@ Author: David Gitz
 Task: Diagnostics
 Nodes:
 A. diagnostic_node
+TODO:
+ - EStop feedback on LCD
+ - CMD feedback on LCD
+ - LCD Backlight colors
+ - Booting Text
 Usage: This node should be run on 1 device on the Robot.
 Purpose: 
 1. Report and respond to various health issues with different nodes.

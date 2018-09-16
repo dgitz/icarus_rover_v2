@@ -8,6 +8,7 @@ LCDDriver::LCDDriver()
 	backlight_red = 0;
 	backlight_green = 0;
 	backlight_blue = 0;
+	locked = false;
 }
 LCDDriver::~LCDDriver()
 {
@@ -17,6 +18,7 @@ LCDDriver::~LCDDriver()
 
 int LCDDriver::init(int _width,int _height)
 {
+    
 	width = _width;
 	height = _height;
 	buffer_max = width*height;
@@ -69,19 +71,24 @@ int LCDDriver::init(int _width,int _height)
 		return 0;
 	}
 	fd = port;
-
+    initialized = true;
 	return 1;
 }
 int LCDDriver::send(std::string buffer)
 {
+	if(locked == true)
+	{
+		return 0;
+	}
+	locked = true;
 	if(buffer.size() > buffer_max)
 	{
 		printf("Buffer is too big: %d/%d\n",buffer.size(),buffer_max);
 		return -1;
 	}
 	write(fd,"|-",2);
-
 	int n_written = write (fd, buffer.c_str(), strlen(buffer.c_str()));
+	locked = false;
 	return n_written;
 }
 int LCDDriver::set_backlightred(int v)

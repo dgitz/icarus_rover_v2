@@ -31,6 +31,7 @@ public:
 	int set_backlightblue(int v);
 	int send(std::string buffer);
 	int test_comm(int v);
+    bool get_initialized() { return initialized; }
 
 private:
 	int map_value(int v, int min, int max);
@@ -41,6 +42,8 @@ private:
 	int backlight_red;
 	int backlight_green;
 	int backlight_blue;
+    bool initialized;
+    bool locked;
 
 };
 
