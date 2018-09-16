@@ -66,6 +66,19 @@ DiagnosticNodeProcess* readyprocess(DiagnosticNodeProcess* process)
     EXPECT_TRUE(process->get_TaskList().size()==topics_to_add.size());
     return process;
 }
+void print_lcdmessage(DiagnosticNodeProcess* process)
+{
+    std::string msg = process->get_lcdmessage();
+    int width = process->get_lcdwidth();
+    int height = process->get_lcdheight();
+    printf("\n\n");
+    for(int i = 0; i < height; i++)
+    {
+        printf("%s\n",msg.substr(i*(width),width).c_str());
+    }
+    printf("\n\n");
+    
+}
 TEST(Template,Process_Initialization)
 {
 	DiagnosticNodeProcess* process = initializeprocess();
@@ -148,6 +161,114 @@ TEST(Template,Process_Command)
             process->new_01ppsmsg();
         }
         current_time += dt;   
+    }
+    EXPECT_TRUE(process->get_runtime() >= time_to_run);
+}
+TEST(Template,LCDMessage)
+{
+	DiagnosticNodeProcess* process = initializeprocess();
+    process = readyprocess(process);
+    double time_to_run = 100.0;
+    double dt = 0.001;
+    double current_time = 0.0;
+    bool fastrate_fire = false; //10 Hz
+    bool mediumrate_fire = false; //1 Hz
+    bool slowrate_fire = false; //0.1 Hz
+    uint8_t armed_state = ARMEDSTATUS_UNDEFINED;
+    
+    while(current_time <= time_to_run)
+    {
+        if(current_time < WORSTDIAG_TIMELIMIT)
+        {
+            icarus_rover_v2::diagnostic bad_diag = process->get_diagnostic();
+            bad_diag.Level = ERROR;
+            bad_diag.DeviceName = "BigDeviceName";
+            bad_diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
+            bad_diag.Description = "1234567890123456789012345678901234567890";
+            process->new_diagnosticmsg("test1",bad_diag);
+        }
+        else if(current_time < 2.0*WORSTDIAG_TIMELIMIT)
+        {
+        	icarus_rover_v2::diagnostic bad_diag = process->get_diagnostic();
+        	bad_diag.Level = ERROR;
+        	bad_diag.DeviceName = "SmDe";
+        	bad_diag.Diagnostic_Message = MISSING_HEARTBEATS;
+        	bad_diag.Description = "1234";
+        	process->new_diagnosticmsg("test1",bad_diag);
+        }
+        icarus_rover_v2::diagnostic diag = process->update(dt);
+        double battery_level = 100.0*current_time/time_to_run;
+        process->set_batterylevel(battery_level);
+        double battery_voltage = 12.0*current_time/time_to_run;
+        process->set_batteryvoltage(battery_voltage);
+        process->new_armedstatemsg(armed_state);
+        EXPECT_TRUE(diag.Level <= NOTICE);
+        int current_time_ms = (int)(current_time*1000.0);
+        if((current_time_ms % 100) == 0)
+        {
+            fastrate_fire = true;
+        }
+        else { fastrate_fire = false; }
+        if((current_time_ms % 1000) == 0)
+        {
+            mediumrate_fire = true;
+        }
+        else { mediumrate_fire = false; }
+        if((current_time_ms % 10000) == 0)
+        {
+            slowrate_fire = true;
+        }
+        else { slowrate_fire = false; }
+        icarus_rover_v2::command cmd;
+        cmd.Command = ROVERCOMMAND_RUNDIAGNOSTIC;
+        if(fastrate_fire == true) 
+        { 
+            printf("%f/%f\n",current_time,time_to_run);
+            print_lcdmessage(process);
+        	std::vector<DiagnosticNodeProcess::Task> tasklist = process->get_TaskList();
+        	for(std::size_t i = 0; i < tasklist.size(); i++)
+        	{
+        		process->new_heartbeatmsg(tasklist.at(i).heartbeat_topic);
+        	}
+        	cmd.Option1 = LEVEL3;
+        	std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(cmd);
+        	for(std::size_t i = 0; i < diaglist.size(); i++)
+        	{
+        		EXPECT_TRUE(diaglist.at(i).Level <= NOTICE);
+        	}
+        	EXPECT_TRUE(diaglist.size() > 0);
+
+        }
+        if(mediumrate_fire == true)
+        {
+        	cmd.Option1 = LEVEL2;
+            std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(cmd);
+            for(std::size_t i = 0; i < diaglist.size(); i++)
+            {
+                EXPECT_TRUE(diaglist.at(i).Level <= NOTICE);
+            }
+            EXPECT_TRUE(diaglist.size() > 0);
+            process->new_1ppsmsg();
+            
+        }
+        if(slowrate_fire == true)
+        {
+            armed_state++;
+            if(armed_state > ARMEDSTATUS_ARMING)
+            {
+                armed_state = ARMEDSTATUS_UNDEFINED;
+            }
+            cmd.Option1 = LEVEL1;
+            std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(cmd);
+            for(std::size_t i = 0; i < diaglist.size(); i++)
+            {
+                EXPECT_TRUE(diaglist.at(i).Level <= NOTICE);
+            }
+            EXPECT_TRUE(diaglist.size() > 0);
+            process->new_01ppsmsg();
+        }
+        current_time += dt;   
+        usleep((int)(dt*10000.0));
     }
     EXPECT_TRUE(process->get_runtime() >= time_to_run);
 }

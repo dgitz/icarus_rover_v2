@@ -21,6 +21,7 @@
 #include <serialmessage.h>
 #include "logger.h"
 #include <math.h>
+#define WORSTDIAG_TIMELIMIT 5.0
 //#include "../../../eROS/include/DiagnosticClass.h"
 class DiagnosticNodeProcess
 {
@@ -49,6 +50,12 @@ public:
 		std::string Device_Name;
 		int16_t CPU_Perc_Available;
 		int64_t RAM_Mb_Available;
+	};
+	struct DiagLevel
+	{
+		uint8_t Level;
+		double last_time;
+		icarus_rover_v2::diagnostic diag;
 	};
 
 	DiagnosticNodeProcess();
@@ -80,11 +87,26 @@ public:
 	void set_nodename(std::string v) { node_name = v; }
 	icarus_rover_v2::diagnostic new_1ppsmsg();
 	icarus_rover_v2::diagnostic new_01ppsmsg();
+    std::string get_lcdmessage()
+    {
+        return lcd_message;
+    }
+    uint8_t get_lcdwidth(){ return lcd_width; }
+    uint8_t get_lcdheight() { return lcd_height; }
+    void set_batterylevel(double v) { battery_level = v;}
+    void set_batteryvoltage(double v) { voltage_received = true; battery_voltage = v;}
+    void new_armedstatemsg(uint8_t v) { armed_state = v; }
     
 private:
 	//DiagnosticClass diagclass;
 	std::vector<icarus_rover_v2::diagnostic> check_program_variables();
-	
+    icarus_rover_v2::diagnostic build_lcdmessage();
+    std::string get_batterylevelstr(double v);
+    std::string get_lcdclockstr(int v);
+    std::string get_batteryvoltagestr();
+    std::string get_armedstatestr(uint8_t v);
+    std::string get_diagstr();
+    void init_diaglevels();
 	double run_time;
 	icarus_rover_v2::diagnostic diagnostic;
 	icarus_rover_v2::device mydevice;
@@ -104,5 +126,17 @@ private:
 	double last_1pps_timer;
 	double last_01pps_timer;
 	double last_cmddiagnostic_timer;
+    double battery_level;
+    std::string lcd_message;
+    uint8_t lcd_width;
+    uint8_t lcd_height;
+    std::string lcd_partnumber;
+    int lcd_clock;
+    bool voltage_received;
+    double battery_voltage;
+    uint8_t armed_state;
+    std::vector<DiagLevel> diaglevels;
+    bool bad_diagnostic_received;
+    
 };
 #endif
