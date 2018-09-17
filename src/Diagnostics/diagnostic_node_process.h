@@ -17,10 +17,12 @@
 #include "icarus_rover_v2/pin.h"
 #include "icarus_rover_v2/firmware.h"
 #include "icarus_rover_v2/resource.h"
+#include <icarus_rover_v2/estop.h>
 #include <std_msgs/UInt8.h>
 #include <serialmessage.h>
 #include "logger.h"
 #include <math.h>
+#define WORSTDIAG_TIMELIMIT 5.0
 //#include "../../../eROS/include/DiagnosticClass.h"
 class DiagnosticNodeProcess
 {
@@ -50,10 +52,21 @@ public:
 		int16_t CPU_Perc_Available;
 		int64_t RAM_Mb_Available;
 	};
+	struct DiagLevel
+	{
+		uint8_t Level;
+		double last_time;
+		icarus_rover_v2::diagnostic diag;
+	};
 
 	DiagnosticNodeProcess();
 	~DiagnosticNodeProcess();
 	icarus_rover_v2::diagnostic init(icarus_rover_v2::diagnostic indiag,std::string hostname);
+    void no_connectedlcd()
+    {
+        lcd_available = false;
+    }
+    bool get_lcdavailable() { return lcd_available; }
 	icarus_rover_v2::diagnostic update(double dt);
 	void set_diagnostic(icarus_rover_v2::diagnostic v) { diagnostic = v; }
 	icarus_rover_v2::diagnostic get_diagnostic() { return diagnostic; }
@@ -80,11 +93,24 @@ public:
 	void set_nodename(std::string v) { node_name = v; }
 	icarus_rover_v2::diagnostic new_1ppsmsg();
 	icarus_rover_v2::diagnostic new_01ppsmsg();
+    uint8_t get_lcdwidth(){ return lcd_width; }
+    uint8_t get_lcdheight() { return lcd_height; }
+    void set_batterylevel(double v) { battery_level = v;}
+    void set_batteryvoltage(double v) { voltage_received = true; battery_voltage = v;}
+    void new_armedstatemsg(uint8_t v) { armed_state = v; }
+    std::string build_lcdmessage();
     
 private:
 	//DiagnosticClass diagclass;
 	std::vector<icarus_rover_v2::diagnostic> check_program_variables();
-	
+
+    std::string get_batterylevelstr(double v);
+    unsigned char get_lcdclockchar(int v);
+    std::string get_batteryvoltagestr();
+    std::string get_armedstatestr(uint8_t v);
+    std::string get_diagstr();
+    std::string get_lcdcommandstr();
+    void init_diaglevels();
 	double run_time;
 	icarus_rover_v2::diagnostic diagnostic;
 	icarus_rover_v2::device mydevice;
@@ -104,5 +130,23 @@ private:
 	double last_1pps_timer;
 	double last_01pps_timer;
 	double last_cmddiagnostic_timer;
+	double last_cmd_timer;
+    double battery_level;
+    uint8_t lcd_width;
+    uint8_t lcd_height;
+    std::string lcd_partnumber;
+    int lcd_clock;
+    bool voltage_received;
+    double battery_voltage;
+    uint8_t armed_state;
+    std::vector<DiagLevel> diaglevels;
+    bool bad_diagnostic_received;
+    bool any_diagnostic_received;
+    bool lcd_available;
+    icarus_rover_v2::command current_command;
+    bool command_received;
+    double lcdclock_timer;
+
+    
 };
 #endif

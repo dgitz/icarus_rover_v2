@@ -4,12 +4,26 @@
 DiagnosticNodeProcess::DiagnosticNodeProcess()
 {
 	ready_to_arm = false;
+    ready = false;
 	run_time = 0.0;
 	initialized = false;
+	any_diagnostic_received = false;
 	node_name = "";
 	last_1pps_timer = 0.0;
 	last_01pps_timer = 0.0;
+	last_cmd_timer = 0.0;
 	last_cmddiagnostic_timer = 0.0;
+	lcd_partnumber = "617003";
+	lcd_width = 20;
+	lcd_height = 4;
+	lcd_clock = 0;
+	battery_voltage = 0.0;
+	voltage_received = false;
+	armed_state = ARMEDSTATUS_DISARMED_CANNOTARM;
+	bad_diagnostic_received = false;
+    lcd_available = true;
+    lcdclock_timer = 0.0;
+	init_diaglevels();
 }
 /*! \brief Deconstructor
  */
@@ -21,10 +35,242 @@ DiagnosticNodeProcess::~DiagnosticNodeProcess()
  */
 icarus_rover_v2::diagnostic DiagnosticNodeProcess::init(icarus_rover_v2::diagnostic indiag,std::string hostname)
 {
-   	myhostname = hostname;
+	myhostname = hostname;
 	diagnostic = indiag;
 	mydevice.DeviceName = hostname;
 	return diagnostic;
+}
+std::string DiagnosticNodeProcess::build_lcdmessage()
+{
+	icarus_rover_v2::diagnostic diag = diagnostic;
+	if(lcd_partnumber == "617003")
+	{
+		char buffer[lcd_width*lcd_height];
+		//printf("a: %s\n",get_armedstatestr(armed_state).c_str());
+		//printf("b: %s\n",get_batteryvoltagestr().c_str());
+		//printf("c: %s\n",get_batterylevelstr(battery_level).c_str());
+		sprintf(buffer,"%s%s%s",get_armedstatestr(armed_state).c_str(),get_batteryvoltagestr().c_str(),get_batterylevelstr(battery_level).c_str());
+		//printf("1: %s\n",buffer);
+		std::string diag_str = get_diagstr();
+		//printf("2: %s\n",diag_str.c_str());
+		//printf("3: %d\n",bad_diagnostic_received);
+		if(bad_diagnostic_received == false)
+		{
+			sprintf(buffer,"%s%s",buffer,diag_str.c_str());
+            sprintf(buffer,"%s%s",buffer,get_lcdcommandstr().c_str());
+            sprintf(buffer,"%s                   %c",buffer,get_lcdclockchar(lcd_clock));
+		}
+		else
+		{
+			sprintf(buffer,"%s%s%c",buffer,diag_str.c_str(),get_lcdclockchar(lcd_clock));
+		}
+		return std::string(buffer);
+
+	}
+	else
+	{
+		return "";
+	}
+}
+std::string DiagnosticNodeProcess::get_batterylevelstr(double v)
+{
+	if(v >= 75.0)
+	{
+		return ">>>>";
+	}
+	else if(v >= 50.0)
+	{
+		return ">>>-";
+	}
+	else if(v >= 25.0)
+	{
+		return ">>--";
+	}
+	else if(v > 5.0)
+	{
+		return ">---";
+	}
+	else
+	{
+		return "----";
+	}
+}
+unsigned char DiagnosticNodeProcess::get_lcdclockchar(int v)
+{
+	switch(v)
+	{
+	case 0: return '-'; break;
+	case 1: return 92; break;
+	case 2: return '!'; break;
+	case 3: return '/'; break;
+	case 4: return '-'; break;
+	case 5: return 92; break;
+	case 6: return '!'; break;
+	case 7: return '/'; break;
+	default: return 'X'; break;
+	}
+}
+std::string DiagnosticNodeProcess::get_batteryvoltagestr()
+{
+	if(voltage_received == false)
+	{
+		return "--.-V";
+	}
+	else
+	{
+		char tempstr[5];
+		if(battery_voltage < 10.0)
+		{
+			sprintf(tempstr," %2.1fV",battery_voltage);
+		}
+		else
+		{
+			sprintf(tempstr,"%2.1fV",battery_voltage);
+		}
+
+		return std::string(tempstr);
+	}
+}
+std::string DiagnosticNodeProcess::get_armedstatestr(uint8_t v)
+{
+	switch(v)
+	{
+	case ARMEDSTATUS_UNDEFINED: return "UNDEFINED  "; break;
+	case ARMEDSTATUS_ARMED: return "ARMED      "; break;
+	case ARMEDSTATUS_DISARMED_CANNOTARM: return "CANNOT ARM "; break;
+	case ARMEDSTATUS_DISARMED: return "DISARMED   "; break;
+	case ARMEDSTATUS_DISARMING: return "DISARMING  "; break;
+	case ARMEDSTATUS_ARMING: return "ARMING     "; break;
+	default: return "UNDEFINED  "; break;
+	}
+
+}
+std::string DiagnosticNodeProcess::get_diagstr()
+{
+	std::string device,level,message,desc;
+	bool found_one = false;
+	if(any_diagnostic_received == false)
+	{
+		return "NO DIAG RECEIVED    ";
+	}
+	icarus_rover_v2::diagnostic worst_diag;
+	for(std::size_t i = diaglevels.size()-1; i >0; i--)
+	{
+		if(diaglevels.at(i).last_time < WORSTDIAG_TIMELIMIT)
+		{
+			worst_diag = diaglevels.at(i).diag;
+			found_one = true;
+
+		}
+	}
+	bad_diagnostic_received = found_one;
+	if(found_one == false)
+	{
+		return "NO ERROR            ";
+	}
+
+	if(worst_diag.DeviceName.length() > 6)
+	{
+		device = worst_diag.DeviceName.substr(0,6);
+	}
+	else
+	{
+		device = worst_diag.DeviceName;
+		device.append(6 - device.length(), ' ');
+	}
+	switch(worst_diag.Level)
+	{
+	case DEBUG: level = "DEBUG"; break;
+	case INFO: level = "INFO "; break;
+	case NOTICE: level = "NTICE"; break;
+	case WARN: level = "WARN "; break;
+	case ERROR: level = "ERROR"; break;
+	case FATAL: level = "FATAL"; break;
+	default: level = "UNDFD"; break;
+	}
+	switch(worst_diag.Diagnostic_Message)
+	{
+	case NOERROR: message = "NOERROR"; break;
+	case INITIALIZING: message = "INITLZG"; break;
+	case INITIALIZING_ERROR: message = "INITERR"; break;
+	case DROPPING_PACKETS: message = "DROPPKT"; break;
+	case MISSING_HEARTBEATS: message = "MSNGHBT"; break;
+	case DEVICE_NOT_AVAILABLE: message = "DEV N/A"; break;
+	case ROVER_ARMED: message = "  ARMED"; break;
+	case ROVER_DISARMED: message = " DISARM"; break;
+	case TEMPERATURE_HIGH: message = "HIGHTMP"; break;
+	case TEMPERATURE_LOW: message = " LOWTMP"; break;
+	case DIAGNOSTIC_PASSED: message = "DIAGPSD"; break;
+	case DIAGNOSTIC_FAILED: message = "DIAGFLD"; break;
+	case RESOURCE_LEAK: message = "RESLEAK"; break;
+	case HIGH_RESOURCE_USAGE: message = "RESHIGH"; break;
+	case UNKNOWN_STATE: message = "UNKSTAT"; break;
+	case UNKNOWN_MESSAGE: message = "UNKNOWN"; break;
+	}
+	if(worst_diag.Description.length() > 39)
+	{
+		desc = worst_diag.Description.substr(0,39);
+	}
+	else
+	{
+		desc = worst_diag.Description;
+		desc.append(39 - desc.length(), ' ');
+	}
+	char tempstr[lcd_width*lcd_height];
+	sprintf(tempstr,"%s %s %s%s",device.c_str(),level.c_str(),message.c_str(),desc.c_str());
+
+	return std::string(tempstr);
+
+}
+std::string DiagnosticNodeProcess::get_lcdcommandstr()
+{
+	std::string tempstr = "";
+	if(last_cmd_timer < 0.5)
+	{
+		switch(current_command.Command)
+		{
+		case ROVERCOMMAND_BOOT:
+			tempstr = "CMD:BOOTING"; break;
+		case ROVERCOMMAND_NONE:
+			tempstr = "CMD:NONE"; break;
+		case ROVERCOMMAND_RUNDIAGNOSTIC:
+			if(current_command.Option1 == LEVEL1)
+			{
+				tempstr = "";
+			}
+			else
+			{
+				char tempstr2[20];
+				sprintf(tempstr2,"CMD:RUN DIAG TEST:%d",current_command.Option1);
+				tempstr = std::string(tempstr2); break;
+			}
+		case ROVERCOMMAND_SEARCHFOR_RECHARGE_FACILITY:
+			tempstr = "CMD:SEARCH RECHARGE"; break;
+		case ROVERCOMMAND_STOPSEARCHFOR_RECHARGE_FACILITY:
+			tempstr = "CMD:STOP SRCH RCHRG"; break;
+		case ROVERCOMMAND_ACQUIRE_TARGET:
+			tempstr = "CMD:ACQUIRE TARGET"; break;
+		case ROVERCOMMAND_ARM:
+			tempstr = "CMD:ARM"; break;
+		case ROVERCOMMAND_DISARM:
+			tempstr = "CMD:DISARM"; break;
+		case ROVERCOMMAND_CONFIGURE:
+			tempstr = "CMD:CONFIGURE"; break;
+		case ROVERCOMMAND_RUN:
+			tempstr = "CMD:RUN"; break;
+		default:
+			char tempstr2[20];
+			sprintf(tempstr2,"CMD: UNKNOWN (%d)",current_command.Command);
+			tempstr = std::string(tempstr2); break;
+
+		}
+	}
+	else
+	{
+
+	}
+	tempstr.append(19 - tempstr.length(), ' ');
+	return tempstr;
 }
 /*! \brief Time Update of Process
  */
@@ -34,9 +280,30 @@ icarus_rover_v2::diagnostic DiagnosticNodeProcess::update(double dt)
 	last_1pps_timer += dt;
 	last_01pps_timer += dt;
 	last_cmddiagnostic_timer += dt;
-    if(initialized == true) { ready = true; }
+	lcdclock_timer+=dt;
+
 	icarus_rover_v2::diagnostic diag = diagnostic;
+	if(lcdclock_timer > 0.5)
+	{
+		int v = lcd_clock;
+		v++;
+		if(v > 7)
+		{
+			v = 0;
+		}
+		lcd_clock = v;
+		lcdclock_timer = 0.0;
+	}
+	if(lcd_available == false)
+	{
+		if(initialized == true){ ready = true; }
+    }
 	bool status = true;
+	for(std::size_t i = 0; i < diaglevels.size(); i++)
+	{
+		diaglevels.at(i).last_time += dt;
+
+	}
 	if(last_1pps_timer > 5.0)
 	{
 		status = false;
@@ -81,13 +348,41 @@ icarus_rover_v2::diagnostic DiagnosticNodeProcess::update(double dt)
  */
 icarus_rover_v2::diagnostic DiagnosticNodeProcess::new_devicemsg(icarus_rover_v2::device device)
 {
-    icarus_rover_v2::diagnostic diag = diagnostic;
+	icarus_rover_v2::diagnostic diag = diagnostic;
 	bool new_device = true;
 	if(device.DeviceName == myhostname)
 	{
 
-    }
-    return diag;
+	}
+	else if(device.DeviceType == "LCD")
+	{
+		if(device.PartNumber == "617003")
+		{
+			lcd_height = 4;
+			lcd_width = 20;
+			ready = true;
+		}
+		else
+		{
+			diag.Level = ERROR;
+			diag.Diagnostic_Type = DATA_STORAGE;
+			diag.Diagnostic_Message = INITIALIZING_ERROR;
+			char tempstr[512];
+			sprintf(tempstr,"Unsupported Device: %s\n",device.PartNumber.c_str());
+			diag.Description = std::string(tempstr);
+		}
+	}
+	else
+	{
+		diag.Level = ERROR;
+		diag.Diagnostic_Type = DATA_STORAGE;
+		diag.Diagnostic_Message = INITIALIZING_ERROR;
+		char tempstr[512];
+		sprintf(tempstr,"Unsupported Device Message: %s\n",device.DeviceName.c_str());
+		diag.Description = std::string(tempstr);
+	}
+
+	return diag;
 }
 /*! \brief Process Command Message
  */
@@ -95,6 +390,8 @@ std::vector<icarus_rover_v2::diagnostic> DiagnosticNodeProcess::new_commandmsg(i
 {
 	std::vector<icarus_rover_v2::diagnostic> diaglist;
 	icarus_rover_v2::diagnostic diag = diagnostic;
+	current_command = cmd;
+	last_cmd_timer = 0.0;
 	if (cmd.Command ==  ROVERCOMMAND_RUNDIAGNOSTIC)
 	{
 		last_cmddiagnostic_timer = 0.0;
@@ -213,6 +510,18 @@ void DiagnosticNodeProcess::new_diagnosticmsg(std::string topicname,icarus_rover
 			TaskList.at(i).last_diagnostic_level = diagnostic.Level;
 		}
 	}
+	if(diagnostic.Level >= WARN)
+	{
+		for(std::size_t i = 0; i < diaglevels.size(); i++)
+		{
+			if(diaglevels.at(i).Level == diagnostic.Level)
+			{
+				diaglevels.at(i).diag = diagnostic;
+				diaglevels.at(i).last_time = 0.0;
+			}
+		}
+	}
+	any_diagnostic_received = true;
 }
 std::vector<icarus_rover_v2::diagnostic> DiagnosticNodeProcess::check_tasks()
 {
@@ -285,7 +594,7 @@ std::vector<icarus_rover_v2::diagnostic> DiagnosticNodeProcess::check_tasks()
 			diagnostic_status.Description = tempstr;
 			diagnostic_pub.publish(diagnostic_status);
 		}
-		*/
+		 */
 		double heartbeat_time_duration = run_time-Task.last_heartbeat_received;
 		if(heartbeat_time_duration > 5.0)
 		{
@@ -306,7 +615,7 @@ std::vector<icarus_rover_v2::diagnostic> DiagnosticNodeProcess::check_tasks()
 	{
 		if(TaskList.size() > 0)
 		{
-            if(ready == true) { ready_to_arm = true; }
+			if(ready == true) { ready_to_arm = true; }
 			char tempstr[255];
 			sprintf(tempstr,"%d/%d (All) Tasks Operational.",task_ok_counter,(int)TaskList.size());
 			icarus_rover_v2::diagnostic system_diag;
@@ -348,6 +657,7 @@ icarus_rover_v2::diagnostic DiagnosticNodeProcess::new_1ppsmsg()
 {
 	icarus_rover_v2::diagnostic diag = diagnostic;
 	last_1pps_timer = 0.0;
+
 	return diag;
 }
 icarus_rover_v2::diagnostic DiagnosticNodeProcess::new_01ppsmsg()
@@ -356,4 +666,34 @@ icarus_rover_v2::diagnostic DiagnosticNodeProcess::new_01ppsmsg()
 	icarus_rover_v2::diagnostic diag = diagnostic;
 	last_01pps_timer = 0.0;
 	return diag;
+}
+void DiagnosticNodeProcess::init_diaglevels()
+{
+	{
+		DiagLevel diaglev;
+		diaglev.Level = WARN;
+		icarus_rover_v2::diagnostic diag;
+		diag.Level = diaglev.Level;
+		diaglev.diag = diag;
+		diaglev.last_time = WORSTDIAG_TIMELIMIT*2.0;
+		diaglevels.push_back(diaglev);
+	}
+	{
+		DiagLevel diaglev;
+		diaglev.Level = ERROR;
+		icarus_rover_v2::diagnostic diag;
+		diag.Level = diaglev.Level;
+		diaglev.diag = diag;
+		diaglev.last_time = WORSTDIAG_TIMELIMIT*2.0;
+		diaglevels.push_back(diaglev);
+	}
+	{
+		DiagLevel diaglev;
+		diaglev.Level = FATAL;
+		icarus_rover_v2::diagnostic diag;
+		diag.Level = diaglev.Level;
+		diaglev.diag = diag;
+		diaglev.last_time = WORSTDIAG_TIMELIMIT*2.0;
+		diaglevels.push_back(diaglev);
+	}
 }

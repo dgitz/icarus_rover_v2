@@ -28,6 +28,7 @@
 //End User Code: Defines
 
 //Start User Code: Includes
+#include "Driver/LCDDriver.h"
 #include "diagnostic_node_process.h"
 bool log_resources();
 //End User Code: Includes
@@ -54,6 +55,7 @@ icarus_rover_v2::diagnostic rescan_topics(icarus_rover_v2::diagnostic diag);
 void heartbeat_Callback(const icarus_rover_v2::heartbeat::ConstPtr& msg,const std::string &topicname);
 void resource_Callback(const icarus_rover_v2::resource::ConstPtr& msg,const std::string &topicname);
 void diagnostic_Callback(const icarus_rover_v2::diagnostic::ConstPtr& msg,const std::string &topicname);
+void ArmedState_Callback(const std_msgs::UInt8::ConstPtr& msg);
 //End User Code: Function Prototypes
 
 //Start Template Code: Define Global variables
@@ -102,5 +104,7 @@ ofstream cpu_free_file;
 std::vector<ros::Subscriber> resource_subs;
 std::vector<ros::Subscriber> diagnostic_subs;
 std::vector<ros::Subscriber> heartbeat_subs;
+LCDDriver lcd;
+ros::Subscriber armed_state_sub;
 //End User Code: Define Global Variables
 #endif
