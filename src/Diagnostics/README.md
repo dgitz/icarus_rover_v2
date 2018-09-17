@@ -18,6 +18,10 @@ Unit Tests:
   >>cd ~/catkin_ws/src/icarus_rover_v2/src/Diagnostics/unit_tests/
   >>g++ -lm ../Driver/LCDDriver.cpp test_lcd.cpp -o test_lcd
   
+Development History:
+17-September-2018 David Gitz
+Added support for LCD Module #617003
+  
 B. safety_node
 Usage: This node should be run on 1 device on the Robot, and only a ControlModule.
 Purpose:
