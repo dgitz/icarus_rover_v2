@@ -109,6 +109,7 @@ private:
     std::string get_batteryvoltagestr();
     std::string get_armedstatestr(uint8_t v);
     std::string get_diagstr();
+    std::string get_lcdcommandstr();
     void init_diaglevels();
 	double run_time;
 	icarus_rover_v2::diagnostic diagnostic;
@@ -129,6 +130,7 @@ private:
 	double last_1pps_timer;
 	double last_01pps_timer;
 	double last_cmddiagnostic_timer;
+	double last_cmd_timer;
     double battery_level;
     uint8_t lcd_width;
     uint8_t lcd_height;
@@ -143,6 +145,8 @@ private:
     bool lcd_available;
     icarus_rover_v2::command current_command;
     bool command_received;
+    double lcdclock_timer;
+
     
 };
 #endif

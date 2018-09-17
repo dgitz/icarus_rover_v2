@@ -11,6 +11,7 @@ DiagnosticNodeProcess::DiagnosticNodeProcess()
 	node_name = "";
 	last_1pps_timer = 0.0;
 	last_01pps_timer = 0.0;
+	last_cmd_timer = 0.0;
 	last_cmddiagnostic_timer = 0.0;
 	lcd_partnumber = "617003";
 	lcd_width = 20;
@@ -21,6 +22,7 @@ DiagnosticNodeProcess::DiagnosticNodeProcess()
 	armed_state = ARMEDSTATUS_DISARMED_CANNOTARM;
 	bad_diagnostic_received = false;
     lcd_available = true;
+    lcdclock_timer = 0.0;
 	init_diaglevels();
 }
 /*! \brief Deconstructor
@@ -55,7 +57,7 @@ std::string DiagnosticNodeProcess::build_lcdmessage()
 		if(bad_diagnostic_received == false)
 		{
 			sprintf(buffer,"%s%s",buffer,diag_str.c_str());
-            sprintf(buffer,"%s                    ",buffer);
+            sprintf(buffer,"%s%s",buffer,get_lcdcommandstr().c_str());
             sprintf(buffer,"%s                   %c",buffer,get_lcdclockchar(lcd_clock));
 		}
 		else
@@ -220,6 +222,56 @@ std::string DiagnosticNodeProcess::get_diagstr()
 	return std::string(tempstr);
 
 }
+std::string DiagnosticNodeProcess::get_lcdcommandstr()
+{
+	std::string tempstr = "";
+	if(last_cmd_timer < 0.5)
+	{
+		switch(current_command.Command)
+		{
+		case ROVERCOMMAND_BOOT:
+			tempstr = "CMD:BOOTING"; break;
+		case ROVERCOMMAND_NONE:
+			tempstr = "CMD:NONE"; break;
+		case ROVERCOMMAND_RUNDIAGNOSTIC:
+			if(current_command.Option1 == LEVEL1)
+			{
+				tempstr = "";
+			}
+			else
+			{
+				char tempstr2[20];
+				sprintf(tempstr2,"CMD:RUN DIAG TEST:%d",current_command.Option1);
+				tempstr = std::string(tempstr2); break;
+			}
+		case ROVERCOMMAND_SEARCHFOR_RECHARGE_FACILITY:
+			tempstr = "CMD:SEARCH RECHARGE"; break;
+		case ROVERCOMMAND_STOPSEARCHFOR_RECHARGE_FACILITY:
+			tempstr = "CMD:STOP SRCH RCHRG"; break;
+		case ROVERCOMMAND_ACQUIRE_TARGET:
+			tempstr = "CMD:ACQUIRE TARGET"; break;
+		case ROVERCOMMAND_ARM:
+			tempstr = "CMD:ARM"; break;
+		case ROVERCOMMAND_DISARM:
+			tempstr = "CMD:DISARM"; break;
+		case ROVERCOMMAND_CONFIGURE:
+			tempstr = "CMD:CONFIGURE"; break;
+		case ROVERCOMMAND_RUN:
+			tempstr = "CMD:RUN"; break;
+		default:
+			char tempstr2[20];
+			sprintf(tempstr2,"CMD: UNKNOWN (%d)",current_command.Command);
+			tempstr = std::string(tempstr2); break;
+
+		}
+	}
+	else
+	{
+
+	}
+	tempstr.append(19 - tempstr.length(), ' ');
+	return tempstr;
+}
 /*! \brief Time Update of Process
  */
 icarus_rover_v2::diagnostic DiagnosticNodeProcess::update(double dt)
@@ -228,10 +280,23 @@ icarus_rover_v2::diagnostic DiagnosticNodeProcess::update(double dt)
 	last_1pps_timer += dt;
 	last_01pps_timer += dt;
 	last_cmddiagnostic_timer += dt;
+	lcdclock_timer+=dt;
+
 	icarus_rover_v2::diagnostic diag = diagnostic;
-    if(lcd_available == false)
-    {
-        if(initialized == true){ ready = true; }
+	if(lcdclock_timer > 0.5)
+	{
+		int v = lcd_clock;
+		v++;
+		if(v > 7)
+		{
+			v = 0;
+		}
+		lcd_clock = v;
+		lcdclock_timer = 0.0;
+	}
+	if(lcd_available == false)
+	{
+		if(initialized == true){ ready = true; }
     }
 	bool status = true;
 	for(std::size_t i = 0; i < diaglevels.size(); i++)
@@ -326,6 +391,7 @@ std::vector<icarus_rover_v2::diagnostic> DiagnosticNodeProcess::new_commandmsg(i
 	std::vector<icarus_rover_v2::diagnostic> diaglist;
 	icarus_rover_v2::diagnostic diag = diagnostic;
 	current_command = cmd;
+	last_cmd_timer = 0.0;
 	if (cmd.Command ==  ROVERCOMMAND_RUNDIAGNOSTIC)
 	{
 		last_cmddiagnostic_timer = 0.0;
@@ -591,11 +657,7 @@ icarus_rover_v2::diagnostic DiagnosticNodeProcess::new_1ppsmsg()
 {
 	icarus_rover_v2::diagnostic diag = diagnostic;
 	last_1pps_timer = 0.0;
-	lcd_clock++;
-	if(lcd_clock > 7)
-	{
-		lcd_clock = 0;
-	}
+
 	return diag;
 }
 icarus_rover_v2::diagnostic DiagnosticNodeProcess::new_01ppsmsg()
