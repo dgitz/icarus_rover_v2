@@ -19,7 +19,9 @@ public:
     Logger();
     Logger(std::string level, std::string name);
     Logger(std::string level,std::string modpath,std::string name);
+    int get_logverbosity() { return verbosity; }
     ~Logger();
+
     void log_debug(std::string tempstr);
     void log_info(std::string tempstr);
     void log_notice(std::string tempstr);
@@ -32,8 +34,9 @@ private:
     int verbosity;
     ofstream log_file;
     char file_path[120];
-    void print_log(int level,std::string tempstr);
     int get_verbosity_level(std::string level);
+    void print_log(int level,std::string tempstr);
+
     DiagnosticClass diagclass;
 
 };

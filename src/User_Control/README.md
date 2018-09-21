@@ -10,3 +10,7 @@ B. teleop_node
 Usage:
 Purpose:
 
+C. audio_node
+Usage: This node should be run on whatever device has an audio input (i.e. a microphone) attached.
+Purpose:
+1. Reads audio input periodically and stores wav files for analysis
