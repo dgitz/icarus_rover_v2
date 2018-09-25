@@ -49,6 +49,7 @@ void signalinterrupt_handler(int sig);
 //End Template Code: Function Prototypes
 
 //Start User Code: Function Prototypes
+void ArmedState_Callback(const std_msgs::UInt8::ConstPtr& msg);
 //End User Code: Function Prototypes
 
 //Start Template Code: Define Global variables
@@ -87,5 +88,6 @@ double ros_rate;
 
 //Start User Code: Define Global Variables
 AudioNodeProcess *process;
+ros::Subscriber armed_state_sub;
 //End User Code: Define Global Variables
 #endif

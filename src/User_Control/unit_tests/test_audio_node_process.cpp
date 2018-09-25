@@ -13,6 +13,8 @@
 
 std::string Node_Name = "/unittest_audio_node_process";
 std::string Host_Name = "unittest";
+std::string storage_directory = "/home/robot/storage/AUDIO_UnitTest/";
+std::string archive_directory = "/home/robot/storage/AUDIO_UnitTestArchive/";
 std::string ros_DeviceName = Host_Name;
 
 
@@ -79,7 +81,7 @@ AudioNodeProcess* initializeprocess(bool stereo)
     }
     EXPECT_TRUE(process->get_mydevice().DeviceName == device.DeviceName);
     EXPECT_FALSE(process->set_audiostoragedirectory("A Directory that should never exist."));
-    EXPECT_TRUE(process->set_audiostoragedirectory("/home/robot/logs/output/AUDIO/unit_test"));
+    EXPECT_TRUE(process->set_audiostoragedirectory(storage_directory));
     process->set_audiorecord_duration(AUDIORECORD_DURATION);
     process->set_totalaudiofiletimetokeep(LENGTH_AUDIOFILES_TOKEEP);
     return process;
@@ -95,10 +97,110 @@ TEST(Template,Process_Initialization)
 {
     AudioNodeProcess* process = initializeprocess(true);
 }
-/*
+TEST(Template,AudioStorage_Play)
+{
+    AudioNodeProcess* process = initializeprocess(false);
+    process->new_audioplaytrigger("Robot:Booting");
+    process = readyprocess(process);
+    double time_to_run = 60.0;
+    double dt = 0.001;
+    double current_time = 0.0;
+    bool fastrate_fire = false; //10 Hz
+    bool mediumrate_fire = false; //1 Hz
+    bool slowrate_fire = false; //0.1 Hz
+    int audiotrigger_count = 0;
+    bool fired_once  = false;
+    uint8_t armed_state = 0;
+    std::string trigger_event1 = "Trigger1";
+    EXPECT_FALSE(process->add_audioplayfile(storage_directory+"output/AFileThatShouldNeverExist.mp3",trigger_event1,1));
+    EXPECT_TRUE(process->add_audioplayfile(storage_directory+"output/ALongFile.mp3",trigger_event1,1));
+    EXPECT_FALSE(process->new_audioplaytrigger("A Trigger that will never exist"));
+    printf("Playing a long file\n");
+    EXPECT_TRUE(process->new_audioplaytrigger(trigger_event1));
+
+    while(current_time <= time_to_run)
+    {
+        icarus_rover_v2::diagnostic diag = process->update(current_time,dt);
+        if((current_time > 3.0) and (fired_once == false))
+		{
+			EXPECT_TRUE(process->new_audioplaytrigger("ArmedState:Armed"));
+			fired_once = true;
+		}
+        EXPECT_TRUE(diag.Level <= NOTICE);
+        std::string command,filepath;
+
+        int current_time_ms = (int)(current_time*1000.0);
+        if((current_time_ms % 100) == 0)
+        {
+            fastrate_fire = true;
+        }
+        else { fastrate_fire = false; }
+        if((current_time_ms % 3000) == 0)
+        {
+            mediumrate_fire = true;
+        }
+        else { mediumrate_fire = false; }
+        if((current_time_ms % 10000) == 0)
+        {
+            slowrate_fire = true;
+        }
+        else { slowrate_fire = false; }
+        icarus_rover_v2::command cmd;
+        cmd.Command = ROVERCOMMAND_RUNDIAGNOSTIC;
+        if(fastrate_fire == true)
+        {
+            cmd.Option1 = LEVEL3;
+            std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(cmd);
+            for(std::size_t i = 0; i < diaglist.size(); i++)
+            {
+                EXPECT_TRUE(diaglist.at(i).Level <= NOTICE);
+            }
+             EXPECT_TRUE(diaglist.size() > 0);
+
+        }
+        if(mediumrate_fire == true)
+        {
+            cmd.Option1 = LEVEL2;
+            std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(cmd);
+            for(std::size_t i = 0; i < diaglist.size(); i++)
+            {
+                EXPECT_TRUE(diaglist.at(i).Level <= NOTICE);
+            }
+            EXPECT_TRUE(diaglist.size() > 0);
+            if(current_time > 5.0)
+            {
+            	if(armed_state > 6)
+            	{
+            		armed_state = 0;
+            	}
+            	printf("Setting Armed State: %d\n",armed_state);
+            	process->new_armedstatemsg(armed_state);
+            	armed_state++;
+            }
+
+        }
+        if(slowrate_fire == true)
+        {
+        	cmd.Option1 = LEVEL1;
+            std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(cmd);
+            for(std::size_t i = 0; i < diaglist.size(); i++)
+            {
+                EXPECT_TRUE(diaglist.at(i).Level <= NOTICE);
+            }
+             EXPECT_TRUE(diaglist.size() > 0);
+
+        }
+        current_time += dt;
+        usleep((int)(dt*1000000.0));
+    }
+    EXPECT_TRUE(process->get_runtime() >= time_to_run);
+    process->new_audioplaytrigger("Robot:PowerDown");
+
+}
 TEST(Template,AudioStorage_Delete)
 {
-    AudioNodeProcess* process = initializeprocess();
+	return;
+    AudioNodeProcess* process = initializeprocess(false);
     process = readyprocess(process);
     double time_to_run = 30.0;
     double dt = 0.001;
@@ -112,7 +214,7 @@ TEST(Template,AudioStorage_Delete)
         icarus_rover_v2::diagnostic diag = process->update(current_time,dt);
         EXPECT_TRUE(diag.Level <= NOTICE);
         std::string command,filepath;
-        if(process->get_audiotrigger(command,filepath))
+        if(process->get_audiorecordtrigger(command,filepath))
         {
         	audiotrigger_count++;
         	printf("[Create] %s\n%s\n",command.c_str(),filepath.c_str());
@@ -208,14 +310,15 @@ TEST(Template,AudioStorage_Delete)
 
 
 }
-*/
+
 TEST(Template,AudioStorage_Archive)
 {
+	return;
     AudioNodeProcess* process = initializeprocess(false);
     process = readyprocess(process);
     process->enable_archive(true);
-    EXPECT_TRUE(process->set_audioarchivedirectory("/home/robot/logs/output/AUDIO/unit_test_archive"));
-
+    EXPECT_TRUE(process->set_audioarchivedirectory(archive_directory));
+    return;
     char tempstr[512];
     sprintf(tempstr,"exec rm -r %s/*",process->get_audioarchivedirectory().c_str());
     system(tempstr);
@@ -231,7 +334,7 @@ TEST(Template,AudioStorage_Archive)
         icarus_rover_v2::diagnostic diag = process->update(current_time,dt);
         EXPECT_TRUE(diag.Level <= NOTICE);
         std::string command,filepath;
-        if(process->get_audiotrigger(command,filepath))
+        if(process->get_audiorecordtrigger(command,filepath))
         {
         	audiotrigger_count++;
         	printf("[Create] %s\n%s\n",command.c_str(),filepath.c_str());
