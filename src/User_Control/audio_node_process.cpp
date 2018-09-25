@@ -17,6 +17,8 @@ AudioNodeProcess::AudioNodeProcess()
 	left_microphone_available = true;
 	right_microphone_available = true;
 	microphone_count = 0;
+	audio_playing = false;
+	audioplay_nextimeavailable = 0.0;
 }
 /*! \brief Deconstructor
  */
@@ -31,7 +33,42 @@ icarus_rover_v2::diagnostic AudioNodeProcess::init(icarus_rover_v2::diagnostic i
 	myhostname = hostname;
 	diagnostic = indiag;
 	mydevice.DeviceName = hostname;
+	char tempstr[256];
+	sprintf(tempstr,"killall mpg123 </dev/null &>/dev/null &");
+	system(tempstr);
 	return diagnostic;
+}
+void AudioNodeProcess::new_armedstatemsg(uint8_t armed_state)
+{
+	if(armed_state != last_armedstate)
+	{
+		switch(armed_state)
+		{
+		case ARMEDSTATUS_UNDEFINED:
+			new_audioplaytrigger("ArmedState:Undefined");
+			break;
+		case ARMEDSTATUS_ARMED:
+			new_audioplaytrigger("ArmedState:Armed");
+			break;
+		case ARMEDSTATUS_DISARMED_CANNOTARM:
+			new_audioplaytrigger("ArmedState:DisarmedCannotArm");
+			break;
+		case ARMEDSTATUS_DISARMED:
+			new_audioplaytrigger("ArmedState:Disarmed");
+			break;
+		case ARMEDSTATUS_ARMING:
+			new_audioplaytrigger("ArmedState:Arming");
+			break;
+		case ARMEDSTATUS_DISARMING:
+			new_audioplaytrigger("ArmedState:Disarming");
+			break;
+		default:
+			new_audioplaytrigger("Sorry");
+			break;
+		}
+	}
+	last_armedstate = armed_state;
+
 }
 /*! \brief Time Update of Process
  */
@@ -41,7 +78,7 @@ icarus_rover_v2::diagnostic AudioNodeProcess::update(double timestamp,double dt)
 	run_time += dt;
 	current_timestamp = timestamp;
 	audiorecord_timer += dt;
-	if(microphone_count == 1)
+	if(microphone_count == 0)
 	{
 		ready = false;  //At least 1 required
 	}
@@ -77,26 +114,38 @@ icarus_rover_v2::diagnostic AudioNodeProcess::update(double timestamp,double dt)
 	if(ready == true)
 	{
 
-		for(std::size_t i = 0; i < audio_files.size(); i++)
+		for(std::size_t i = 0; i < audiorecord_files.size(); i++)
 		{
-			if(timestamp > (audio_files.at(i).time_created + totalaudio_tokeep))
+			if(timestamp > (audiorecord_files.at(i).time_created + totalaudio_tokeep))
 			{
 				if(archive == false)
 				{
-					printf("[Delete] %d: %s\n",(int)i,audio_files.at(i).filepath.c_str());
+					printf("[Delete] %d: %s\n",(int)i,audiorecord_files.at(i).filepath.c_str());
 					char tempstr[256];
-					sprintf(tempstr,"exec rm %s",audio_files.at(i).filepath.c_str());
+					sprintf(tempstr,"exec rm %s",audiorecord_files.at(i).filepath.c_str());
 					system(tempstr);
 				}
 				else
 				{
-					printf("[Archive] %d: %s\n",(int)i,audio_files.at(i).filepath.c_str());
+					printf("[Archive] %d: %s\n",(int)i,audiorecord_files.at(i).filepath.c_str());
 					char tempstr[256];
-					sprintf(tempstr,"exec mv %s %s",audio_files.at(i).filepath.c_str(),audioarchive_directory.c_str());
+					sprintf(tempstr,"exec mv %s %s",audiorecord_files.at(i).filepath.c_str(),audioarchive_directory.c_str());
 					system(tempstr);
 				}
 				number_files_removed++;
-				audio_files.erase(audio_files.begin()+i);
+				audiorecord_files.erase(audiorecord_files.begin()+i);
+			}
+		}
+		for(std::size_t i = 0; i < audioplay_files.size(); i++)
+		{
+			if(audioplay_files.at(i).playing == true)
+			{
+				audioplay_files.at(i).play_time += dt;
+				if(audioplay_files.at(i).play_time >= audioplay_files.at(i).duration_sec)
+				{
+					audioplay_files.at(i).playing = false;
+					audioplay_files.at(i).play_time = 0.0;
+				}
 			}
 		}
 	}
@@ -236,8 +285,9 @@ bool AudioNodeProcess::set_audiostoragedirectory(std::string v)
 		{
 			audiostorage_directory = v;
 			char tempstr[256];
-			sprintf(tempstr,"exec rm -r -f %s/*",v.c_str());
+			sprintf(tempstr,"exec rm -r -f %s/input/*",v.c_str());
 			system(tempstr);
+			init_audioplayfiles();
 			return true;
 		}
 		else
@@ -261,6 +311,7 @@ bool AudioNodeProcess::set_audioarchivedirectory(std::string v)
 		{
 			audioarchive_directory = v;
 			char tempstr[256];
+
 			return true;
 		}
 		else
@@ -274,7 +325,7 @@ bool AudioNodeProcess::set_audioarchivedirectory(std::string v)
 		return false;
 	}
 }
-bool AudioNodeProcess::get_audiotrigger(std::string& command,std::string& filepath)
+bool AudioNodeProcess::get_audiorecordtrigger(std::string& command,std::string& filepath)
 {
 	bool trigger = false;
 	if(ready == true)
@@ -285,16 +336,16 @@ bool AudioNodeProcess::get_audiotrigger(std::string& command,std::string& filepa
 			char tempstr[512];
 			double timestamp = current_timestamp;
 			unsigned long long t = (unsigned long long)(1000.0*timestamp);
-			sprintf(tempstr,"arecord -q -d %d -D plughw:1 -c2 -r 48000 -f S32_LE -t wav %s/%llu.wav </dev/null &>/dev/null &",audiorecord_duration,audiostorage_directory.c_str(),t);
+			sprintf(tempstr,"arecord -q -d %d -D plughw:1 -c2 -r 48000 -f S32_LE -t wav %s/input/%llu.wav </dev/null &>/dev/null &",audiorecord_duration,audiostorage_directory.c_str(),t);
 			command = std::string(tempstr);
 
 			char tempstr2[256];
-			sprintf(tempstr2,"%s/%llu.wav",audiostorage_directory.c_str(),t);
+			sprintf(tempstr2,"%s/input/%llu.wav",audiostorage_directory.c_str(),t);
 			filepath = std::string(tempstr2);
-			AudioFile f;
+			AudioRecordFile f;
 			f.filepath = filepath;
 			f.time_created = timestamp;
-			audio_files.push_back(f);
+			audiorecord_files.push_back(f);
 			return true;
 		}
 		else
@@ -306,4 +357,202 @@ bool AudioNodeProcess::get_audiotrigger(std::string& command,std::string& filepa
 	{
 		return false;
 	}
+}
+bool AudioNodeProcess::get_audioplaytrigger(std::string& command,std::string& filepath)
+{
+	bool trigger = false;
+	if(ready == true)
+	{
+		if(audio_playing == true)
+		{
+			command = "";
+			filepath = "";
+			trigger = false;
+			return trigger;
+		}
+		else
+		{
+
+			return true;
+		}
+	}
+	else
+	{
+		return false;
+	}
+}
+void AudioNodeProcess::init_audioplayfiles()
+{
+
+	{
+			AudioPlayFile file;
+			file.trigger = "Robot:Booting";
+			file.filepath = audiostorage_directory + "/output/" + "RobotBooting.mp3";
+			file.priority = 3;
+			audioplay_files.push_back(file);
+		}
+	{
+				AudioPlayFile file;
+				file.trigger = "Robot:PowerDown";
+				file.filepath = audiostorage_directory + "/output/" + "RobotPoweringDown.mp3";
+				file.priority = 3;
+				audioplay_files.push_back(file);
+			}
+	{
+			AudioPlayFile file;
+			file.trigger = "ArmedState:Undefined";
+			file.filepath = audiostorage_directory + "/output/" + "RobotArmUndefined.mp3";
+			file.priority = 3;
+			audioplay_files.push_back(file);
+		}
+	{
+		AudioPlayFile file;
+		file.trigger = "ArmedState:Undefined";
+		file.filepath = audiostorage_directory + "/output/" + "RobotArmUndefined.mp3";
+		file.priority = 3;
+		audioplay_files.push_back(file);
+	}
+	{
+		AudioPlayFile file;
+		file.trigger = "ArmedState:Armed";
+		file.filepath = audiostorage_directory + "/output/" + "RobotArmed.mp3";
+		file.priority = 3;
+		audioplay_files.push_back(file);
+	}
+	{
+		AudioPlayFile file;
+		file.trigger = "ArmedState:Disarmed";
+		file.filepath = audiostorage_directory + "/output/" + "RobotDisarmed.mp3";
+		file.priority = 3;
+		audioplay_files.push_back(file);
+	}
+	{
+		AudioPlayFile file;
+		file.trigger = "ArmedState:DisarmedCannotArm";
+		file.filepath = audiostorage_directory + "/output/" + "RobotDisarmedCannotArm.mp3";
+		file.priority = 3;
+		audioplay_files.push_back(file);
+	}
+	{
+		AudioPlayFile file;
+		file.trigger = "ArmedState:Arming";
+		file.filepath = audiostorage_directory + "/output/" + "RobotArming.mp3";
+		file.priority = 3;
+		audioplay_files.push_back(file);
+	}
+	{
+		AudioPlayFile file;
+		file.trigger = "ArmedState:Disarming";
+		file.filepath = audiostorage_directory + "/output/" + "RobotDisarming.mp3";
+		file.priority = 3;
+		audioplay_files.push_back(file);
+	}
+	{
+		AudioPlayFile file;
+		file.trigger = "Sorry";
+		file.filepath = audiostorage_directory + "/output/" + "Sorry.mp3";
+		file.priority = 3;
+		audioplay_files.push_back(file);
+	}
+
+	for(std::size_t i = 0; i < audioplay_files.size(); i++)
+	{
+		audioplay_files.at(i).duration_sec = -1.0;
+		audioplay_files.at(i).last_playtime = 0.0;
+		audioplay_files.at(i).play_time = 0.0;
+		audioplay_files.at(i).playing = false;
+		char tempstr[512];
+		sprintf(tempstr,"mediainfo --Inform=\"Audio;%Duration%\" %s\n",audioplay_files.at(i).filepath.c_str());
+		std::string result = exec(tempstr);
+		audioplay_files.at(i).duration_sec = std::atof(result.c_str())/1000.0;
+	}
+
+}
+bool AudioNodeProcess::add_audioplayfile(std::string filepath,std::string trigger,uint8_t priority)
+{
+	std::ifstream infile(filepath.c_str());
+	if(infile.good() == false)
+	{
+		return false;
+	}
+	AudioPlayFile file;
+	file.trigger = trigger;
+	file.filepath = filepath;
+	file.priority = priority;
+	file.play_time = 0.0;
+	file.playing = false;
+	char tempstr[512];
+	sprintf(tempstr,"mediainfo --Inform=\"Audio;%Duration%\" %s\n",filepath.c_str());
+	std::string result = exec(tempstr);
+	file.duration_sec = std::atof(result.c_str())/1000.0;
+	audioplay_files.push_back(file);
+	return true;
+}
+bool AudioNodeProcess::new_audioplaytrigger(std::string trigger)
+{
+	if(ready == false) { return false; }
+	bool interrupt = false;
+	for(std::size_t i =0; i < audioplay_files.size(); i++)
+	{
+		if(audioplay_files.at(i).playing == true)
+		{
+			audioplay_files.at(i).playing = false;
+			char tempstr[256];
+			sprintf(tempstr,"pidof mpg123");
+			int pid = std::atoi(exec(tempstr).c_str());
+			char tempstr2[256];
+			sprintf(tempstr2,"kill %d </dev/null &>/dev/null &",pid);
+			system(tempstr2);
+		}
+	}
+	for(std::size_t i = 0; i < audioplay_files.size(); i++)
+	{
+		if(audioplay_files.at(i).trigger == trigger)
+		{
+			int v = 0;
+			switch(audioplay_files.at(i).priority)
+			{
+			case 0:
+				v = 0;
+				break;
+			case 1:
+				v = 10;
+				break;
+			case 2:
+				v = 20;
+				break;
+			case 3:
+				v = 30;
+				break;
+			default:
+				v = 0;
+				break;
+			}
+			char tempstr[512];
+
+			sprintf(tempstr,"mpg123 -g %d -q %s </dev/null &>/dev/null &",v,audioplay_files.at(i).filepath.c_str());
+			system(tempstr);
+			audioplay_files.at(i).playing = true;
+			audioplay_files.at(i).last_playtime = current_timestamp;
+			return true;
+		}
+	}
+	return false;
+}
+std::string AudioNodeProcess::exec(const char* cmd) {
+	char buffer[512];
+	std::string result = "";
+	FILE* pipe = popen(cmd, "r");
+	if (!pipe) throw std::runtime_error("popen() failed!");
+	try {
+		while (!feof(pipe)) {
+			if (fgets(buffer, 512, pipe) != NULL)
+				result += buffer;
+		}
+	} catch (...) {
+		pclose(pipe);
+		throw;
+	}
+	pclose(pipe);
+	return result;
 }

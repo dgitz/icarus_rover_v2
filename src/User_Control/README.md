@@ -11,6 +11,11 @@ Usage:
 Purpose:
 
 C. audio_node
-Usage: This node should be run on whatever device has an audio input (i.e. a microphone) attached.
+Requirements:
+	sudo apt-get install mediainfo mpg321
+Usage: This node should be run on whatever device has an audio input (i.e. a microphone) and analog audio output attached.
 Purpose:
 1. Reads audio input periodically and stores wav files for analysis
+2. Plays audio files based on input triggers
+
+Test Results stored at:  ~/catkin_ws/build/test_results/icarus_rover_v2/gtest-test_audio_node_process.xml

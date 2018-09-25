@@ -10,7 +10,7 @@
 bool run_loop1_code()
 {
 	std::string command,filepath;
-	if(process->get_audiotrigger(command,filepath))
+	if(process->get_audiorecordtrigger(command,filepath))
 	{
 		system(command.c_str());
 	}
@@ -131,6 +131,13 @@ void Command_Callback(const icarus_rover_v2::command::ConstPtr& msg)
         }
 	}
 }
+void ArmedState_Callback(const std_msgs::UInt8::ConstPtr& msg)
+{
+	uint8_t armed_state = msg->data;
+
+	//diagnostic_status = process->new_armedstatemsg(msg->data);
+	process->new_armedstatemsg(armed_state);
+}
 //End User Code: Functions
 bool run_10Hz_code()
 {
@@ -212,6 +219,7 @@ int main(int argc, char **argv)
 		ros::spinOnce();
 		loop_rate.sleep();
     }
+    process->new_audioplaytrigger("Robot:PowerDown");
     logger->log_notice("Node Finished Safely.");
     return 0;
 }
@@ -364,6 +372,7 @@ bool initializenode()
 	{
 		printf("Can't Set: %s. Exiting.\n",audiostage_dir.c_str());
 	}
+	process->new_audioplaytrigger("Robot:Booting");
 	process->enable_archive(false);
 
 	std::string param_audiofile_length = node_name + "/audiofile_length";
@@ -383,6 +392,8 @@ bool initializenode()
 		return false;
 	}
 	process->set_totalaudiofiletimetokeep(audiobuffer_length);
+	std::string armed_state_topic = "/armed_state";
+	armed_state_sub = n->subscribe<std_msgs::UInt8>(armed_state_topic,1,ArmedState_Callback);
 
 
 	//Finish User Code: Initialization and Parameters
