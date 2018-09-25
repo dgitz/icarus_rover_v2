@@ -95,6 +95,9 @@ private:
     std::vector<AudioRecordFile> audiorecord_files;
     unsigned long int number_files_removed;
 
+    icarus_rover_v2::device amplifier;
+    bool amplifier_initialized;
+    bool amplifier_available;
     icarus_rover_v2::device left_microphone;
     bool left_microphone_initialized;
     bool left_microphone_available;

@@ -79,6 +79,15 @@ AudioNodeProcess* initializeprocess(bool stereo)
     	diagnostic = process->new_devicemsg(right_microphone);
     	EXPECT_TRUE(diagnostic.Level <= NOTICE);
     }
+
+    {
+    	icarus_rover_v2::device amplifier;
+    	amplifier.DeviceName = "AudioAmplifier1";
+    	amplifier.DeviceType = "AudioAmplifier";
+    	amplifier.DeviceParent = ros_DeviceName;
+    	diagnostic = process->new_devicemsg(amplifier);
+    	EXPECT_TRUE(diagnostic.Level <= NOTICE);
+    }
     EXPECT_TRUE(process->get_mydevice().DeviceName == device.DeviceName);
     EXPECT_FALSE(process->set_audiostoragedirectory("A Directory that should never exist."));
     EXPECT_TRUE(process->set_audiostoragedirectory(storage_directory));
