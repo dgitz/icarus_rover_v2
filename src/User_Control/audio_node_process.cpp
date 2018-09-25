@@ -16,6 +16,8 @@ AudioNodeProcess::AudioNodeProcess()
 	right_microphone_initialized = false;
 	left_microphone_available = true;
 	right_microphone_available = true;
+	amplifier_initialized = false;
+	amplifier_available = false;
 	microphone_count = 0;
 	audio_playing = false;
 	audioplay_nextimeavailable = 0.0;
@@ -84,7 +86,8 @@ icarus_rover_v2::diagnostic AudioNodeProcess::update(double timestamp,double dt)
 	}
 	else if(microphone_count == 1)
 	{
-		if((left_microphone_available == true) and (left_microphone_initialized == true))
+		if((left_microphone_available == true) and (left_microphone_initialized == true)
+			and (amplifier_available == true) and (amplifier_initialized == true))
 		{
 			ready = true;
 		}
@@ -98,7 +101,9 @@ icarus_rover_v2::diagnostic AudioNodeProcess::update(double timestamp,double dt)
 		if((left_microphone_available == true) and
 				(left_microphone_initialized == true) and
 				(right_microphone_available == true) and
-				(right_microphone_initialized == true))
+				(right_microphone_initialized == true) and
+				(amplifier_available == true) and
+				(amplifier_initialized == true))
 		{
 			ready = true;
 		}
@@ -220,6 +225,12 @@ icarus_rover_v2::diagnostic AudioNodeProcess::new_devicemsg(icarus_rover_v2::dev
 				}
 			}
 		}
+	}
+	else if(device.DeviceType == "AudioAmplifier")
+	{
+		amplifier = device;
+		amplifier_available = true;
+		amplifier_initialized = true;
 	}
 	return diag;
 }

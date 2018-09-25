@@ -87,6 +87,17 @@ void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
     			}
     		}
     	}
+    	{
+    	    		icarus_rover_v2::srv_device srv;
+    	    		srv.request.query = "DeviceType=AudioAmplifier";
+    	    		if(srv_device.call(srv) == true)
+    	    		{
+    	    			for(std::size_t i = 0; i < srv.response.data.size(); i++)
+    	    			{
+    	    				bool status = new_devicemsg(srv.request.query,srv.response.data.at(i));
+    	    			}
+    	    		}
+    	    	}
     }
     else if(process->get_initialized() == false)
     {

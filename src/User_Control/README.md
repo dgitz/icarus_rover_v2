@@ -14,6 +14,8 @@ C. audio_node
 Requirements:
 	sudo apt-get install mediainfo mpg321
 Usage: This node should be run on whatever device has an audio input (i.e. a microphone) and analog audio output attached.
+
+To generate new audio files go to: http://www.fromtexttospeech.com/ and use voice "Daisy"
 Purpose:
 1. Reads audio input periodically and stores wav files for analysis
 2. Plays audio files based on input triggers
