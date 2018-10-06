@@ -2,14 +2,14 @@
 /***Created on:2018-08-23 07:05:58.972390***/
 #ifndef UDPMESSAGE_H
 #define UDPMESSAGE_H
-#include "ros/ros.h"
 #include "Definitions.h"
-#include "ros/time.h"
 #include <stdio.h>
 #include <iostream>
 #include <ctime>
 #include <fstream>
 #include <iostream>
+#include <vector>
+#include <boost/lexical_cast.hpp>
 
 
 class UDPMessageHandler

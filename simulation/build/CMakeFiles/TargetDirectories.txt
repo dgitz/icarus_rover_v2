@@ -1,0 +1,4 @@
+/home/robot/catkin_ws/src/icarus_rover_v2/simulation/build/CMakeFiles/rebuild_cache.dir
+/home/robot/catkin_ws/src/icarus_rover_v2/simulation/build/CMakeFiles/simscout.dir
+/home/robot/catkin_ws/src/icarus_rover_v2/simulation/build/CMakeFiles/edit_cache.dir
+/home/robot/catkin_ws/src/icarus_rover_v2/simulation/build/CMakeFiles/udpmessage.dir

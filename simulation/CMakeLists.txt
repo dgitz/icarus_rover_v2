@@ -1,0 +1,16 @@
+add_definitions(-std=c++11)
+cmake_minimum_required(VERSION 2.8 FATAL_ERROR)
+
+add_compile_options(-fPIC)
+
+#set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fpic")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fpic")
+find_package(gazebo REQUIRED)
+find_package(Boost REQUIRED)
+include_directories(${GAZEBO_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS})
+link_directories(${GAZEBO_LIBRARY_DIRS})
+list(APPEND CMAKE_CXX_FLAGS "${GAZEBO_CXX_FLAGS}")
+add_library(udpmessage ../util/udpmessage.cpp)
+add_library(simscout SHARED src/simscout/simscout.cc)
+target_link_libraries(simscout ${GAZEBO_LIBRARIES} ${Boost_LIBRARIES} udpmessage)
+#target_compile_options(simscout PRIVATE -fPIC)

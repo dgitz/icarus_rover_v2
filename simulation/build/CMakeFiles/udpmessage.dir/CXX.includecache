@@ -1,0 +1,36 @@
+#IncludeRegexLine: ^[ 	]*#[ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/robot/catkin_ws/src/icarus_rover_v2/include/Definitions.h
+eROS_Definitions.h
+/home/robot/catkin_ws/src/icarus_rover_v2/include/eROS_Definitions.h
+
+/home/robot/catkin_ws/src/icarus_rover_v2/include/eROS_Definitions.h
+
+/home/robot/catkin_ws/src/icarus_rover_v2/include/udpmessage.h
+Definitions.h
+/home/robot/catkin_ws/src/icarus_rover_v2/include/Definitions.h
+stdio.h
+-
+iostream
+-
+ctime
+-
+fstream
+-
+iostream
+-
+vector
+-
+boost/lexical_cast.hpp
+-
+
+/home/robot/catkin_ws/src/icarus_rover_v2/util/udpmessage.cpp
+../include/udpmessage.h
+/home/robot/catkin_ws/src/icarus_rover_v2/include/udpmessage.h
+
