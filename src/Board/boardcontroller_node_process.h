@@ -15,7 +15,6 @@
 #include "icarus_rover_v2/command.h"
 #include "icarus_rover_v2/pin.h"
 #include "icarus_rover_v2/firmware.h"
-#include "icarus_rover_v2/float_timestamp.h"
 #include <std_msgs/UInt8.h>
 #include "logger.h"
 #include "spimessage.h"
