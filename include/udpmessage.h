@@ -1,10 +1,8 @@
 /***************AUTO-GENERATED.  DO NOT EDIT********************/
-/***Created on:2018-08-23 07:05:58.972390***/
+/***Created on:2018-10-14 08:08:07.387169***/
 #ifndef UDPMESSAGE_H
 #define UDPMESSAGE_H
-#include "ros/ros.h"
 #include "Definitions.h"
-#include "ros/time.h"
 #include <stdio.h>
 #include <iostream>
 #include <ctime>
