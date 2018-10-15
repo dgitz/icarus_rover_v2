@@ -1,5 +1,5 @@
 /***************AUTO-GENERATED.  DO NOT EDIT********************/
-/***Created on:2018-10-14 08:08:07.387676***/
+/***Created on:2018-10-14 16:33:05.455020***/
 /***Target: Raspberry Pi ***/
 #ifndef I2CMESSAGE_H
 #define I2CMESSAGE_H

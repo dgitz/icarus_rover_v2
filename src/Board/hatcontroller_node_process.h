@@ -17,6 +17,7 @@
 #include "icarus_rover_v2/iopins.h"
 #include "icarus_rover_v2/firmware.h"
 #include "icarus_rover_v2/signal.h"
+#include "icarus_rover_v2/imu.h"
 #include <std_msgs/Bool.h>
 #include <std_msgs/UInt8.h>
 #include "logger.h"
@@ -40,14 +41,23 @@ public:
 		std::string remapped_topicname;
 		icarus_rover_v2::device connected_hat;
 		icarus_rover_v2::pin connected_pin;
-	    bool convert;
+		bool convert;
 		double value;
-	    std::string units;
+		std::string units;
 		std::string output_datatype;
-	    double min_inputvalue;
-	    double max_inputvalue;
-	    double min_outputvalue;
-	    double max_outputvalue;
+		double min_inputvalue;
+		double max_inputvalue;
+		double min_outputvalue;
+		double max_outputvalue;
+	};
+	struct IMU
+	{
+		uint8_t id;
+		bool initialized;
+		bool ready;
+		bool updated;
+		icarus_rover_v2::imu msg;
+		uint8_t status;
 	};
 
 	HatControllerNodeProcess();
@@ -61,82 +71,117 @@ public:
 	icarus_rover_v2::diagnostic new_devicemsg(icarus_rover_v2::device device);
 	void set_mydevice(icarus_rover_v2::device device) { mydevice = device; initialized = true; }
 	bool get_initialized() { return initialized; }
-    bool get_ready() { return ready; }
+	bool get_ready() { return ready; }
 	std::vector<icarus_rover_v2::diagnostic> new_commandmsg(icarus_rover_v2::command cmd);
 
-    uint8_t get_armedstate() { return armed_state; }
-    bool get_ready_to_arm() { return ready_to_arm; }
-    bool is_ready() { return ready; }
-    void set_analyzetiming(bool v) { analyze_timing = v; }
-    bool get_analyzetiming() { return analyze_timing; }
-    double get_timedelay();
+	uint8_t get_armedstate() { return armed_state; }
+	bool get_ready_to_arm() { return ready_to_arm; }
+	bool is_ready() { return ready; }
+	void set_analyzetiming(bool v) { analyze_timing = v; }
+	bool get_analyzetiming() { return analyze_timing; }
+	double get_timedelay();
 
-    icarus_rover_v2::diagnostic new_armedstatemsg(uint8_t msg);
-    icarus_rover_v2::diagnostic new_pinsmsg(icarus_rover_v2::iopins msg);
-    icarus_rover_v2::diagnostic new_pinmsg(icarus_rover_v2::pin msg);
-    icarus_rover_v2::diagnostic new_ppsmsg(std_msgs::Bool msg);
-     
-    Sensor find_sensor(std::string name);
-    	bool update_sensorinfo(Sensor sensor);
-    	std::vector<Sensor> get_sensordata() { return sensors; }
+	icarus_rover_v2::diagnostic new_armedstatemsg(uint8_t msg);
+	icarus_rover_v2::diagnostic new_pinsmsg(icarus_rover_v2::iopins msg);
+	icarus_rover_v2::diagnostic new_pinmsg(icarus_rover_v2::pin msg);
+	icarus_rover_v2::diagnostic new_ppsmsg(std_msgs::Bool msg);
 
-    //Generic Hat Functions
-    icarus_rover_v2::diagnostic set_hat_running(std::string devicetype,uint16_t id);
-    bool is_hat_running(std::string devicetype,uint16_t id);
+	Sensor find_sensor(std::string name);
+	bool update_sensorinfo(Sensor sensor);
+	std::vector<Sensor> get_sensordata() { return sensors; }
 
-    //Servo Hat Functions
-    std::vector<icarus_rover_v2::pin> get_servohatpins(uint16_t id);
-    std::vector<uint16_t> get_servohataddresses();
-    
-    //Terminal Hat Functions
-    icarus_rover_v2::diagnostic set_terminalhat_initialized();
-    std::vector<icarus_rover_v2::pin> get_terminalhatpins(std::string Function);
-    
+	//Generic Hat Functions
+	icarus_rover_v2::diagnostic set_hat_running(std::string devicetype,uint16_t id);
+	bool is_hat_running(std::string devicetype,uint16_t id);
 
-    //GPIO Hat Functions
-    bool is_gpiohat_running(uint16_t id);
-    std::vector<icarus_rover_v2::pin> get_gpiohatpins(uint16_t id);
-    std::vector<uint16_t> get_gpiohataddresses();
-    icarus_rover_v2::diagnostic new_message_GetDIOPort1(uint8_t hatid,double tov,uint16_t v1,uint16_t v2,uint16_t v3,uint16_t v4);
+	//Servo Hat Functions
+	std::vector<icarus_rover_v2::pin> get_servohatpins(uint16_t id);
+	std::vector<uint16_t> get_servohataddresses();
 
+	//Terminal Hat Functions
+	icarus_rover_v2::diagnostic set_terminalhat_initialized();
+	std::vector<icarus_rover_v2::pin> get_terminalhatpins(std::string Function);
+
+
+	//GPIO Hat Functions
+	bool is_gpiohat_running(uint16_t id);
+	std::vector<icarus_rover_v2::pin> get_gpiohatpins(uint16_t id);
+	std::vector<uint16_t> get_gpiohataddresses();
+	//icarus_rover_v2::diagnostic new_message_Diag(uint8_t hadid,double tov,uint8_t System,uint8_t Subsystem,uint8_t Component,uint8_t DiagType,uint8_t Level,uint8_t Message);
+	icarus_rover_v2::diagnostic new_message_GetDIOPort1(uint8_t hatid,double tov,uint16_t v1,uint16_t v2,uint16_t v3,uint16_t v4);
+	icarus_rover_v2::diagnostic new_message_IMUAcc(uint8_t hatid,double tov,uint16_t v1,uint16_t v2,uint16_t v3,uint16_t v4,uint16_t v5,uint16_t v6);
+	icarus_rover_v2::diagnostic new_message_IMUGyro(uint8_t hatid,double tov,uint16_t v1,uint16_t v2,uint16_t v3,uint16_t v4,uint16_t v5,uint16_t v6);
+	icarus_rover_v2::diagnostic new_message_IMUMag(uint8_t hatid,double tov,uint16_t v1,uint16_t v2,uint16_t v3,uint16_t v4,uint16_t v5,uint16_t v6);
 	ros::Time convert_time(struct timeval t);
+	int get_imu(icarus_rover_v2::imu *imu,uint8_t id)
+	{
+		int status = -1;
+		if(id == 1)
+		{
+			if(imu1.updated == false)
+			{
+				status = 0;
+			}
+			else
+			{
+				*imu = imu1.msg;
+				imu1.updated = false;
+				status = 1;
+			}
+		}
+		else if(id == 2)
+		{
+			if(imu2.updated == false)
+			{
+				status = 0;
+			}
+			else
+			{
+				*imu = imu2.msg;
+				imu2.updated = false;
+				status = 1;
+			}
+		}
+		return status;
+	}
 
 protected:
 private:
 	std::vector<icarus_rover_v2::diagnostic> check_program_variables();
 	void init_messages();
-		std::string map_PinFunction_ToString(int function);
-	    double map_input_to_output(double input_value,double min_input,double max_input,double min_output,double max_output);
-		int map_PinFunction_ToInt(std::string Function);
-		bool sensors_initialized();
-		bool update_sensor(icarus_rover_v2::device,icarus_rover_v2::pin,double tov,double value);
-		bool load_sensorinfo(std::string name);
-		bool parse_sensorfile(TiXmlDocument doc,std::string name);
-		icarus_rover_v2::device find_hat(uint8_t hatid);
-		icarus_rover_v2::pin find_pin(icarus_rover_v2::device hatid,std::string pinfunction,uint8_t pinnumber);
+	std::string map_PinFunction_ToString(int function);
+	double map_input_to_output(double input_value,double min_input,double max_input,double min_output,double max_output);
+	int map_PinFunction_ToInt(std::string Function);
+	bool sensors_initialized();
+	bool update_sensor(icarus_rover_v2::device,icarus_rover_v2::pin,double tov,double value);
+	bool load_sensorinfo(std::string name);
+	bool parse_sensorfile(TiXmlDocument doc,std::string name);
+	icarus_rover_v2::device find_hat(uint8_t hatid);
+	icarus_rover_v2::pin find_pin(icarus_rover_v2::device hatid,std::string pinfunction,uint8_t pinnumber);
 	double run_time;
 	icarus_rover_v2::diagnostic diagnostic;
 	icarus_rover_v2::device mydevice;
 	std::string myhostname;
 	bool initialized;
-    bool ready;
+	bool ready;
 
-    bool hat_present(icarus_rover_v2::device device);
-    double measure_time_diff(struct timeval start, struct timeval end);
-    double measure_time_diff(ros::Time start, struct timeval end);
-    double measure_time_diff(double start, struct timeval end);
-    double measure_time_diff(double start, double end);
-    double measure_time_diff(struct timeval start, double end);
-    
-    std::vector<Sensor> sensors;
+	bool hat_present(icarus_rover_v2::device device);
+	double measure_time_diff(struct timeval start, struct timeval end);
+	double measure_time_diff(ros::Time start, struct timeval end);
+	double measure_time_diff(double start, struct timeval end);
+	double measure_time_diff(double start, double end);
+	double measure_time_diff(struct timeval start, double end);
 
-    uint8_t armed_state;
-    bool ready_to_arm;
-    std::vector<icarus_rover_v2::device> hats;
-    std::vector<bool> hats_running;
-    uint64_t pps_counter;
-    double time_sincelast_pps;
-    bool analyze_timing;
-    std::vector<double> timing_diff;
+	std::vector<Sensor> sensors;
+	IMU imu1;
+	IMU imu2;
+	uint8_t armed_state;
+	bool ready_to_arm;
+	std::vector<icarus_rover_v2::device> hats;
+	std::vector<bool> hats_running;
+	uint64_t pps_counter;
+	double time_sincelast_pps;
+	bool analyze_timing;
+	std::vector<double> timing_diff;
 };
 #endif

@@ -149,120 +149,124 @@ int main(int argc, char* argv[])
 			unsigned char inputbuffer[12];
 			int success;
 			int length;
-
-			int passed_checksum_calc = gpiohat.sendQuery(query,inputbuffer);
-			if(passed_checksum_calc > 0)
+			if(gpiohat.get_lock() == false)
 			{
-				passed_checksum++;
-			}
-			else if(passed_checksum_calc == 0)
-			{
-				failed_checksum++;
-				continue;
-			}
-			else
-			{
-				return 0;
-			}
+				gpiohat.lockdevice();
 
-			unsigned char v1,v2,v3,v4,v5,v6,v7,v8,v9,v10,v11,v12;
-			uint16_t a1,a2,a3,a4,a5,a6;
-			switch(query)
-			{
-			case I2CMessageHandler::I2C_Diagnostic_ID:
-				success = i2cmessagehandler->decode_DiagnosticI2C(inputbuffer,&length,&v1,&v2,&v3,&v4,&v5,&v6);
-				if(success == 1)
+				int passed_checksum_calc = gpiohat.sendQuery(query,inputbuffer);
+				if(passed_checksum_calc > 0)
 				{
-					printf("Diagnostic: %d %d %d %d %d %d\n",
-							passed_checksum_calc,v1,v2,v3,v4,v5,v6);
+					passed_checksum++;
 				}
-				break;
-			case I2CMessageHandler::I2C_Get_DIO_Port1_ID:
-				success = i2cmessagehandler->decode_Get_DIO_Port1I2C(inputbuffer,&length,&a1,&a2,&a3,&a4);
-				if(success == 1)
+				else if(passed_checksum_calc == 0)
 				{
-					printf("%d DIO Port1 0:%d 1:%d 2:%d 3:%d\n",
-							passed_checksum_calc,a1,a2,a3,a4);
-				}
-				break;
-			case I2CMessageHandler::I2C_Get_IMUAcc_ID:
-				success = i2cmessagehandler->decode_Get_IMUAccI2C(inputbuffer,&length,&a1,&a2,&a3,&a4,&a5,&a6);
-				if(success == 1)
-				{
-					double x1,y1,z1,x2,y2,z2;
-					x1 = (double)(a1-32768)/1000.0;
-					y1 = (double)(a2-32768)/1000.0;
-					z1 = (double)(a3-32768)/1000.0;
-					x2 = (double)(a4-32768)/1000.0;
-					y2 = (double)(a5-32768)/1000.0;
-					z2 = (double)(a6-32768)/1000.0;
-					printf("%d ACC 0:%f 1:%f 2:%f 3:%f 4: %f 5: %f\n",
-							passed_checksum_calc,x1,y1,z1,x2,y2,z2);
-				}
-				break;
-			case I2CMessageHandler::I2C_Get_IMUGyro_ID:
-				success = i2cmessagehandler->decode_Get_IMUGyroI2C(inputbuffer,&length,&a1,&a2,&a3,&a4,&a5,&a6);
-				if(success == 1)
-				{
-					double x1,y1,z1,x2,y2,z2;
-					x1 = (double)(a1-32768)/1000.0;
-					y1 = (double)(a2-32768)/1000.0;
-					z1 = (double)(a3-32768)/1000.0;
-					x2 = (double)(a4-32768)/1000.0;
-					y2 = (double)(a5-32768)/1000.0;
-					z2 = (double)(a6-32768)/1000.0;
-					printf("%d GYRO 0:%f 1:%f 2:%f 3:%f 4: %f 5: %f\n",
-							passed_checksum_calc,x1,y1,z1,x2,y2,z2);
-				}
-				break;
-			case I2CMessageHandler::I2C_Get_IMUMag_ID:
-				success = i2cmessagehandler->decode_Get_IMUMagI2C(inputbuffer,&length,&a1,&a2,&a3,&a4,&a5,&a6);
-				if(success == 1)
-				{
-					double x1,y1,z1,x2,y2,z2;
-					x1 = (double)(a1-32768)/1000.0;
-					y1 = (double)(a2-32768)/1000.0;
-					z1 = (double)(a3-32768)/1000.0;
-					x2 = (double)(a4-32768)/1000.0;
-					y2 = (double)(a5-32768)/1000.0;
-					z2 = (double)(a6-32768)/1000.0;
-					printf("%d MAG 0:%f 1:%f 2:%f 3:%f 4: %f 5: %f\n",
-							passed_checksum_calc,x1,y1,z1,x2,y2,z2);
-				}
-				break;
-			default:
-				break;
-			case I2CMessageHandler::I2C_TestMessageCounter_ID:
-				success = i2cmessagehandler->decode_TestMessageCounterI2C(inputbuffer,&length,&v1,&v2,&v3,&v4,&v5,&v6,&v7,&v8,&v9,&v10,&v11,&v12);
-				if(success == 1)
-				{
-					if(first_message_received == 0)
-					{
-						first_message_received = 1;
-
-					}
-					else
-					{
-						if((int)v1 < 255)
-						{
-							if(((int)v1-last_counter_received) != 6)
-							{
-								missed++;
-							}
-							else
-							{
-								passed++;
-							}
-						}
-
-					}
-					last_counter_received = (int)v1;
+					failed_checksum++;
+					continue;
 				}
 				else
 				{
-					printf("Unable to Decode\n");
+					return 0;
 				}
 
+				unsigned char v1,v2,v3,v4,v5,v6,v7,v8,v9,v10,v11,v12;
+				uint16_t a1,a2,a3,a4,a5,a6;
+				switch(query)
+				{
+				case I2CMessageHandler::I2C_Diagnostic_ID:
+					success = i2cmessagehandler->decode_DiagnosticI2C(inputbuffer,&length,&v1,&v2,&v3,&v4,&v5,&v6);
+					if(success == 1)
+					{
+						printf("Diagnostic: %d %d %d %d %d %d\n",
+								passed_checksum_calc,v1,v2,v3,v4,v5,v6);
+					}
+					break;
+				case I2CMessageHandler::I2C_Get_DIO_Port1_ID:
+					success = i2cmessagehandler->decode_Get_DIO_Port1I2C(inputbuffer,&length,&a1,&a2,&a3,&a4);
+					if(success == 1)
+					{
+						printf("%d DIO Port1 0:%d 1:%d 2:%d 3:%d\n",
+								passed_checksum_calc,a1,a2,a3,a4);
+					}
+					break;
+				case I2CMessageHandler::I2C_Get_IMUAcc_ID:
+					success = i2cmessagehandler->decode_Get_IMUAccI2C(inputbuffer,&length,&a1,&a2,&a3,&a4,&a5,&a6);
+					if(success == 1)
+					{
+						double x1,y1,z1,x2,y2,z2;
+						x1 = (double)(a1-32768)/100.0;
+						y1 = (double)(a2-32768)/100.0;
+						z1 = (double)(a3-32768)/100.0;
+						x2 = (double)(a4-32768)/100.0;
+						y2 = (double)(a5-32768)/100.0;
+						z2 = (double)(a6-32768)/100.0;
+						printf("%d ACC 0:%f 1:%f 2:%f 3:%f 4: %f 5: %f\n",
+								passed_checksum_calc,x1,y1,z1,x2,y2,z2);
+					}
+					break;
+				case I2CMessageHandler::I2C_Get_IMUGyro_ID:
+					success = i2cmessagehandler->decode_Get_IMUGyroI2C(inputbuffer,&length,&a1,&a2,&a3,&a4,&a5,&a6);
+					if(success == 1)
+					{
+						double x1,y1,z1,x2,y2,z2;
+						x1 = (double)(a1-32768)/1000.0;
+						y1 = (double)(a2-32768)/1000.0;
+						z1 = (double)(a3-32768)/1000.0;
+						x2 = (double)(a4-32768)/1000.0;
+						y2 = (double)(a5-32768)/1000.0;
+						z2 = (double)(a6-32768)/1000.0;
+						printf("%d GYRO 0:%f 1:%f 2:%f 3:%f 4: %f 5: %f\n",
+								passed_checksum_calc,x1,y1,z1,x2,y2,z2);
+					}
+					break;
+				case I2CMessageHandler::I2C_Get_IMUMag_ID:
+					success = i2cmessagehandler->decode_Get_IMUMagI2C(inputbuffer,&length,&a1,&a2,&a3,&a4,&a5,&a6);
+					if(success == 1)
+					{
+						double x1,y1,z1,x2,y2,z2;
+						x1 = (double)(a1-32768)/1000.0;
+						y1 = (double)(a2-32768)/1000.0;
+						z1 = (double)(a3-32768)/1000.0;
+						x2 = (double)(a4-32768)/1000.0;
+						y2 = (double)(a5-32768)/1000.0;
+						z2 = (double)(a6-32768)/1000.0;
+						printf("%d MAG 0:%f 1:%f 2:%f 3:%f 4: %f 5: %f\n",
+								passed_checksum_calc,x1,y1,z1,x2,y2,z2);
+					}
+					break;
+				default:
+					break;
+				case I2CMessageHandler::I2C_TestMessageCounter_ID:
+					success = i2cmessagehandler->decode_TestMessageCounterI2C(inputbuffer,&length,&v1,&v2,&v3,&v4,&v5,&v6,&v7,&v8,&v9,&v10,&v11,&v12);
+					if(success == 1)
+					{
+						if(first_message_received == 0)
+						{
+							first_message_received = 1;
+
+						}
+						else
+						{
+							if((int)v1 < 255)
+							{
+								if(((int)v1-last_counter_received) != 6)
+								{
+									missed++;
+								}
+								else
+								{
+									passed++;
+								}
+							}
+
+						}
+						last_counter_received = (int)v1;
+					}
+					else
+					{
+						printf("Unable to Decode\n");
+					}
+
+				}
 			}
 		}
 		else
