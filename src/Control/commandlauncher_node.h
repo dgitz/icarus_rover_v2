@@ -10,6 +10,7 @@
 #include <std_msgs/UInt8.h>
 #include <sstream>
 #include <stdlib.h>
+#include <icarus_rover_v2/Definitions.h>
 #include <icarus_rover_v2/diagnostic.h>
 #include <icarus_rover_v2/device.h>
 #include <icarus_rover_v2/srv_device.h>

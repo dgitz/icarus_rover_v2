@@ -26,24 +26,19 @@ Documentation History:
 Added all code, documentation.  
 
 B. imu_node
-Usage: This node should be run on any device that has an IMU installed.  1 instance of this node should be run per device.
+Usage: This node should be run on any device that has an IMU installed.  1 instance of this node should be run for every IMU installed.
 
 Supported Sensors: 
-  110013
+  110012
 Configuration:
-  
+  This node's launch program will be created automatically by the SyncSoftware script based on what device has an IMU installed.  As such, no configuration
+  by the User is required.
 
 Purpose: Outputs high rate imu data from different sensors
 
 Unit Tests:
 1. Process Unit Tests:
   >>catkin_make run_tests_icarus_rover_v2_gtest_test_imu_node_process
-2. Device Unit Tests:
-  Compile:
-  >>cd ~/catkin_ws/src/icarus_rover_v2/src/Pose/unit_tests/
-  >>g++ -lm -lwiringPi ../Driver/IMUDriver.cpp test_imu.cpp -o test_imu
-
-
   
 Loops:
  * Loop1: Process Update

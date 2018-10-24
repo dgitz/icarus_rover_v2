@@ -35,13 +35,10 @@ public:
 	//...Returns: Error value. > 0 is ok. < 0 means there was an error.
 	int i2cWriteArduinoInt(int input);
 	int sendQuery(unsigned char query,unsigned char * inputbuffer);
-	bool get_lock() { return lock; }
-	bool lockdevice() { lock = true; }
 
 private:
 	int address;
 	int GPIOHatfd;
-	bool lock;
 };
 
 

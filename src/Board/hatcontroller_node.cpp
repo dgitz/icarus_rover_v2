@@ -158,49 +158,43 @@ bool run_loop2_code()
 	icarus_rover_v2::diagnostic diag;
 	for(std::size_t i = 0; i < GPIOHats.size(); i++)
 	{
+		unsigned char inputbuffer[12];
+		int passed_checksum_calc = GPIOHats.at(i).sendQuery(I2CMessageHandler::I2C_Get_DIO_Port1_ID,inputbuffer);
+		if(passed_checksum_calc > 0)
 		{
-
-			if(GPIOHats.at(i).get_lock() == false)
+			uint16_t a1,a2,a3,a4;
+			int length;
+			bool success = i2cmessagehandler->decode_Get_DIO_Port1I2C(inputbuffer,&length,&a1,&a2,&a3,&a4);
+			if(success == true)
 			{
-				GPIOHats.at(i).lockdevice();
-				unsigned char inputbuffer[13];
-				int passed_checksum_calc = GPIOHats.at(i).sendQuery(I2CMessageHandler::I2C_Get_DIO_Port1_ID,inputbuffer);
-				if(passed_checksum_calc > 0)
+				diag = process->new_message_GetDIOPort1(GPIOHats.at(i).get_address(),ros::Time::now().toSec(),a1,a2,a3,a4);
+				if(diag.Level >= WARN)
 				{
-					uint16_t a1,a2,a3,a4;
-					int length;
-					bool success = i2cmessagehandler->decode_Get_DIO_Port1I2C(inputbuffer,&length,&a1,&a2,&a3,&a4);
-					if(success == true)
+					diagnostic_pub.publish(diag);
+					logger->log_diagnostic(diag);
+				}
+				std::vector<HatControllerNodeProcess::Sensor> sensors = process->get_sensordata();
+				for(std::size_t i = 0; i < sensors.size(); i++)
+				{
+					for(std::size_t j = 0; j < signal_sensor_names.size(); j++)
 					{
-						diag = process->new_message_GetDIOPort1(GPIOHats.at(i).get_address(),ros::Time::now().toSec(),a1,a2,a3,a4);
-						if(diag.Level >= WARN)
+						if(signal_sensor_names.at(j) == sensors.at(i).name)
 						{
-							diagnostic_pub.publish(diag);
-							logger->log_diagnostic(diag);
-						}
-						std::vector<HatControllerNodeProcess::Sensor> sensors = process->get_sensordata();
-						for(std::size_t i = 0; i < sensors.size(); i++)
-						{
-							for(std::size_t j = 0; j < signal_sensor_names.size(); j++)
-							{
-								if(signal_sensor_names.at(j) == sensors.at(i).name)
-								{
-									icarus_rover_v2::signal v;
-									v.tov = ros::Time(sensors.at(i).tov);
-									v.value = sensors.at(i).value;
-									v.units = sensors.at(i).units;
-									v.status = sensors.at(i).status;
-									v.rms = -1.0;
-									signal_sensor_pubs.at(j).publish(v);
-								}
-							}
+							icarus_rover_v2::signal v;
+							v.tov = ros::Time(sensors.at(i).tov);
+							v.value = sensors.at(i).value;
+							v.units = sensors.at(i).units;
+							v.status = sensors.at(i).status;
+							v.rms = -1.0;
+							signal_sensor_pubs.at(j).publish(v);
 						}
 					}
 				}
 			}
-		}
-	}
 
+		}
+
+	}
 	{
 		std::vector<icarus_rover_v2::pin> pins = process->get_terminalhatpins("DigitalInput");
 		for(std::size_t i = 0; i < pins.size(); i++)
@@ -223,92 +217,6 @@ bool run_loop2_code()
  */
 bool run_loop3_code()
 {
-	icarus_rover_v2::diagnostic diag;
-	if(process->is_ready() == true)
-	{
-		for(std::size_t i = 0; i < GPIOHats.size(); i++)
-		{
-			if(GPIOHats.at(i).get_lock() == false)
-			{
-				GPIOHats.at(i).lockdevice();
-				unsigned char inputbuffer[13];
-				int passed_checksum_calc = GPIOHats.at(i).sendQuery(I2CMessageHandler::I2C_Get_IMUAcc_ID,inputbuffer);
-				if(passed_checksum_calc > 0)
-				{
-					uint16_t a1,a2,a3,a4,a5,a6;
-					int length;
-					bool success = i2cmessagehandler->decode_Get_IMUAccI2C(inputbuffer,&length,&a1,&a2,&a3,&a4,&a5,&a6);
-					if(success == true)
-					{
-						diag = process->new_message_IMUAcc(GPIOHats.at(i).get_address(),ros::Time::now().toSec(),a1,a2,a3,a4,a5,a6);
-						if(diag.Level >= WARN)
-						{
-							diagnostic_pub.publish(diag);
-							logger->log_diagnostic(diag);
-						}
-					}
-				}
-			}
-
-			if(GPIOHats.at(i).get_lock() == false)
-			{
-				GPIOHats.at(i).lockdevice();
-				unsigned char inputbuffer[13];
-				int passed_checksum_calc = GPIOHats.at(i).sendQuery(I2CMessageHandler::I2C_Get_IMUGyro_ID,inputbuffer);
-				if(passed_checksum_calc > 0)
-				{
-					uint16_t a1,a2,a3,a4,a5,a6;
-					int length;
-					bool success = i2cmessagehandler->decode_Get_IMUGyroI2C(inputbuffer,&length,&a1,&a2,&a3,&a4,&a5,&a6);
-					if(success == true)
-					{
-						diag = process->new_message_IMUGyro(GPIOHats.at(i).get_address(),ros::Time::now().toSec(),a1,a2,a3,a4,a5,a6);
-						if(diag.Level >= WARN)
-						{
-							diagnostic_pub.publish(diag);
-							logger->log_diagnostic(diag);
-						}
-					}
-				}
-			}
-			if(GPIOHats.at(i).get_lock() == false)
-			{
-				GPIOHats.at(i).lockdevice();
-				unsigned char inputbuffer[13];
-				int passed_checksum_calc = GPIOHats.at(i).sendQuery(I2CMessageHandler::I2C_Get_IMUMag_ID,inputbuffer);
-				if(passed_checksum_calc > 0)
-				{
-					uint16_t a1,a2,a3,a4,a5,a6;
-					int length;
-					bool success = i2cmessagehandler->decode_Get_IMUMagI2C(inputbuffer,&length,&a1,&a2,&a3,&a4,&a5,&a6);
-					if(success == true)
-					{
-						diag = process->new_message_IMUMag(GPIOHats.at(i).get_address(),ros::Time::now().toSec(),a1,a2,a3,a4,a5,a6);
-						if(diag.Level >= WARN)
-						{
-							diagnostic_pub.publish(diag);
-							logger->log_diagnostic(diag);
-						}
-					}
-				}
-			}
-			icarus_rover_v2::imu imu1,imu2;
-			int v1 = process->get_imu(&imu1,1);
-			if(v1 > 0)
-			{
-				imu1raw_pub.publish(imu1);
-			}
-			else if(v1 == 0)
-			{
-			}
-			int v2 = process->get_imu(&imu2,2);
-			if(v2 > 0)
-			{
-				imu2raw_pub.publish(imu2);
-			}
-		}
-	}
-
 	return true;
 }
 void ArmedState_Callback(const std_msgs::UInt8::ConstPtr& msg)
@@ -471,25 +379,6 @@ void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 	else
 	{
 	}
-	/*
-	for(std::size_t i = 0; i < GPIOHats.size(); i++)
-	{
-		unsigned char inputbuffer[12];
-		int length;
-		unsigned char System,Subsystem,Component,DiagType,Level,Message;
-		int passed_checksum_calc = GPIOHats.at(i).sendQuery(I2CMessageHandler::I2C_Diagnostic_ID,inputbuffer);
-		if(passed_checksum_calc > 0)
-		{
-			bool success = i2cmessagehandler->decode_DiagnosticI2C(inputbuffer,&length,&System,&Subsystem,&Component,&DiagType,&Level,&Message);
-			if(success == true)
-			{
-				/*diag = process->new_message_Diag(GPIOHats.at(i).get_address(),ros::Time::now().toSec(),System,Subsystem,Component,DiagType,Level,Message);
-				if(diag.Level >= WARN)
-				{
-					diagnostic_pub.publish(diag);
-					logger->log_diagnostic(diag);
-				}
-	 */
 	diagnostic_pub.publish(process->get_diagnostic());
 }
 void Command_Callback(const icarus_rover_v2::command::ConstPtr& msg)
@@ -577,7 +466,7 @@ int main(int argc, char **argv)
 				mtime = measure_time_diff(ros::Time::now(),last_loop3_timer);
 				if(mtime >= (1.0/loop3_rate))
 				{
-					run_loop3_code();
+					//run_loop3_code();
 					last_loop3_timer = ros::Time::now();
 				}
 			}
@@ -769,10 +658,7 @@ bool initializenode()
 	std::string pwmoutput_topic = "/" + node_name + "/PWMOutput";
 	pwmoutput_sub = n->subscribe<icarus_rover_v2::pin>(pwmoutput_topic,5,PwmOutput_Callback);
 	last_pwmoutput_sub_time = ros::Time::now();
-	std::string imu1raw_topic = "/IMU1_raw";
-	imu1raw_pub = n->advertise<icarus_rover_v2::imu>(imu1raw_topic,1);
-	std::string imu2raw_topic = "/IMU2_raw";
-	imu2raw_pub = n->advertise<icarus_rover_v2::imu>(imu2raw_topic,1);
+
 
 	std::string ready_to_arm_topic = node_name + "/ready_to_arm";
 	ready_to_arm_pub = n->advertise<std_msgs::Bool>(ready_to_arm_topic,1);
