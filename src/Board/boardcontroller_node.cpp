@@ -35,12 +35,16 @@ bool run_loop1_code()
 }
 bool run_loop2_code()
 {
+
 	icarus_rover_v2::diagnostic diag = process->update(measure_time_diff(ros::Time::now(),last_loop2_timer));
 	if(diag.Level >= WARN)
 	{
 		diagnostic_pub.publish(diag);
 		logger->log_diagnostic(diag);
 	}
+	process->send_querymessage(SPIMessageHandler::SPI_Get_IMUAcc_ID);
+		process->send_querymessage(SPIMessageHandler::SPI_Get_IMUGyro_ID);
+		process->send_querymessage(SPIMessageHandler::SPI_Get_IMUMag_ID);
 	diag = process->send_querymessage(SPIMessageHandler::SPI_Get_DIO_Port1_ID);
 	std::vector<BoardControllerNodeProcess::Sensor> sensors = process->get_sensordata();
 	for(std::size_t i = 0; i < sensors.size(); i++)
@@ -139,6 +143,48 @@ bool run_loop3_code()
 					}
 				}
 				break;
+			case SPIMessageHandler::SPI_Get_IMUAcc_ID:
+
+				success = spimessagehandler->decode_Get_IMUAccSPI(inputbuffer,&length,&a1,&a2,&a3,&a4,&a5,&a6);
+				if(success == 1)
+				{
+					process->new_message_recv(querymessages_tosend.at(i).id);
+					diag = process->new_message_IMUAcc(BOARD_ID,ros::Time::now().toSec(),a1,a2,a3,a4,a5,a6);
+					if(diag.Level >= WARN)
+					{
+						diagnostic_pub.publish(diag);
+						logger->log_diagnostic(diag);
+					}
+				}
+				break;
+			case SPIMessageHandler::SPI_Get_IMUGyro_ID:
+
+				success = spimessagehandler->decode_Get_IMUGyroSPI(inputbuffer,&length,&a1,&a2,&a3,&a4,&a5,&a6);
+				if(success == 1)
+				{
+					process->new_message_recv(querymessages_tosend.at(i).id);
+					diag = process->new_message_IMUGyro(BOARD_ID,ros::Time::now().toSec(),a1,a2,a3,a4,a5,a6);
+					if(diag.Level >= WARN)
+					{
+						diagnostic_pub.publish(diag);
+						logger->log_diagnostic(diag);
+					}
+				}
+				break;
+			case SPIMessageHandler::SPI_Get_IMUMag_ID:
+
+				success = spimessagehandler->decode_Get_IMUMagSPI(inputbuffer,&length,&a1,&a2,&a3,&a4,&a5,&a6);
+				if(success == 1)
+				{
+					process->new_message_recv(querymessages_tosend.at(i).id);
+					diag = process->new_message_IMUMag(BOARD_ID,ros::Time::now().toSec(),a1,a2,a3,a4,a5,a6);
+					if(diag.Level >= WARN)
+					{
+						diagnostic_pub.publish(diag);
+						logger->log_diagnostic(diag);
+					}
+				}
+				break;
 			default:
 				break;
 			}
@@ -170,6 +216,20 @@ bool run_loop3_code()
 		}
 		sendMessageCommand(commandmessages_tosend.at(i).id,outputbuffer);
 		process->new_message_sent(SPIMessageHandler::SPI_LEDStripControl_ID);
+	}
+	icarus_rover_v2::imu imu1,imu2;
+	int v1 = process->get_imu(&imu1,1);
+	if(v1 > 0)
+	{
+		imu1raw_pub.publish(imu1);
+	}
+	else if(v1 == 0)
+	{
+	}
+	int v2 = process->get_imu(&imu2,2);
+	if(v2 > 0)
+	{
+		imu2raw_pub.publish(imu2);
 	}
 	return true;
 }
@@ -264,7 +324,7 @@ void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 	logger->log_info(process->get_messageinfo(false));
 }
 std::vector<icarus_rover_v2::diagnostic> check_program_variables()
-						{
+								{
 	std::vector<icarus_rover_v2::diagnostic> diaglist;
 	bool status = true;
 	logger->log_notice("checking program variables.");
@@ -288,7 +348,7 @@ std::vector<icarus_rover_v2::diagnostic> check_program_variables()
 		diaglist.push_back(diag);
 	}
 	return diaglist;
-						}
+								}
 
 void Command_Callback(const icarus_rover_v2::command::ConstPtr& msg)
 {
@@ -542,19 +602,19 @@ bool initializenode()
 	beat.Node_Name = node_name;
 
 	std::string param_startup_delay = node_name + "/startup_delay";
-    double startup_delay = 0.0;
-    if(n->getParam(param_startup_delay,startup_delay) == false)
-    {
-    	logger->log_notice("Missing Parameter: startup_delay.  Using Default: 0.0 sec.");
-    }
-    else
-    {
-    	char tempstr[128];
-    	sprintf(tempstr,"Using Parameter: startup_delay = %4.2f sec.",startup_delay);
-    	logger->log_notice(std::string(tempstr));
-    }
-    printf("[%s] Using Parameter: startup_delay = %4.2f sec.\n",node_name.c_str(),startup_delay);
-    ros::Duration(startup_delay).sleep();
+	double startup_delay = 0.0;
+	if(n->getParam(param_startup_delay,startup_delay) == false)
+	{
+		logger->log_notice("Missing Parameter: startup_delay.  Using Default: 0.0 sec.");
+	}
+	else
+	{
+		char tempstr[128];
+		sprintf(tempstr,"Using Parameter: startup_delay = %4.2f sec.",startup_delay);
+		logger->log_notice(std::string(tempstr));
+	}
+	printf("[%s] Using Parameter: startup_delay = %4.2f sec.\n",node_name.c_str(),startup_delay);
+	ros::Duration(startup_delay).sleep();
 
 	std::string device_topic = "/" + std::string(hostname) + "_master_node/srv_device";
 	srv_device = n->serviceClient<icarus_rover_v2::srv_device>(device_topic);
@@ -626,7 +686,10 @@ bool initializenode()
 	spi_device = open("/dev/spidev0.0", O_RDWR);
 	unsigned int clock_rate = 1000000;
 	ioctl (spi_device, SPI_IOC_WR_MAX_SPEED_HZ, &clock_rate);
-
+	std::string imu1raw_topic = "/IMU1_raw";
+		imu1raw_pub = n->advertise<icarus_rover_v2::imu>(imu1raw_topic,1);
+		std::string imu2raw_topic = "/IMU2_raw";
+		imu2raw_pub = n->advertise<icarus_rover_v2::imu>(imu2raw_topic,1);
 	//Finish User Code: Initialization and Parameters
 
 	//Start Template Code: Final Initialization.

@@ -17,7 +17,7 @@
 #include "icarus_rover_v2/iopins.h"
 #include "icarus_rover_v2/firmware.h"
 #include "icarus_rover_v2/signal.h"
-#include "icarus_rover_v2/imu.h"
+
 #include <std_msgs/Bool.h>
 #include <std_msgs/UInt8.h>
 #include "logger.h"
@@ -50,15 +50,7 @@ public:
 		double min_outputvalue;
 		double max_outputvalue;
 	};
-	struct IMU
-	{
-		uint8_t id;
-		bool initialized;
-		bool ready;
-		bool updated;
-		icarus_rover_v2::imu msg;
-		uint8_t status;
-	};
+
 
 	HatControllerNodeProcess();
 	~HatControllerNodeProcess();    
@@ -109,41 +101,8 @@ public:
 	std::vector<uint16_t> get_gpiohataddresses();
 	//icarus_rover_v2::diagnostic new_message_Diag(uint8_t hadid,double tov,uint8_t System,uint8_t Subsystem,uint8_t Component,uint8_t DiagType,uint8_t Level,uint8_t Message);
 	icarus_rover_v2::diagnostic new_message_GetDIOPort1(uint8_t hatid,double tov,uint16_t v1,uint16_t v2,uint16_t v3,uint16_t v4);
-	icarus_rover_v2::diagnostic new_message_IMUAcc(uint8_t hatid,double tov,uint16_t v1,uint16_t v2,uint16_t v3,uint16_t v4,uint16_t v5,uint16_t v6);
-	icarus_rover_v2::diagnostic new_message_IMUGyro(uint8_t hatid,double tov,uint16_t v1,uint16_t v2,uint16_t v3,uint16_t v4,uint16_t v5,uint16_t v6);
-	icarus_rover_v2::diagnostic new_message_IMUMag(uint8_t hatid,double tov,uint16_t v1,uint16_t v2,uint16_t v3,uint16_t v4,uint16_t v5,uint16_t v6);
+
 	ros::Time convert_time(struct timeval t);
-	int get_imu(icarus_rover_v2::imu *imu,uint8_t id)
-	{
-		int status = -1;
-		if(id == 1)
-		{
-			if(imu1.updated == false)
-			{
-				status = 0;
-			}
-			else
-			{
-				*imu = imu1.msg;
-				imu1.updated = false;
-				status = 1;
-			}
-		}
-		else if(id == 2)
-		{
-			if(imu2.updated == false)
-			{
-				status = 0;
-			}
-			else
-			{
-				*imu = imu2.msg;
-				imu2.updated = false;
-				status = 1;
-			}
-		}
-		return status;
-	}
 
 protected:
 private:
@@ -173,8 +132,7 @@ private:
 	double measure_time_diff(struct timeval start, double end);
 
 	std::vector<Sensor> sensors;
-	IMU imu1;
-	IMU imu2;
+
 	uint8_t armed_state;
 	bool ready_to_arm;
 	std::vector<icarus_rover_v2::device> hats;

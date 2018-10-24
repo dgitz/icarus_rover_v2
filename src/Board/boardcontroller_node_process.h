@@ -15,6 +15,7 @@
 #include "icarus_rover_v2/command.h"
 #include "icarus_rover_v2/pin.h"
 #include "icarus_rover_v2/firmware.h"
+#include "icarus_rover_v2/imu.h"
 #include <std_msgs/UInt8.h>
 #include "logger.h"
 #include "spimessage.h"
@@ -61,6 +62,15 @@ public:
 	    double min_outputvalue;
 	    double max_outputvalue;
 	};
+	struct IMU
+		{
+			uint8_t id;
+			bool initialized;
+			bool ready;
+			bool updated;
+			icarus_rover_v2::imu msg;
+			uint8_t status;
+		};
 
 	BoardControllerNodeProcess();
 	~BoardControllerNodeProcess();
@@ -92,6 +102,9 @@ public:
 	icarus_rover_v2::diagnostic new_message_Diagnostic(uint8_t boardid,unsigned char System,unsigned char SubSystem,
 																unsigned char Component,unsigned char Diagnostic_Type,
 																unsigned char Level,unsigned char Message);
+	icarus_rover_v2::diagnostic new_message_IMUAcc(uint8_t boardid,double tov,uint16_t v1,uint16_t v2,uint16_t v3,uint16_t v4,uint16_t v5,uint16_t v6);
+		icarus_rover_v2::diagnostic new_message_IMUGyro(uint8_t boardid,double tov,uint16_t v1,uint16_t v2,uint16_t v3,uint16_t v4,uint16_t v5,uint16_t v6);
+		icarus_rover_v2::diagnostic new_message_IMUMag(uint8_t boardid,double tov,uint16_t v1,uint16_t v2,uint16_t v3,uint16_t v4,uint16_t v5,uint16_t v6);
 	bool board_present(icarus_rover_v2::device device);
 	bool find_capability(std::vector<std::string> capabilities,std::string name);
 	Sensor find_sensor(std::string name);
@@ -99,8 +112,41 @@ public:
 	std::vector<Sensor> get_sensordata() { return sensors; }
 	icarus_rover_v2::device get_mydevice() { return mydevice; }
 	std::vector<BoardDiagnostic> get_boarddiagnostics() { return board_diagnostics; }
+	int get_imu(icarus_rover_v2::imu *imu,uint8_t id)
+		{
+			int status = -1;
+			if(id == 1)
+			{
+				if(imu1.updated == false)
+				{
+					status = 0;
+				}
+				else
+				{
+					*imu = imu1.msg;
+					imu1.updated = false;
+					status = 1;
+				}
+			}
+			else if(id == 2)
+			{
+				if(imu2.updated == false)
+				{
+					status = 0;
+				}
+				else
+				{
+					*imu = imu2.msg;
+					imu2.updated = false;
+					status = 1;
+				}
+			}
+			return status;
+		}
 
 private:
+	IMU imu1;
+		IMU imu2;
 	void init_messages();
 	std::string map_PinFunction_ToString(int function);
     double map_input_to_output(double input_value,double min_input,double max_input,double min_output,double max_output);

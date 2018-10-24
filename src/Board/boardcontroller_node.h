@@ -114,5 +114,7 @@ std::vector<ros::Publisher> signal_sensor_pubs;
 std::vector<std::string> signal_sensor_names;
 bool ready_to_arm;
 ros::Publisher ready_to_arm_pub;
+ros::Publisher imu1raw_pub;
+ros::Publisher imu2raw_pub;
 //End User Code: Define Global Variables
 #endif

@@ -15,21 +15,7 @@ HatControllerNodeProcess::HatControllerNodeProcess()
 	pps_counter = 0;
 	analyze_timing = false;
 	timing_diff.clear();
-	imu1.id = 1;
-	imu1.msg.xacc.status = SIGNALSTATE_INITIALIZING;
-	imu1.msg.yacc.status = SIGNALSTATE_INITIALIZING;
-	imu1.msg.zacc.status = SIGNALSTATE_INITIALIZING;
 
-	imu1.initialized = true;
-	imu1.ready = true;
-
-
-	imu2.id = 2;
-	imu1.msg.xacc.status = SIGNALSTATE_INITIALIZING;
-	imu1.msg.yacc.status = SIGNALSTATE_INITIALIZING;
-	imu1.msg.zacc.status = SIGNALSTATE_INITIALIZING;
-	imu2.initialized = true;
-	imu2.ready = true;
 }
 /*! \brief Deconstructor
  */
@@ -519,123 +505,7 @@ icarus_rover_v2::diagnostic HatControllerNodeProcess::new_message_GetDIOPort1(ui
 	}
 	return diag;
 }
-icarus_rover_v2::diagnostic HatControllerNodeProcess::new_message_IMUAcc(uint8_t hatid,double tov,uint16_t v1,uint16_t v2,uint16_t v3,uint16_t v4,uint16_t v5,uint16_t v6)
-{
-	bool any_error = false;
-	icarus_rover_v2::diagnostic diag = diagnostic;
-	icarus_rover_v2::signal xacc1_sig,yacc1_sig,zacc1_sig,xacc2_sig,yacc2_sig,zacc2_sig;
-	xacc1_sig.value = (double)(v1-32768)/100.0;
-	xacc1_sig.status = SIGNALSTATE_UPDATED;
-	yacc1_sig.value = (double)(v2-32768)/100.0;
-	yacc1_sig.status = SIGNALSTATE_UPDATED;
-	zacc1_sig.value = (double)(v3-32768)/100.0;
-	zacc1_sig.status = SIGNALSTATE_UPDATED;
-	xacc2_sig.value = (double)(v4-32768)/100.0;
-	xacc2_sig.status = SIGNALSTATE_UPDATED;
-	yacc2_sig.value = (double)(v5-32768)/100.0;
-	yacc2_sig.status = SIGNALSTATE_UPDATED;
-	zacc2_sig.value = (double)(v6-32768)/100.0;
-	zacc2_sig.status = SIGNALSTATE_UPDATED;
-	imu1.msg.xacc = xacc1_sig;
-	imu1.msg.yacc = yacc1_sig;
-	imu1.msg.zacc = zacc1_sig;
-	imu2.msg.xacc = xacc2_sig;
-	imu2.msg.yacc = yacc2_sig;
-	imu2.msg.zacc = zacc2_sig;
-	imu1.msg.tov = tov;
-	imu1.msg.tov = tov;
-	imu1.updated = true;
-	imu2.updated = true;
 
-	if(any_error == false)
-	{
-		char tempstr[255];
-		diag.Diagnostic_Type = COMMUNICATIONS;
-		diag.Level = INFO;
-		diag.Diagnostic_Message = NOERROR;
-		sprintf(tempstr,"Updated");
-		diag.Description = std::string(tempstr);
-	}
-	return diag;
-}
-icarus_rover_v2::diagnostic HatControllerNodeProcess::new_message_IMUGyro(uint8_t hatid,double tov,uint16_t v1,uint16_t v2,uint16_t v3,uint16_t v4,uint16_t v5,uint16_t v6)
-{
-	bool any_error = false;
-	icarus_rover_v2::diagnostic diag = diagnostic;
-	icarus_rover_v2::signal xgyro1_sig,ygyro1_sig,zgyro1_sig,xgyro2_sig,ygyro2_sig,zgyro2_sig;
-	xgyro1_sig.value = (double)(v1-32768)/1000.0;
-	xgyro1_sig.status = SIGNALSTATE_UPDATED;
-	ygyro1_sig.value = (double)(v2-32768)/1000.0;
-	ygyro1_sig.status = SIGNALSTATE_UPDATED;
-	zgyro1_sig.value = (double)(v3-32768)/1000.0;
-	zgyro1_sig.status = SIGNALSTATE_UPDATED;
-	xgyro2_sig.value = (double)(v4-32768)/1000.0;
-	xgyro2_sig.status = SIGNALSTATE_UPDATED;
-	ygyro2_sig.value = (double)(v5-32768)/1000.0;
-	ygyro2_sig.status = SIGNALSTATE_UPDATED;
-	zgyro2_sig.value = (double)(v6-32768)/1000.0;
-	zgyro2_sig.status = SIGNALSTATE_UPDATED;
-	imu1.msg.xgyro = xgyro1_sig;
-	imu1.msg.ygyro = ygyro1_sig;
-	imu1.msg.zgyro = zgyro1_sig;
-	imu2.msg.xgyro = xgyro2_sig;
-	imu2.msg.ygyro = ygyro2_sig;
-	imu2.msg.zgyro = zgyro2_sig;
-	imu1.msg.tov = tov;
-	imu1.msg.tov = tov;
-	imu1.updated = true;
-	imu2.updated = true;
-
-	if(any_error == false)
-	{
-		char tempstr[255];
-		diag.Diagnostic_Type = COMMUNICATIONS;
-		diag.Level = INFO;
-		diag.Diagnostic_Message = NOERROR;
-		sprintf(tempstr,"Updated");
-		diag.Description = std::string(tempstr);
-	}
-	return diag;
-}
-icarus_rover_v2::diagnostic HatControllerNodeProcess::new_message_IMUMag(uint8_t hatid,double tov,uint16_t v1,uint16_t v2,uint16_t v3,uint16_t v4,uint16_t v5,uint16_t v6)
-{
-	bool any_error = false;
-	icarus_rover_v2::diagnostic diag = diagnostic;
-	icarus_rover_v2::signal xmag1_sig,ymag1_sig,zmag1_sig,xmag2_sig,ymag2_sig,zmag2_sig;
-	xmag1_sig.value = (double)(v1-32768)/1000.0;
-	xmag1_sig.status = SIGNALSTATE_UPDATED;
-	ymag1_sig.value = (double)(v2-32768)/1000.0;
-	ymag1_sig.status = SIGNALSTATE_UPDATED;
-	zmag1_sig.value = (double)(v3-32768)/1000.0;
-	zmag1_sig.status = SIGNALSTATE_UPDATED;
-	xmag2_sig.value = (double)(v4-32768)/1000.0;
-	xmag2_sig.status = SIGNALSTATE_UPDATED;
-	ymag2_sig.value = (double)(v5-32768)/1000.0;
-	ymag2_sig.status = SIGNALSTATE_UPDATED;
-	zmag2_sig.value = (double)(v6-32768)/1000.0;
-	zmag2_sig.status = SIGNALSTATE_UPDATED;
-	imu1.msg.xmag = xmag1_sig;
-	imu1.msg.ymag = ymag1_sig;
-	imu1.msg.zmag = zmag1_sig;
-	imu2.msg.xmag = xmag2_sig;
-	imu2.msg.ymag = ymag2_sig;
-	imu2.msg.zmag = zmag2_sig;
-	imu1.msg.tov = tov;
-	imu1.msg.tov = tov;
-	imu1.updated = true;
-	imu2.updated = true;
-
-	if(any_error == false)
-	{
-		char tempstr[255];
-		diag.Diagnostic_Type = COMMUNICATIONS;
-		diag.Level = INFO;
-		diag.Diagnostic_Message = NOERROR;
-		sprintf(tempstr,"Updated");
-		diag.Description = std::string(tempstr);
-	}
-	return diag;
-}
 /*icarus_rover_v2::diagnostic HatControllerNodeProcess::new_message_Diag(uint8_t hadid,double tov,uint8_t System,uint8_t Subsystem,uint8_t Component,uint8_t DiagType,uint8_t Level,uint8_t Message)new_message_Diag(uint8_t hadid,double tov,uint8_t System,uint8_t Subsystem,uint8_t Component,uint8_t DiagType,uint8_t Level,uint8_t Message)::new_message_Diag(uint8_t hadid,double tov,uint8_t System,uint8_t Subsystem,uint8_t Component,uint8_t DiagType,uint8_t Level,uint8_t Message)
 {
 	icarus_rover_v2::diagnostic diag = diagnostic;

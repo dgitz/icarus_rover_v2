@@ -21,6 +21,9 @@ static void show_usage(std::string name)
 			<< "\t\t [1] TestMessageCounter (0xAB14)\n"
 			<< "\t\t [2] Get_DIO_Port1 (0xAB19)\n"
 			<< "\t\t [3] Get_ANA_Port1 (0xAB20)\n"
+			<< "\t\t [4] Get_IMU Accel (0xAB27)\n"
+			<< "\t\t [5] Get_IMU Gyro (0xAB28)\n"
+			<< "\t\t [6] Get_IMU Mag (0xAB29)\n"
 			<< "\t-c,--command Command Message.  Supported messages are:\n"
 			<< "\t\t [0] LED Strip Control (0xAB42)\n"
 			<< "\t\t\t [0-5] [LEDPixelMode]\n"
@@ -104,6 +107,15 @@ int main(int argc, char* argv[])
 				case 3:
 					query_type = SPIMessageHandler::SPI_Get_ANA_Port1_ID;
 					break;
+				case 4:
+					query_type = SPIMessageHandler::SPI_Get_IMUAcc_ID;
+					break;
+				case 5:
+					query_type = SPIMessageHandler::SPI_Get_IMUGyro_ID;
+					break;
+				case 6:
+					query_type = SPIMessageHandler::SPI_Get_IMUMag_ID;
+					break;
 				default:
 					printf("Unsupported Query Message.  Exiting.\n");
 					return 0;
@@ -112,25 +124,25 @@ int main(int argc, char* argv[])
 			}
 		}
 		else if ((arg == "-c") || (arg == "--command"))
+		{
+			command_message = 1;
+			query_message = 0;
+			if (i + 1 < argc)
+			{
+				int v = atoi(argv[i+1]);
+				switch(v)
 				{
-					command_message = 1;
-					query_message = 0;
-					if (i + 1 < argc)
-					{
-						int v = atoi(argv[i+1]);
-						switch(v)
-						{
-						case 0:
-							command_type = SPIMessageHandler::SPI_LEDStripControl_ID;
-							param1 = atoi(argv[i+2]);
-							break;
-						default:
-							printf("Unsupported Command Message.  Exiting.\n");
-							return 0;
-						}
-						i++;
-					}
+				case 0:
+					command_type = SPIMessageHandler::SPI_LEDStripControl_ID;
+					param1 = atoi(argv[i+2]);
+					break;
+				default:
+					printf("Unsupported Command Message.  Exiting.\n");
+					return 0;
 				}
+				i++;
+			}
+		}
 
 	}
 	first_message_received = 0;
@@ -183,13 +195,13 @@ commands to the Arduino and displays the results
 			switch(query)
 			{
 			case SPIMessageHandler::SPI_Diagnostic_ID:
-							success = spimessagehandler->decode_DiagnosticSPI(inputbuffer,&length,&v1,&v2,&v3,&v4,&v5,&v6);
-							if(success == 1)
-							{
-								printf("%d Diagnostic: %d %d %d %d %d %d\n",
-										passed_checksum_calc,v1,v2,v3,v4,v5,v6);
-							}
-							break;
+				success = spimessagehandler->decode_DiagnosticSPI(inputbuffer,&length,&v1,&v2,&v3,&v4,&v5,&v6);
+				if(success == 1)
+				{
+					printf("%d Diagnostic: %d %d %d %d %d %d\n",
+							passed_checksum_calc,v1,v2,v3,v4,v5,v6);
+				}
+				break;
 			case SPIMessageHandler::SPI_TestMessageCounter_ID:
 				success = spimessagehandler->decode_TestMessageCounterSPI(inputbuffer,&length,&v1,&v2,&v3,&v4,&v5,&v6,&v7,&v8,&v9,&v10,&v11,&v12);
 				if(success == 1)
@@ -241,6 +253,51 @@ commands to the Arduino and displays the results
 				{
 					printf("%d DIO Port1 0:%d 1:%d\n",
 							passed_checksum_calc,a1-BYTE2_OFFSET,a2-BYTE2_OFFSET);
+				}
+				break;
+			case SPIMessageHandler::SPI_Get_IMUAcc_ID:
+				success = spimessagehandler->decode_Get_IMUAccSPI(inputbuffer,&length,&a1,&a2,&a3,&a4,&a5,&a6);
+				if(success == 1)
+				{
+					double x1,y1,z1,x2,y2,z2;
+					x1 = (double)(a1-32768)/100.0;
+					y1 = (double)(a2-32768)/100.0;
+					z1 = (double)(a3-32768)/100.0;
+					x2 = (double)(a4-32768)/100.0;
+					y2 = (double)(a5-32768)/100.0;
+					z2 = (double)(a6-32768)/100.0;
+					printf("%d ACC 0:%f 1:%f 2:%f 3:%f 4: %f 5: %f\n",
+							passed_checksum_calc,x1,y1,z1,x2,y2,z2);
+				}
+				break;
+			case SPIMessageHandler::SPI_Get_IMUGyro_ID:
+				success = spimessagehandler->decode_Get_IMUGyroSPI(inputbuffer,&length,&a1,&a2,&a3,&a4,&a5,&a6);
+				if(success == 1)
+				{
+					double x1,y1,z1,x2,y2,z2;
+					x1 = (double)(a1-32768)/1000.0;
+					y1 = (double)(a2-32768)/1000.0;
+					z1 = (double)(a3-32768)/1000.0;
+					x2 = (double)(a4-32768)/1000.0;
+					y2 = (double)(a5-32768)/1000.0;
+					z2 = (double)(a6-32768)/1000.0;
+					printf("%d GYRO 0:%f 1:%f 2:%f 3:%f 4: %f 5: %f\n",
+							passed_checksum_calc,x1,y1,z1,x2,y2,z2);
+				}
+				break;
+			case SPIMessageHandler::SPI_Get_IMUMag_ID:
+				success = spimessagehandler->decode_Get_IMUMagSPI(inputbuffer,&length,&a1,&a2,&a3,&a4,&a5,&a6);
+				if(success == 1)
+				{
+					double x1,y1,z1,x2,y2,z2;
+					x1 = (double)(a1-32768)/1000.0;
+					y1 = (double)(a2-32768)/1000.0;
+					z1 = (double)(a3-32768)/1000.0;
+					x2 = (double)(a4-32768)/1000.0;
+					y2 = (double)(a5-32768)/1000.0;
+					z2 = (double)(a6-32768)/1000.0;
+					printf("%d MAG 0:%f 1:%f 2:%f 3:%f 4: %f 5: %f\n",
+							passed_checksum_calc,x1,y1,z1,x2,y2,z2);
 				}
 				break;
 			default:
@@ -306,48 +363,48 @@ int spiTxRx(unsigned char txDat)
 int sendCommand(unsigned char command,unsigned char* outputbuffer)
 {
 	unsigned char resultByte;
-		bool ack;
-		int wait_time_us = 1;
-		int counter = 0;
-		do
+	bool ack;
+	int wait_time_us = 1;
+	int counter = 0;
+	do
+	{
+		ack = false;
+
+		spiTxRx(0xAB);
+		usleep (wait_time_us);
+
+
+		resultByte = spiTxRx(command);
+		if (resultByte == 'a')
 		{
-			ack = false;
-
-			spiTxRx(0xAB);
-			usleep (wait_time_us);
-
-
-			resultByte = spiTxRx(command);
-			if (resultByte == 'a')
-			{
-				ack = true;
-			}
-			else { counter++; }
-			if(counter > 10000)
-			{
-				printf("No Comm with device after %d tries. Exiting.\n",counter);
-				return -1;
-			}
-			usleep (wait_time_us);
+			ack = true;
 		}
-
-		while (ack == false);
-		usleep(wait_time_us);
-		unsigned char v;
-		unsigned char running_checksum = 0;
-		for(int i = 0; i < 12; i++)
+		else { counter++; }
+		if(counter > 10000)
 		{
-			v = spiTxRx(outputbuffer[i]);
-			running_checksum ^= v;
-			outputbuffer[i] = v;
-			//*p_outbuffer++ = v;
-			usleep(wait_time_us);
-
+			printf("No Comm with device after %d tries. Exiting.\n",counter);
+			return -1;
 		}
+		usleep (wait_time_us);
+	}
 
-		resultByte = spiTxRx(running_checksum);
+	while (ack == false);
+	usleep(wait_time_us);
+	unsigned char v;
+	unsigned char running_checksum = 0;
+	for(int i = 0; i < 12; i++)
+	{
+		v = spiTxRx(outputbuffer[i]);
+		running_checksum ^= v;
+		outputbuffer[i] = v;
+		//*p_outbuffer++ = v;
 		usleep(wait_time_us);
-		return 1;
+
+	}
+
+	resultByte = spiTxRx(running_checksum);
+	usleep(wait_time_us);
+	return 1;
 }
 int sendQuery(unsigned char query, unsigned char * inputbuffer)
 {
