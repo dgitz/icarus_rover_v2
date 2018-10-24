@@ -3,7 +3,6 @@ GPIOHatDriver::GPIOHatDriver()
 {
 	address = -1;
 	GPIOHatfd = -1;
-	lock = false;
 }
 GPIOHatDriver::~GPIOHatDriver()
 {
@@ -55,7 +54,6 @@ int GPIOHatDriver::sendQuery(unsigned char query,unsigned char * inputbuffer)
 		running_checksum ^= inputbuffer[i];
 
 	}
-	lock  = false;
 	if(inputbuffer[12] == running_checksum) { return 1; }
 	else { return 0; }
 }

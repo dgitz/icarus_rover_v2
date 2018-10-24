@@ -1,13 +1,11 @@
 /***************AUTO-GENERATED.  DO NOT EDIT********************/
-/***Created on:2018-10-14 16:33:05.454541***/
+/***Created on:2018-08-23 07:05:58.972390***/
 #ifndef UDPMESSAGE_H
 #define UDPMESSAGE_H
 #include "Definitions.h"
 #include <stdio.h>
 #include <iostream>
-#include <vector>
 #include <ctime>
-#include <boost/lexical_cast.hpp>
 #include <fstream>
 #include <iostream>
 #include <vector>

@@ -16,76 +16,6 @@ std::string generate_imudata(int timer,int seq);
 double get_random(double scale);
 int get_random(int scale);
 void print_matrix(MatrixXd m);
-
-IMUNodeProcess* initializeprocess()
-{
-    icarus_rover_v2::diagnostic diagnostic;
-    diagnostic.DeviceName = ros_DeviceName;
-    diagnostic.Node_Name = Node_Name;
-    diagnostic.System = ROVER;
-    diagnostic.SubSystem = ROBOT_CONTROLLER;
-    diagnostic.Component = POSE_NODE;
-
-    diagnostic.Diagnostic_Type = NOERROR;
-    diagnostic.Level = INFO;
-    diagnostic.Diagnostic_Message = INITIALIZING;
-    diagnostic.Description = "Node Initializing";
-    
-    icarus_rover_v2::device device;
-    device.DeviceName = diagnostic.DeviceName;
-    device.BoardCount = 0;
-    device.SensorCount = 2;
-    device.DeviceParent = "None";
-    
-   
-
-
-
-    IMUNodeProcess *process;
-    process = new IMUNodeProcess;
-	diagnostic = process->init(diagnostic,std::string(Host_Name));
-    EXPECT_TRUE(diagnostic.Level <= NOTICE);
-    EXPECT_TRUE(process->get_initialized() == false);
-    process->set_mydevice(device);
-    EXPECT_TRUE(process->get_initialized() == true);
-    EXPECT_TRUE(process->get_ready() == false);
-    
-    {
-        icarus_rover_v2::device left_imu;
-        left_imu.DeviceName = "LeftIMU";
-        left_imu.DeviceType = "IMU";
-        left_imu.DeviceParent = ros_DeviceName;
-        left_imu.ID = 0;
-        left_imu.PartNumber = "110013";
-        diagnostic = process->new_devicemsg(microphone);
-        EXPECT_TRUE(diagnostic.Level <= NOTICE);
-    }
-    
-    {
-        icarus_rover_v2::device right_imu;
-        right_imu.DeviceName = "RightIMU";
-        right_imu.DeviceType = "IMU";
-        right_imu.ID = 1;
-        right_imu.DeviceParent = ros_DeviceName;
-        right_imu.PartNumber = "110013";
-        diagnostic = process->new_devicemsg(microphone);
-        EXPECT_TRUE(diagnostic.Level <= NOTICE);
-    }
-    
-    
-} 
-IMUNodeProcess* readyprocess(IMUNodeProcess* process)
-{
-    icarus_rover_v2::diagnostic diag = process->update(0.0,0);
-    EXPECT_TRUE(diag.Level <= NOTICE);
-    EXPECT_TRUE(process->get_ready() == true);
-    return process;
-}
-TEST(Template,Process_Initialization)
-{
-    IMUNodeProcess* process = initializeprocess();
-}
-/*
 IMUNodeProcess setupprocess()
 {
 	icarus_rover_v2::diagnostic diagnostic;
@@ -198,7 +128,7 @@ TEST(Initialization,SensorInitialization)
 		EXPECT_TRUE(diagnostic.Level <= NOTICE);
 	}
 	EXPECT_TRUE(process->load_sensorinfo());
-	
+	/*
 	{
 		icarus_rover_v2::device imumsg;
 		imumsg.DeviceName = "IMU2";
@@ -209,7 +139,7 @@ TEST(Initialization,SensorInitialization)
 		diagnostic = process->new_devicemsg(imumsg);
 		EXPECT_TRUE(diagnostic.Level <= NOTICE);
 	}
-	
+	*/
 	//EXPECT_TRUE(process->get_sensors().size() == myDevice.SensorCount);
 }
 TEST(SensorProcess,NormalSensorOperation)
@@ -302,14 +232,14 @@ TEST(SensorProcess,Mounting)
         MatrixXd v = MatrixXd::Zero(3,1);
         v(0,0) = 1.0;
         MatrixXd u = r*v;
-        
+        /*
         printf("Multiplying Identity: ");
         print_matrix(r);
         printf(" With v: ");
         print_matrix(v);
         printf("Gives: ");
         print_matrix(u);
-        
+        */
     }
     
     EXPECT_TRUE(process.set_mountingangle(0.0,M_PI,0.0));
@@ -320,14 +250,14 @@ TEST(SensorProcess,Mounting)
         v(1,0) = 2.0;
         v(2,0) = 3.0;
         MatrixXd u = r*v; 
-        
+        /*
         printf("Multiplying Rotation Matrix (rotated roll left by 180 deg): ");
         print_matrix(r);
         printf(" With v: ");
         print_matrix(v);
         printf("Gives: ");
         print_matrix(u);
-        
+        */
     }
     EXPECT_TRUE(process.set_mountingangle(M_PI/2.0,0.0,0.0));
     r = process.get_rotationmatrix();
@@ -337,14 +267,14 @@ TEST(SensorProcess,Mounting)
         v(1,0) = 2.0;
         v(2,0) = 3.0;
         MatrixXd u = r*v;  
-        
+        /*
         printf("Multiplying Rotation Matrix (rotated pitch forward by 90 deg): ");
         print_matrix(r);
         printf(" With v: ");
         print_matrix(v);
         printf("Gives: ");
         print_matrix(u);
-        
+        */
     }
     EXPECT_TRUE(process.set_mountingangle(0.0,0.0,M_PI/2.0));
     r = process.get_rotationmatrix();
@@ -354,14 +284,14 @@ TEST(SensorProcess,Mounting)
         v(1,0) = 2.0;
         v(2,0) = 3.0;
         MatrixXd u = r*v;  
-        
+        /*
         printf("Multiplying Rotation Matrix (rotated yaw left by 90 deg): ");
         print_matrix(r);
         printf(" With v: ");
         print_matrix(v);
         printf("Gives: ");
         print_matrix(u);
-        
+        */
     }
     EXPECT_TRUE(process.set_mountingangle(M_PI/2.0,M_PI/2.0,M_PI/2.0));
     r = process.get_rotationmatrix();
@@ -371,23 +301,21 @@ TEST(SensorProcess,Mounting)
         v(1,0) = 0.0;
         v(2,0) = 0.0;
         MatrixXd u = r*v;  
-        
+        /*
         printf("Multiplying Rotation Matrix: ");
         print_matrix(r);
         printf(" With v: ");
         print_matrix(v);
         printf("Gives: ");
         print_matrix(u);
-        
+        */
     }
     
 }
-*/
 int main(int argc, char **argv){
   testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
 }
-/*
 std::string generate_imudata(int timer,int seq)
 {
 	std::string tempstr;
@@ -405,7 +333,6 @@ std::string generate_imudata(int timer,int seq)
 
 	return tempstr;
 }
-
 double get_random(double scale)
 {
 	double v = (double)(rand() % 1000);
@@ -422,4 +349,3 @@ void print_matrix(MatrixXd m)
 {
     std::cout << std::endl << m << std::endl;
 }
-*/
