@@ -738,7 +738,7 @@ std::vector<uint16_t> HatControllerNodeProcess::get_gpiohataddresses()
 	}
 	return addresses;
 }
-std::vector<icarus_rover_v2::pin> HatControllerNodeProcess::get_terminalhatpins(std::string Function)
+std::vector<icarus_rover_v2::pin> HatControllerNodeProcess::get_terminalhatpins(std::string Function,bool match_exact)
 {
 	std::vector<icarus_rover_v2::pin> pins;
 	pins.clear();
@@ -749,7 +749,8 @@ std::vector<icarus_rover_v2::pin> HatControllerNodeProcess::get_terminalhatpins(
 			for(std::size_t j = 0; j < hats.at(i).pins.size(); j++)
 			{
 				icarus_rover_v2::pin pin;
-				if((hats.at(i).pins.at(j).Function == Function) or (Function == ""))
+				if(((match_exact == true) and (hats.at(i).pins.at(j).Function == Function)) or
+						((match_exact == false) and (hats.at(i).pins.at(j).Function.find(Function) != std::string::npos)))
 				{
 					pin = hats.at(i).pins.at(j);
 					if((Function == "DigitalOutput") and (armed_state != ARMEDSTATUS_ARMED))

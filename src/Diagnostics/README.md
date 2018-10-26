@@ -25,5 +25,8 @@ Added support for LCD Module #617003
 B. safety_node
 Usage: This node should be run on 1 device on the Robot, and only a ControlModule.
 Purpose:
-1. Read an E-Stop Pin and publish the estop state.
+1. Reads Arm Switch 
+2. Publishes Ready To Arm
 
+1.  Process Unit Tests:
+  >>catkin_make run_tests_icarus_rover_v2_gtest_test_safety_node_process

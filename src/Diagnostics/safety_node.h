@@ -27,7 +27,6 @@
 //End User Code: Defines
 
 //Start User Code: Includes
-#include <icarus_rover_v2/estop.h>
 #include "safety_node_process.h"
 #include <stdio.h>
 #include <string.h>
@@ -39,6 +38,7 @@
 #include <boost/thread.hpp>
 #include <dirent.h>
 #include <sys/types.h>
+#include "../Board/Driver/TerminalHatDriver.h"
 //End User Code: Includes
 
 //Start User Code: Data Structures
@@ -61,8 +61,6 @@ void signalinterrupt_handler(int sig);
 //Start User Code: Function Prototypes
 void ArmedState_Callback(const std_msgs::UInt8::ConstPtr& msg);
 void signalinterrupt_handler(int sig);
-void ArmSwitch_Callback(const std_msgs::Bool::ConstPtr& msg);
-void EStop_Callback(const icarus_rover_v2::estop::ConstPtr& msg);
 //End User Code: Function Prototypes
 
 
@@ -107,11 +105,7 @@ std::vector<ros::Subscriber> diagnostic_subs;
 ros::Time last_diagnostic_sub_time;
 
 ros::Publisher ready_to_arm_pub;
-ros::Publisher estop_pub;
-ros::Subscriber armswitch_sub;
-ros::Subscriber estopswitch_sub;
-ros::Subscriber estopcomm_sub;
 ros::Subscriber armed_state_sub;
-
+TerminalHatDriver TerminalHat;
 //End User Code: Define Global Variables
 #endif
