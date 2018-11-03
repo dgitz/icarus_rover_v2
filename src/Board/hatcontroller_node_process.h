@@ -91,7 +91,7 @@ public:
 	//Terminal Hat Functions
 	icarus_rover_v2::diagnostic set_terminalhat_initialized();
 	std::vector<icarus_rover_v2::pin> get_terminalhatpins(std::string Function,bool match_exact);
-
+	bool set_terminalhatpinvalue(std::string name,int v);
 
 	//GPIO Hat Functions
 	bool is_gpiohat_running(uint16_t id);

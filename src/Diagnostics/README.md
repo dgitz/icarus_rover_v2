@@ -3,7 +3,6 @@ Task: Diagnostics
 Nodes:
 A. diagnostic_node
 TODO:
- - EStop feedback on LCD
  - LCD Backlight colors
 Usage: This node should be run on 1 device on the Robot.
 Purpose: 

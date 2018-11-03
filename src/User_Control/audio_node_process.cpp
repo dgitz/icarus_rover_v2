@@ -21,6 +21,7 @@ AudioNodeProcess::AudioNodeProcess()
 	microphone_count = 0;
 	audio_playing = false;
 	audioplay_nextimeavailable = 0.0;
+	volume_perc = 100.0;
 }
 /*! \brief Deconstructor
  */
@@ -47,25 +48,25 @@ void AudioNodeProcess::new_armedstatemsg(uint8_t armed_state)
 		switch(armed_state)
 		{
 		case ARMEDSTATUS_UNDEFINED:
-			new_audioplaytrigger("ArmedState:Undefined");
+			new_audioplaytrigger("ArmedState:Undefined",true);
 			break;
 		case ARMEDSTATUS_ARMED:
-			new_audioplaytrigger("ArmedState:Armed");
+			new_audioplaytrigger("ArmedState:Armed",true);
 			break;
 		case ARMEDSTATUS_DISARMED_CANNOTARM:
-			new_audioplaytrigger("ArmedState:DisarmedCannotArm");
+			new_audioplaytrigger("ArmedState:DisarmedCannotArm",true);
 			break;
 		case ARMEDSTATUS_DISARMED:
-			new_audioplaytrigger("ArmedState:Disarmed");
+			new_audioplaytrigger("ArmedState:Disarmed",true);
 			break;
 		case ARMEDSTATUS_ARMING:
-			new_audioplaytrigger("ArmedState:Arming");
+			new_audioplaytrigger("ArmedState:Arming",true);
 			break;
 		case ARMEDSTATUS_DISARMING:
-			new_audioplaytrigger("ArmedState:Disarming");
+			new_audioplaytrigger("ArmedState:Disarming",true);
 			break;
 		default:
-			new_audioplaytrigger("Sorry");
+			new_audioplaytrigger("Sorry",true);
 			break;
 		}
 	}
@@ -87,7 +88,7 @@ icarus_rover_v2::diagnostic AudioNodeProcess::update(double timestamp,double dt)
 	else if(microphone_count == 1)
 	{
 		if((left_microphone_available == true) and (left_microphone_initialized == true)
-			and (amplifier_available == true) and (amplifier_initialized == true))
+				and (amplifier_available == true) and (amplifier_initialized == true))
 		{
 			ready = true;
 		}
@@ -172,7 +173,7 @@ icarus_rover_v2::diagnostic AudioNodeProcess::update(double timestamp,double dt)
 	else if(ready == true)
 	{
 		diag.Diagnostic_Type = NOERROR;
-		diag.Level = INFO;
+		diag.Level = NOTICE;
 		diag.Diagnostic_Message = NOERROR;
 		diag.Description = "Node Running";
 	}
@@ -288,51 +289,35 @@ std::vector<icarus_rover_v2::diagnostic> AudioNodeProcess::check_program_variabl
 }
 bool AudioNodeProcess::set_audiostoragedirectory(std::string v)
 {
-	if(access(v.c_str(),0) == 0)
+	struct stat status;
+	if(stat(v.c_str(),&status) == 0)
 	{
-		struct stat status;
-		stat(v.c_str(),&status);
-		if(status.st_mode & S_IFDIR)
-		{
-			audiostorage_directory = v;
-			char tempstr[256];
-			sprintf(tempstr,"exec rm -r -f %s/input/*",v.c_str());
-			system(tempstr);
-			init_audioplayfiles();
-			return true;
-		}
-		else
-		{
-			printf("Parameter: %s is not a directory, it is a file.\n",v.c_str());
-			return false;
-		}
+		audiostorage_directory = v;
+		char tempstr[256];
+		sprintf(tempstr,"exec rm -r -f %s/input/*",v.c_str());
+		system(tempstr);
+		init_audioplayfiles();
+		return true;
 	}
 	else
 	{
+		printf("Parameter: %s is not a valid directory.\n",v.c_str());
 		return false;
 	}
+
 }
 bool AudioNodeProcess::set_audioarchivedirectory(std::string v)
 {
-	if(access(v.c_str(),0) == 0)
+	struct stat status;
+	if(stat(v.c_str(),&status) == 0)
 	{
-		struct stat status;
-		stat(v.c_str(),&status);
-		if(status.st_mode & S_IFDIR)
-		{
-			audioarchive_directory = v;
-			char tempstr[256];
-
-			return true;
-		}
-		else
-		{
-			printf("Parameter: %s is not a directory, it is a file.\n",v.c_str());
-			return false;
-		}
+		audioarchive_directory = v;
+		char tempstr[256];
+		return true;
 	}
 	else
 	{
+		printf("Parameter: %s is not a valid directory.\n",v.c_str());
 		return false;
 	}
 }
@@ -349,7 +334,7 @@ bool AudioNodeProcess::get_audiorecordtrigger(std::string& command,std::string& 
 			unsigned long long t = (unsigned long long)(1000.0*timestamp);
 			sprintf(tempstr,"arecord -q -d %d -D plughw:1 -c2 -r 48000 -f S32_LE -t wav %s/input/%llu.wav </dev/null &>/dev/null &",audiorecord_duration,audiostorage_directory.c_str(),t);
 			command = std::string(tempstr);
-
+			printf("[AudioNode]: Executing: %s\n",tempstr);
 			char tempstr2[256];
 			sprintf(tempstr2,"%s/input/%llu.wav",audiostorage_directory.c_str(),t);
 			filepath = std::string(tempstr2);
@@ -357,6 +342,7 @@ bool AudioNodeProcess::get_audiorecordtrigger(std::string& command,std::string& 
 			f.filepath = filepath;
 			f.time_created = timestamp;
 			audiorecord_files.push_back(f);
+
 			return true;
 		}
 		else
@@ -396,26 +382,26 @@ void AudioNodeProcess::init_audioplayfiles()
 {
 
 	{
-			AudioPlayFile file;
-			file.trigger = "Robot:Booting";
-			file.filepath = audiostorage_directory + "/output/" + "RobotBooting.mp3";
-			file.priority = 3;
-			audioplay_files.push_back(file);
-		}
+		AudioPlayFile file;
+		file.trigger = "Robot:Booting";
+		file.filepath = audiostorage_directory + "/output/" + "RobotBooting.mp3";
+		file.priority = 3;
+		audioplay_files.push_back(file);
+	}
 	{
-				AudioPlayFile file;
-				file.trigger = "Robot:PowerDown";
-				file.filepath = audiostorage_directory + "/output/" + "RobotPoweringDown.mp3";
-				file.priority = 3;
-				audioplay_files.push_back(file);
-			}
+		AudioPlayFile file;
+		file.trigger = "Robot:PowerDown";
+		file.filepath = audiostorage_directory + "/output/" + "RobotPoweringDown.mp3";
+		file.priority = 3;
+		audioplay_files.push_back(file);
+	}
 	{
-			AudioPlayFile file;
-			file.trigger = "ArmedState:Undefined";
-			file.filepath = audiostorage_directory + "/output/" + "RobotArmUndefined.mp3";
-			file.priority = 3;
-			audioplay_files.push_back(file);
-		}
+		AudioPlayFile file;
+		file.trigger = "ArmedState:Undefined";
+		file.filepath = audiostorage_directory + "/output/" + "RobotArmUndefined.mp3";
+		file.priority = 3;
+		audioplay_files.push_back(file);
+	}
 	{
 		AudioPlayFile file;
 		file.trigger = "ArmedState:Undefined";
@@ -499,9 +485,12 @@ bool AudioNodeProcess::add_audioplayfile(std::string filepath,std::string trigge
 	audioplay_files.push_back(file);
 	return true;
 }
-bool AudioNodeProcess::new_audioplaytrigger(std::string trigger)
+bool AudioNodeProcess::new_audioplaytrigger(std::string trigger,bool bypass)
 {
-	if(ready == false) { return false; }
+	if(bypass == false)
+	{
+		if(ready == false) { return false; }
+	}
 	bool interrupt = false;
 	for(std::size_t i =0; i < audioplay_files.size(); i++)
 	{
@@ -520,28 +509,29 @@ bool AudioNodeProcess::new_audioplaytrigger(std::string trigger)
 	{
 		if(audioplay_files.at(i).trigger == trigger)
 		{
-			int v = 0;
+			double v_set = 0.0;
 			switch(audioplay_files.at(i).priority)
 			{
 			case 0:
-				v = 0;
+				v_set = 0.0;
 				break;
 			case 1:
-				v = 10;
+				v_set = 10.0;
 				break;
 			case 2:
-				v = 20;
+				v_set = 20.0;
 				break;
 			case 3:
-				v = 30;
+				v_set = 30.0;
 				break;
 			default:
-				v = 0;
+				v_set = 0.0;
 				break;
 			}
 			char tempstr[512];
 
-			sprintf(tempstr,"mpg123 -g %d -q %s </dev/null &>/dev/null &",v,audioplay_files.at(i).filepath.c_str());
+			sprintf(tempstr,"mpg321 -g %d -q %s </dev/null &>/dev/null &",(int)(v_set*volume_perc/100.0),audioplay_files.at(i).filepath.c_str());
+			printf("[AudioNode]: Executing: %s\n",tempstr);
 			system(tempstr);
 			audioplay_files.at(i).playing = true;
 			audioplay_files.at(i).last_playtime = current_timestamp;

@@ -48,7 +48,8 @@ bool run_loop1_code()
 	}
 	else
 	{
-		bool v = process->set_pinvalue("ArmSwitch",TerminalHat.read_pin(process->get_pinnumber("ArmSwitch")));
+		int pin_value = TerminalHat.read_pin(process->get_pinnumber("ArmSwitch"));
+		bool v = process->set_pinvalue("ArmSwitch",pin_value);
 		if(v == false)
 		{
 			diagnostic.Diagnostic_Type = SOFTWARE;

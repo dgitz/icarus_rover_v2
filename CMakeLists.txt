@@ -69,7 +69,6 @@ add_message_files(
   usermessage.msg
   battery.msg
   iopins.msg
-  estop.msg
   signal.msg
   pose.msg
   controlgroup.msg
@@ -162,6 +161,7 @@ include_directories(
 ## either from message generation or dynamic reconfigure
 # add_dependencies(icarus_rover_v2 ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
+
 ## Declare a C++ executable
 # add_executable(icarus_rover_v2_node src/icarus_rover_v2_node.cpp)
 
@@ -222,28 +222,48 @@ include_directories(
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
 include_directories(include ${catkin_INCLUDE_DIRS} ${roscpp_INCLUDE_DIRS})
+
 add_library(logger util/logger.cpp)
+add_dependencies(logger icarus_rover_v2_generate_messages_cpp)
 add_library(udpmessage util/udpmessage.cpp)
 add_library(serialmessage util/serialmessage.cpp)
 add_library(spimessage util/spimessage.cpp)
 add_library(resourcemonitor util/resourcemonitor.cpp)
+add_dependencies(resourcemonitor icarus_rover_v2_generate_messages_cpp)
 add_library(command_node_process src/Control/command_node_process.cpp)
+add_dependencies(command_node_process icarus_rover_v2_generate_messages_cpp)
 #add_library(imu_node_process src/Pose/imu_node_process.cpp)
 add_library(visionhelper util/visionhelper.cpp)
 add_library(network_transceiver_node_process src/Communication/network_transceiver_node_process.cpp)
+add_dependencies(network_transceiver_node_process icarus_rover_v2_generate_messages_cpp)
 #add_library(pose_node_process src/Pose/pose_node_process.cpp)
 add_library(autodrive_node_process src/Control/autodrive_node_process.cpp)
+add_dependencies(autodrive_node_process icarus_rover_v2_generate_messages_cpp)
 add_library(boardcontroller_node_process src/Board/boardcontroller_node_process.cpp)
+add_dependencies(boardcontroller_node_process icarus_rover_v2_generate_messages_cpp)
 add_library(timemaster_node_process src/Timing/timemaster_node_process.cpp)
+add_dependencies(timemaster_node_process icarus_rover_v2_generate_messages_cpp)
 add_library(master_node_process src/Control/master_node_process.cpp)
+add_dependencies(master_node_process icarus_rover_v2_generate_messages_cpp)
 add_library(sample_node_process src_templates/sample_node_process.cpp)
+add_dependencies(sample_node_process icarus_rover_v2_generate_messages_cpp)
 add_library(topicremapper_node_process src/Communication/topicremapper_node_process.cpp)
+add_dependencies(topicremapper_node_process icarus_rover_v2_generate_messages_cpp)
 add_library(speaker_node_process src/Communication/speaker_node_process.cpp)
+add_dependencies(speaker_node_process icarus_rover_v2_generate_messages_cpp)
 add_library(diagnostic_node_process src/Diagnostics/diagnostic_node_process.cpp)
+add_dependencies(diagnostic_node_process icarus_rover_v2_generate_messages_cpp)
 add_library(safety_node_process src/Diagnostics/safety_node_process.cpp)
+add_dependencies(safety_node_process icarus_rover_v2_generate_messages_cpp)
 add_library(hatcontroller_node_process src/Board/hatcontroller_node_process.cpp)
+add_dependencies(hatcontroller_node_process icarus_rover_v2_generate_messages_cpp)
 add_library(lcddriver src/Diagnostics/Driver/LCDDriver.cpp)
 add_library(terminalhatdriver src/Board/Driver/TerminalHatDriver.cpp)
+add_library(audio_node_process src/User_Control/audio_node_process.cpp)
+add_dependencies(audio_node_process icarus_rover_v2_generate_messages_cpp)
+
+catkin_add_gtest(test_audio_node_process src/User_Control/unit_tests/test_audio_node_process.cpp)
+target_link_libraries(test_audio_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} audio_node_process)
 
 add_executable(master_node src/Control/master_node.cpp)
 target_link_libraries(master_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor serialmessage master_node_process)
@@ -308,5 +328,3 @@ add_executable(safety_node src/Diagnostics/safety_node.cpp)
 target_link_libraries(safety_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor terminalhatdriver safety_node_process)
 catkin_add_gtest(test_safety_node_process src/Diagnostics/unit_tests/test_safety_node_process.cpp)
 target_link_libraries(test_safety_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} safety_node_process logger)
-
-

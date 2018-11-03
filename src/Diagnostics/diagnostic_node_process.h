@@ -17,7 +17,6 @@
 #include "icarus_rover_v2/pin.h"
 #include "icarus_rover_v2/firmware.h"
 #include "icarus_rover_v2/resource.h"
-#include <icarus_rover_v2/estop.h>
 #include <std_msgs/UInt8.h>
 #include <serialmessage.h>
 #include "logger.h"

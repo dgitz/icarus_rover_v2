@@ -72,7 +72,8 @@ public:
 	unsigned long int get_numberaudiofiles_removed() { return number_files_removed; }
 	void enable_archive(bool v) { archive = v; }
 	bool add_audioplayfile(std::string filepath,std::string trigger,uint8_t priority); //Only used for unit testing
-	bool new_audioplaytrigger(std::string trigger); //Only used for unit testing
+	bool new_audioplaytrigger(std::string trigger,bool bypass);
+	void set_volume(double v) { volume_perc = v; }
 	
     
 private:
@@ -111,6 +112,7 @@ private:
     bool audio_playing;
     double audioplay_nextimeavailable;
     uint8_t last_armedstate;
+    double volume_perc;
 
 };
 #endif

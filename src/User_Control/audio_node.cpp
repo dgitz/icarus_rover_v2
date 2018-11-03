@@ -230,7 +230,7 @@ int main(int argc, char **argv)
 		ros::spinOnce();
 		loop_rate.sleep();
     }
-    process->new_audioplaytrigger("Robot:PowerDown");
+    process->new_audioplaytrigger("Robot:PowerDown",true);
     logger->log_notice("Node Finished Safely.");
     return 0;
 }
@@ -383,7 +383,17 @@ bool initializenode()
 	{
 		printf("Can't Set: %s. Exiting.\n",audiostage_dir.c_str());
 	}
-	process->new_audioplaytrigger("Robot:Booting");
+
+	std::string param_volume = node_name + "/volume_perc";
+	double volume;
+	if(n->getParam(param_volume,volume) == false)
+	{
+		logger->log_error("Missing parameter: volume_perc.  Exiting.");
+		return false;
+	}
+	process->set_volume(volume);
+
+	process->new_audioplaytrigger("Robot:Booting",true);
 	process->enable_archive(false);
 
 	std::string param_audiofile_length = node_name + "/audiofile_length";

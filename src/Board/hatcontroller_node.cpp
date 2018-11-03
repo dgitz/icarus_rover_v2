@@ -116,7 +116,7 @@ bool run_loop1_code()
 			TerminalHat.init();
 			{
 				bool any_error = false;
-				std::vector<icarus_rover_v2::pin> pins = process->get_terminalhatpins("");
+				std::vector<icarus_rover_v2::pin> pins = process->get_terminalhatpins("",true);
 				for(std::size_t i = 0; i < pins.size(); i++)
 				{
 					if(TerminalHat.configure_pin(pins.at(i).Number,pins.at(i).Function) == false)
@@ -146,7 +146,7 @@ bool run_loop1_code()
 		else
 		{
 			bool any_error = false;
-			std::vector<icarus_rover_v2::pin> pins = process->get_terminalhatpins("DigitalInput");
+			std::vector<icarus_rover_v2::pin> pins = process->get_terminalhatpins("DigitalInput",true);
 			for(std::size_t i = 0; i < pins.size(); i++)
 			{
 				if(TerminalHat.configure_pin(pins.at(i).Number,pins.at(i).Function) == false)
@@ -231,7 +231,7 @@ bool run_loop2_code()
 				std::vector<icarus_rover_v2::pin> pins = process->get_terminalhatpins("DigitalInput",true);
 				for(std::size_t i = 0; i < pins.size(); i++)
 				{
-					if(process->set_pinvalue(pins.at(i).Name,TerminalHat.read_pin(pins.at(i).Number)) == false)
+					if(process->set_terminalhatpinvalue(pins.at(i).Name,TerminalHat.read_pin(pins.at(i).Number)) == false)
 					{
 						any_error = true;
 						diag.Diagnostic_Type = SOFTWARE;
@@ -246,6 +246,8 @@ bool run_loop2_code()
 						kill_node = 1;
 					}
 				}
+			}
+			{
 				std::vector<icarus_rover_v2::pin> pins = process->get_terminalhatpins("DigitalOutput",false);
 
 				for(std::size_t i = 0; i < pins.size(); i++)
@@ -267,15 +269,18 @@ bool run_loop2_code()
 				}
 			}
 
+
 		}
-		std::vector<icarus_rover_v2::pin> pins = process->get_terminalhatpins("DigitalInput");
-		for(std::size_t i = 0; i < pins.size(); i++)
 		{
-			if(pins.at(i).Name == digitalinput_names.at(i))
+			std::vector<icarus_rover_v2::pin> pins = process->get_terminalhatpins("DigitalInput",true);
+			for(std::size_t i = 0; i < pins.size(); i++)
 			{
-				std_msgs::Bool v;
-				v.data = (bool)pins.at(i).Value;
-				digitalinput_pubs.at(i).publish(v);
+				if(pins.at(i).Name == digitalinput_names.at(i))
+				{
+					std_msgs::Bool v;
+					v.data = (bool)pins.at(i).Value;
+					digitalinput_pubs.at(i).publish(v);
+				}
 			}
 		}
 	}
@@ -772,6 +777,7 @@ bool new_devicemsg(std::string query,icarus_rover_v2::device device)
 	}
 	else
 	{
+
 		if(process->is_ready() == false)
 		{
 			logger->log_notice("Device not initialized yet.");
@@ -793,7 +799,7 @@ bool new_devicemsg(std::string query,icarus_rover_v2::device device)
 					}
 				}
 				{
-					std::vector<icarus_rover_v2::pin> pins = process->get_terminalhatpins("");
+					std::vector<icarus_rover_v2::pin> pins = process->get_terminalhatpins("",true);
 					for(std::size_t i = 0; i < pins.size(); i++)
 					{
 						if(pins.at(i).Function == "DigitalInput")

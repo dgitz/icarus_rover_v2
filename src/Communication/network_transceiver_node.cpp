@@ -214,14 +214,6 @@ icarus_rover_v2::diagnostic rescan_topics(icarus_rover_v2::diagnostic diag)
 	diag.Description = tempstr;
 	return diag;
 }
-void estop_Callback(const icarus_rover_v2::estop::ConstPtr& msg)
-{
-	if(msg->name != "DriverStation")
-	{
-		std::string send_string = udpmessagehandler->encode_EStopUDP(msg->name,msg->state);
-		process->push_sendqueue(ESTOP_ID,send_string);
-	}
-}
 void ArmedState_Callback(const std_msgs::UInt8::ConstPtr& msg)
 {
 	std::string send_string = udpmessagehandler->encode_Arm_StatusUDP(msg->data);
@@ -290,7 +282,6 @@ void process_udp_receive()
 			sprintf(tempstr,"0x%s",items.at(0).c_str());
 			int id = (int)strtol(tempstr,NULL,0);
 			uint8_t device,armcommand;
-			uint8_t estop_state;
 			int axis1,axis2,axis3,axis4,axis5,axis6,axis7,axis8,int_1,int_2,int_3;
 			uint8_t command,option1,option2,option3;
 			uint8_t button1,button2,button3,button4,button5,button6,button7,button8;
@@ -319,22 +310,6 @@ void process_udp_receive()
 					printf("Couldn't decode message.\n");
 				}
 				break;
-			case UDPMessageHandler::UDP_EStop_ID:
-				success = udpmessagehandler->decode_EStopUDP(items,&tempstr1,&estop_state);
-				if(success == 1)
-				{
-					icarus_rover_v2::estop estop;
-					estop.name = tempstr1;
-					estop.state = estop_state;
-					estop_pub.publish(estop);
-				}
-				else
-				{
-					printf("Couldn't decode message.\n");
-				}
-				break;
-
-
 			case UDPMessageHandler::UDP_Heartbeat_ID:
 				success = udpmessagehandler->decode_HeartbeatUDP(items,&tempstr1,&t,&t2);
 				if(success == 1)
@@ -889,15 +864,9 @@ bool initializenode()
 		std::string controlgroup_topic = "/" + Mode + "/controlgroup";
 		controlgroup_pub = n->advertise<icarus_rover_v2::controlgroup>(controlgroup_topic,1);
 
-		std::string estop_topic = "/EStopComm";
-		estop_pub = n->advertise<icarus_rover_v2::estop>(estop_topic,1);
-
 	}
 	std::string ready_to_arm_topic = node_name + "/ready_to_arm";
 	ready_to_arm_pub = n->advertise<std_msgs::Bool>(ready_to_arm_topic,1000);
-
-	estop_sub = n->subscribe<icarus_rover_v2::estop>("/EStop",5,estop_Callback);
-
 	udpmessagehandler = new UDPMessageHandler();
 
 	//Finish User Code: Initialization and Parameters

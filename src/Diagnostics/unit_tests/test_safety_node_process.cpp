@@ -53,11 +53,11 @@ SafetyNodeProcess* initializeprocess()
 	hat1.SensorCount = 0;
 	hat1.pins.clear();
 	icarus_rover_v2::pin newpin;
-	newpin.Number = 7;
+	newpin.Number = 16;
 	newpin.Function = "DigitalInput-Safety";
 	newpin.Name = "ArmSwitch";
 	newpin.DefaultValue = 0;
-	newpin.Value = 1;
+	newpin.Value = 0;
 	newpin.ParentDevice = hat1.DeviceName;
 	hat1.pins.push_back(newpin);
 
@@ -69,11 +69,12 @@ SafetyNodeProcess* initializeprocess()
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 
 
-	EXPECT_TRUE(process->get_ready() == true);
+	EXPECT_TRUE(process->get_ready() == false);
 	EXPECT_FALSE(process->is_hat_running(hat1.DeviceType,hat1.ID));
 	diagnostic = process->set_terminalhat_initialized();
-
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
+	EXPECT_TRUE(process->get_ready() == true);
+
 
 
 

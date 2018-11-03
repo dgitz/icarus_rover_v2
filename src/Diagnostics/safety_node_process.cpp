@@ -40,6 +40,10 @@ icarus_rover_v2::diagnostic SafetyNodeProcess::set_terminalhat_initialized()
 	}
 	else
 	{
+		if(initialized == true)
+		{
+			ready = true;
+		}
 		diag.Level = INFO;
 		diag.Diagnostic_Type = SOFTWARE;
 		diag.Diagnostic_Message = NOERROR;
@@ -68,6 +72,7 @@ int SafetyNodeProcess::get_pinnumber(std::string name)
 }
 bool SafetyNodeProcess::set_pinvalue(std::string name,int v)
 {
+	icarus_rover_v2::diagnostic diag = diagnostic;
 	for(std::size_t i = 0; i < hats.size(); i++)
 	{
 		if((hats.at(i).DeviceType == "TerminalHat"))
@@ -79,7 +84,19 @@ bool SafetyNodeProcess::set_pinvalue(std::string name,int v)
 					hats.at(i).pins.at(j).Value = v;
 					if(name == "ArmSwitch")
 					{
-						arm_switch = (bool)v;
+						if(v == 1)
+						{
+							arm_switch = true;
+						}
+						else
+						{
+
+							arm_switch = false;
+							diag.Diagnostic_Type = REMOTE_CONTROL;
+							diag.Level = WARN;
+							diag.Diagnostic_Message = ROVER_DISARMED;
+							diagnostic = diag;
+						}
 					}
 					return true;
 				}
@@ -138,13 +155,20 @@ icarus_rover_v2::diagnostic SafetyNodeProcess::update(double dt)
 {
 	icarus_rover_v2::diagnostic diag = diagnostic;
 	run_time += dt;
-	if((arm_switch == true))
+	if(ready == true)
 	{
-		ready_to_arm = true;
-	}
-	else
-	{
-		ready_to_arm = false;
+		diag.Level = INFO;
+		diag.Diagnostic_Type = SOFTWARE;
+		diag.Diagnostic_Message = NOERROR;
+		diag.Description = "Node Running";
+		if((arm_switch == true))
+		{
+			ready_to_arm = true;
+		}
+		else
+		{
+			ready_to_arm = false;
+		}
 	}
 	diagnostic = diag;
 
@@ -254,27 +278,27 @@ icarus_rover_v2::diagnostic SafetyNodeProcess::new_devicemsg(icarus_rover_v2::de
 				{
 					if(newdevice.DeviceType == "TerminalHat")
 					{
+						bool arm_switch_found = false;
 						for(std::size_t i = 0; i < newdevice.pins.size(); i++)
 						{
-
 							if((newdevice.pins.at(i).Function == "DigitalInput-Safety") and
 									(newdevice.pins.at(i).Name == "ArmSwitch"))
 							{
+								arm_switch_found = true;
 							}
-							else
-							{
-								diag.Level = ERROR;
-								diag.Diagnostic_Type = SOFTWARE;
-								diag.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
-								char tempstr[512];
-								sprintf(tempstr,"Hat Type: %s Pin Function: %s Not supported.",
-										newdevice.DeviceType.c_str(),newdevice.pins.at(i).Function.c_str());
-								diag.Description = std::string(tempstr);
-								return diag;
-							}
+
+						}
+						if(arm_switch_found == false)
+						{
+							diag.Level = ERROR;
+							diag.Diagnostic_Type = SOFTWARE;
+							diag.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
+							char tempstr[512];
+							sprintf(tempstr,"ArmSwitch Not Defined.");
+							diag.Description = std::string(tempstr);
+							return diag;
 						}
 					}
-
 					else
 					{
 						diag.Level = NOTICE;
@@ -287,20 +311,12 @@ icarus_rover_v2::diagnostic SafetyNodeProcess::new_devicemsg(icarus_rover_v2::de
 					}
 					hats.push_back(newdevice);
 					hats_running.push_back(false);
-					if(hats.size() == mydevice.HatCount)
-					{
-						ready = true;
-					}
 				}
 			}
 		}
 		else
 		{
 		}
-	}
-	if((hats.size() == mydevice.HatCount))
-	{
-		ready = true;
 	}
 	diag.Level = INFO;
 	diag.Diagnostic_Type = COMMUNICATIONS;

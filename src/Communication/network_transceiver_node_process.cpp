@@ -314,14 +314,6 @@ void NetworkTransceiverNodeProcess::init_messages()
 
 	{
 		Message newmessage;
-		newmessage.id = ESTOP_ID;
-		newmessage.name = "EStop";
-		newmessage.priority_level = PRIORITYLEVEL_HIGH;
-		newmessage.target_sendrate = 10.0;
-		messages.push_back(newmessage);
-	}
-	{
-		Message newmessage;
 		newmessage.id = POWER_ID;
 		newmessage.name = "Power";
 		newmessage.priority_level = PRIORITYLEVEL_MEDIUM;
