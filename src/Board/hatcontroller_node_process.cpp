@@ -109,7 +109,6 @@ icarus_rover_v2::diagnostic HatControllerNodeProcess::update(double dt)
 		diag.Diagnostic_Type = SOFTWARE;
 		diag.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
 		char tempstr[512];
-		sprintf(tempstr,"All info for Hats not received yet.");
 		diag.Description = std::string(tempstr);
 	}
 
@@ -195,8 +194,10 @@ icarus_rover_v2::diagnostic HatControllerNodeProcess::new_devicemsg(icarus_rover
 						{
 
 							if((newdevice.pins.at(i).Function == "DigitalInput") or
+									(newdevice.pins.at(i).Function == "DigitalInput-Safety") or
 									(newdevice.pins.at(i).Function == "DigitalOutput-NonActuator") or
 									(newdevice.pins.at(i).Function == "DigitalOutput")) {}
+
 							else
 							{
 								diag.Level = ERROR;
@@ -260,6 +261,7 @@ icarus_rover_v2::diagnostic HatControllerNodeProcess::new_devicemsg(icarus_rover
 						diag.Description = std::string(tempstr);
 						return diag;
 					}
+
 					hats.push_back(newdevice);
 					hats_running.push_back(false);
 					if(hats.size() == mydevice.HatCount)
@@ -738,7 +740,26 @@ std::vector<uint16_t> HatControllerNodeProcess::get_gpiohataddresses()
 	}
 	return addresses;
 }
-std::vector<icarus_rover_v2::pin> HatControllerNodeProcess::get_terminalhatpins(std::string Function)
+bool HatControllerNodeProcess::set_terminalhatpinvalue(std::string name,int v)
+{
+	bool found = false;
+	for(std::size_t i = 0; i < hats.size(); i++)
+	{
+		if((hats.at(i).DeviceType == "TerminalHat"))
+		{
+			for(std::size_t j = 0; j < hats.at(i).pins.size(); j++)
+			{
+				if(hats.at(i).pins.at(j).Name == name)
+				{
+					hats.at(i).pins.at(j).Value = v;
+					found = true;
+				}
+			}
+		}
+	}
+	return found;
+}
+std::vector<icarus_rover_v2::pin> HatControllerNodeProcess::get_terminalhatpins(std::string Function,bool match_exact)
 {
 	std::vector<icarus_rover_v2::pin> pins;
 	pins.clear();
@@ -749,7 +770,8 @@ std::vector<icarus_rover_v2::pin> HatControllerNodeProcess::get_terminalhatpins(
 			for(std::size_t j = 0; j < hats.at(i).pins.size(); j++)
 			{
 				icarus_rover_v2::pin pin;
-				if((hats.at(i).pins.at(j).Function == Function) or (Function == ""))
+				if(((match_exact == true) and (hats.at(i).pins.at(j).Function == Function)) or
+						((match_exact == false) and (hats.at(i).pins.at(j).Function.find(Function) != std::string::npos)))
 				{
 					pin = hats.at(i).pins.at(j);
 					if((Function == "DigitalOutput") and (armed_state != ARMEDSTATUS_ARMED))

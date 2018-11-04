@@ -43,6 +43,7 @@ AudioNodeProcess* initializeprocess(bool stereo)
     AudioNodeProcess *process;
     process = new AudioNodeProcess;
 	diagnostic = process->init(diagnostic,std::string(Host_Name));
+	process->set_volume(50.0);
     EXPECT_TRUE(diagnostic.Level <= NOTICE);
     EXPECT_TRUE(process->get_initialized() == false);
     process->set_mydevice(device);
@@ -109,7 +110,8 @@ TEST(Template,Process_Initialization)
 TEST(Template,AudioStorage_Play)
 {
     AudioNodeProcess* process = initializeprocess(false);
-    process->new_audioplaytrigger("Robot:Booting");
+
+    process->new_audioplaytrigger("Robot:Booting",true);
     process = readyprocess(process);
     double time_to_run = 60.0;
     double dt = 0.001;
@@ -123,16 +125,16 @@ TEST(Template,AudioStorage_Play)
     std::string trigger_event1 = "Trigger1";
     EXPECT_FALSE(process->add_audioplayfile(storage_directory+"output/AFileThatShouldNeverExist.mp3",trigger_event1,1));
     EXPECT_TRUE(process->add_audioplayfile(storage_directory+"output/ALongFile.mp3",trigger_event1,1));
-    EXPECT_FALSE(process->new_audioplaytrigger("A Trigger that will never exist"));
+    EXPECT_FALSE(process->new_audioplaytrigger("A Trigger that will never exist",false));
     printf("Playing a long file\n");
-    EXPECT_TRUE(process->new_audioplaytrigger(trigger_event1));
+    EXPECT_TRUE(process->new_audioplaytrigger(trigger_event1,false));
 
     while(current_time <= time_to_run)
     {
         icarus_rover_v2::diagnostic diag = process->update(current_time,dt);
-        if((current_time > 3.0) and (fired_once == false))
+        if((current_time > 5.5) and (fired_once == false))
 		{
-			EXPECT_TRUE(process->new_audioplaytrigger("ArmedState:Armed"));
+			EXPECT_TRUE(process->new_audioplaytrigger("ArmedState:Armed",false));
 			fired_once = true;
 		}
         EXPECT_TRUE(diag.Level <= NOTICE);
@@ -203,7 +205,7 @@ TEST(Template,AudioStorage_Play)
         usleep((int)(dt*1000000.0));
     }
     EXPECT_TRUE(process->get_runtime() >= time_to_run);
-    process->new_audioplaytrigger("Robot:PowerDown");
+    process->new_audioplaytrigger("Robot:PowerDown",false);
 
 }
 TEST(Template,AudioStorage_Delete)

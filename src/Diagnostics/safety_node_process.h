@@ -14,7 +14,6 @@
 #include "icarus_rover_v2/device.h"
 #include "icarus_rover_v2/command.h"
 #include "icarus_rover_v2/pin.h"
-#include "icarus_rover_v2/estop.h"
 #include "icarus_rover_v2/firmware.h"
 #include <std_msgs/Bool.h>
 #include <std_msgs/UInt8.h>
@@ -39,16 +38,24 @@ public:
 	icarus_rover_v2::diagnostic new_devicemsg(icarus_rover_v2::device device);
 	void set_mydevice(icarus_rover_v2::device device) { mydevice = device; initialized = true; }
 	bool get_initialized() { return initialized; }
-    bool get_ready() { return ready; }
+	bool get_ready() { return ready; }
 	std::vector<icarus_rover_v2::diagnostic> new_commandmsg(icarus_rover_v2::command cmd);
 
 
-    icarus_rover_v2::estop get_estop() { return estop; }
-    bool get_ready_to_arm() { return ready_to_arm; }
-    icarus_rover_v2::diagnostic new_estopmsg(std_msgs::Bool v);
-    icarus_rover_v2::diagnostic new_estopmsg(icarus_rover_v2::estop v);
-    icarus_rover_v2::diagnostic new_armswitchmsg(std_msgs::Bool v);
-    
+	bool get_ready_to_arm() { return ready_to_arm; }
+	icarus_rover_v2::diagnostic new_armswitchmsg(std_msgs::Bool v);
+	bool hat_present(icarus_rover_v2::device device);
+
+	//Generic Hat Functions
+	icarus_rover_v2::diagnostic set_hat_running(std::string devicetype,uint16_t id);
+	bool is_hat_running(std::string devicetype,uint16_t id);
+
+	//Terminal Hat Functions
+	icarus_rover_v2::diagnostic set_terminalhat_initialized();
+	std::vector<icarus_rover_v2::pin> get_terminalhatpins(std::string Function);
+	int get_pinnumber(std::string name);
+	bool set_pinvalue(std::string name,int v);
+
 protected:
 private:
 	std::vector<icarus_rover_v2::diagnostic> check_program_variables();
@@ -58,10 +65,10 @@ private:
 	icarus_rover_v2::device mydevice;
 	std::string myhostname;
 	bool initialized;
-    bool ready;
-    icarus_rover_v2::estop last_estop;
-    icarus_rover_v2::estop estop;
-    bool ready_to_arm;
-    bool arm_switch;
+	bool ready;
+	bool ready_to_arm;
+	bool arm_switch;
+	std::vector<icarus_rover_v2::device> hats;
+	std::vector<bool> hats_running;
 };
 #endif

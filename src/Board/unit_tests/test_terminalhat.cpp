@@ -13,7 +13,7 @@ static void show_usage(std::string name)
               << "\t-h,--help\t\tShow this help message.\n"
               << "\t-v,--verbose\t\t SetVerbose.\n"
               << "\t-m,--mode Pin Mode\t\tValid Options: DigitalInput,DigitalOutput. Default=DigitalInput.\n"
-              << "\t-d,--deay Delay (uS)\t\t Delay in micro Seconds.  Default is 100000.\n"
+              << "\t-d,--delay Delay (uS)\t\t Delay in micro Seconds.  Default is 100000.\n"
               << "\t-p,--pin Pin Number\t\tRaspberry Pi 40-pin connector Pin Number.\n"
               << "\t-o,--output Pin Output\\Output for Pin, only used for Pin Mode=DigitalOutput.  Valid Options: 0,1,toggle. Default=0.\n"
               

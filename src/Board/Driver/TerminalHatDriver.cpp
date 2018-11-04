@@ -26,7 +26,7 @@ bool TerminalHatDriver::configure_pin(int pinnumber,std::string mode)
     }
     exportgpio << map_connectorpin_to_pinfile(pinnumber); //write GPIO number to export
     exportgpio.close(); //close export file
-    if(mode == "DigitalInput")
+    if((mode == "DigitalInput") or (mode == "DigitalInput-Safety"))
     {
         //std::string setdir_str ="/sys/class/gpio/gpio" + std::to_string(map_connectorpin_to_pinfile(pinnumber)) + "/direction";
         std::ostringstream setdir_str;
@@ -75,7 +75,6 @@ bool TerminalHatDriver::configure_pin(int pinnumber,std::string mode)
     	printf("Unsupported Pin Function: %s\n",mode.c_str());
         return false;
     }
-    printf("7\n");
     return false;
 }
 bool TerminalHatDriver::set_pin(int pinnumber, int v)

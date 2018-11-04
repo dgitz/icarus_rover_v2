@@ -30,7 +30,6 @@
 #include "network_transceiver_node_process.h"
 #include "sensor_msgs/Joy.h"
 #include "std_msgs/UInt8.h"
-#include <icarus_rover_v2/estop.h>
 #include <icarus_rover_v2/controlgroup.h>
 #include "udpmessage.h"
 #include <sys/types.h>
@@ -72,7 +71,6 @@ void diagnostic_Callback(const icarus_rover_v2::diagnostic::ConstPtr& msg);
 void resource_Callback(const icarus_rover_v2::resource::ConstPtr& msg);
 void firmware_Callback(const icarus_rover_v2::firmware::ConstPtr& msg);
 void ArmedState_Callback(const std_msgs::UInt8::ConstPtr& msg);
-void estop_Callback(const icarus_rover_v2::estop::ConstPtr& msg);
 void device_callback(std::vector<icarus_rover_v2::device> devicelist);
 //End User Code: Function Prototypes
 

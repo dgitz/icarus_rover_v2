@@ -394,9 +394,15 @@ TEST(DeviceInitialization,DeviceInitialization_TerminalHat)
 	EXPECT_EQ(process->get_ready_to_arm(),true);
 	EXPECT_TRUE(process->get_armedstate() == ARMEDSTATUS_DISARMED_CANNOTARM);
 
-	std::vector<icarus_rover_v2::pin> input_pins = process->get_terminalhatpins("DigitalInput");
-	std::vector<icarus_rover_v2::pin> output_nonactuator_pins = process->get_terminalhatpins("DigitalOutput-NonActuator");
-	std::vector<icarus_rover_v2::pin> output_actuator_pins = process->get_terminalhatpins("DigitalOutput");
+	std::vector<icarus_rover_v2::pin> input_pins = process->get_terminalhatpins("DigitalInput",true);
+	std::vector<icarus_rover_v2::pin> output_nonactuator_pins = process->get_terminalhatpins("DigitalOutput-NonActuator",true);
+	std::vector<icarus_rover_v2::pin> output_actuator_pins = process->get_terminalhatpins("DigitalOutput",true);
+	std::vector<icarus_rover_v2::pin> p = process->get_terminalhatpins("DigitalOutput",false);
+	EXPECT_TRUE(input_pins.size() > 0);
+	EXPECT_TRUE(output_nonactuator_pins.size() > 0);
+	EXPECT_TRUE(output_actuator_pins.size() > 0);
+	EXPECT_TRUE(p.size() > 0);
+	EXPECT_TRUE(p.size() == (output_nonactuator_pins.size() + output_actuator_pins.size()));
 	EXPECT_TRUE(input_pins.size() == gpio_input_pins.size());
 	EXPECT_TRUE(output_nonactuator_pins.size() == gpio_output_nonactuator_pins.size());
 	EXPECT_TRUE(output_actuator_pins.size() == gpio_output_actuator_pins.size());
@@ -413,7 +419,7 @@ TEST(DeviceInitialization,DeviceInitialization_TerminalHat)
 	EXPECT_TRUE(process->get_armedstate() == ARMEDSTATUS_ARMED);
 
 	output_actuator_pins.clear();
-	output_actuator_pins = process->get_terminalhatpins("DigitalOutput");
+	output_actuator_pins = process->get_terminalhatpins("DigitalOutput",true);
 
 	for(std::size_t i = 0; i < output_actuator_pins.size(); i++)
 	{
@@ -426,7 +432,7 @@ TEST(DeviceInitialization,DeviceInitialization_TerminalHat)
 	EXPECT_TRUE(process->get_armedstate() == ARMEDSTATUS_DISARMED);
 
 	output_actuator_pins.clear();
-	output_actuator_pins = process->get_terminalhatpins("DigitalOutput");
+	output_actuator_pins = process->get_terminalhatpins("DigitalOutput",true);
 
 	for(std::size_t i = 0; i < output_actuator_pins.size(); i++)
 	{
@@ -454,7 +460,7 @@ TEST(DeviceInitialization,DeviceInitialization_TerminalHat)
 
 
 	input_pins.clear();
-	input_pins = process->get_terminalhatpins("DigitalInput");
+	input_pins = process->get_terminalhatpins("DigitalInput",true);
 	EXPECT_TRUE(input_pins.size() == gpio_input_pins.size());
 	for(std::size_t i = 0; i < input_pins.size(); i++)
 	{

@@ -116,7 +116,7 @@ bool run_loop1_code()
 			TerminalHat.init();
 			{
 				bool any_error = false;
-				std::vector<icarus_rover_v2::pin> pins = process->get_terminalhatpins("");
+				std::vector<icarus_rover_v2::pin> pins = process->get_terminalhatpins("",true);
 				for(std::size_t i = 0; i < pins.size(); i++)
 				{
 					if(TerminalHat.configure_pin(pins.at(i).Number,pins.at(i).Function) == false)
@@ -142,6 +142,34 @@ bool run_loop1_code()
 				}
 			}
 
+		}
+		else
+		{
+			bool any_error = false;
+			std::vector<icarus_rover_v2::pin> pins = process->get_terminalhatpins("DigitalInput",true);
+			for(std::size_t i = 0; i < pins.size(); i++)
+			{
+				if(TerminalHat.configure_pin(pins.at(i).Number,pins.at(i).Function) == false)
+				{
+					any_error = true;
+					diagnostic.Diagnostic_Type = SOFTWARE;
+					diagnostic.Level = ERROR;
+					diagnostic.Diagnostic_Message = INITIALIZING_ERROR;
+					char tempstr[512];
+					sprintf(tempstr,"[TerminalHat] Could not configure Pin: %d with Function: %s",pins.at(i).Number,pins.at(i).Function.c_str());
+					diagnostic.Description = std::string(tempstr);
+					process->set_diagnostic(diagnostic);
+					printf("%s\n",tempstr);
+					logger->log_error(std::string(tempstr));
+					kill_node = 1;
+				}
+			}
+			if(any_error == false)
+			{
+				diagnostic = process->set_hat_running("TerminalHat",0);
+				logger->log_diagnostic(diagnostic);
+				if(diagnostic.Level > INFO) { diagnostic_pub.publish(diagnostic); }
+			}
 		}
 	}
 	if(diagnostic.Level > INFO)
@@ -196,14 +224,63 @@ bool run_loop2_code()
 
 	}
 	{
-		std::vector<icarus_rover_v2::pin> pins = process->get_terminalhatpins("DigitalInput");
-		for(std::size_t i = 0; i < pins.size(); i++)
+		if(process->is_hat_running("TerminalHat",0) == true)
 		{
-			if(pins.at(i).Name == digitalinput_names.at(i))
+			bool any_error = false;
 			{
-				std_msgs::Bool v;
-				v.data = (bool)pins.at(i).Value;
-				digitalinput_pubs.at(i).publish(v);
+				std::vector<icarus_rover_v2::pin> pins = process->get_terminalhatpins("DigitalInput",true);
+				for(std::size_t i = 0; i < pins.size(); i++)
+				{
+					if(process->set_terminalhatpinvalue(pins.at(i).Name,TerminalHat.read_pin(pins.at(i).Number)) == false)
+					{
+						any_error = true;
+						diag.Diagnostic_Type = SOFTWARE;
+						diag.Level = ERROR;
+						diag.Diagnostic_Message = INITIALIZING_ERROR;
+						char tempstr[512];
+						sprintf(tempstr,"[TerminalHat] Could not read Pin: %s:%d with Function: %s",pins.at(i).Name.c_str(),pins.at(i).Number,pins.at(i).Function.c_str());
+						diag.Description = std::string(tempstr);
+						process->set_diagnostic(diag);
+						printf("%s\n",tempstr);
+						logger->log_error(std::string(tempstr));
+						kill_node = 1;
+					}
+				}
+			}
+			{
+				std::vector<icarus_rover_v2::pin> pins = process->get_terminalhatpins("DigitalOutput",false);
+
+				for(std::size_t i = 0; i < pins.size(); i++)
+				{
+					if(TerminalHat.set_pin(pins.at(i).Number,pins.at(i).Value) == false)
+					{
+						any_error = true;
+						diag.Diagnostic_Type = SOFTWARE;
+						diag.Level = ERROR;
+						diag.Diagnostic_Message = INITIALIZING_ERROR;
+						char tempstr[512];
+						sprintf(tempstr,"[TerminalHat] Could not set Pin: %s:%d with Function: %s",pins.at(i).Name.c_str(),pins.at(i).Number,pins.at(i).Function.c_str());
+						diag.Description = std::string(tempstr);
+						process->set_diagnostic(diag);
+						printf("%s\n",tempstr);
+						logger->log_error(std::string(tempstr));
+						kill_node = 1;
+					}
+				}
+			}
+
+
+		}
+		{
+			std::vector<icarus_rover_v2::pin> pins = process->get_terminalhatpins("DigitalInput",true);
+			for(std::size_t i = 0; i < pins.size(); i++)
+			{
+				if(pins.at(i).Name == digitalinput_names.at(i))
+				{
+					std_msgs::Bool v;
+					v.data = (bool)pins.at(i).Value;
+					digitalinput_pubs.at(i).publish(v);
+				}
 			}
 		}
 	}
@@ -700,6 +777,7 @@ bool new_devicemsg(std::string query,icarus_rover_v2::device device)
 	}
 	else
 	{
+
 		if(process->is_ready() == false)
 		{
 			logger->log_notice("Device not initialized yet.");
@@ -721,7 +799,7 @@ bool new_devicemsg(std::string query,icarus_rover_v2::device device)
 					}
 				}
 				{
-					std::vector<icarus_rover_v2::pin> pins = process->get_terminalhatpins("");
+					std::vector<icarus_rover_v2::pin> pins = process->get_terminalhatpins("",true);
 					for(std::size_t i = 0; i < pins.size(); i++)
 					{
 						if(pins.at(i).Function == "DigitalInput")
