@@ -731,6 +731,7 @@ bool new_devicemsg(std::string query,icarus_rover_v2::device device)
 					}
 					else
 					{
+						lcd.set_backlightgreen(50);
 						logger->log_notice("Initialized LCD.");
 					}
 				}

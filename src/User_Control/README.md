@@ -20,4 +20,8 @@ Purpose:
 1. Reads audio input periodically and stores wav files for analysis
 2. Plays audio files based on input triggers
 
+Unit Tests:
+1.  Process Unit Tests:
+  >>catkin_make run_tests_icarus_rover_v2_gtest_test_audio_node_process
+
 Test Results stored at:  ~/catkin_ws/build/test_results/icarus_rover_v2/gtest-test_audio_node_process.xml

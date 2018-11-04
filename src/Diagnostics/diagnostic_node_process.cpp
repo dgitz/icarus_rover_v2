@@ -242,8 +242,9 @@ std::string DiagnosticNodeProcess::get_lcdcommandstr()
 			{
 				char tempstr2[20];
 				sprintf(tempstr2,"CMD:RUN DIAG TEST:%d",current_command.Option1);
-				tempstr = std::string(tempstr2); break;
+				tempstr = std::string(tempstr2);
 			}
+			break;
 		case ROVERCOMMAND_SEARCHFOR_RECHARGE_FACILITY:
 			tempstr = "CMD:SEARCH RECHARGE"; break;
 		case ROVERCOMMAND_STOPSEARCHFOR_RECHARGE_FACILITY:

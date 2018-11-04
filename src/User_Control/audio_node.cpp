@@ -230,7 +230,6 @@ int main(int argc, char **argv)
 		ros::spinOnce();
 		loop_rate.sleep();
     }
-    process->new_audioplaytrigger("Robot:PowerDown",true);
     logger->log_notice("Node Finished Safely.");
     return 0;
 }
