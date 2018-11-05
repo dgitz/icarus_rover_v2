@@ -22,6 +22,7 @@ find_package(catkin REQUIRED COMPONENTS
 find_package(Boost REQUIRED COMPONENTS system thread)
 find_package(TinyXML REQUIRED)
 find_package(OpenCV)
+find_package(Mongoose REQUIRED)
 #rosbuild_add_boost_directories()
 #rosbuild_link_boost(icarus_rover_v2 thread signals system)
 
@@ -148,12 +149,14 @@ include_directories(
   ${Boost_INCLUDE_DIRS}
   ${TinyXML_INCLUDE_DIRS}
   ${OpenCV_INCLUDE_DIRS}
+  ${mongoose_INCLUDE_DIRS}
 )
 
 
 ## Declare a C++ library
-# add_library(icarus_rover_v2
-#   src/${PROJECT_NAME}/icarus_rover_v2.cpp
+#include(${CMAKE_CURRENT_SOURCE_DIR}/src/Server/mongoose-cpp/CMakeLists.txt)
+#add_library(mongoose
+#   src/Server/mongoose-cpp/mongoose.c
 # )
 
 ## Add cmake target dependencies of the library
@@ -261,6 +264,9 @@ add_library(lcddriver src/Diagnostics/Driver/LCDDriver.cpp)
 add_library(terminalhatdriver src/Board/Driver/TerminalHatDriver.cpp)
 add_library(audio_node_process src/User_Control/audio_node_process.cpp)
 add_dependencies(audio_node_process icarus_rover_v2_generate_messages_cpp)
+add_library(webserver_node_process src/Server/webserver_node_process.cpp)
+add_library(webconfigcontroller src/Server/WebConfigController.cpp)
+add_dependencies(webserver_node_process icarus_rover_v2_generate_messages_cpp)
 
 catkin_add_gtest(test_audio_node_process src/User_Control/unit_tests/test_audio_node_process.cpp)
 target_link_libraries(test_audio_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} audio_node_process)
@@ -328,3 +334,8 @@ add_executable(safety_node src/Diagnostics/safety_node.cpp)
 target_link_libraries(safety_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor terminalhatdriver safety_node_process)
 catkin_add_gtest(test_safety_node_process src/Diagnostics/unit_tests/test_safety_node_process.cpp)
 target_link_libraries(test_safety_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} safety_node_process logger)
+
+add_executable(webserver_node src/Server/webserver_node.cpp)
+target_link_libraries(webserver_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} ${mongoose_LIBRARIES} logger resourcemonitor mongoose webconfigcontroller webserver_node_process)
+#catkin_add_gtest(test_webserver_node_process src/Server/unit_tests/test_webserver_node_process.cpp)
+#target_link_libraries(test_webserver_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} webserver_node_process logger)
