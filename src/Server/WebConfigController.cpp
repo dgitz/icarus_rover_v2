@@ -9,10 +9,12 @@
 
 void WebConfigController::hello(Request &request, StreamResponse &response)
 {
-	response << "Hello " << htmlEntities(request.get("name", "... what's your name ?")) << endl;
+	printf("got: %s\n",request.getUrl().c_str());
+	response << "{\"msg\":[{\"id\":1}]}" << endl;
 }
 
 void WebConfigController::setup()
 {
-	addRoute("GET", "/hello", WebConfigController, hello);
+	addRoute("GET", "/request/", WebConfigController, hello);
+	addRoute("GET", "/request/device", WebConfigController, hello);
 }

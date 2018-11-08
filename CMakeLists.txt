@@ -58,7 +58,7 @@ find_package(Mongoose REQUIRED)
 ## Generate messages in the 'msg' folder
 add_message_files(
   FILES
-  resource.msg
+    resource.msg
   diagnostic.msg
   device.msg
   pin.msg
@@ -229,6 +229,7 @@ include_directories(include ${catkin_INCLUDE_DIRS} ${roscpp_INCLUDE_DIRS})
 add_library(logger util/logger.cpp)
 add_dependencies(logger icarus_rover_v2_generate_messages_cpp)
 add_library(udpmessage util/udpmessage.cpp)
+add_library(jsonmessage util/jsonmessage.cpp)
 add_library(serialmessage util/serialmessage.cpp)
 add_library(spimessage util/spimessage.cpp)
 add_library(resourcemonitor util/resourcemonitor.cpp)
@@ -336,6 +337,6 @@ catkin_add_gtest(test_safety_node_process src/Diagnostics/unit_tests/test_safety
 target_link_libraries(test_safety_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} safety_node_process logger)
 
 add_executable(webserver_node src/Server/webserver_node.cpp)
-target_link_libraries(webserver_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} ${mongoose_LIBRARIES} logger resourcemonitor mongoose webconfigcontroller webserver_node_process)
-#catkin_add_gtest(test_webserver_node_process src/Server/unit_tests/test_webserver_node_process.cpp)
-#target_link_libraries(test_webserver_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} webserver_node_process logger)
+target_link_libraries(webserver_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} ${mongoose_LIBRARIES} logger resourcemonitor jsonmessage mongoose webconfigcontroller webserver_node_process)
+catkin_add_gtest(test_webserver_node_process src/Server/unit_tests/test_webserver_node_process.cpp)
+target_link_libraries(test_webserver_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} webserver_node_process jsonmessage logger)
