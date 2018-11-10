@@ -37,7 +37,7 @@ icarus_rover_v2::diagnostic AudioNodeProcess::init(icarus_rover_v2::diagnostic i
 	diagnostic = indiag;
 	mydevice.DeviceName = hostname;
 	char tempstr[256];
-	sprintf(tempstr,"killall mpg123 </dev/null &>/dev/null &");
+	sprintf(tempstr,"killall mpg321 </dev/null &>/dev/null &");
 	system(tempstr);
 	return diagnostic;
 }
@@ -498,7 +498,7 @@ bool AudioNodeProcess::new_audioplaytrigger(std::string trigger,bool bypass)
 		{
 			audioplay_files.at(i).playing = false;
 			char tempstr[256];
-			sprintf(tempstr,"pidof mpg123");
+			sprintf(tempstr,"pidof mpg321");
 			int pid = std::atoi(exec(tempstr).c_str());
 			char tempstr2[256];
 			sprintf(tempstr2,"kill %d </dev/null &>/dev/null &",pid);
@@ -516,13 +516,13 @@ bool AudioNodeProcess::new_audioplaytrigger(std::string trigger,bool bypass)
 				v_set = 0.0;
 				break;
 			case 1:
-				v_set = 10.0;
+				v_set = 100.0;
 				break;
 			case 2:
-				v_set = 20.0;
+				v_set = 200.0;
 				break;
 			case 3:
-				v_set = 30.0;
+				v_set = 500.0;
 				break;
 			default:
 				v_set = 0.0;

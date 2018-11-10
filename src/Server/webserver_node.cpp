@@ -9,6 +9,7 @@
  */
 bool run_loop1_code()
 {
+	wc.update(1/loop1_rate);
 	icarus_rover_v2::diagnostic diagnostic = process->update(1.0/(double)loop1_rate);
 	if(diagnostic.Level > INFO)
 	{
@@ -117,6 +118,66 @@ void Command_Callback(const icarus_rover_v2::command::ConstPtr& msg)
 		}
 	}
 }
+bool WebController::queryResponse(uint8_t msg,Mongoose::CHttpConnWrapper& httpConn,const char *postBody, size_t postBodyLength,bool& keepOpen)
+{
+	std::string response = "{\"ID\":43795,\"data\":\"a\"}";
+	m_currentConn->HttpSendResponse(Mongoose::HttpStatus_SUCCESS_OK, response.c_str(), false, NULL);
+	return true;
+}
+bool refreshConn(Mongoose::CHttpConnWrapper& httpConn)
+{
+	return false;
+}
+WebController::WebController(): m_mongoose(this)
+{
+
+}
+bool WebController::initialize(std::string doc_path,int port)
+{
+	m_mongoose.m_wwwRootFolder = doc_path.c_str();
+	bool status = m_mongoose.Initialize(std::to_string(port));
+	if(status == true)
+	{
+		printf("[WebServer]: Mongoose Initialized.\n");
+	}
+	else
+	{
+		printf("[WebServer]: Mongoose Failed.\n");
+	}
+	return status;
+}
+bool WebController::update(double dt)
+{
+	m_mongoose.unregisterExpiredSessions();
+	m_mongoose.CallServiceEvents(dt);
+	return true;
+}
+bool WebController::refreshConn(Mongoose::CHttpConnWrapper& httpConn)
+{
+	m_currentConn_Mutex.lock();
+	if(m_currentConn != NULL)
+	{
+		delete m_currentConn;
+		m_currentConn = NULL;
+	}
+	m_currentConn = new Mongoose::CHttpConnWrapper(httpConn);
+	m_currentConn_Mutex.unlock();
+	return true;
+}
+void WebController::HttpServicePostCommandCallback(Mongoose::CHttpConnWrapper& httpConn, const std::string& URI, const std::string& URIParameters,
+		const char *postBody, size_t postBodyLength, bool& keepOpen )
+{
+	refreshConn(httpConn);
+	processing_command = true;
+	if( postBody  &&  (postBodyLength > 0) )
+	{
+		printf("Post Data and length: %p (size %d)",postBody, postBodyLength);
+	}
+	uint8_t command;
+	std::string response = "";
+	queryResponse(command,httpConn,postBody,postBodyLength,keepOpen);
+
+}
 //End User Code: Functions
 bool run_10Hz_code()
 {
@@ -136,7 +197,6 @@ bool run_10Hz_code()
 
 int main(int argc, char **argv)
 {
-
 	node_name = "webserver_node";
 	ros::init(argc, argv, node_name);
 	n.reset(new ros::NodeHandle);
@@ -336,6 +396,7 @@ bool initializenode()
 	//End Template Code: Initialization and Parameters
 
 	//Start User Code: Initialization and Parameters
+	processing_command = false;
 	process = new WebServerNodeProcess;
 
 	diagnostic = process->init(diagnostic,std::string(hostname));
@@ -345,14 +406,6 @@ bool initializenode()
 		printf("[%s]: %s\n",node_name.c_str(),diagnostic.Description.c_str());
 		return false;
 	}
-	int port;
-	std::string param_port = node_name + "/ServerPort";
-	if(n->getParam(param_port,port) == false)
-	{
-		logger->log_error("Missing parameter: ServerPort.  Exiting.");
-		return false;
-	}
-
 	std::string doc_path;
 	std::string param_docpath = node_name + "/www";
 	if(n->getParam(param_docpath,doc_path) == false)
@@ -360,10 +413,21 @@ bool initializenode()
 		logger->log_error("Missing parameter: www.  Exiting.");
 		return false;
 	}
-	server = new Server(port,doc_path.c_str());
-	server->registerController(&myController);
+	int port;
+	std::string param_port = node_name + "/ServerPort";
+	if(n->getParam(param_port,port) == false)
+	{
+		logger->log_error("Missing parameter: ServerPort.  Exiting.");
+		return false;
+	}
+	if(wc.initialize(doc_path,port) == false)
+	{
+		std::string tempstr = "Mongoose Server Did not Initialize. Exiting.";
+		printf("%s\n",tempstr.c_str());
+		logger->log_error(tempstr);
+		return false;
+	}
 
-	server->start();
 	//Finish User Code: Initialization and Parameters
 
 	//Start Template Code: Final Initialization.

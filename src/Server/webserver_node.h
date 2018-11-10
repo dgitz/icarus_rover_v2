@@ -24,17 +24,33 @@
 //End Template Code: Includes
 
 //Start User Code: Defines
+
 //End User Code: Defines
 
 //Start User Code: Includes
-#include "webserver_node_process.h"
-#include "WebConfigController.h"
-#include <mongoose/Server.h>
+#include <boost/signals2/mutex.hpp>
 
+#include "MongooseHelper.h"
+#include "webserver_node_process.h"
 //End User Code: Includes
 
 //Start User Code: Data Structures
+class WebController: public Mongoose::IMongooseCallback
+{
+public:
+	WebController();
+	bool initialize(std::string doc_path,int port);
+	void HttpServicePostCommandCallback(Mongoose::CHttpConnWrapper& httpConn, const std::string& URI, const std::string& URIParameters,
+			const char *postBody, size_t postBodyLength, bool& keepOpen );
+	bool update(double dt);
+	bool refreshConn(Mongoose::CHttpConnWrapper& httpConn);
 
+private:
+	bool queryResponse(uint8_t msg,Mongoose::CHttpConnWrapper& httpConn,const char *postBody, size_t postBodyLength,bool& keepOpen);
+	boost::signals2::mutex             m_currentConn_Mutex;    ///< avoid race condition for mconnection resource.
+	Mongoose::CHttpConnWrapper         *m_currentConn;         ///< current connection being serviced
+	Mongoose::MongooseHelper m_mongoose;
+};
 
 
 //End User Code: Data Structures
@@ -54,6 +70,10 @@ void signalinterrupt_handler(int sig);
 //End Template Code: Function Prototypes
 
 //Start User Code: Function Prototypes
+
+bool refreshConn(Mongoose::CHttpConnWrapper& httpConn);
+
+
 //End User Code: Function Prototypes
 
 //Start Template Code: Define Global variables
@@ -92,7 +112,7 @@ double ros_rate;
 
 //Start User Code: Define Global Variables
 WebServerNodeProcess *process;
-WebConfigController myController;
-Server *server;
+WebController wc;
+bool processing_command;
 //End User Code: Define Global Variables
 #endif
