@@ -9,8 +9,23 @@
  */
 bool run_loop1_code()
 {
-	wc.update(1/loop1_rate);
+
+	counter++;
 	icarus_rover_v2::diagnostic diagnostic = process->update(1.0/(double)loop1_rate);
+	{
+	WebController::QueuedMessage msg;
+	msg.priority = 3;
+	diagnostic.Level = counter;
+	msg.message = jsonhandler->encode_DiagnosticJSON(diagnostic);
+	wc.new_pushmessagequeue(msg);
+	}
+	{
+		WebController::QueuedMessage msg;
+		msg.priority = 1;
+		msg.message = jsonhandler->encode_Arm_StatusJSON(counter);
+		wc.new_pushmessagequeue(msg);
+	}
+
 	if(diagnostic.Level > INFO)
 	{
 		diagnostic_pub.publish(diagnostic);
@@ -22,6 +37,7 @@ bool run_loop1_code()
  */
 bool run_loop2_code()
 {
+	wc.update(1/loop1_rate);
 	return true;
 }
 /*! \brief User Loop3 Code
@@ -91,6 +107,11 @@ void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 					bool status = new_devicemsg(srv.request.query,srv.response.data.at(0));
 				}
 			}
+			srv.request.query = "ALL";
+			if(srv_device.call(srv) == true)
+			{
+				bool status = new_devicelistmsg(srv.request.query,srv.response.data);
+			}
 		}
 	}
 	diagnostic_pub.publish(process->get_diagnostic());
@@ -120,13 +141,10 @@ void Command_Callback(const icarus_rover_v2::command::ConstPtr& msg)
 }
 bool WebController::queryResponse(uint8_t msg,Mongoose::CHttpConnWrapper& httpConn,const char *postBody, size_t postBodyLength,bool& keepOpen)
 {
-	std::string response = "{\"ID\":43795,\"data\":\"a\"}";
+	std::string response = jsonhandler->encode_DeviceJSON(device_list);
+	printf("sending: %s\n",response.c_str());
 	m_currentConn->HttpSendResponse(Mongoose::HttpStatus_SUCCESS_OK, response.c_str(), false, NULL);
 	return true;
-}
-bool refreshConn(Mongoose::CHttpConnWrapper& httpConn)
-{
-	return false;
 }
 WebController::WebController(): m_mongoose(this)
 {
@@ -146,10 +164,22 @@ bool WebController::initialize(std::string doc_path,int port)
 	}
 	return status;
 }
+bool WebController::new_pushmessagequeue(QueuedMessage msg)
+{
+	message_queue.push_back(msg);
+	return true;
+}
 bool WebController::update(double dt)
 {
 	m_mongoose.unregisterExpiredSessions();
 	m_mongoose.CallServiceEvents(dt);
+	if(message_queue.size() > 0)
+	{
+		QueuedMessage msg = message_queue.front();
+		message_queue.erase(message_queue.begin());
+		m_mongoose.BroadcastWebSocketPacket(msg.message.c_str());
+	}
+
 	return true;
 }
 bool WebController::refreshConn(Mongoose::CHttpConnWrapper& httpConn)
@@ -197,6 +227,7 @@ bool run_10Hz_code()
 
 int main(int argc, char **argv)
 {
+	counter = 0;
 	node_name = "webserver_node";
 	ros::init(argc, argv, node_name);
 	n.reset(new ros::NodeHandle);
@@ -458,10 +489,19 @@ bool new_devicemsg(std::string query,icarus_rover_v2::device device)
 			process->set_mydevice(device);
 		}
 	}
-
 	if((process->get_initialized() == true))
 	{
 		icarus_rover_v2::diagnostic diag = process->new_devicemsg(device);
+	}
+	return true;
+}
+bool new_devicelistmsg(std::string query,std::vector<icarus_rover_v2::device> list)
+{
+
+	if(query == "ALL")
+	{
+		process->update_systemdevicelist(list);
+		wc.set_devicelist(list);
 	}
 	return true;
 }

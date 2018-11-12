@@ -5,7 +5,7 @@ WebServerNodeProcess::WebServerNodeProcess()
 {
 	run_time = 0.0;
 	initialized = false;
-    ready = false;
+	ready = false;
 }
 /*! \brief Deconstructor
  */
@@ -17,7 +17,7 @@ WebServerNodeProcess::~WebServerNodeProcess()
  */
 icarus_rover_v2::diagnostic WebServerNodeProcess::init(icarus_rover_v2::diagnostic indiag,std::string hostname)
 {
-   	myhostname = hostname;
+	myhostname = hostname;
 	diagnostic = indiag;
 	mydevice.DeviceName = hostname;
 	return diagnostic;
@@ -40,13 +40,13 @@ icarus_rover_v2::diagnostic WebServerNodeProcess::update(double dt)
  */
 icarus_rover_v2::diagnostic WebServerNodeProcess::new_devicemsg(icarus_rover_v2::device device)
 {
-    icarus_rover_v2::diagnostic diag = diagnostic;
+	icarus_rover_v2::diagnostic diag = diagnostic;
 	bool new_device = true;
 	if(device.DeviceName == myhostname)
 	{
 
-    }
-    return diag;
+	}
+	return diag;
 }
 /*! \brief Process Command Message
  */
@@ -99,4 +99,38 @@ std::vector<icarus_rover_v2::diagnostic> WebServerNodeProcess::check_program_var
 		diaglist.push_back(diag);
 	}
 	return diaglist;
+}
+icarus_rover_v2::diagnostic WebServerNodeProcess::update_systemdevicelist(std::vector<icarus_rover_v2::device> list)
+{
+	icarus_rover_v2::diagnostic diag=diagnostic;
+	for(std::size_t i = 0; i < list.size(); i++)
+	{
+		bool found = false;
+		for(std::size_t j = 0; j < system_devicelist.size(); j++)
+		{
+			if(system_devicelist.at(j).DeviceName == list.at(i).DeviceName)
+			{
+				system_devicelist.at(j) = list.at(i);
+				found = true;
+			}
+
+		}
+		if(found == false)
+		{
+			printf("Adding: %s\n",list.at(i).DeviceName.c_str());
+			system_devicelist.push_back(list.at(i));
+		}
+
+	}
+	diag.Diagnostic_Type = SOFTWARE;
+			diag.Level = INFO;
+			diag.Diagnostic_Message = INITIALIZING;
+			char tempstr[512];
+			sprintf(tempstr,"Received info for System Device.");
+			diag.Description = std::string(tempstr);
+	return diag;
+}
+void WebServerNodeProcess::new_armedstatus(uint8_t v)
+{
+	armed_status = v;
 }

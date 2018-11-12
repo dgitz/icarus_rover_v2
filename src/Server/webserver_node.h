@@ -28,28 +28,43 @@
 //End User Code: Defines
 
 //Start User Code: Includes
+#include "ros/datatypes.h"
 #include <boost/signals2/mutex.hpp>
 
 #include "MongooseHelper.h"
 #include "webserver_node_process.h"
+#include <jsonmessage.h>
 //End User Code: Includes
 
 //Start User Code: Data Structures
 class WebController: public Mongoose::IMongooseCallback
 {
 public:
+	struct QueuedMessage
+	{
+		uint8_t priority;
+		std::string message;
+	};
 	WebController();
 	bool initialize(std::string doc_path,int port);
 	void HttpServicePostCommandCallback(Mongoose::CHttpConnWrapper& httpConn, const std::string& URI, const std::string& URIParameters,
 			const char *postBody, size_t postBodyLength, bool& keepOpen );
 	bool update(double dt);
 	bool refreshConn(Mongoose::CHttpConnWrapper& httpConn);
+	bool set_devicelist(std::vector<icarus_rover_v2::device> list)
+	{
+		device_list = list;
+		return true;
+	}
+	bool new_pushmessagequeue(QueuedMessage msg);
 
 private:
 	bool queryResponse(uint8_t msg,Mongoose::CHttpConnWrapper& httpConn,const char *postBody, size_t postBodyLength,bool& keepOpen);
 	boost::signals2::mutex             m_currentConn_Mutex;    ///< avoid race condition for mconnection resource.
 	Mongoose::CHttpConnWrapper         *m_currentConn;         ///< current connection being serviced
 	Mongoose::MongooseHelper m_mongoose;
+	std::vector<icarus_rover_v2::device> device_list;
+	std::vector<QueuedMessage> message_queue;
 };
 
 
@@ -70,10 +85,7 @@ void signalinterrupt_handler(int sig);
 //End Template Code: Function Prototypes
 
 //Start User Code: Function Prototypes
-
-bool refreshConn(Mongoose::CHttpConnWrapper& httpConn);
-
-
+bool new_devicelistmsg(std::string query,std::vector<icarus_rover_v2::device> list);
 //End User Code: Function Prototypes
 
 //Start Template Code: Define Global variables
@@ -113,6 +125,8 @@ double ros_rate;
 //Start User Code: Define Global Variables
 WebServerNodeProcess *process;
 WebController wc;
+JSONMessageHandler *jsonhandler;
 bool processing_command;
+int counter = 0;
 //End User Code: Define Global Variables
 #endif

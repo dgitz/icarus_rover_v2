@@ -23,7 +23,12 @@ class WebServerNodeProcess
 {
 public:
 
-
+	struct Master
+	{
+		std::string name;
+		bool registered;
+		bool info_received;
+	};
 	WebServerNodeProcess();
 	~WebServerNodeProcess();
 	icarus_rover_v2::diagnostic init(icarus_rover_v2::diagnostic indiag,std::string hostname);
@@ -37,9 +42,14 @@ public:
 	bool get_initialized() { return initialized; }
     bool get_ready() { return ready; }
 	std::vector<icarus_rover_v2::diagnostic> new_commandmsg(icarus_rover_v2::command cmd);
+	icarus_rover_v2::diagnostic update_systemdevicelist(std::vector<icarus_rover_v2::device> list);
+	std::vector<icarus_rover_v2::device> get_systemdevicelist() { return system_devicelist; }
+	void new_armedstatus(uint8_t v);
 	
+
     
 private:
+	std::vector<icarus_rover_v2::device> system_devicelist;
     std::vector<icarus_rover_v2::diagnostic> check_program_variables();
     
 	double run_time;
@@ -48,5 +58,6 @@ private:
 	std::string myhostname;
 	bool initialized;
     bool ready;
+    uint8_t armed_status;
 };
 #endif

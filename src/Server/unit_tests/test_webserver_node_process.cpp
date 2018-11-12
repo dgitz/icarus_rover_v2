@@ -12,9 +12,9 @@ std::string Node_Name = "/unittest_webserver_node_process";
 std::string Host_Name = "unittest";
 std::string ros_DeviceName = Host_Name;
 
-bool check_json(std::string str)
+bool check_json(std::string str,bool print = true)
 {
-	printf("\r\nValidating:\r\n%s\n",str.c_str());
+	if(print) {	printf("\r\nValidating:\r\n%s\n",str.c_str()); }
 
 	char tempstr[str.size()+10];
 	sprintf(tempstr,"echo '%s' | jsonlint >> /dev/null",str.c_str());
@@ -70,7 +70,40 @@ TEST(Template,Process_Initialization)
 {
 	WebServerNodeProcess* process = initializeprocess();
 }
+TEST(DeviceList,Retreive_DeviceListInfo)
+{
+	icarus_rover_v2::diagnostic diagnostic;
+	WebServerNodeProcess* process = initializeprocess();
+	process = readyprocess(process);
+	std::vector<std::string> master_list;
+	master_list.push_back("ControlModule1");
+	master_list.push_back("ControlModule2");
+	master_list.push_back("ControlModule3");
+	master_list.push_back("ControlModule4");
+	master_list.push_back("ControlModule5");
+	master_list.push_back("ControlModule6");
+	int count = 0;
+	for(std::size_t i = 0; i < master_list.size(); i++)
+	{
+		std::vector<icarus_rover_v2::device> dev_list;
+		for(int j = 0; j < 2*(i+1);j++)
+		{
+			count++;
+			icarus_rover_v2::device dev;
+			char tempstr[512];
+			sprintf(tempstr,"%s_%d",master_list.at(i).c_str(),j);
+			dev.DeviceName = std::string(tempstr);
+			dev_list.push_back(dev);
+		}
 
+		diagnostic = process->update_systemdevicelist(dev_list);
+		EXPECT_TRUE(diagnostic.Level <= NOTICE);
+		EXPECT_TRUE(process->get_systemdevicelist().size() == count);
+	}
+	JSONMessageHandler *handler;
+	std::string result = handler->encode_DeviceJSON(process->get_systemdevicelist());
+	EXPECT_TRUE(check_json(result,false));
+}
 TEST(Template,Process_Command)
 {
 	WebServerNodeProcess* process = initializeprocess();
@@ -151,28 +184,89 @@ TEST(Communicat,JSON_Encoding)
 		EXPECT_TRUE(check_json(result));
 	}
 
+
+	std::vector<icarus_rover_v2::device> devicelist;
+
 	{
-		std::vector<icarus_rover_v2::device> devicelist;
-		icarus_rover_v2::device mydev = process->get_mydevice();
-		devicelist.push_back(mydev);
+		icarus_rover_v2::device dev;
+		dev.DeviceParent = "None";
+		dev.PartNumber = "100003";
+		dev.DeviceName = "ControlModule1";
+		dev.DeviceType = "ControlModule";
+		dev.PrimaryIP = "10.0.0.174";
+		dev.Architecture = "armv7l";
+		dev.ID = 128;
+		dev.Capabilities.push_back("ROS");
+		dev.BoardCount = 0;
+		dev.HatCount = 2;
+		dev.SensorCount = 0;
+		dev.ShieldCount = 0;
+		devicelist.push_back(dev);
 		std::string result = handler->encode_DeviceJSON(devicelist);
 		EXPECT_TRUE(check_json(result));
-
-		mydev.Capabilities.push_back("Cap");
-		devicelist.push_back(mydev);
-		result = handler->encode_DeviceJSON(devicelist);
-		EXPECT_TRUE(check_json(result));
-
-		for(int i = 0; i < 10; i++)
-		{
-			mydev.Capabilities.push_back("Cap");
-			devicelist.push_back(mydev);
-			result = handler->encode_DeviceJSON(devicelist);
-			EXPECT_TRUE(check_json(result));
-		}
-
-
 	}
+
+
+	{
+		icarus_rover_v2::device dev;
+		dev.DeviceParent = "ControlModule1";
+		dev.PartNumber = "UNKNOWN";
+		dev.DeviceName = "TerminalHat1";
+		dev.DeviceType = "TerminalHat";
+		dev.ID = 0;
+		dev.Capabilities.push_back("GPIO");
+		dev.BoardCount = 0;
+		dev.HatCount = 0;
+		dev.SensorCount = 0;
+		dev.ShieldCount = 0;
+		devicelist.push_back(dev);
+		std::string result = handler->encode_DeviceJSON(devicelist);
+		EXPECT_TRUE(check_json(result));
+	}
+
+
+	{
+		icarus_rover_v2::device dev;
+		dev.DeviceParent = "ControlModule1";
+		dev.PartNumber = "625004";
+		dev.DeviceName = "PWMHat1";
+		dev.DeviceType = "ServoHat";
+		dev.ID = 64;
+		dev.Capabilities.push_back("GPIO");
+		dev.BoardCount = 0;
+		dev.HatCount = 0;
+		dev.SensorCount = 0;
+		dev.ShieldCount = 0;
+		devicelist.push_back(dev);
+		std::string result = handler->encode_DeviceJSON(devicelist);
+		EXPECT_TRUE(check_json(result));
+	}
+
+
+	{
+		icarus_rover_v2::device dev;
+		dev.DeviceParent = "ControlModule1";
+		dev.PartNumber = "160002";
+		dev.DeviceName = "LeftMicrophone";
+		dev.DeviceType = "Microphone";
+		dev.ID = 0;
+		dev.Capabilities.push_back("mono");
+		dev.BoardCount = 0;
+		dev.HatCount = 0;
+		dev.SensorCount = 0;
+		dev.ShieldCount = 0;
+		devicelist.push_back(dev);
+		std::string result = handler->encode_DeviceJSON(devicelist);
+		EXPECT_TRUE(check_json(result));
+	}
+	{
+		uint8_t armed_status = ARMEDSTATUS_ARMED;
+		std::string result = handler->encode_Arm_StatusJSON(armed_status);
+		EXPECT_TRUE(check_json(result));
+	}
+
+
+
 }
 int main(int argc, char **argv){
 	testing::InitGoogleTest(&argc, argv);
