@@ -5,6 +5,7 @@ project(icarus_rover_v2)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
+SET(CMAKE_CXX_FLAGS "-std=c++0x")
 find_package(catkin REQUIRED COMPONENTS
   cmake_modules
   roscpp
@@ -57,7 +58,7 @@ find_package(OpenCV)
 ## Generate messages in the 'msg' folder
 add_message_files(
   FILES
-  resource.msg
+    resource.msg
   diagnostic.msg
   device.msg
   pin.msg
@@ -152,9 +153,8 @@ include_directories(
 
 
 ## Declare a C++ library
-# add_library(icarus_rover_v2
-#   src/${PROJECT_NAME}/icarus_rover_v2.cpp
-# )
+
+
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
@@ -258,7 +258,6 @@ add_dependencies(safety_node_process icarus_rover_v2_generate_messages_cpp)
 add_library(hatcontroller_node_process src/Board/hatcontroller_node_process.cpp)
 add_dependencies(hatcontroller_node_process icarus_rover_v2_generate_messages_cpp)
 add_library(lcddriver src/Diagnostics/Driver/LCDDriver.cpp)
-add_library(terminalhatdriver src/Board/Driver/TerminalHatDriver.cpp)
 add_library(audio_node_process src/User_Control/audio_node_process.cpp)
 add_dependencies(audio_node_process icarus_rover_v2_generate_messages_cpp)
 
@@ -323,8 +322,3 @@ target_link_libraries(test_boardcontroller_node_process ${catkin_LIBRARIES} ${Bo
 #target_link_libraries(hatcontroller_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor hatcontroller_node_process)
 catkin_add_gtest(test_hatcontroller_node_process src/Board/unit_tests/test_hatcontroller_node_process.cpp)
 target_link_libraries(test_hatcontroller_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} hatcontroller_node_process logger)
-
-add_executable(safety_node src/Diagnostics/safety_node.cpp)
-target_link_libraries(safety_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor terminalhatdriver safety_node_process)
-catkin_add_gtest(test_safety_node_process src/Diagnostics/unit_tests/test_safety_node_process.cpp)
-target_link_libraries(test_safety_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} safety_node_process logger)
