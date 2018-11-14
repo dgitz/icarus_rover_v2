@@ -19,12 +19,15 @@
 #include <serialmessage.h>
 #include "logger.h"
 #include <math.h>
+
 class SampleNodeProcess
 {
 public:
 
 
-	SampleNodeProcess();
+	SampleNodeProcess(std::string _base_node_name,std::string _node_name);
+	std::string get_basenodename() { return base_node_name; }
+	std::string get_nodename() { return node_name; }
 	~SampleNodeProcess();
 	icarus_rover_v2::diagnostic init(icarus_rover_v2::diagnostic indiag,std::string hostname);
 	icarus_rover_v2::diagnostic update(double dt);
@@ -40,13 +43,16 @@ public:
 	
     
 private:
+	std::string base_node_name;
+	std::string node_name;
     std::vector<icarus_rover_v2::diagnostic> check_program_variables();
-    
+    std::vector<icarus_rover_v2::diagnostic> run_unittest();
 	double run_time;
 	icarus_rover_v2::diagnostic diagnostic;
 	icarus_rover_v2::device mydevice;
 	std::string myhostname;
 	bool initialized;
     bool ready;
+    bool unittest_running;
 };
 #endif

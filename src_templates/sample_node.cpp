@@ -1,7 +1,7 @@
 #include "sample_node.h"
 //Start User Code: Firmware Definition
 #define SAMPLENODE_MAJOR_RELEASE 2
-#define SAMPLENODE_MINOR_RELEASE 0
+#define SAMPLENODE_MINOR_RELEASE 1
 #define SAMPLENODE_BUILD_NUMBER 0
 //End User Code: Firmware Definition
 //Start User Code: Functions
@@ -9,6 +9,12 @@
  */
 bool run_loop1_code()
 {
+	icarus_rover_v2::diagnostic diag = process->update(1.0/loop1_rate);
+	if(diag.Level >= NOTICE)
+	{
+		diagnostic_pub.publish(diag);
+		logger->log_diagnostic(diag);
+	}
 	return true;
 }
 /*! \brief User Loop2 Code
@@ -28,9 +34,9 @@ bool run_loop3_code()
 void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
 	icarus_rover_v2::firmware fw;
-	fw.Generic_Node_Name = "sample_node";
-	fw.Node_Name = node_name;
-	fw.Description = "Latest Rev: 29-December-2017";
+	fw.Generic_Node_Name = process->get_basenodename();
+	fw.Node_Name = process->get_nodename();
+	fw.Description = "Latest Rev: 14-November-2018";
 	fw.Major_Release = SAMPLENODE_MAJOR_RELEASE;
 	fw.Minor_Release = SAMPLENODE_MINOR_RELEASE;
 	fw.Build_Number = SAMPLENODE_BUILD_NUMBER;
@@ -97,6 +103,10 @@ void Command_Callback(const icarus_rover_v2::command::ConstPtr& msg)
 	command.CommandText = msg->CommandText;
 	command.Description = msg->Description;
 	std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(command);
+	if((diaglist.size() == 1) and (diaglist.at(0).Diagnostic_Message == DIAGNOSTIC_PASSED) and (process->get_runtime() > 10.0))
+	{
+		printf("t=%4.2f (sec) [%s]: %s\n",ros::Time::now().toSec(),node_name.c_str(),diaglist.at(0).Description.c_str());
+	}
 	for(std::size_t i = 0; i < diaglist.size(); i++)
 	{
 		if(diaglist.at(i).Level >= NOTICE)
@@ -106,7 +116,7 @@ void Command_Callback(const icarus_rover_v2::command::ConstPtr& msg)
         }
         if((diaglist.at(i).Level > NOTICE) and (process->get_runtime() > 10.0))
         {
-            printf("[%s]: %s\n",node_name.c_str(),diaglist.at(i).Description.c_str());
+            printf("t=%4.2f (sec) [%s]: %s\n",ros::Time::now().toSec(),node_name.c_str(),diaglist.at(i).Description.c_str());
         }
 	}
 }
@@ -124,8 +134,8 @@ bool run_10Hz_code()
 }
 int main(int argc, char **argv)
 {
-	node_name = "sample_node";
-    ros::init(argc, argv, node_name);
+	base_node_name = "sample_node";
+    ros::init(argc, argv, base_node_name);
     n.reset(new ros::NodeHandle);
     node_name = ros::this_node::getName();
     ros::NodeHandle n;
@@ -323,7 +333,7 @@ bool initializenode()
     //End Template Code: Initialization and Parameters
 
     //Start User Code: Initialization and Parameters
-    process = new SampleNodeProcess;
+    process = new SampleNodeProcess(base_node_name,node_name);
     
 	diagnostic = process->init(diagnostic,std::string(hostname));
 	if(diagnostic.Level > NOTICE)

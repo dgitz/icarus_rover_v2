@@ -320,5 +320,6 @@ target_link_libraries(test_boardcontroller_node_process ${catkin_LIBRARIES} ${Bo
 
 #add_executable(hatcontroller_node src/Board/hatcontroller_node.cpp)
 #target_link_libraries(hatcontroller_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor hatcontroller_node_process)
+file(MAKE_DIRECTORY /home/robot/catkin_ws/build/test_results/icarus_rover_v2/sample_node)
 catkin_add_gtest(test_hatcontroller_node_process src/Board/unit_tests/test_hatcontroller_node_process.cpp)
 target_link_libraries(test_hatcontroller_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} hatcontroller_node_process logger)
