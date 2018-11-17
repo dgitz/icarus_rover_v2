@@ -73,6 +73,7 @@ void print_deviceinfo();
 
 //Start Template Code: Define Global variables
 boost::shared_ptr<ros::NodeHandle> n;
+std::string base_node_name;
 std::string node_name;
 std::string verbosity_level;
 ros::Subscriber pps01_sub;

@@ -1,4 +1,4 @@
-#include "network_transceiver_node.h"
+#include "networktransceiver_node.h"
 //Start User Code: Firmware Definition
 #define NETWORKTRANSCEIVERNODE_MAJOR_RELEASE 3
 #define NETWORKTRANSCEIVERNODE_MINOR_RELEASE 1
@@ -95,11 +95,11 @@ bool run_loop2_code()
  */
 bool run_loop3_code()
 {
-	icarus_rover_v2::diagnostic diagnostic = process->update(measure_time_diff(ros::Time::now(),last_loop3_timer),ros::Time::now().toSec());
-	if(diagnostic.Level > NOTICE)
+	icarus_rover_v2::diagnostic diag = process->update(measure_time_diff(ros::Time::now(),last_loop3_timer),ros::Time::now().toSec());
+	if(diag.Level > WARN)
 	{
-		diagnostic_pub.publish(diagnostic);
-		logger->log_info(process->get_messageinfo(false));
+		diagnostic_pub.publish(diag);
+		logger->log_diagnostic(diag);
 	}
 	return true;
 }
@@ -477,18 +477,19 @@ void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg)
 	icarus_rover_v2::diagnostic diagnostic = rescan_topics(process->get_diagnostic());
 	if(diagnostic.Level > NOTICE)
 	{
+		logger->log_diagnostic(diagnostic);
 		diagnostic_pub.publish(diagnostic);
 	}
 	icarus_rover_v2::firmware fw;
-	fw.Generic_Node_Name = "network_transceiver_Node";
-	fw.Node_Name = node_name;
+	fw.Generic_Node_Name = process->get_basenodename();
+	fw.Node_Name = process->get_nodename();
 	fw.Description = "Latest Rev: 10-September-2018";
 	fw.Major_Release = NETWORKTRANSCEIVERNODE_MAJOR_RELEASE;
 	fw.Minor_Release = NETWORKTRANSCEIVERNODE_MINOR_RELEASE;
 	fw.Build_Number = NETWORKTRANSCEIVERNODE_BUILD_NUMBER;
 	firmware_pub.publish(fw);
-	printf("t=%4.2f (sec) [%s]: %s\n",ros::Time::now().toSec(),node_name.c_str(),process->get_diagnostic().Description.c_str());
 	logger->log_info(process->get_messageinfo(false));
+	logger->log_diagnostic(process->get_diagnostic());
 
 }
 /*! \brief 1.0 PULSE PER SECOND User Code
@@ -502,7 +503,7 @@ void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 		if(resource_diagnostic.Diagnostic_Message == DEVICE_NOT_AVAILABLE)
 		{
 			diagnostic_pub.publish(resource_diagnostic);
-			logger->log_warn("Couldn't read resources used.");
+			logger->log_diagnostic(resource_diagnostic);
 		}
 		else if(resource_diagnostic.Level >= WARN)
 		{
@@ -539,9 +540,16 @@ void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 			}
 		}
 	}
-	diagnostic_pub.publish(process->get_diagnostic());
+	icarus_rover_v2::diagnostic diag = process->get_diagnostic();
+	if(diag.Level >= NOTICE)
+	{
+		diagnostic_pub.publish(diag);
 
-
+	}
+	if(diag.Level >= INFO)
+	{
+		logger->log_diagnostic(diag);
+	}
 }
 void Command_Callback(const icarus_rover_v2::command::ConstPtr& msg)
 {
@@ -553,16 +561,20 @@ void Command_Callback(const icarus_rover_v2::command::ConstPtr& msg)
 	command.CommandText = msg->CommandText;
 	command.Description = msg->Description;
 	std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(command);
-	for(std::size_t i = 0; i < diaglist.size(); i++)
+	if((command.Option1 >= LEVEL3) and (diaglist.size() == 1) and (diaglist.at(0).Diagnostic_Message == DIAGNOSTIC_PASSED))
 	{
-		if(diaglist.at(i).Level >= NOTICE)
+		logger->log_diagnostic(diaglist.at(0));
+	
+	}
+	else
+	{
+		for(std::size_t i = 0; i < diaglist.size(); i++)
 		{
-			logger->log_diagnostic(diaglist.at(i));
-			diagnostic_pub.publish(diaglist.at(i));
-		}
-		if((diaglist.at(i).Level > NOTICE) and (process->get_runtime() > 10.0))
-		{
-			printf("[%s]: %s\n",node_name.c_str(),diaglist.at(i).Description.c_str());
+			if(diaglist.at(i).Level > NOTICE)
+			{
+				logger->log_diagnostic(diaglist.at(i));
+				diagnostic_pub.publish(diaglist.at(i));
+			}
 		}
 	}
 
@@ -583,8 +595,8 @@ bool run_10Hz_code()
 }
 int main(int argc, char **argv)
 {
-	node_name = "network_transceiver_node";
-	ros::init(argc, argv, node_name);
+	base_node_name = "networktransceiver_node";
+	ros::init(argc, argv, base_node_name);
 	n.reset(new ros::NodeHandle);
 	node_name = ros::this_node::getName();
 	ros::NodeHandle n;
@@ -593,7 +605,6 @@ int main(int argc, char **argv)
 	{
 		char tempstr[256];
 		sprintf(tempstr,"Unable to Initialize. Exiting.");
-		printf("[%s]: %s\n",node_name.c_str(),tempstr);
 		logger->log_fatal(tempstr);
 		kill_node = 1;
 	}
@@ -655,6 +666,7 @@ int main(int argc, char **argv)
 	close(recvdevice_sock);
 	close(senddevice_sock);
 	logger->log_notice("Node Finished Safely.");
+	system("sudo killall networktransceiver_node >/dev/null");
 	return 0;
 }
 bool initializenode()
@@ -700,7 +712,6 @@ bool initializenode()
 		if(disable_node == true)
 		{
 			logger->log_notice("Node Disabled in Launch File.  Exiting.");
-			printf("[%s]: Node Disabled in Launch File. Exiting.\n",node_name.c_str());
 			return false;
 		}
 	}
@@ -721,7 +732,6 @@ bool initializenode()
 		sprintf(tempstr,"Using Parameter: startup_delay = %4.2f sec.",startup_delay);
 		logger->log_notice(std::string(tempstr));
 	}
-	printf("[%s] Using Parameter: startup_delay = %4.2f sec.\n",node_name.c_str(),startup_delay);
 	ros::Duration(startup_delay).sleep();
 
 	std::string device_topic = "/" + std::string(hostname) + "_master_node/srv_device";
@@ -779,19 +789,18 @@ bool initializenode()
 		if(loop3_rate > max_rate) { max_rate = loop3_rate; }
 	}
 	ros_rate = max_rate * 50.0;
-	if(ros_rate < 100.0) { ros_rate = 100.0; }
+	if(ros_rate > 100.0) { ros_rate = 100.0; }
 	char tempstr[512];
-	sprintf(tempstr,"Running Node at Rate: %f",ros_rate);
+	sprintf(tempstr,"Running Node at Rate: %4.2fHz",ros_rate);
 	logger->log_notice(std::string(tempstr));
 	//End Template Code: Initialization and Parameters
 
 	//Start User Code: Initialization and Parameters
-	process = new NetworkTransceiverNodeProcess;
+	process = new NetworkTransceiverNodeProcess(base_node_name,node_name);
 	diagnostic = process->init(diagnostic,std::string(hostname));
 	if(diagnostic.Level > NOTICE)
 	{
 		logger->log_fatal(diagnostic.Description);
-		printf("[%s]: %s\n",node_name.c_str(),diagnostic.Description.c_str());
 		return false;
 	}
 	//Finish User Code: Initialization and Parameters
@@ -885,8 +894,8 @@ bool initializenode()
 //Start Template Code: Functions
 double measure_time_diff(ros::Time timer_a, ros::Time timer_b)
 {
-	ros::Duration etime = timer_a - timer_b;
-	return etime.toSec();
+	double etime = timer_a.toSec() - timer_b.toSec();
+	return etime;
 }
 bool new_devicemsg(std::string query,icarus_rover_v2::device device)
 {

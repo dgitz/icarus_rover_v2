@@ -10,27 +10,11 @@ bool run_loop1_code()
 	process->send_commandmessage(SPIMessageHandler::SPI_LEDStripControl_ID);
 	process->send_querymessage(SPIMessageHandler::SPI_Diagnostic_ID);
 	icarus_rover_v2::diagnostic diag = process->get_diagnostic();
-	diagnostic_pub.publish(diag);
+	if(diag.Level > WARN)
 	{
-		/*
-		icarus_rover_v2::diagnostic diag = process->send_querymessage(SPIMessageHandler::SPI_Get_ANA_Port1_ID);
-		if(diag.Level >= WARN)
-		{
-			diagnostic_pub.publish(diag);
-			logger->log_diagnostic(diag);
-		}
-		 */
+		diagnostic_pub.publish(diag);
+		logger->log_diagnostic(diag);
 	}
-	/*
-	{
-		icarus_rover_v2::diagnostic diag = process->send_querymessage(SPIMessageHandler::SPI_Get_DIO_Port1_ID);
-		if(diag.Level >= WARN)
-		{
-			diagnostic_pub.publish(diag);
-			logger->log_diagnostic(diag);
-		}
-	}
-	 */
 	return true;
 }
 bool run_loop2_code()
@@ -177,14 +161,20 @@ bool run_loop3_code()
 void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
 	icarus_rover_v2::firmware fw;
-	fw.Generic_Node_Name = "boardcontroller_node";
-	fw.Node_Name = node_name;
+	fw.Generic_Node_Name = process->get_basenodename();
+	fw.Node_Name = process->get_nodename();
 	fw.Description = "Latest Rev: 7-Aug-2018";
 	fw.Major_Release = BOARDCONTROLLERNODE_MAJOR_RELEASE;
 	fw.Minor_Release = BOARDCONTROLLERNODE_MINOR_RELEASE;
 	fw.Build_Number = BOARDCONTROLLERNODE_BUILD_NUMBER;
 	firmware_pub.publish(fw);
-	printf("t=%4.2f (sec) [%s]: %s\n",ros::Time::now().toSec(),node_name.c_str(),process->get_diagnostic().Description.c_str());
+	logger->log_diagnostic(process->get_diagnostic());
+	char tempstr[512];
+		sprintf(tempstr,"Passed Checksum: %d @ %f Failed Checksum: %d @ %f",
+				passed_checksum,passed_checksum/(measure_time_diff(ros::Time::now(),boot_time)),
+				failed_checksum,failed_checksum/(measure_time_diff(ros::Time::now(),boot_time)));
+		logger->log_info(tempstr);
+		logger->log_info(process->get_messageinfo(false));
 }
 void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
@@ -242,8 +232,11 @@ void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 			}
 		}
 	}
-	else
+	icarus_rover_v2::diagnostic diag = process->get_diagnostic();
+	if(diag.Level >= NOTICE)
 	{
+		diagnostic_pub.publish(diag);
+		logger->log_diagnostic(diag);
 	}
 
 	/*
@@ -256,64 +249,35 @@ void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
     	}
     }
 	 */
-	char tempstr[512];
-	sprintf(tempstr,"Passed Checksum: %d @ %f Failed Checksum: %d @ %f",
-			passed_checksum,passed_checksum/(measure_time_diff(ros::Time::now(),boot_time)),
-			failed_checksum,failed_checksum/(measure_time_diff(ros::Time::now(),boot_time)));
-	logger->log_info(tempstr);
-	logger->log_info(process->get_messageinfo(false));
-}
-std::vector<icarus_rover_v2::diagnostic> check_program_variables()
-						{
-	std::vector<icarus_rover_v2::diagnostic> diaglist;
-	bool status = true;
-	logger->log_notice("checking program variables.");
 
-	if(status == true)
-	{
-		icarus_rover_v2::diagnostic diag=diagnostic_status;
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Level = NOTICE;
-		diag.Diagnostic_Message = DIAGNOSTIC_PASSED;
-		diag.Description = "Checked Program Variables -> PASSED";
-		diaglist.push_back(diag);
-	}
-	else
-	{
-		icarus_rover_v2::diagnostic diag=diagnostic_status;
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Level = WARN;
-		diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
-		diag.Description = "Checked Program Variables -> FAILED";
-		diaglist.push_back(diag);
-	}
-	return diaglist;
-						}
+}
+
 
 void Command_Callback(const icarus_rover_v2::command::ConstPtr& msg)
 {
-	//logger->log_info("Got command");
-	if (msg->Command ==  DIAGNOSTIC_ID)
+	icarus_rover_v2::command command;
+	command.Command = msg->Command;
+	command.Option1 = msg->Option1;
+	command.Option2 = msg->Option2;
+	command.Option3 = msg->Option3;
+	command.CommandText = msg->CommandText;
+	command.Description = msg->Description;
+	std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(command);
+	if((command.Option1 >= LEVEL3) and (diaglist.size() == 1) and (diaglist.at(0).Diagnostic_Message == DIAGNOSTIC_PASSED))
 	{
-		if(msg->Option1 == LEVEL1)
+		logger->log_diagnostic(diaglist.at(0));
+		diagnostic_pub.publish(diaglist.at(0));
+	
+	}
+	else
+	{
+		for(std::size_t i = 0; i < diaglist.size(); i++)
 		{
-			diagnostic_pub.publish(diagnostic_status);
-		}
-		else if(msg->Option1 == LEVEL2)
-		{
-			std::vector<icarus_rover_v2::diagnostic> diaglist = check_program_variables();
-			for(int i = 0; i < diaglist.size();i++) { diagnostic_pub.publish(diaglist.at(i)); }
-		}
-		else if(msg->Option1 == LEVEL3)
-		{
-			process->send_querymessage(SPIMessageHandler::SPI_Diagnostic_ID);
-		}
-		else if(msg->Option1 == LEVEL4)
-		{
-		}
-		else
-		{
-			logger->log_error("Shouldn't get here!!!");
+			if(diaglist.at(i).Level > NOTICE)
+			{
+				logger->log_diagnostic(diaglist.at(i));
+				diagnostic_pub.publish(diaglist.at(i));
+			}
 		}
 	}
 }
@@ -426,8 +390,8 @@ bool run_10Hz_code()
 }
 int main(int argc, char **argv)
 {
-	node_name = "boardcontroller_node";
-	ros::init(argc, argv, node_name);
+	base_node_name = "boardcontroller_node";
+	ros::init(argc, argv, base_node_name);
 	n.reset(new ros::NodeHandle);
 	node_name = ros::this_node::getName();
 	ros::NodeHandle n;
@@ -610,9 +574,9 @@ bool initializenode()
 		if(loop3_rate > max_rate) { max_rate = loop3_rate; }
 	}
 	ros_rate = max_rate * 50.0;
-	if(ros_rate < 100.0) { ros_rate = 100.0; }
+	if(ros_rate > 100.0) { ros_rate = 100.0; }
 	char tempstr[512];
-	sprintf(tempstr,"Running Node at Rate: %f",ros_rate);
+	sprintf(tempstr,"Running Node at Rate: %4.2fHz",ros_rate);
 	logger->log_notice(std::string(tempstr));
 	//End Template Code: Initialization and Parameters
 
@@ -621,7 +585,7 @@ bool initializenode()
 	ready_to_arm_pub = n->advertise<std_msgs::Bool>(ready_to_arm_topic,1);
 	passed_checksum = 0;
 	failed_checksum = 0;
-	process = new BoardControllerNodeProcess;
+	process = new BoardControllerNodeProcess(base_node_name,node_name);
 	diagnostic_status = process->init(diagnostic_status,std::string(hostname));
 	spi_device = open("/dev/spidev0.0", O_RDWR);
 	unsigned int clock_rate = 1000000;

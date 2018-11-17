@@ -30,7 +30,7 @@ TEST(Template,ProcessInitialization)
 	diagnostic.Description = "Node Initializing";
 
 	BoardControllerNodeProcess *process;
-	process = new BoardControllerNodeProcess;
+	process = new BoardControllerNodeProcess("boardcontroller_node",Node_Name);
 	diagnostic = process->init(diagnostic,std::string(Host_Name));
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 }
@@ -102,7 +102,7 @@ TEST(DeviceInitialization,DeviceInitialization_ArduinoBoard)
 
 
 	BoardControllerNodeProcess *process;
-	process = new BoardControllerNodeProcess;
+	process = new BoardControllerNodeProcess("boardcontroller_node",Node_Name);
 	diagnostic = process->init(diagnostic,std::string(Host_Name));
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 

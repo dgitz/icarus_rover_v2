@@ -10,6 +10,10 @@
 #include <iostream>
 #include <ctime>
 #include <fstream>
+#define GREEN_FOREGROUND "\033[1;32m"
+#define YELLOW_FOREGROUND "\033[1;33m"
+#define RED_FOREGROUND "\033[1;31m"
+#define END_COLOR "\033[0m"
 
 using std::string;
 using namespace std;
@@ -33,6 +37,7 @@ private:
     int line_counter;
     int verbosity;
     ofstream log_file;
+    std::string node_name;
     char file_path[120];
     int get_verbosity_level(std::string level);
     void print_log(int level,std::string tempstr);

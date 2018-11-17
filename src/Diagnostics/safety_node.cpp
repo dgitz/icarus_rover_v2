@@ -9,57 +9,25 @@
  */
 bool run_loop1_code()
 {
-	icarus_rover_v2::diagnostic diagnostic = process->update(1.0/(double)loop1_rate);
-	if(diagnostic.Level > INFO)
+	icarus_rover_v2::diagnostic diag = process->update(1.0/(double)loop1_rate);
+	if(diag.Level >= NOTICE)
 	{
-		diagnostic_pub.publish(diagnostic);
-		logger->log_diagnostic(diagnostic);
+		diagnostic_pub.publish(diag);
+		logger->log_diagnostic(diag);
 	}
-	if(process->is_hat_running("TerminalHat",0) == false)
-	{
-		TerminalHat.init();
-		{
-			bool any_error = false;
-			std::vector<icarus_rover_v2::pin> pins = process->get_terminalhatpins("");
-			for(std::size_t i = 0; i < pins.size(); i++)
-			{
-				if(TerminalHat.configure_pin(pins.at(i).Number,pins.at(i).Function) == false)
-				{
-					any_error = true;
-					diagnostic.Diagnostic_Type = SOFTWARE;
-					diagnostic.Level = ERROR;
-					diagnostic.Diagnostic_Message = INITIALIZING_ERROR;
-					char tempstr[512];
-					sprintf(tempstr,"[TerminalHat] Could not configure Pin: %d with Function: %s",pins.at(i).Number,pins.at(i).Function.c_str());
-					diagnostic.Description = std::string(tempstr);
-					process->set_diagnostic(diagnostic);
-					printf("%s\n",tempstr);
-					logger->log_error(std::string(tempstr));
-					kill_node = 1;
-				}
-			}
-			if(any_error == false)
-			{
-				diagnostic = process->set_terminalhat_initialized();
-				logger->log_diagnostic(diagnostic);
-				if(diagnostic.Level > INFO) { diagnostic_pub.publish(diagnostic); }
-			}
-		}
-	}
-	else
+	if(process->is_hat_running("TerminalHat",0) == true)
 	{
 		int pin_value = TerminalHat.read_pin(process->get_pinnumber("ArmSwitch"));
 		bool v = process->set_pinvalue("ArmSwitch",pin_value);
 		if(v == false)
 		{
-			diagnostic.Diagnostic_Type = SOFTWARE;
-			diagnostic.Level = ERROR;
-			diagnostic.Diagnostic_Message = INITIALIZING_ERROR;
+			diag.Diagnostic_Type = SOFTWARE;
+			diag.Level = ERROR;
+			diag.Diagnostic_Message = INITIALIZING_ERROR;
 			char tempstr[512];
 			sprintf(tempstr,"[TerminalHat] Could not read Arm Switch");
-			diagnostic.Description = std::string(tempstr);
-			process->set_diagnostic(diagnostic);
-			printf("%s\n",tempstr);
+			diag.Description = std::string(tempstr);
+			process->set_diagnostic(diag);
 			logger->log_error(std::string(tempstr));
 			kill_node = 1;
 		}
@@ -98,19 +66,20 @@ void ArmedState_Callback(const std_msgs::UInt8::ConstPtr& msg)
 void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
 	icarus_rover_v2::firmware fw;
-	fw.Generic_Node_Name = "safety_node";
-	fw.Node_Name = node_name;
+	fw.Generic_Node_Name = process->get_basenodename();
+	fw.Node_Name = process->get_nodename();
 	fw.Description = "Latest Rev: 26-October-2018";
 	fw.Major_Release = SAFETYNODE_MAJOR_RELEASE;
 	fw.Minor_Release = SAFETYNODE_MINOR_RELEASE;
 	fw.Build_Number = SAFETYNODE_BUILD_NUMBER;
 	firmware_pub.publish(fw);
-	printf("t=%4.2f (sec) [%s]: %s\n",ros::Time::now().toSec(),node_name.c_str(),process->get_diagnostic().Description.c_str());
+	logger->log_diagnostic(process->get_diagnostic());
 }
 /*! \brief 1.0 PULSE PER SECOND User Code
  */
 void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
+	icarus_rover_v2::diagnostic diag = process->get_diagnostic();
 	received_pps = true;
 	if((process->get_initialized() == true) and (process->get_ready() == true))
 	{
@@ -118,7 +87,7 @@ void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 		if(resource_diagnostic.Diagnostic_Message == DEVICE_NOT_AVAILABLE)
 		{
 			diagnostic_pub.publish(resource_diagnostic);
-			logger->log_warn("Couldn't read resources used.");
+			logger->log_diagnostic(resource_diagnostic);
 		}
 		else if(resource_diagnostic.Level >= WARN)
 		{
@@ -147,6 +116,36 @@ void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 		else
 		{
 		}
+		if(process->is_hat_running("TerminalHat",0) == false)
+		{
+			TerminalHat.init();
+			{
+				bool any_error = false;
+				std::vector<icarus_rover_v2::pin> pins = process->get_terminalhatpins("");
+				for(std::size_t i = 0; i < pins.size(); i++)
+				{
+					if(TerminalHat.configure_pin(pins.at(i).Number,pins.at(i).Function) == false)
+					{
+						any_error = true;
+						diag.Diagnostic_Type = SOFTWARE;
+						diag.Level = ERROR;
+						diag.Diagnostic_Message = INITIALIZING_ERROR;
+						char tempstr[512];
+						sprintf(tempstr,"[TerminalHat] Could not configure Pin: %d with Function: %s",pins.at(i).Number,pins.at(i).Function.c_str());
+						diag.Description = std::string(tempstr);
+						process->set_diagnostic(diag);
+						logger->log_error(std::string(tempstr));
+						kill_node = 1;
+					}
+				}
+				if(any_error == false)
+				{
+					diag = process->set_terminalhat_initialized();
+					logger->log_diagnostic(diag);
+					if(diag.Level > NOTICE) { diagnostic_pub.publish(diag); }
+				}
+			}
+		}
 	}
 	else if(process->get_initialized() == false)
 	{
@@ -166,7 +165,6 @@ void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 			}
 		}
 	}
-	diagnostic_pub.publish(process->get_diagnostic());
 }
 void Command_Callback(const icarus_rover_v2::command::ConstPtr& msg)
 {
@@ -178,16 +176,21 @@ void Command_Callback(const icarus_rover_v2::command::ConstPtr& msg)
 	command.CommandText = msg->CommandText;
 	command.Description = msg->Description;
 	std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(command);
-	for(std::size_t i = 0; i < diaglist.size(); i++)
+	if((command.Option1 >= LEVEL3) and (diaglist.size() == 1) and (diaglist.at(0).Diagnostic_Message == DIAGNOSTIC_PASSED))
 	{
-		if(diaglist.at(i).Level >= NOTICE)
+		logger->log_diagnostic(diaglist.at(0));
+		diagnostic_pub.publish(diaglist.at(0));
+
+	}
+	else
+	{
+		for(std::size_t i = 0; i < diaglist.size(); i++)
 		{
-			logger->log_diagnostic(diaglist.at(i));
-			diagnostic_pub.publish(diaglist.at(i));
-		}
-		if((diaglist.at(i).Level > NOTICE) and (process->get_runtime() > 10.0))
-		{
-			printf("[%s]: %s\n",node_name.c_str(),diaglist.at(i).Description.c_str());
+			if(diaglist.at(i).Level > NOTICE)
+			{
+				logger->log_diagnostic(diaglist.at(i));
+				diagnostic_pub.publish(diaglist.at(i));
+			}
 		}
 	}
 }
@@ -205,8 +208,8 @@ bool run_10Hz_code()
 }
 int main(int argc, char **argv)
 {
-	node_name = "safety_node";
-	ros::init(argc, argv, node_name);
+	base_node_name = "safety_node";
+	ros::init(argc, argv, base_node_name);
 	n.reset(new ros::NodeHandle);
 	node_name = ros::this_node::getName();
 	ros::NodeHandle n;
@@ -215,7 +218,6 @@ int main(int argc, char **argv)
 	{
 		char tempstr[256];
 		sprintf(tempstr,"Unable to Initialize. Exiting.");
-		printf("[%s]: %s\n",node_name.c_str(),tempstr);
 		logger->log_fatal(tempstr);
 		kill_node = 1;
 	}
@@ -320,7 +322,6 @@ bool initializenode()
 		if(disable_node == true)
 		{
 			logger->log_notice("Node Disabled in Launch File.  Exiting.");
-			printf("[%s]: Node Disabled in Launch File. Exiting.\n",node_name.c_str());
 			return false;
 		}
 	}
@@ -341,7 +342,6 @@ bool initializenode()
 		sprintf(tempstr,"Using Parameter: startup_delay = %4.2f sec.",startup_delay);
 		logger->log_notice(std::string(tempstr));
 	}
-	printf("[%s] Using Parameter: startup_delay = %4.2f sec.\n",node_name.c_str(),startup_delay);
 	ros::Duration(startup_delay).sleep();
 
 	std::string device_topic = "/" + std::string(hostname) + "_master_node/srv_device";
@@ -399,9 +399,9 @@ bool initializenode()
 		if(loop3_rate > max_rate) { max_rate = loop3_rate; }
 	}
 	ros_rate = max_rate * 50.0;
-	if(ros_rate < 100.0) { ros_rate = 100.0; }
+	if(ros_rate > 100.0) { ros_rate = 100.0; }
 	char tempstr[512];
-	sprintf(tempstr,"Running Node at Rate: %f",ros_rate);
+	sprintf(tempstr,"Running Node at Rate: %4.2f",ros_rate);
 	logger->log_notice(std::string(tempstr));
 	//End Template Code: Initialization and Parameters
 
@@ -409,7 +409,7 @@ bool initializenode()
 	std::string armed_state_topic = "/armed_state";
 	armed_state_sub = n->subscribe<std_msgs::UInt8>(armed_state_topic,1,ArmedState_Callback);
 
-	process = new SafetyNodeProcess;
+	process = new SafetyNodeProcess(base_node_name,node_name);
 	diagnostic = process->init(diagnostic,std::string(hostname));
 	if(diagnostic.Level > NOTICE)
 	{

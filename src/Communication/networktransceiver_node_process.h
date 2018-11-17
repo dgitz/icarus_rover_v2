@@ -52,7 +52,9 @@ public:
 		double offset_sec;
 
 	};
-	NetworkTransceiverNodeProcess();
+	NetworkTransceiverNodeProcess(std::string _base_node_name,std::string _node_name);
+	std::string get_basenodename() { return base_node_name; }
+	std::string get_nodename() { return node_name; }
 	~NetworkTransceiverNodeProcess();
 
 	icarus_rover_v2::diagnostic init(icarus_rover_v2::diagnostic indiag,std::string hostname);
@@ -81,7 +83,11 @@ public:
 protected:
 
 private:
-	std::vector<icarus_rover_v2::diagnostic> check_program_variables();
+	std::string base_node_name;
+	std::string node_name;
+	bool unittest_running;
+    std::vector<icarus_rover_v2::diagnostic> check_program_variables();
+    std::vector<icarus_rover_v2::diagnostic> run_unittest();
 	icarus_rover_v2::diagnostic check_remoteHeartbeats();
 	Message get_messagebyid(uint16_t id)
 	{

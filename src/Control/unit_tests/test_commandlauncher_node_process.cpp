@@ -36,7 +36,7 @@ CommandLauncherNodeProcess* initializeprocess()
     device.Architecture = "x86_64";
 
     CommandLauncherNodeProcess *process;
-    process = new CommandLauncherNodeProcess;
+    process = new CommandLauncherNodeProcess("commandlauncher_node",Node_Name);
 	diagnostic = process->init(diagnostic,std::string(Host_Name));
     EXPECT_TRUE(diagnostic.Level <= NOTICE);
     EXPECT_TRUE(process->get_initialized() == false);

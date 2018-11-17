@@ -1,14 +1,17 @@
 #include "timemaster_node_process.h"
 /*! \brief Constructor
  */
-TimeMasterNodeProcess::TimeMasterNodeProcess()
+TimeMasterNodeProcess::TimeMasterNodeProcess(std::string _base_node_name,std::string _node_name)
 {
+	base_node_name = _base_node_name;
+	node_name = _node_name;
+	unittest_running = false;
 	run_time = 0.0;
 	initialized = false;
-    pps01_delay = 0;
-    pps1_delay = 0;
-    time_since_last_1pps = 0.0;
-    time_since_last_01pps = 0.0;
+	pps01_delay = 0;
+	pps1_delay = 0;
+	time_since_last_1pps = 0.0;
+	time_since_last_01pps = 0.0;
 }
 /*! \brief Deconstructor
  */
@@ -20,7 +23,7 @@ TimeMasterNodeProcess::~TimeMasterNodeProcess()
  */
 icarus_rover_v2::diagnostic TimeMasterNodeProcess::init(icarus_rover_v2::diagnostic indiag,std::string hostname)
 {
-   	myhostname = hostname;
+	myhostname = hostname;
 	diagnostic = indiag;
 	mydevice.DeviceName = hostname;
 	return diagnostic;
@@ -31,11 +34,11 @@ icarus_rover_v2::diagnostic TimeMasterNodeProcess::update(double dt)
 {
 	run_time += dt;
 	if((mydevice.BoardCount == 0) and (mydevice.SensorCount == 0))
-    {
-        if(initialized == true) { ready = true; }
-    }
-    time_since_last_1pps += dt;
-    time_since_last_01pps += dt;
+	{
+		if(initialized == true) { ready = true; }
+	}
+	time_since_last_1pps += dt;
+	time_since_last_01pps += dt;
 	icarus_rover_v2::diagnostic diag = diagnostic;
 	diag.Diagnostic_Type = NOERROR;
 	diag.Level = INFO;
@@ -48,13 +51,13 @@ icarus_rover_v2::diagnostic TimeMasterNodeProcess::update(double dt)
  */
 icarus_rover_v2::diagnostic TimeMasterNodeProcess::new_devicemsg(icarus_rover_v2::device device)
 {
-    icarus_rover_v2::diagnostic diag = diagnostic;
+	icarus_rover_v2::diagnostic diag = diagnostic;
 	bool new_device = true;
 	if(device.DeviceName == myhostname)
 	{
 
-    }
-    return diag;
+	}
+	return diag;
 }
 /*! \brief Process Command Message
  */
@@ -66,6 +69,7 @@ std::vector<icarus_rover_v2::diagnostic> TimeMasterNodeProcess::new_commandmsg(i
 	{
 		if(cmd.Option1 == LEVEL1)
 		{
+			diaglist.push_back(diag);
 		}
 		else if(cmd.Option1 == LEVEL2)
 		{
@@ -74,12 +78,13 @@ std::vector<icarus_rover_v2::diagnostic> TimeMasterNodeProcess::new_commandmsg(i
 		}
 		else if(cmd.Option1 == LEVEL3)
 		{
+			diaglist = run_unittest();
+			return diaglist;
 		}
 		else if(cmd.Option1 == LEVEL4)
 		{
 		}
 	}
-	diaglist.push_back(diag);
 	return diaglist;
 }
 /*! \brief Self-Diagnostic-Check Program Variables
@@ -110,28 +115,147 @@ std::vector<icarus_rover_v2::diagnostic> TimeMasterNodeProcess::check_program_va
 }
 bool TimeMasterNodeProcess::set_ppssource(std::string v)
 {
-    if(v == "self")
-    {
-        pps_source = v; 
-        return true;
-    }
-    return false;
+	if(v == "self")
+	{
+		pps_source = v;
+		return true;
+	}
+	return false;
 }
 bool TimeMasterNodeProcess::publish_1pps()
 {
-    if(time_since_last_1pps >= 1.0)
-    {
-        time_since_last_1pps = 0.0;
-        return true;
-    }
-    return false;
+	if(time_since_last_1pps >= 1.0)
+	{
+		time_since_last_1pps = 0.0;
+		return true;
+	}
+	return false;
 }
 bool TimeMasterNodeProcess::publish_01pps()
 {
-   if(time_since_last_01pps >= 10.0)
-    {
-        time_since_last_01pps = 0.0;
-        return true;
-    }
-    return false; 
+	if(time_since_last_01pps >= 10.0)
+	{
+		time_since_last_01pps = 0.0;
+		return true;
+	}
+	return false;
+}
+/*! \brief Run Unit Test
+ */
+std::vector<icarus_rover_v2::diagnostic> TimeMasterNodeProcess::run_unittest()
+{
+	std::vector<icarus_rover_v2::diagnostic> diaglist;
+	if(unittest_running == false)
+	{
+		unittest_running = true;
+		icarus_rover_v2::diagnostic diag=diagnostic;
+		bool status = true;
+		std::string data;
+		std::string cmd = "cd ~/catkin_ws && "
+				"bash devel/setup.bash && catkin_make run_tests_icarus_rover_v2_gtest_test_" + base_node_name + "_process >/dev/null 2>&1 && "
+				"mv /home/robot/catkin_ws/build/test_results/icarus_rover_v2/gtest-test_" + base_node_name + "_process.xml "
+				"/home/robot/catkin_ws/build/test_results/icarus_rover_v2/" + base_node_name + "/ >/dev/null 2>&1";
+		system(cmd.c_str());
+		cmd = "cd ~/catkin_ws && bash devel/setup.bash && catkin_test_results build/test_results/icarus_rover_v2/" + base_node_name + "/";
+		FILE * stream;
+
+		const int max_buffer = 256;
+		char buffer[max_buffer];
+		cmd.append(" 2>&1");
+		stream = popen(cmd.c_str(), "r");
+		if (stream)
+		{
+			if (!feof(stream))
+			{
+				if (fgets(buffer, max_buffer, stream) != NULL) { data.append(buffer); }
+				pclose(stream);
+			}
+		}
+		std::vector<std::string> strs;
+		std::size_t start = data.find(":");
+		data.erase(0,start+1);
+		boost::split(strs,data,boost::is_any_of(",: "),boost::token_compress_on);
+		if(strs.size() < 6)
+		{
+			diag.Diagnostic_Type = SOFTWARE;
+			diag.Level = ERROR;
+			diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
+			char tempstr[1024];
+			sprintf(tempstr,"Unable to process Unit Test Result: %s",data.c_str());
+			diag.Description = std::string(tempstr);
+			diaglist.push_back(diag);
+			return diaglist;
+		}
+		int test_count = std::atoi(strs.at(1).c_str());
+		int error_count = std::atoi(strs.at(3).c_str());
+		int failure_count = std::atoi(strs.at(5).c_str());
+		if(test_count == 0)
+		{
+			diag.Diagnostic_Type = SOFTWARE;
+			diag.Level = ERROR;
+			diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
+			diag.Description = "Test Count: 0.";
+			diaglist.push_back(diag);
+			status = false;
+		}
+		if(error_count > 0)
+		{
+			diag.Diagnostic_Type = SOFTWARE;
+			diag.Level = ERROR;
+			diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
+			char tempstr[512];
+			sprintf(tempstr,"Error Count: %d",error_count);
+			diag.Description = std::string(tempstr);
+			diaglist.push_back(diag);
+			status = false;
+		}
+		if(failure_count > 0)
+		{
+			diag.Diagnostic_Type = SOFTWARE;
+			diag.Level = ERROR;
+			diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
+			char tempstr[512];
+			sprintf(tempstr,"Failure Count: %d",failure_count);
+			diag.Description = std::string(tempstr);
+			diaglist.push_back(diag);
+			status = false;
+		}
+		if(status == true)
+		{
+			diag.Diagnostic_Type = SOFTWARE;
+			diag.Level = NOTICE;
+			diag.Diagnostic_Message = DIAGNOSTIC_PASSED;
+			diag.Description = "Unit Test -> PASSED";
+			diaglist.push_back(diag);
+		}
+		else
+		{
+			diag.Diagnostic_Type = SOFTWARE;
+			uint8_t highest_error = INFO;
+			for(std::size_t i = 0; i < diaglist.size(); i++)
+			{
+				if(diaglist.at(i).Level > highest_error)
+				{
+					highest_error = diaglist.at(i).Level;
+				}
+			}
+			diag.Level = highest_error;
+			diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
+			diag.Description = "Unit Test -> FAILED";
+			diaglist.push_back(diag);
+		}
+
+		unittest_running = false;
+	}
+	else
+	{
+
+		icarus_rover_v2::diagnostic diag=diagnostic;
+		diag.Diagnostic_Type = SOFTWARE;
+		diag.Level = WARN;
+		diag.Diagnostic_Message = DROPPING_PACKETS;
+		diag.Description = "Unit Test -> IS STILL IN PROGRESS";
+		diaglist.push_back(diag);
+	}
+	return diaglist;
 }

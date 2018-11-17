@@ -56,6 +56,7 @@ void User_Command_Callback(const icarus_rover_v2::command::ConstPtr& msg);
 //Start Template Code: Define Global variables
 boost::shared_ptr<ros::NodeHandle> n;
 ros::ServiceClient srv_device;
+std::string base_node_name;
 std::string node_name;
 std::string verbosity_level;
 ros::Subscriber pps01_sub;

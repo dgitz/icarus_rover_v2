@@ -154,41 +154,41 @@ bool check_serialports()
 	return true;
 }
 std::vector<std::string> find_serialports()
-{
-    std::vector<std::string> ports;
-    std::vector<std::string> files;
-    DIR *dp;
-    struct dirent *dirp;
-    if((dp  = opendir("/dev/")) == NULL) 
-    {
-        cout << "Error(" << errno << ") opening " << "/dev/" << endl;
-        //return errno;
-    }
+		{
+	std::vector<std::string> ports;
+	std::vector<std::string> files;
+	DIR *dp;
+	struct dirent *dirp;
+	if((dp  = opendir("/dev/")) == NULL)
+	{
+		cout << "Error(" << errno << ") opening " << "/dev/" << endl;
+		//return errno;
+	}
 
-    while ((dirp = readdir(dp)) != NULL) 
-    {
-        files.push_back(std::string(dirp->d_name));
-    }
-    closedir(dp);
-    std::string serial_usb = "ttyUSB";
-    std::string serial_acm = "ttyACM";
-   // std::string serial = "ttyS"; //Get rid of this one
-    for(std::size_t i = 0; i < files.size(); i++)
-    {
-        std::size_t found_usb = files.at(i).find(serial_usb);
-        std::size_t found_acm = files.at(i).find(serial_acm);
-        //std::size_t found_serial = files.at(i).find(serial);
-        if( (found_usb != std::string::npos) || 
-            (found_acm != std::string::npos))
-            //(found_serial != std::string::npos))
-        {
-            ports.push_back(files.at(i));
-        }
-    }
-    return ports;
-}
+	while ((dirp = readdir(dp)) != NULL)
+	{
+		files.push_back(std::string(dirp->d_name));
+	}
+	closedir(dp);
+	std::string serial_usb = "ttyUSB";
+	std::string serial_acm = "ttyACM";
+	// std::string serial = "ttyS"; //Get rid of this one
+	for(std::size_t i = 0; i < files.size(); i++)
+	{
+		std::size_t found_usb = files.at(i).find(serial_usb);
+		std::size_t found_acm = files.at(i).find(serial_acm);
+		//std::size_t found_serial = files.at(i).find(serial);
+		if( (found_usb != std::string::npos) ||
+				(found_acm != std::string::npos))
+			//(found_serial != std::string::npos))
+		{
+			ports.push_back(files.at(i));
+		}
+	}
+	return ports;
+		}
 bool connection_service(icarus_rover_v2::srv_connection::Request &req,
-					icarus_rover_v2::srv_connection::Response &res)
+		icarus_rover_v2::srv_connection::Response &res)
 {
 
 	std::vector<MasterNodeProcess::SerialPort> ports = process->get_serialports();
@@ -203,7 +203,7 @@ bool connection_service(icarus_rover_v2::srv_connection::Request &req,
 	return false;
 }
 bool device_service(icarus_rover_v2::srv_device::Request &req,
-				icarus_rover_v2::srv_device::Response &res)
+		icarus_rover_v2::srv_device::Response &res)
 {
 	if(req.query == "SELF")
 	{
@@ -235,7 +235,7 @@ bool device_service(icarus_rover_v2::srv_device::Request &req,
 	return false;
 }
 bool leverarm_service(icarus_rover_v2::srv_leverarm::Request &req,
-				icarus_rover_v2::srv_leverarm::Response &res)
+		icarus_rover_v2::srv_leverarm::Response &res)
 {
 	icarus_rover_v2::leverarm la;
 	bool status = process->get_leverarm(&la,req.name);
@@ -293,13 +293,13 @@ bool run_loop2_code()
 		logger->log_diagnostic(diag);
 		printf("[%s]:%s\n",node_name.c_str(),diag.Description.c_str());
 	}
- 	return true;
+	return true;
 }
 /*! \brief User Loop3 Code
  */
 bool run_loop3_code()
 {
- 	return true;
+	return true;
 }
 double read_device_temperature()
 {
@@ -324,29 +324,28 @@ double read_device_temperature()
  */
 void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
-    logger->log_info("Node Running.");
 	icarus_rover_v2::firmware fw;
-	fw.Generic_Node_Name = "master_node";
-	fw.Node_Name = node_name;
+	fw.Generic_Node_Name = process->get_basenodename();
+	fw.Node_Name = process->get_nodename();
 	fw.Description = "Latest Rev: 28-December-2017";
 	fw.Major_Release = MASTERNODE_MAJOR_RELEASE;
 	fw.Minor_Release = MASTERNODE_MINOR_RELEASE;
 	fw.Build_Number = MASTERNODE_BUILD_NUMBER;
 	firmware_pub.publish(fw);
-	printf("t=%4.2f (sec) [%s]: %s\n",ros::Time::now().toSec(),node_name.c_str(),process->get_diagnostic().Description.c_str());
+	logger->log_diagnostic(process->get_diagnostic());
 }
 /*! \brief 1.0 PULSE PER SECOND User Code
  */
 void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
-    received_pps = true;
-    if((process->get_initialized() == true) and (process->get_ready() == true))
+	received_pps = true;
+	if((process->get_initialized() == true) and (process->get_ready() == true))
 	{
 		icarus_rover_v2::diagnostic resource_diagnostic = resourcemonitor->update();
 		if(resource_diagnostic.Diagnostic_Message == DEVICE_NOT_AVAILABLE)
 		{
 			diagnostic_pub.publish(resource_diagnostic);
-			logger->log_warn("Couldn't read resources used.");
+			logger->log_diagnostic(resource_diagnostic);
 		}
 		else if(resource_diagnostic.Level >= WARN)
 		{
@@ -361,15 +360,13 @@ void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 			resource_pub.publish(resources_used);
 		}
 	}
-    else if((process->get_ready() == false) and (process->get_initialized() == true))
-    {
-        
-    }
+	else if((process->get_ready() == false) and (process->get_initialized() == true))
+	{
+
+	}
 	else if(process->get_initialized() == false)
 	{
 	}
-	diagnostic_pub.publish(process->get_diagnostic());
-
 }
 void Command_Callback(const icarus_rover_v2::command::ConstPtr& msg)
 {
@@ -381,17 +378,21 @@ void Command_Callback(const icarus_rover_v2::command::ConstPtr& msg)
 	command.CommandText = msg->CommandText;
 	command.Description = msg->Description;
 	std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(command);
-	for(std::size_t i = 0; i < diaglist.size(); i++)
+	if((command.Option1 >= LEVEL3) and (diaglist.size() == 1) and (diaglist.at(0).Diagnostic_Message == DIAGNOSTIC_PASSED))
 	{
-		if(diaglist.at(i).Level >= NOTICE)
-        {
-            logger->log_diagnostic(diaglist.at(i));
-            diagnostic_pub.publish(diaglist.at(i));
-        }
-        if((diaglist.at(i).Level > NOTICE) and (process->get_runtime() > 10.0))
-        {
-            printf("[%s]: %s\n",node_name.c_str(),diaglist.at(i).Description.c_str());
-        }
+		logger->log_diagnostic(diaglist.at(0));
+		diagnostic_pub.publish(diaglist.at(0));
+	}	
+	else
+	{
+		for(std::size_t i = 0; i < diaglist.size(); i++)
+		{
+			if(diaglist.at(i).Level > NOTICE)
+			{
+				logger->log_diagnostic(diaglist.at(i));
+				diagnostic_pub.publish(diaglist.at(i));
+			}
+		}
 	}
 }
 void print_deviceinfo()
@@ -400,106 +401,104 @@ void print_deviceinfo()
 	sprintf(tempstr,"Loading Devices:\n");
 	for(std::size_t i = 0; i < devices_to_publish.size(); i++)
 	{
-		sprintf(tempstr,"%s[%d] Device: %s\n",tempstr,i,devices_to_publish.at(i).DeviceName.c_str());
+		sprintf(tempstr,"%s[%d] Device: %s\n",tempstr,(int)i,devices_to_publish.at(i).DeviceName.c_str());
 	}
 	logger->log_notice(std::string(tempstr));
-	printf(tempstr);
 }
 //End User Code: Functions
 bool run_10Hz_code()
 {
-    beat.stamp = ros::Time::now();
+	beat.stamp = ros::Time::now();
 	heartbeat_pub.publish(beat);
-    if(process->get_diagnostic().Level > NOTICE)
-    {
-        diagnostic_pub.publish(process->get_diagnostic());
-        logger->log_diagnostic(process->get_diagnostic());
-    }
-    return true;
+	if(process->get_diagnostic().Level > NOTICE)
+	{
+		diagnostic_pub.publish(process->get_diagnostic());
+		logger->log_diagnostic(process->get_diagnostic());
+	}
+	return true;
 }
 int main(int argc, char **argv)
 {
-	node_name = "master_node";
-    ros::init(argc, argv, node_name);
-    n.reset(new ros::NodeHandle);
-    node_name = ros::this_node::getName();
-    ros::NodeHandle n;
-    
-    if(initializenode() == false)
-    {
-        char tempstr[256];
-        sprintf(tempstr,"Unable to Initialize. Exiting.");
-        printf("[%s]: %s\n",node_name.c_str(),tempstr);
-        logger->log_fatal(tempstr);
+	base_node_name = "master_node";
+	ros::init(argc, argv, base_node_name);
+	n.reset(new ros::NodeHandle);
+	node_name = ros::this_node::getName();
+	ros::NodeHandle n;
+
+	if(initializenode() == false)
+	{
+		char tempstr[256];
+		sprintf(tempstr,"Unable to Initialize. Exiting.");
+		logger->log_fatal(tempstr);
 		kill_node = 1;
-    }
-    ros::Rate loop_rate(ros_rate);
+	}
+	ros::Rate loop_rate(ros_rate);
 	boot_time = ros::Time::now();
-    last_10Hz_timer = ros::Time::now();
-    double mtime;
-    while (ros::ok() && (kill_node == 0))
-    {
-    	bool ok_to_start = false;
+	last_10Hz_timer = ros::Time::now();
+	double mtime;
+	while (ros::ok() && (kill_node == 0))
+	{
+		bool ok_to_start = false;
 		if(require_pps_to_start == false) { ok_to_start = true;}
 		else if(require_pps_to_start == true && received_pps == true) { ok_to_start = true; }
-    	if(ok_to_start == true)
-    	{
-            if(run_loop1 == true)
-            {
-                mtime = measure_time_diff(ros::Time::now(),last_loop1_timer);
-                if(mtime >= (1.0/loop1_rate))
-                {
-                    run_loop1_code();
-                    last_loop1_timer = ros::Time::now();
-                }
-            }
-            if(run_loop2 == true)
-            {
-                mtime = measure_time_diff(ros::Time::now(),last_loop2_timer);
-                if(mtime >= (1.0/loop2_rate))
-                {
-                    run_loop2_code();
-                    last_loop2_timer = ros::Time::now();
-                }
-            }
-            if(run_loop3 == true)
-            {
-                mtime = measure_time_diff(ros::Time::now(),last_loop3_timer);
-                if(mtime >= (1.0/loop3_rate))
-                {
-                    run_loop3_code();
-                    last_loop3_timer = ros::Time::now();
-                }
-            }
-            
-            mtime = measure_time_diff(ros::Time::now(),last_10Hz_timer);
-            if(mtime >= 0.1)
-            {
-                run_10Hz_code();
-                last_10Hz_timer = ros::Time::now();
-            }
-    	}
+		if(ok_to_start == true)
+		{
+			if(run_loop1 == true)
+			{
+				mtime = measure_time_diff(ros::Time::now(),last_loop1_timer);
+				if(mtime >= (1.0/loop1_rate))
+				{
+					run_loop1_code();
+					last_loop1_timer = ros::Time::now();
+				}
+			}
+			if(run_loop2 == true)
+			{
+				mtime = measure_time_diff(ros::Time::now(),last_loop2_timer);
+				if(mtime >= (1.0/loop2_rate))
+				{
+					run_loop2_code();
+					last_loop2_timer = ros::Time::now();
+				}
+			}
+			if(run_loop3 == true)
+			{
+				mtime = measure_time_diff(ros::Time::now(),last_loop3_timer);
+				if(mtime >= (1.0/loop3_rate))
+				{
+					run_loop3_code();
+					last_loop3_timer = ros::Time::now();
+				}
+			}
+
+			mtime = measure_time_diff(ros::Time::now(),last_10Hz_timer);
+			if(mtime >= 0.1)
+			{
+				run_10Hz_code();
+				last_10Hz_timer = ros::Time::now();
+			}
+		}
 		else
 		{
 			logger->log_warn("Waiting on PPS to Start.");
 		}
 		ros::spinOnce();
 		loop_rate.sleep();
-    }
-    logger->log_notice("Node Finished Safely.");
-    return 0;
+	}
+	logger->log_notice("Node Finished Safely.");
+	return 0;
 }
 bool initializenode()
 {
-    //Start Template Code: Initialization, Parameters and Topics
+	//Start Template Code: Initialization, Parameters and Topics
 	kill_node = 0;
 	signal(SIGINT,signalinterrupt_handler);
-    hostname[1023] = '\0';
-    gethostname(hostname,1023);
-    std::string diagnostic_topic = "/" + node_name + "/diagnostic";
+	hostname[1023] = '\0';
+	gethostname(hostname,1023);
+	std::string diagnostic_topic = "/" + node_name + "/diagnostic";
 	diagnostic_pub =  n->advertise<icarus_rover_v2::diagnostic>(diagnostic_topic,5);
-    icarus_rover_v2::diagnostic diagnostic;
-    diagnostic.DeviceName = hostname;
+	icarus_rover_v2::diagnostic diagnostic;
+	diagnostic.DeviceName = hostname;
 	diagnostic.Node_Name = node_name;
 	diagnostic.System = ROVER;
 	diagnostic.SubSystem = ROBOT_CONTROLLER;
@@ -513,171 +512,168 @@ bool initializenode()
 	std::string resource_topic = "/" + node_name + "/resource";
 	resource_pub = n->advertise<icarus_rover_v2::resource>(resource_topic,5);
 
-    std::string param_verbosity_level = node_name +"/verbosity_level";
-    if(n->getParam(param_verbosity_level,verbosity_level) == false)
-    {
-        logger = new Logger("WARN",ros::this_node::getName());
-        logger->log_warn("Missing Parameter: verbosity_level");
-        return false;
-    }
-    else
-    {
-        logger = new Logger(verbosity_level,ros::this_node::getName());      
-    }
+	std::string param_verbosity_level = node_name +"/verbosity_level";
+	if(n->getParam(param_verbosity_level,verbosity_level) == false)
+	{
+		logger = new Logger("WARN",ros::this_node::getName());
+		logger->log_warn("Missing Parameter: verbosity_level");
+		return false;
+	}
+	else
+	{
+		logger = new Logger(verbosity_level,ros::this_node::getName());
+	}
 	std::string param_disabled = node_name +"/disable";
-    bool disable_node;
-    if(n->getParam(param_disabled,disable_node) == true)
-    {
-    	if(disable_node == true)
-    	{
-    		logger->log_notice("Node Disabled in Launch File.  Exiting.");
-    		printf("[%s]: Node Disabled in Launch File. Exiting.\n",node_name.c_str());
-    		return false;
-    	}
-    }
-    
-    std::string heartbeat_topic = "/" + node_name + "/heartbeat";
-    heartbeat_pub = n->advertise<icarus_rover_v2::heartbeat>(heartbeat_topic,5);
-    beat.Node_Name = node_name;
-    std::string param_startup_delay = node_name + "/startup_delay";
-    double startup_delay = 0.0;
-    if(n->getParam(param_startup_delay,startup_delay) == false)
-    {
-    	logger->log_notice("Missing Parameter: startup_delay.  Using Default: 0.0 sec.");
-    }
-    else
-    {
-    	char tempstr[128];
-    	sprintf(tempstr,"Using Parameter: startup_delay = %4.2f sec.",startup_delay);
-    	logger->log_notice(std::string(tempstr));
-    }
-    printf("[%s] Using Parameter: startup_delay = %4.2f sec.\n",node_name.c_str(),startup_delay);
-    ros::Duration(startup_delay).sleep();
+	bool disable_node;
+	if(n->getParam(param_disabled,disable_node) == true)
+	{
+		if(disable_node == true)
+		{
+			logger->log_notice("Node Disabled in Launch File.  Exiting.");
+			return false;
+		}
+	}
 
-    pps01_sub = n->subscribe<std_msgs::Bool>("/01PPS",5,PPS01_Callback); 
-    pps1_sub = n->subscribe<std_msgs::Bool>("/1PPS",5,PPS1_Callback); 
-    command_sub = n->subscribe<icarus_rover_v2::command>("/command",5,Command_Callback);
-    std::string param_require_pps_to_start = node_name +"/require_pps_to_start";
-    if(n->getParam(param_require_pps_to_start,require_pps_to_start) == false)
+	std::string heartbeat_topic = "/" + node_name + "/heartbeat";
+	heartbeat_pub = n->advertise<icarus_rover_v2::heartbeat>(heartbeat_topic,5);
+	beat.Node_Name = node_name;
+	std::string param_startup_delay = node_name + "/startup_delay";
+	double startup_delay = 0.0;
+	if(n->getParam(param_startup_delay,startup_delay) == false)
+	{
+		logger->log_notice("Missing Parameter: startup_delay.  Using Default: 0.0 sec.");
+	}
+	else
+	{
+		char tempstr[128];
+		sprintf(tempstr,"Using Parameter: startup_delay = %4.2f sec.",startup_delay);
+		logger->log_notice(std::string(tempstr));
+	}
+	ros::Duration(startup_delay).sleep();
+
+	pps01_sub = n->subscribe<std_msgs::Bool>("/01PPS",5,PPS01_Callback);
+	pps1_sub = n->subscribe<std_msgs::Bool>("/1PPS",5,PPS1_Callback);
+	command_sub = n->subscribe<icarus_rover_v2::command>("/command",5,Command_Callback);
+	std::string param_require_pps_to_start = node_name +"/require_pps_to_start";
+	if(n->getParam(param_require_pps_to_start,require_pps_to_start) == false)
 	{
 		logger->log_warn("Missing Parameter: require_pps_to_start.");
 		return false;
 	}
-    std::string firmware_topic = "/" + node_name + "/firmware";
-    firmware_pub =  n->advertise<icarus_rover_v2::firmware>(firmware_topic,1);
-    
-    double max_rate = 0.0;
-    std::string param_loop1_rate = node_name + "/loop1_rate";
-    if(n->getParam(param_loop1_rate,loop1_rate) == false)
-    {
-        logger->log_warn("Missing parameter: loop1_rate.  Not running loop1 code.");
-        run_loop1 = false;
-    }
-    else 
-    { 
-        last_loop1_timer = ros::Time::now();
-        run_loop1 = true; 
-        if(loop1_rate > max_rate) { max_rate = loop1_rate; }
-    }
-    std::string param_loop2_rate = node_name + "/loop2_rate";
-    if(n->getParam(param_loop2_rate,loop2_rate) == false)
-    {
-        logger->log_warn("Missing parameter: loop2_rate.  Not running loop2 code.");
-        run_loop2 = false;
-    }
-    else 
-    { 
-        last_loop2_timer = ros::Time::now();
-        run_loop2 = true; 
-        if(loop2_rate > max_rate) { max_rate = loop2_rate; }
-    }
-    
-    std::string param_loop3_rate = node_name + "/loop3_rate";
-    if(n->getParam(param_loop3_rate,loop3_rate) == false)
-    {
-        logger->log_warn("Missing parameter: loop3_rate.  Not running loop3 code.");
-        run_loop3 = false;
-    }
-    else 
-    { 
-        last_loop3_timer = ros::Time::now();
-        run_loop3 = true; 
-        if(loop3_rate > max_rate) { max_rate = loop3_rate; }
-    }
-    ros_rate = max_rate * 50.0;
-    if(ros_rate < 100.0) { ros_rate = 100.0; }
-    char tempstr[512];
-    sprintf(tempstr,"Running Node at Rate: %f",ros_rate);
-    logger->log_notice(std::string(tempstr));
-    //End Template Code: Initialization and Parameters
+	std::string firmware_topic = "/" + node_name + "/firmware";
+	firmware_pub =  n->advertise<icarus_rover_v2::firmware>(firmware_topic,1);
 
-    //Start User Code: Initialization and Parameters
-	process = new MasterNodeProcess;
+	double max_rate = 0.0;
+	std::string param_loop1_rate = node_name + "/loop1_rate";
+	if(n->getParam(param_loop1_rate,loop1_rate) == false)
+	{
+		logger->log_warn("Missing parameter: loop1_rate.  Not running loop1 code.");
+		run_loop1 = false;
+	}
+	else
+	{
+		last_loop1_timer = ros::Time::now();
+		run_loop1 = true;
+		if(loop1_rate > max_rate) { max_rate = loop1_rate; }
+	}
+	std::string param_loop2_rate = node_name + "/loop2_rate";
+	if(n->getParam(param_loop2_rate,loop2_rate) == false)
+	{
+		logger->log_warn("Missing parameter: loop2_rate.  Not running loop2 code.");
+		run_loop2 = false;
+	}
+	else
+	{
+		last_loop2_timer = ros::Time::now();
+		run_loop2 = true;
+		if(loop2_rate > max_rate) { max_rate = loop2_rate; }
+	}
+
+	std::string param_loop3_rate = node_name + "/loop3_rate";
+	if(n->getParam(param_loop3_rate,loop3_rate) == false)
+	{
+		logger->log_warn("Missing parameter: loop3_rate.  Not running loop3 code.");
+		run_loop3 = false;
+	}
+	else
+	{
+		last_loop3_timer = ros::Time::now();
+		run_loop3 = true;
+		if(loop3_rate > max_rate) { max_rate = loop3_rate; }
+	}
+	ros_rate = max_rate * 50.0;
+	if(ros_rate > 100.0) { ros_rate = 100.0; }
+	char tempstr[512];
+	sprintf(tempstr,"Running Node at Rate: %4.2f",ros_rate);
+	logger->log_notice(std::string(tempstr));
+	//End Template Code: Initialization and Parameters
+
+	//Start User Code: Initialization and Parameters
+	process = new MasterNodeProcess(base_node_name,node_name);
 	diagnostic = process->init(diagnostic,std::string(hostname),"/home/robot/config/DeviceFile.xml","/home/robot/config/SystemFile.xml");
-    if(diagnostic.Level > NOTICE)
-    {
-        logger->log_diagnostic(diagnostic);
-        printf("[%s] ERROR: %s\n",node_name.c_str(),diagnostic.Description.c_str());
-        return false;
-    }
+	if(diagnostic.Level > NOTICE)
+	{
+		logger->log_diagnostic(diagnostic);
+		return false;
+	}
 
-    serialmessagehandler = new SerialMessageHandler;
-    system("rosnode list -ua > /home/robot/config/AllNodeList");
-    
-    bool update_nodelist = process->update_nodelist("/home/robot/config/AllNodeList","/home/robot/config/ActiveNodes");
-    if(update_nodelist == false)
-    {
-        logger->log_error("Couldn't initialize ActiveNodeList. Exiting.\n");
-        printf("[%s]: Couldn't initialize ActiveNodeList. Exiting.\n",node_name.c_str());
-        return false;
-    }
-    device_temperature = -100.0;
-    devices_to_publish = process->get_childdevices();
-    print_deviceinfo();
+	serialmessagehandler = new SerialMessageHandler;
+	system("rosnode list -ua > /home/robot/config/AllNodeList");
+
+	bool update_nodelist = process->update_nodelist("/home/robot/config/AllNodeList","/home/robot/config/ActiveNodes");
+	if(update_nodelist == false)
+	{
+		logger->log_error("Couldn't initialize ActiveNodeList. Exiting.\n");
+		printf("[%s]: Couldn't initialize ActiveNodeList. Exiting.\n",node_name.c_str());
+		return false;
+	}
+	device_temperature = -100.0;
+	devices_to_publish = process->get_childdevices();
+	print_deviceinfo();
 
 
-    std::string srv_device_topic = "/" + node_name + "/srv_device";
-    device_srv = n->advertiseService(srv_device_topic,device_service);
-    std::string srv_connection_topic = "/" + node_name + "/srv_connection";
-    connection_srv = n->advertiseService(srv_connection_topic,connection_service);
-    std::string srv_leverarm_topic = "/" + node_name + "/srv_leverarm";
-    leverarm_srv = n->advertiseService(srv_leverarm_topic,leverarm_service);
-    diagnostic = process->set_serialportlist(find_serialports());
-    if(diagnostic.Level > NOTICE)
-    {
-        logger->log_error("Unable to find Serial Ports. Exiting.");
-        printf("[%s]: Unable to find Serial Ports. Exiting.\n",node_name.c_str());
-        return false;
-    }
+	std::string srv_device_topic = "/" + node_name + "/srv_device";
+	device_srv = n->advertiseService(srv_device_topic,device_service);
+	std::string srv_connection_topic = "/" + node_name + "/srv_connection";
+	connection_srv = n->advertiseService(srv_connection_topic,connection_service);
+	std::string srv_leverarm_topic = "/" + node_name + "/srv_leverarm";
+	leverarm_srv = n->advertiseService(srv_leverarm_topic,leverarm_service);
+	diagnostic = process->set_serialportlist(find_serialports());
+	if(diagnostic.Level > NOTICE)
+	{
+		logger->log_error("Unable to find Serial Ports. Exiting.");
+		printf("[%s]: Unable to find Serial Ports. Exiting.\n",node_name.c_str());
+		return false;
+	}
 
-    if(check_serialports() == false)
-    {
-        logger->log_error("Unable to check Serial Ports. Exiting.");
-        printf("[%s]: Unable to check Serial Ports. Exiting.\n",node_name.c_str());
-        return false;
-    }
-    else
-    {
-    	logger->log_notice("Serial Port Check Complete.");
-    	//printf("[MasterNode]: Serial Port Check Complete.\n");
-    }
+	if(check_serialports() == false)
+	{
+		logger->log_error("Unable to check Serial Ports. Exiting.");
+		printf("[%s]: Unable to check Serial Ports. Exiting.\n",node_name.c_str());
+		return false;
+	}
+	else
+	{
+		logger->log_notice("Serial Port Check Complete.");
+		//printf("[MasterNode]: Serial Port Check Complete.\n");
+	}
 	resourcemonitor = new ResourceMonitor(process->get_diagnostic(),process->get_mydevice().Architecture,process->get_mydevice().DeviceName,node_name);
-    process->set_initialized(true);
+	process->set_initialized(true);
 
-    std::string device_resourceavail_topic = "/" + process->get_mydevice().DeviceName + "/resource_available";
+	std::string device_resourceavail_topic = "/" + process->get_mydevice().DeviceName + "/resource_available";
 	device_resourceavail_pub = n->advertise<icarus_rover_v2::resource>(device_resourceavail_topic,5);
-    //Finish User Code: Initialization and Parameters
+	//Finish User Code: Initialization and Parameters
 
-    //Start Template Code: Final Initialization.
+	//Start Template Code: Final Initialization.
 	diagnostic.Diagnostic_Type = NOERROR;
 	diagnostic.Level = INFO;
 	diagnostic.Diagnostic_Message = NOERROR;
 	diagnostic.Description = "Node Initialized";
 	process->set_diagnostic(diagnostic);
 	diagnostic_pub.publish(diagnostic);
-    logger->log_info("Initialized!");
-    return true;
-    //End Template Code: Finish Initialization.
+	logger->log_info("Initialized!");
+	return true;
+	//End Template Code: Finish Initialization.
 }
 //Start Template Code: Functions
 double measure_time_diff(ros::Time timer_a, ros::Time timer_b)

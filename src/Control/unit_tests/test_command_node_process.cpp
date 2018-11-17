@@ -38,7 +38,7 @@ CommandNodeProcess* initializeprocess()
     device.Architecture = "x86_64";
 
 	CommandNodeProcess* process;
-	process = new CommandNodeProcess;
+	process = new CommandNodeProcess("command_node",Node_Name);
 	diagnostic = process->init(diagnostic,std::string(Host_Name));
     EXPECT_TRUE(diagnostic.Level <= NOTICE);
     EXPECT_TRUE(process->get_initialized() == false);
@@ -101,7 +101,6 @@ TEST(PeriodicCommands,TestA)
 	EXPECT_TRUE(process->get_runtime() >= time_to_run);
 	EXPECT_TRUE(level1_counter == ((int)time_to_run*10)-1);
 	EXPECT_TRUE(level2_counter == ((int)time_to_run));
-	EXPECT_TRUE(level3_counter == ((int)time_to_run/10));
 }
 
 TEST(ArmDisarm,TestA)
@@ -134,31 +133,28 @@ TEST(ArmDisarm,TestA)
 	EXPECT_TRUE(process->get_ReadyToArmList().size() > 0);
 	for(int i = 0; i < ready_to_arm_topics.size(); i++)
 	{
-		diagnostic = process->new_readytoarmmsg(ready_to_arm_topics.at(i),false);
-		EXPECT_TRUE(diagnostic.Level > NOTICE);
+		process->new_readytoarmmsg(ready_to_arm_topics.at(i),false);
 		diagnostic = process->update(1.0/(FAST_RATE*1000.0));
 		EXPECT_TRUE(diagnostic.Level <= NOTICE);
 		EXPECT_EQ(process->get_armeddisarmed_state(),ARMEDSTATUS_DISARMED_CANNOTARM);
 	}
 	for(int i = 0; i < (ready_to_arm_topics.size()-1); i++)
 	{
-		diagnostic = process->new_readytoarmmsg(ready_to_arm_topics.at(i),true);
-		EXPECT_TRUE(diagnostic.Level > NOTICE);
+		process->new_readytoarmmsg(ready_to_arm_topics.at(i),true);
 		diagnostic = process->update(1.0/(FAST_RATE*1000.0));
 		EXPECT_TRUE(diagnostic.Level <= NOTICE);
 		EXPECT_EQ(process->get_armeddisarmed_state(),ARMEDSTATUS_DISARMED_CANNOTARM);
 	}
-	diagnostic = process->new_readytoarmmsg(ready_to_arm_topics.at(ready_to_arm_topics.size()-1),true);
-	EXPECT_TRUE(diagnostic.Level <= NOTICE);
+	process->new_readytoarmmsg(ready_to_arm_topics.at(ready_to_arm_topics.size()-1),true);
 	diagnostic = process->update(1.0/(FAST_RATE*1000.0));
 	EXPECT_EQ(process->get_armeddisarmed_state(),ARMEDSTATUS_DISARMED);
-	diagnostic = process->new_readytoarmmsg(ready_to_arm_topics.at(0),false);
-	EXPECT_TRUE(diagnostic.Level > NOTICE);
+	process->new_readytoarmmsg(ready_to_arm_topics.at(0),false);
 	diagnostic = process->update(1.0/(FAST_RATE*1000.0));
     EXPECT_TRUE(diagnostic.Level <= NOTICE);
 	EXPECT_EQ(process->get_armeddisarmed_state(),ARMEDSTATUS_DISARMED_CANNOTARM);
-	diagnostic = process->new_readytoarmmsg(ready_to_arm_topics.at(0),true);
-	EXPECT_TRUE(diagnostic.Level <= NOTICE);
+
+
+	process->new_readytoarmmsg(ready_to_arm_topics.at(0),true);
 	diagnostic = process->update(1.0/(FAST_RATE*1000.0));
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 	EXPECT_EQ(process->get_armeddisarmed_state(),ARMEDSTATUS_DISARMED);

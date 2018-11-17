@@ -58,10 +58,12 @@ public:
 		icarus_rover_v2::diagnostic diag;
 	};
 
-	DiagnosticNodeProcess();
+	DiagnosticNodeProcess(std::string _base_node_name,std::string _node_name);
 	~DiagnosticNodeProcess();
 	icarus_rover_v2::diagnostic init(icarus_rover_v2::diagnostic indiag,std::string hostname);
-    void no_connectedlcd()
+	std::string get_basenodename() { return base_node_name; }
+	std::string get_nodename() { return node_name; }    
+void no_connectedlcd()
     {
         lcd_available = false;
     }
@@ -101,7 +103,11 @@ public:
     
 private:
 	//DiagnosticClass diagclass;
+	std::string base_node_name;
+	std::string node_name;
+	bool unittest_running;
 	std::vector<icarus_rover_v2::diagnostic> check_program_variables();
+	std::vector<icarus_rover_v2::diagnostic> run_unittest();
 
     std::string get_batterylevelstr(double v);
     unsigned char get_lcdclockchar(int v);
@@ -124,7 +130,6 @@ private:
 	int RAM_usage_threshold_MB;
 	int CPU_usage_threshold_percent;
 	bool ready_to_arm;
-	std::string node_name;
 
 	double last_1pps_timer;
 	double last_01pps_timer;

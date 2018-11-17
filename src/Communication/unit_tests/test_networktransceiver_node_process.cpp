@@ -1,10 +1,11 @@
 #include <gtest/gtest.h>
+
+#include "../networktransceiver_node_process.h"
 #include "ros/ros.h"
 #include "ros/time.h"
 #include "icarus_rover_v2/command.h"
 #include "icarus_rover_v2/device.h"
 #include "icarus_rover_v2/diagnostic.h"
-#include "../network_transceiver_node_process.h"
 
 std::string Node_Name = "/unittest_networktransceiver_node_process";
 std::string Host_Name = "unittest";
@@ -33,7 +34,7 @@ NetworkTransceiverNodeProcess* initializeprocess()
 	device.Architecture = "x86_64";
 
 	NetworkTransceiverNodeProcess *process;
-	process = new NetworkTransceiverNodeProcess;
+	process = new NetworkTransceiverNodeProcess("networktransceiver_node",Node_Name);
 	diagnostic = process->init(diagnostic,std::string(Host_Name));
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 	EXPECT_TRUE(process->get_initialized() == false);
@@ -93,7 +94,7 @@ TEST(StressTest,RemoteHeartbeat)
 		if(fastrate_fire == true)
 		{
 			process->new_remoteheartbeatmsg(current_time,"Remote1",current_time,current_time+.01);
-			cmd.Option1 = LEVEL3;
+			cmd.Option1 = LEVEL1;
 			std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(cmd);
 			for(std::size_t i = 0; i < diaglist.size(); i++)
 			{
@@ -112,16 +113,6 @@ TEST(StressTest,RemoteHeartbeat)
 			}
 			EXPECT_TRUE(diaglist.size() > 0);
 
-		}
-		if(slowrate_fire == true)
-		{
-			cmd.Option1 = LEVEL1;
-			std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(cmd);
-			for(std::size_t i = 0; i < diaglist.size(); i++)
-			{
-				EXPECT_TRUE(diaglist.at(i).Level <= NOTICE);
-			}
-			EXPECT_TRUE(diaglist.size() > 0);
 		}
 		current_time += dt;
 	}
@@ -167,7 +158,7 @@ TEST(Template,Process_Command)
 		if(fastrate_fire == true)
 		{
 			process->new_remoteheartbeatmsg(current_time,"Remote1",current_time,current_time+.01);
-			cmd.Option1 = LEVEL3;
+			cmd.Option1 = LEVEL1;
 			std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(cmd);
 			for(std::size_t i = 0; i < diaglist.size(); i++)
 			{
@@ -186,16 +177,6 @@ TEST(Template,Process_Command)
 			}
 			EXPECT_TRUE(diaglist.size() > 0);
 
-		}
-		if(slowrate_fire == true)
-		{
-			cmd.Option1 = LEVEL1;
-			std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(cmd);
-			for(std::size_t i = 0; i < diaglist.size(); i++)
-			{
-				EXPECT_TRUE(diaglist.at(i).Level <= NOTICE);
-			}
-			EXPECT_TRUE(diaglist.size() > 0);
 		}
 		current_time += dt;
 	}
