@@ -9,7 +9,12 @@
  */
 bool run_loop1_code()
 {
-	icarus_rover_v2::diagnostic diagnostic = process->update(1.0/(double)loop1_rate);
+	icarus_rover_v2::diagnostic diag = process->update(1.0/(double)loop1_rate);
+	if(diag.Level > WARN)
+	{
+		diagnostic_pub.publish(diag);
+		logger->log_diagnostic(diag);
+	}
 	bool process_ready = process->is_ready();
 	if(process_ready == true)
 	{
@@ -24,21 +29,24 @@ bool run_loop1_code()
 				int status = ServoHats.at(i).init(ServoHats_ids.at(i));
 				if(status < 0)
 				{
-					diagnostic.Diagnostic_Type = COMMUNICATIONS;
-					diagnostic.Level = ERROR;
-					diagnostic.Diagnostic_Message = INITIALIZING_ERROR;
+					diag.Diagnostic_Type = COMMUNICATIONS;
+					diag.Level = ERROR;
+					diag.Diagnostic_Message = INITIALIZING_ERROR;
 					char tempstr[512];
 					sprintf(tempstr,"Unable to Start ServoHat at Address: %d",ServoHats_ids.at(i));
-					diagnostic.Description = std::string(tempstr);
-					process->set_diagnostic(diagnostic);
-					diagnostic_pub.publish(diagnostic);
-					logger->log_diagnostic(diagnostic);
-					printf("[%s]: %s\n",node_name.c_str(),tempstr);
+					diag.Description = std::string(tempstr);
+					process->set_diagnostic(diag);
+					diagnostic_pub.publish(diag);
+					logger->log_diagnostic(diag);
 					return false;
 				}
-				diagnostic = process->set_hat_running("ServoHat",ServoHats_ids.at(i));
-				logger->log_diagnostic(diagnostic);
-				if(diagnostic.Level > INFO) { diagnostic_pub.publish(diagnostic); }
+				diag = process->set_hat_running("ServoHat",ServoHats_ids.at(i));
+
+				if(diag.Level > NOTICE)
+				{
+					diagnostic_pub.publish(diag);
+					logger->log_diagnostic(diag);
+				}
 			}
 			else
 			{
@@ -52,13 +60,13 @@ bool run_loop1_code()
 				}
 				else
 				{
-					diagnostic.Diagnostic_Type = SOFTWARE;
-					diagnostic.Level = ERROR;
-					diagnostic.Diagnostic_Message = DIAGNOSTIC_FAILED;
+					diag.Diagnostic_Type = SOFTWARE;
+					diag.Level = ERROR;
+					diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
 					char tempstr[512];
 					sprintf(tempstr,"Trying to Set ServoHat Address: %d but got: %d",ServoHats_ids.at(i),ServoHats.at(i).get_address());
-					diagnostic.Description = std::string(tempstr);
-					logger->log_diagnostic(diagnostic);
+					diag.Description = std::string(tempstr);
+					logger->log_diagnostic(diag);
 				}
 			}
 
@@ -74,22 +82,23 @@ bool run_loop1_code()
 				int status = GPIOHats.at(i).init(GPIOHats_ids.at(i));
 				if(status < 0)
 				{
-					diagnostic.Diagnostic_Type = COMMUNICATIONS;
-					diagnostic.Level = ERROR;
-					diagnostic.Diagnostic_Message = INITIALIZING_ERROR;
+					diag.Diagnostic_Type = COMMUNICATIONS;
+					diag.Level = ERROR;
+					diag.Diagnostic_Message = INITIALIZING_ERROR;
 					char tempstr[512];
 					sprintf(tempstr,"Unable to Start GPIOHat at Address: %d",GPIOHats_ids.at(i));
-					diagnostic.Description = std::string(tempstr);
-					process->set_diagnostic(diagnostic);
-					diagnostic_pub.publish(diagnostic);
-					logger->log_diagnostic(diagnostic);
-					printf("[%s]: %s\n",node_name.c_str(),tempstr);
+					diag.Description = std::string(tempstr);
+					process->set_diagnostic(diag);
+					diagnostic_pub.publish(diag);
+					logger->log_diagnostic(diag);
 					return false;
 				}
-				diagnostic = process->set_hat_running("GPIOHat",GPIOHats_ids.at(i));
-
-				logger->log_diagnostic(diagnostic);
-				if(diagnostic.Level > INFO) { diagnostic_pub.publish(diagnostic); }
+				diag = process->set_hat_running("GPIOHat",GPIOHats_ids.at(i));
+				if(diag.Level > NOTICE)
+				{
+					diagnostic_pub.publish(diag);
+					logger->log_diagnostic(diag);
+				}
 			}
 			else
 			{
@@ -100,13 +109,13 @@ bool run_loop1_code()
 				}
 				else
 				{
-					diagnostic.Diagnostic_Type = SOFTWARE;
-					diagnostic.Level = ERROR;
-					diagnostic.Diagnostic_Message = DIAGNOSTIC_FAILED;
+					diag.Diagnostic_Type = SOFTWARE;
+					diag.Level = ERROR;
+					diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
 					char tempstr[512];
 					sprintf(tempstr,"Trying to Set GPIOHat Address: %d but got: %d",GPIOHats_ids.at(i),GPIOHats.at(i).get_address());
-					diagnostic.Description = std::string(tempstr);
-					logger->log_diagnostic(diagnostic);
+					diag.Description = std::string(tempstr);
+					logger->log_diagnostic(diag);
 				}
 			}
 
@@ -122,23 +131,22 @@ bool run_loop1_code()
 					if(TerminalHat.configure_pin(pins.at(i).Number,pins.at(i).Function) == false)
 					{
 						any_error = true;
-						diagnostic.Diagnostic_Type = SOFTWARE;
-						diagnostic.Level = ERROR;
-						diagnostic.Diagnostic_Message = INITIALIZING_ERROR;
+						diag.Diagnostic_Type = SOFTWARE;
+						diag.Level = ERROR;
+						diag.Diagnostic_Message = INITIALIZING_ERROR;
 						char tempstr[512];
 						sprintf(tempstr,"[TerminalHat] Could not configure Pin: %d with Function: %s",pins.at(i).Number,pins.at(i).Function.c_str());
-						diagnostic.Description = std::string(tempstr);
-						process->set_diagnostic(diagnostic);
-						printf("%s\n",tempstr);
+						diag.Description = std::string(tempstr);
+						process->set_diagnostic(diag);
 						logger->log_error(std::string(tempstr));
 						kill_node = 1;
 					}
 				}
 				if(any_error == false)
 				{
-					diagnostic = process->set_hat_running("TerminalHat",0);
-					logger->log_diagnostic(diagnostic);
-					if(diagnostic.Level > INFO) { diagnostic_pub.publish(diagnostic); }
+					diag = process->set_hat_running("TerminalHat",0);
+					logger->log_diagnostic(diag);
+					if(diag.Level > NOTICE) { diagnostic_pub.publish(diag); }
 				}
 			}
 
@@ -152,30 +160,32 @@ bool run_loop1_code()
 				if(TerminalHat.configure_pin(pins.at(i).Number,pins.at(i).Function) == false)
 				{
 					any_error = true;
-					diagnostic.Diagnostic_Type = SOFTWARE;
-					diagnostic.Level = ERROR;
-					diagnostic.Diagnostic_Message = INITIALIZING_ERROR;
+					diag.Diagnostic_Type = SOFTWARE;
+					diag.Level = ERROR;
+					diag.Diagnostic_Message = INITIALIZING_ERROR;
 					char tempstr[512];
 					sprintf(tempstr,"[TerminalHat] Could not configure Pin: %d with Function: %s",pins.at(i).Number,pins.at(i).Function.c_str());
-					diagnostic.Description = std::string(tempstr);
-					process->set_diagnostic(diagnostic);
-					printf("%s\n",tempstr);
+					diag.Description = std::string(tempstr);
+					process->set_diagnostic(diag);
 					logger->log_error(std::string(tempstr));
 					kill_node = 1;
 				}
 			}
 			if(any_error == false)
 			{
-				diagnostic = process->set_hat_running("TerminalHat",0);
-				logger->log_diagnostic(diagnostic);
-				if(diagnostic.Level > INFO) { diagnostic_pub.publish(diagnostic); }
+
+				if(diag.Level > NOTICE)
+				{
+					diagnostic_pub.publish(diag);
+					logger->log_diagnostic(diag);
+				}
 			}
 		}
 	}
-	if(diagnostic.Level > INFO)
+	if(diag.Level > NOTICE)
 	{
-		diagnostic_pub.publish(diagnostic);
-		logger->log_diagnostic(diagnostic);
+		diagnostic_pub.publish(diag);
+		logger->log_diagnostic(diag);
 	}
 	return true;
 }
@@ -241,7 +251,6 @@ bool run_loop2_code()
 						sprintf(tempstr,"[TerminalHat] Could not read Pin: %s:%d with Function: %s",pins.at(i).Name.c_str(),pins.at(i).Number,pins.at(i).Function.c_str());
 						diag.Description = std::string(tempstr);
 						process->set_diagnostic(diag);
-						printf("%s\n",tempstr);
 						logger->log_error(std::string(tempstr));
 						kill_node = 1;
 					}
@@ -262,7 +271,6 @@ bool run_loop2_code()
 						sprintf(tempstr,"[TerminalHat] Could not set Pin: %s:%d with Function: %s",pins.at(i).Name.c_str(),pins.at(i).Number,pins.at(i).Function.c_str());
 						diag.Description = std::string(tempstr);
 						process->set_diagnostic(diag);
-						printf("%s\n",tempstr);
 						logger->log_error(std::string(tempstr));
 						kill_node = 1;
 					}
@@ -298,10 +306,12 @@ bool run_loop3_code()
 }
 void ArmedState_Callback(const std_msgs::UInt8::ConstPtr& msg)
 {
-	icarus_rover_v2::diagnostic diagnostic = process->new_armedstatemsg((uint8_t)msg->data);
-	if(diagnostic.Level > NOTICE)
+	icarus_rover_v2::diagnostic diag = process->new_armedstatemsg((uint8_t)msg->data);
+	if(diag.Level > NOTICE)
 	{
-		diagnostic_pub.publish(diagnostic);
+		diagnostic_pub.publish(diag);
+		logger->log_diagnostic(diag);
+
 	}
 }
 /*! \brief 0.1 PULSE PER SECOND User Code
@@ -309,14 +319,14 @@ void ArmedState_Callback(const std_msgs::UInt8::ConstPtr& msg)
 void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
 	icarus_rover_v2::firmware fw;
-	fw.Generic_Node_Name = "hatcontroller_node";
-	fw.Node_Name = node_name;
+	fw.Generic_Node_Name = process->get_basenodename();
+	fw.Node_Name = process->get_nodename();
 	fw.Description = "Latest Rev: 22-August-2018";
 	fw.Major_Release = HATCONTROLLERNODE_MAJOR_RELEASE;
 	fw.Minor_Release = HATCONTROLLERNODE_MINOR_RELEASE;
 	fw.Build_Number = HATCONTROLLERNODE_BUILD_NUMBER;
 	firmware_pub.publish(fw);
-	printf("t=%4.2f (sec) [%s]: %s\n",ros::Time::now().toSec(),node_name.c_str(),process->get_diagnostic().Description.c_str());
+	logger->log_diagnostic(process->get_diagnostic());
 }
 void DigitalOutput_Callback(const icarus_rover_v2::pin::ConstPtr& msg)
 {
@@ -366,6 +376,12 @@ void PwmOutput_Callback(const icarus_rover_v2::pin::ConstPtr& msg)
  */
 void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
+	icarus_rover_v2::diagnostic diag = process->get_diagnostic();
+	if(diag.Level >= NOTICE)
+	{
+		diagnostic_pub.publish(diag);
+		logger->log_diagnostic(diag);
+	}
 	if(process->get_analyzetiming() == true)
 	{
 		char tempstr[512];
@@ -383,7 +399,7 @@ void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 		if(resource_diagnostic.Diagnostic_Message == DEVICE_NOT_AVAILABLE)
 		{
 			diagnostic_pub.publish(resource_diagnostic);
-			logger->log_warn("Couldn't read resources used.");
+			logger->log_diagnostic(resource_diagnostic);
 		}
 		else if(resource_diagnostic.Level >= WARN)
 		{
@@ -456,7 +472,6 @@ void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 	else
 	{
 	}
-	diagnostic_pub.publish(process->get_diagnostic());
 }
 void Command_Callback(const icarus_rover_v2::command::ConstPtr& msg)
 {
@@ -468,16 +483,21 @@ void Command_Callback(const icarus_rover_v2::command::ConstPtr& msg)
 	command.CommandText = msg->CommandText;
 	command.Description = msg->Description;
 	std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(command);
-	for(std::size_t i = 0; i < diaglist.size(); i++)
+	if((command.Option1 >= LEVEL3) and (diaglist.size() == 1) and (diaglist.at(0).Diagnostic_Message == DIAGNOSTIC_PASSED))
 	{
-		if(diaglist.at(i).Level >= NOTICE)
+		logger->log_diagnostic(diaglist.at(0));
+		diagnostic_pub.publish(diaglist.at(0));
+
+	}
+	else
+	{
+		for(std::size_t i = 0; i < diaglist.size(); i++)
 		{
-			logger->log_diagnostic(diaglist.at(i));
-			diagnostic_pub.publish(diaglist.at(i));
-		}
-		if((diaglist.at(i).Level > NOTICE) and (process->get_runtime() > 10.0))
-		{
-			printf("[%s]: %s\n",node_name.c_str(),diaglist.at(i).Description.c_str());
+			if(diaglist.at(i).Level > NOTICE)
+			{
+				logger->log_diagnostic(diaglist.at(i));
+				diagnostic_pub.publish(diaglist.at(i));
+			}
 		}
 	}
 }
@@ -495,8 +515,8 @@ bool run_10Hz_code()
 }
 int main(int argc, char **argv)
 {
-	node_name = "hatcontroller_node";
-	ros::init(argc, argv, node_name);
+	base_node_name = "hatcontroller_node";
+	ros::init(argc, argv, base_node_name);
 	n.reset(new ros::NodeHandle);
 	node_name = ros::this_node::getName();
 	ros::NodeHandle n;
@@ -505,7 +525,6 @@ int main(int argc, char **argv)
 	{
 		char tempstr[256];
 		sprintf(tempstr,"Unable to Initialize. Exiting.");
-		printf("[%s]: %s\n",node_name.c_str(),tempstr);
 		logger->log_fatal(tempstr);
 		kill_node = 1;
 	}
@@ -543,7 +562,7 @@ int main(int argc, char **argv)
 				mtime = measure_time_diff(ros::Time::now(),last_loop3_timer);
 				if(mtime >= (1.0/loop3_rate))
 				{
-					//run_loop3_code();
+					run_loop3_code();
 					last_loop3_timer = ros::Time::now();
 				}
 			}
@@ -610,7 +629,6 @@ bool initializenode()
 		if(disable_node == true)
 		{
 			logger->log_notice("Node Disabled in Launch File.  Exiting.");
-			printf("[%s]: Node Disabled in Launch File. Exiting.\n",node_name.c_str());
 			return false;
 		}
 	}
@@ -631,7 +649,6 @@ bool initializenode()
 		sprintf(tempstr,"Using Parameter: startup_delay = %4.2f sec.",startup_delay);
 		logger->log_notice(std::string(tempstr));
 	}
-	printf("[%s] Using Parameter: startup_delay = %4.2f sec.\n",node_name.c_str(),startup_delay);
 	ros::Duration(startup_delay).sleep();
 
 	std::string device_topic = "/" + std::string(hostname) + "_master_node/srv_device";
@@ -689,14 +706,14 @@ bool initializenode()
 		if(loop3_rate > max_rate) { max_rate = loop3_rate; }
 	}
 	ros_rate = max_rate * 50.0;
-	if(ros_rate < 100.0) { ros_rate = 100.0; }
+	if(ros_rate > 100.0) { ros_rate = 100.0; }
 	char tempstr[512];
-	sprintf(tempstr,"Running Node at Rate: %f",ros_rate);
+	sprintf(tempstr,"Running Node at Rate: %4.2f",ros_rate);
 	logger->log_notice(std::string(tempstr));
 	//End Template Code: Initialization and Parameters
 
 	//Start User Code: Initialization and Parameters
-	process = new HatControllerNodeProcess;
+	process = new HatControllerNodeProcess(base_node_name,node_name);
 	std::string sensor_spec_path;
 	std::string armed_state_topic = "/armed_state";
 	armed_state_sub = n->subscribe<std_msgs::UInt8>(armed_state_topic,1,ArmedState_Callback);
@@ -706,7 +723,6 @@ bool initializenode()
 	if(diagnostic.Level > NOTICE)
 	{
 		logger->log_fatal(diagnostic.Description);
-		printf("[%s]: %s\n",node_name.c_str(),diagnostic.Description.c_str());
 		return false;
 	}
 	std::string param_analyze_timing = node_name + "/analyze_timing";
@@ -840,6 +856,7 @@ bool new_devicemsg(std::string query,icarus_rover_v2::device device)
 }
 void signalinterrupt_handler(int sig)
 {
+	exit(0);
 	kill_node = 1;
 }
 //End Template Code: Functions

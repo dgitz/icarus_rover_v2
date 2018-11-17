@@ -27,7 +27,6 @@
 //End User Code: Defines
 
 //Start User Code: Includes
-#include "network_transceiver_node_process.h"
 #include "sensor_msgs/Joy.h"
 #include "std_msgs/UInt8.h"
 #include <icarus_rover_v2/controlgroup.h>
@@ -42,6 +41,8 @@
 #include <string>
 #include <boost/thread.hpp>
 #include <sys/time.h>
+
+#include "networktransceiver_node_process.h"
 #define RECV_BUFFERSIZE 2048
 //End User Code: Includes
 
@@ -77,6 +78,7 @@ void device_callback(std::vector<icarus_rover_v2::device> devicelist);
 //Start Template Code: Define Global variables
 boost::shared_ptr<ros::NodeHandle> n;
 ros::ServiceClient srv_device;
+std::string base_node_name;
 std::string node_name;
 std::string verbosity_level;
 ros::Subscriber pps01_sub;

@@ -360,12 +360,6 @@ icarus_rover_v2::diagnostic ResourceMonitor::update()
 		}
 		if(increasing == true)
 		{
-			if(d_ramused_kb > 1)
-			{
-				printf("Task: %s has a Memory leak! of approx: %d kB per sample\n",
-						Task_Name.c_str(),
-						d_ramused_kb);
-			}
 			if((d_ramused_kb > 10) && (d_ramused_kb <= 50))
 			{
 				diagnostic.Level = WARN;

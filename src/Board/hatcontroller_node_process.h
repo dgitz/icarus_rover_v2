@@ -50,7 +50,9 @@ public:
 		double max_outputvalue;
 	};
 
-	HatControllerNodeProcess();
+	HatControllerNodeProcess(std::string _base_node_name,std::string _node_name);
+	std::string get_basenodename() { return base_node_name; }
+	std::string get_nodename() { return node_name; }
 	~HatControllerNodeProcess();    
 	icarus_rover_v2::diagnostic init(icarus_rover_v2::diagnostic indiag,std::string hostname);
 	icarus_rover_v2::diagnostic update(double dt);
@@ -103,7 +105,11 @@ public:
 
 protected:
 private:
-	std::vector<icarus_rover_v2::diagnostic> check_program_variables();
+	std::string base_node_name;
+	std::string node_name;
+	bool unittest_running;
+    std::vector<icarus_rover_v2::diagnostic> check_program_variables();
+    std::vector<icarus_rover_v2::diagnostic> run_unittest();
 	void init_messages();
 	std::string map_PinFunction_ToString(int function);
 	double map_input_to_output(double input_value,double min_input,double max_input,double min_output,double max_output);

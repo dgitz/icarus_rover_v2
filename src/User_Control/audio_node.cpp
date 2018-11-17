@@ -21,7 +21,7 @@ bool run_loop1_code()
 bool run_loop2_code()
 {
 	icarus_rover_v2::diagnostic diag = process->update(ros::Time::now().toSec(),measure_time_diff(ros::Time::now(),last_loop2_timer));
-	if(diag.Level >= WARN)
+	if(diag.Level >= NOTICE)
 	{
 		diagnostic_pub.publish(diag);
 		logger->log_diagnostic(diag);
@@ -39,14 +39,14 @@ bool run_loop3_code()
 void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
 	icarus_rover_v2::firmware fw;
-	fw.Generic_Node_Name = "audio_node";
-	fw.Node_Name = node_name;
+	fw.Generic_Node_Name = process->get_basenodename();
+	fw.Node_Name = process->get_nodename();
 	fw.Description = "Latest Rev: 17-September-2018";
 	fw.Major_Release = AUDIONODE_MAJOR_RELEASE;
 	fw.Minor_Release = AUDIONODE_MINOR_RELEASE;
 	fw.Build_Number = AUDIONODE_BUILD_NUMBER;
 	firmware_pub.publish(fw);
-	printf("t=%4.2f (sec) [%s]: %s\n",ros::Time::now().toSec(),node_name.c_str(),process->get_diagnostic().Description.c_str());
+	logger->log_diagnostic(process->get_diagnostic());
 }
 /*! \brief 1.0 PULSE PER SECOND User Code
  */
@@ -59,7 +59,7 @@ void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 		if(resource_diagnostic.Diagnostic_Message == DEVICE_NOT_AVAILABLE)
 		{
 			diagnostic_pub.publish(resource_diagnostic);
-			logger->log_warn("Couldn't read resources used.");
+			logger->log_diagnostic(resource_diagnostic);
 		}
 		else if(resource_diagnostic.Level >= WARN)
 		{
@@ -117,7 +117,6 @@ void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 			}
     	}
     }
-    diagnostic_pub.publish(process->get_diagnostic());
 }
 void Command_Callback(const icarus_rover_v2::command::ConstPtr& msg)
 {
@@ -129,17 +128,21 @@ void Command_Callback(const icarus_rover_v2::command::ConstPtr& msg)
 	command.CommandText = msg->CommandText;
 	command.Description = msg->Description;
 	std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(command);
-	for(std::size_t i = 0; i < diaglist.size(); i++)
+	if((command.Option1 >= LEVEL3) and (diaglist.size() == 1) and (diaglist.at(0).Diagnostic_Message == DIAGNOSTIC_PASSED))
 	{
-		if(diaglist.at(i).Level >= NOTICE)
-        {
-            logger->log_diagnostic(diaglist.at(i));
-            diagnostic_pub.publish(diaglist.at(i));
-        }
-        if((diaglist.at(i).Level > NOTICE) and (process->get_runtime() > 10.0))
-        {
-            printf("[%s]: %s\n",node_name.c_str(),diaglist.at(i).Description.c_str());
-        }
+		logger->log_diagnostic(diaglist.at(0));
+		diagnostic_pub.publish(diaglist.at(0));
+	}
+	else
+	{
+		for(std::size_t i = 0; i < diaglist.size(); i++)
+		{
+			if(diaglist.at(i).Level > NOTICE)
+			{
+				logger->log_diagnostic(diaglist.at(i));
+				diagnostic_pub.publish(diaglist.at(i));
+			}
+		}
 	}
 }
 void ArmedState_Callback(const std_msgs::UInt8::ConstPtr& msg)
@@ -163,8 +166,8 @@ bool run_10Hz_code()
 }
 int main(int argc, char **argv)
 {
-	node_name = "audio_node";
-    ros::init(argc, argv, node_name);
+	base_node_name = "audio_node";
+    ros::init(argc, argv, base_node_name);
     n.reset(new ros::NodeHandle);
     node_name = ros::this_node::getName();
     ros::NodeHandle n;
@@ -173,7 +176,6 @@ int main(int argc, char **argv)
     {
         char tempstr[256];
         sprintf(tempstr,"Unable to Initialize. Exiting.");
-        printf("[%s]: %s\n",node_name.c_str(),tempstr);
         logger->log_fatal(tempstr);
 		kill_node = 1;
     }
@@ -247,7 +249,7 @@ bool initializenode()
 	diagnostic.Node_Name = node_name;
 	diagnostic.System = ROVER;
 	diagnostic.SubSystem = ROBOT_CONTROLLER;
-	diagnostic.Component = TIMING_NODE;
+	diagnostic.Component = DIAGNOSTIC_NODE;
 
 	diagnostic.Diagnostic_Type = NOERROR;
 	diagnostic.Level = INFO;
@@ -355,20 +357,19 @@ bool initializenode()
         if(loop3_rate > max_rate) { max_rate = loop3_rate; }
     }
     ros_rate = max_rate * 50.0;
-    if(ros_rate < 100.0) { ros_rate = 100.0; }
+    if(ros_rate > 100.0) { ros_rate = 100.0; }
     char tempstr[512];
-    sprintf(tempstr,"Running Node at Rate: %f",ros_rate);
+    sprintf(tempstr,"Running Node at Rate: %4.2fHz",ros_rate);
     logger->log_notice(std::string(tempstr));
     //End Template Code: Initialization and Parameters
 
     //Start User Code: Initialization and Parameters
-    process = new AudioNodeProcess;
+    process = new AudioNodeProcess(base_node_name,node_name);
     
 	diagnostic = process->init(diagnostic,std::string(hostname));
 	if(diagnostic.Level > NOTICE)
 	{
 		logger->log_fatal(diagnostic.Description);
-		printf("[%s]: %s\n",node_name.c_str(),diagnostic.Description.c_str());
 		return false;
 	}
 	std::string param_audiostage_dir = node_name + "/audiostage_directory";
@@ -380,14 +381,16 @@ bool initializenode()
 	}
 	if(process->set_audiostoragedirectory(audiostage_dir) == false)
 	{
-		printf("Can't Set: %s. Exiting.\n",audiostage_dir.c_str());
+		char tempstr[512];
+		sprintf(tempstr,"Can't Set Audio Storage Dir: %s. Exiting.",audiostage_dir.c_str());
+		logger->log_fatal(tempstr);
 	}
 
 	std::string param_volume = node_name + "/volume_perc";
 	double volume;
 	if(n->getParam(param_volume,volume) == false)
 	{
-		logger->log_error("Missing parameter: volume_perc.  Exiting.");
+		logger->log_fatal("Missing parameter: volume_perc.  Exiting.");
 		return false;
 	}
 	process->set_volume(volume);
@@ -456,7 +459,6 @@ bool new_devicemsg(std::string query,icarus_rover_v2::device device)
 void signalinterrupt_handler(int sig)
 {
 	exit(0);
-	system("sudo killall network_transceiver_node");
 	kill_node = 1;
 }
 //End Template Code: Functions

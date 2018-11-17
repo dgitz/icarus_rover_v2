@@ -45,6 +45,7 @@ public:
 private:
 	std::string base_node_name;
 	std::string node_name;
+	bool unittest_running;
     std::vector<icarus_rover_v2::diagnostic> check_program_variables();
     std::vector<icarus_rover_v2::diagnostic> run_unittest();
 	double run_time;
@@ -53,6 +54,6 @@ private:
 	std::string myhostname;
 	bool initialized;
     bool ready;
-    bool unittest_running;
+    
 };
 #endif

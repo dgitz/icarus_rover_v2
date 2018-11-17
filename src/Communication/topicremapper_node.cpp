@@ -9,12 +9,12 @@
  */
 bool run_loop1_code()
 {
-    icarus_rover_v2::diagnostic diag = process->update(1.0/(double)loop1_rate);
-    if(diag.Level > NOTICE)
-    {
-        logger->log_diagnostic(diag);
-        diagnostic_pub.publish(diag);
-    }
+	icarus_rover_v2::diagnostic diag = process->update(1.0/(double)loop1_rate);
+	if(diag.Level > WARN)
+	{
+		diagnostic_pub.publish(diag);
+		logger->log_diagnostic(diag);
+	}
 	return true;
 }
 /*! \brief User Loop2 Code
@@ -49,27 +49,27 @@ bool run_loop3_code()
 void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
 	icarus_rover_v2::firmware fw;
-	fw.Generic_Node_Name = "topicremapper_node";
-	fw.Node_Name = node_name;
+	fw.Generic_Node_Name = process->get_basenodename();
+	fw.Node_Name = process->get_nodename();
 	fw.Description = "Latest Rev: 2-January-2018";
 	fw.Major_Release = TOPICREMAPPERNODE_MAJOR_RELEASE;
 	fw.Minor_Release = TOPICREMAPPERNODE_MINOR_RELEASE;
 	fw.Build_Number = TOPICREMAPPERNODE_BUILD_NUMBER;
 	firmware_pub.publish(fw);
-	printf("t=%4.2f (sec) [%s]: %s\n",ros::Time::now().toSec(),node_name.c_str(),process->get_diagnostic().Description.c_str());
+	logger->log_diagnostic(process->get_diagnostic());
 }
 /*! \brief 1.0 PULSE PER SECOND User Code
  */
 void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
 	received_pps = true;
-    if((process->get_initialized() == true) and (process->get_ready() == true))
+	if((process->get_initialized() == true) and (process->get_ready() == true))
 	{
 		icarus_rover_v2::diagnostic resource_diagnostic = resourcemonitor->update();
 		if(resource_diagnostic.Diagnostic_Message == DEVICE_NOT_AVAILABLE)
 		{
 			diagnostic_pub.publish(resource_diagnostic);
-			logger->log_warn("Couldn't read resources used.");
+			logger->log_diagnostic(resource_diagnostic);
 		}
 		else if(resource_diagnostic.Level >= WARN)
 		{
@@ -84,13 +84,13 @@ void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 			resource_pub.publish(resources_used);
 		}
 	}
-    else if((process->get_ready() == false) and (process->get_initialized() == true))
-    {
-        
-    }
+	else if((process->get_ready() == false) and (process->get_initialized() == true))
+	{
+
+	}
 	else if(process->get_initialized() == false)
-    {
-    	{
+	{
+		{
 			icarus_rover_v2::srv_device srv;
 			srv.request.query = "SELF";
 			if(srv_device.call(srv) == true)
@@ -104,9 +104,14 @@ void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 					bool status = new_devicemsg(srv.request.query,srv.response.data.at(0));
 				}
 			}
-    	}
-    }
-    diagnostic_pub.publish(process->get_diagnostic());
+		}
+	}
+	icarus_rover_v2::diagnostic diag = process->get_diagnostic();
+	if(diag.Level >= NOTICE)
+	{
+		diagnostic_pub.publish(diag);
+		logger->log_diagnostic(diag);
+	}
 }
 void Joystick_Callback(const sensor_msgs::Joy::ConstPtr& msg,const std::string &topic)
 {
@@ -139,35 +144,40 @@ void Command_Callback(const icarus_rover_v2::command::ConstPtr& msg)
 	command.CommandText = msg->CommandText;
 	command.Description = msg->Description;
 	std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(command);
-	for(std::size_t i = 0; i < diaglist.size(); i++)
+	if((command.Option1 >= LEVEL3) and (diaglist.size() == 1) and (diaglist.at(0).Diagnostic_Message == DIAGNOSTIC_PASSED))
 	{
-		if(diaglist.at(i).Level >= NOTICE)
-        {
-            logger->log_diagnostic(diaglist.at(i));
-            diagnostic_pub.publish(diaglist.at(i));
-        }
-        if((diaglist.at(i).Level > NOTICE) and (process->get_runtime() > 10.0))
-        {
-            printf("[%s]: %s\n",node_name.c_str(),diaglist.at(i).Description.c_str());
-        }
+		logger->log_diagnostic(diaglist.at(0));
+		diagnostic_pub.publish(diaglist.at(0));
+	
+	}
+	else
+	{
+		for(std::size_t i = 0; i < diaglist.size(); i++)
+		{
+			if(diaglist.at(i).Level > NOTICE)
+			{
+				logger->log_diagnostic(diaglist.at(i));
+				diagnostic_pub.publish(diaglist.at(i));
+			}
+		}
 	}
 }
 //End User Code: Functions
 bool run_10Hz_code()
 {
-    beat.stamp = ros::Time::now();
+	beat.stamp = ros::Time::now();
 	heartbeat_pub.publish(beat);
-    if(process->get_diagnostic().Level > NOTICE)
-    {
-        diagnostic_pub.publish(process->get_diagnostic());
-        logger->log_diagnostic(process->get_diagnostic());
-    }
-    return true;
+	if(process->get_diagnostic().Level > NOTICE)
+	{
+		diagnostic_pub.publish(process->get_diagnostic());
+		logger->log_diagnostic(process->get_diagnostic());
+	}
+	return true;
 }
 int main(int argc, char **argv)
 {
-	node_name = "topicremapper_node";
-    ros::init(argc, argv, node_name);
+	base_node_name = "topicremapper_node";
+    ros::init(argc, argv, base_node_name);
     n.reset(new ros::NodeHandle);
     node_name = ros::this_node::getName();
     ros::NodeHandle n;
@@ -176,7 +186,6 @@ int main(int argc, char **argv)
     {
         char tempstr[256];
         sprintf(tempstr,"Unable to Initialize. Exiting.");
-        printf("[%s]: %s\n",node_name.c_str(),tempstr);
         logger->log_fatal(tempstr);
 		kill_node = 1;
     }
@@ -358,20 +367,19 @@ bool initializenode()
         if(loop3_rate > max_rate) { max_rate = loop3_rate; }
     }
     ros_rate = max_rate * 50.0;
-    if(ros_rate < 100.0) { ros_rate = 100.0; }
-    char tempstr[512];
-    sprintf(tempstr,"Running Node at Rate: %f",ros_rate);
-    logger->log_notice(std::string(tempstr));
+	if(ros_rate > 100.0) { ros_rate = 100.0; }
+	char tempstr[512];
+	sprintf(tempstr,"Running Node at Rate: %4.2fHz",ros_rate);
+	logger->log_notice(std::string(tempstr));
     //End Template Code: Initialization and Parameters
 
     //Start User Code: Initialization and Parameters
-    process = new TopicRemapperNodeProcess;
+    process = new TopicRemapperNodeProcess(base_node_name,node_name);
 
 	diagnostic = process->init(diagnostic,std::string(hostname));
 	if(diagnostic.Level > NOTICE)
 	{
 		logger->log_fatal(diagnostic.Description);
-		printf("[%s]: %s\n",node_name.c_str(),diagnostic.Description.c_str());
 		return false;
 	}
 
@@ -447,8 +455,8 @@ bool initializenode()
 //Start Template Code: Functions
 double measure_time_diff(ros::Time timer_a, ros::Time timer_b)
 {
-	ros::Duration etime = timer_a - timer_b;
-	return etime.toSec();
+	double etime = timer_a.toSec() - timer_b.toSec();
+	return etime;
 }
 bool new_devicemsg(std::string query,icarus_rover_v2::device device)
 {

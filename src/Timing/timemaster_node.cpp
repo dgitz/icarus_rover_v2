@@ -45,17 +45,15 @@ bool run_loop3_code()
  */
 void PPS01_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
-    logger->log_info("Node Running.");
 	icarus_rover_v2::firmware fw;
-	fw.Generic_Node_Name = "timemaster_node";
-	fw.Node_Name = node_name;
+	fw.Generic_Node_Name = process->get_basenodename();
+	fw.Node_Name = process->get_nodename();
 	fw.Description = "Latest Rev: 1-January-2018";
 	fw.Major_Release = TIMEMASTERNODE_MAJOR_RELEASE;
 	fw.Minor_Release = TIMEMASTERNODE_MINOR_RELEASE;
 	fw.Build_Number = TIMEMASTERNODE_BUILD_NUMBER;
 	firmware_pub.publish(fw);
-	printf("t=%4.2f (sec) [%s]: %s\n",ros::Time::now().toSec(),node_name.c_str(),process->get_diagnostic().Description.c_str());
-
+	logger->log_diagnostic(process->get_diagnostic());
 }
 /*! \brief 1.0 PULSE PER SECOND User Code
  */
@@ -68,7 +66,7 @@ void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 		if(resource_diagnostic.Diagnostic_Message == DEVICE_NOT_AVAILABLE)
 		{
 			diagnostic_pub.publish(resource_diagnostic);
-			logger->log_warn("Couldn't read resources used.");
+			logger->log_diagnostic(resource_diagnostic);
 		}
 		else if(resource_diagnostic.Level >= WARN)
 		{
@@ -105,7 +103,6 @@ void PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 			}
     	}
     }
-    diagnostic_pub.publish(process->get_diagnostic());
 }
 void Command_Callback(const icarus_rover_v2::command::ConstPtr& msg)
 {
@@ -117,17 +114,22 @@ void Command_Callback(const icarus_rover_v2::command::ConstPtr& msg)
 	command.CommandText = msg->CommandText;
 	command.Description = msg->Description;
 	std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(command);
-	for(std::size_t i = 0; i < diaglist.size(); i++)
+	if((command.Option1 >= LEVEL3) and (diaglist.size() == 1) and (diaglist.at(0).Diagnostic_Message == DIAGNOSTIC_PASSED))
 	{
-		if(diaglist.at(i).Level >= NOTICE)
-        {
-            logger->log_diagnostic(diaglist.at(i));
-            diagnostic_pub.publish(diaglist.at(i));
-        }
-        if((diaglist.at(i).Level > NOTICE) and (process->get_runtime() > 10.0))
-        {
-            printf("[%s]: %s\n",node_name.c_str(),diaglist.at(i).Description.c_str());
-        }
+		logger->log_diagnostic(diaglist.at(0));
+		diagnostic_pub.publish(diaglist.at(0));
+	
+	}
+	else
+	{
+		for(std::size_t i = 0; i < diaglist.size(); i++)
+		{
+			if(diaglist.at(i).Level > NOTICE)
+			{
+				logger->log_diagnostic(diaglist.at(i));
+				diagnostic_pub.publish(diaglist.at(i));
+			}
+		}
 	}
 }
 //End User Code: Functions
@@ -144,8 +146,8 @@ bool run_10Hz_code()
 }
 int main(int argc, char **argv)
 {
-	node_name = "timemaster_node";
-    ros::init(argc, argv, node_name);
+	base_node_name = "timemaster_node";
+    ros::init(argc, argv, base_node_name);
     n.reset(new ros::NodeHandle);
     node_name = ros::this_node::getName();
     ros::NodeHandle n;
@@ -154,7 +156,6 @@ int main(int argc, char **argv)
     {
         char tempstr[256];
         sprintf(tempstr,"Unable to Initialize. Exiting.");
-        printf("[%s]: %s\n",node_name.c_str(),tempstr);
         logger->log_fatal(tempstr);
 		kill_node = 1;
     }
@@ -257,7 +258,6 @@ bool initializenode()
     	if(disable_node == true)
     	{
     		logger->log_notice("Node Disabled in Launch File.  Exiting.");
-    		printf("[%s]: Node Disabled in Launch File. Exiting.\n",node_name.c_str());
     		return false;
     	}
     }
@@ -278,7 +278,6 @@ bool initializenode()
     	sprintf(tempstr,"Using Parameter: startup_delay = %4.2f sec.",startup_delay);
     	logger->log_notice(std::string(tempstr));
     }
-    printf("[%s] Using Parameter: startup_delay = %4.2f sec.\n",node_name.c_str(),startup_delay);
     ros::Duration(startup_delay).sleep();
 
     std::string device_topic = "/" + std::string(hostname) + "_master_node/srv_device";
@@ -336,19 +335,18 @@ bool initializenode()
         if(loop3_rate > max_rate) { max_rate = loop3_rate; }
     }
     ros_rate = max_rate * 50.0;
-    if(ros_rate < 100.0) { ros_rate = 100.0; }
+    if(ros_rate > 100.0) { ros_rate = 100.0; }
     char tempstr[512];
-    sprintf(tempstr,"Running Node at Rate: %f",ros_rate);
+    sprintf(tempstr,"Running Node at Rate: %4.2f",ros_rate);
     logger->log_notice(std::string(tempstr));
     //End Template Code: Initialization and Parameters
 
     //Start User Code: Initialization and Parameters
-    process = new TimeMasterNodeProcess;
+    process = new TimeMasterNodeProcess(base_node_name,node_name);
 	diagnostic = process->init(diagnostic,std::string(hostname));
 	if(diagnostic.Level > NOTICE)
 	{
 		logger->log_fatal(diagnostic.Description);
-		printf("[%s]: %s\n",node_name.c_str(),diagnostic.Description.c_str());
 		return false;
 	}
     std::string pps_source;

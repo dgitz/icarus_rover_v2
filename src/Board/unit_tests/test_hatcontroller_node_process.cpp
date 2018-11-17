@@ -36,7 +36,7 @@ HatControllerNodeProcess* initializeprocess()
 	device.Architecture = "x86_64";
 
 	HatControllerNodeProcess *process;
-	process = new HatControllerNodeProcess;
+	process = new HatControllerNodeProcess("hatcontroller_node",Node_Name);
 	diagnostic = process->init(diagnostic,std::string(Host_Name));
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 	EXPECT_TRUE(process->get_initialized() == false);
@@ -60,7 +60,7 @@ HatControllerNodeProcess* initializeprocess(icarus_rover_v2::device device)
 	diagnostic.Description = "Node Initializing";
 
 	HatControllerNodeProcess *process;
-	process = new HatControllerNodeProcess;
+	process = new HatControllerNodeProcess("hatcontroller_node",Node_Name);
 	diagnostic = process->init(diagnostic,std::string(Host_Name));
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 	EXPECT_TRUE(process->get_initialized() == false);
@@ -269,7 +269,7 @@ TEST(Template,Process_Command)
 		cmd.Command = ROVERCOMMAND_RUNDIAGNOSTIC;
 		if(fastrate_fire == true)
 		{
-			cmd.Option1 = LEVEL3;
+			cmd.Option1 = LEVEL1;
 			std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(cmd);
 			for(std::size_t i = 0; i < diaglist.size(); i++)
 			{
@@ -295,13 +295,6 @@ TEST(Template,Process_Command)
 		}
 		if(slowrate_fire == true)
 		{
-			cmd.Option1 = LEVEL1;
-			std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(cmd);
-			for(std::size_t i = 0; i < diaglist.size(); i++)
-			{
-				EXPECT_TRUE(diaglist.at(i).Level <= NOTICE);
-			}
-			EXPECT_TRUE(diaglist.size() > 0);
 		}
 		current_time += dt;
 	}

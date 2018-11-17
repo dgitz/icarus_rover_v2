@@ -44,7 +44,6 @@ SampleNodeProcess* initializeprocess()
 }
 SampleNodeProcess* readyprocess(SampleNodeProcess* process)
 {
-	//EXPECT_TRUE(0);
 	icarus_rover_v2::diagnostic diag = process->update(0);
 	EXPECT_TRUE(diag.Level <= NOTICE);
 	EXPECT_TRUE(process->get_ready() == true);
@@ -89,7 +88,7 @@ TEST(Template,Process_Command)
 		cmd.Command = ROVERCOMMAND_RUNDIAGNOSTIC;
 		if(fastrate_fire == true) //Nothing to do here
 		{
-			/*
+
 			cmd.Option1 = LEVEL1;
 			std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(cmd);
 			for(std::size_t i = 0; i < diaglist.size(); i++)
@@ -97,7 +96,7 @@ TEST(Template,Process_Command)
 				EXPECT_TRUE(diaglist.at(i).Level <= NOTICE);
 			}
 			EXPECT_TRUE(diaglist.size() > 0);
-			*/
+
 
 		}
 		if(mediumrate_fire == true)

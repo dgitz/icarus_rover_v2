@@ -29,6 +29,7 @@ struct ReadyToArm
     std::string Device;
     std::string topic;
     bool ready_to_arm;
+    double time_since_lastrx;
 };
 struct PeriodicCommand
 {
@@ -42,7 +43,9 @@ class CommandNodeProcess
 public:
 
 
-	CommandNodeProcess();
+	CommandNodeProcess(std::string _base_node_name,std::string _node_name);
+std::string get_basenodename() { return base_node_name; }
+	std::string get_nodename() { return node_name; }
 	~CommandNodeProcess();
 
 	icarus_rover_v2::diagnostic init(icarus_rover_v2::diagnostic indiag,std::string hostname);
@@ -58,7 +61,7 @@ public:
 	std::vector<icarus_rover_v2::diagnostic> new_commandmsg(icarus_rover_v2::command cmd);
 
 	int get_armeddisarmed_state() { return armeddisarmed_state; }
-    icarus_rover_v2::diagnostic new_readytoarmmsg(std::string topic, bool value);
+    void new_readytoarmmsg(std::string topic, bool value);
     icarus_rover_v2::diagnostic init_readytoarm_list(std::vector<std::string> topics);
 
     icarus_rover_v2::diagnostic new_user_commandmsg(icarus_rover_v2::command msg);
@@ -87,7 +90,11 @@ public:
 protected:
 
 private:
+	std::string base_node_name;
+	std::string node_name;
+	bool unittest_running;
 	std::vector<icarus_rover_v2::diagnostic> check_program_variables();
+ std::vector<icarus_rover_v2::diagnostic> run_unittest();
 
 	double run_time;
 	icarus_rover_v2::diagnostic diagnostic;
