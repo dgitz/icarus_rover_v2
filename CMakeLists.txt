@@ -239,12 +239,20 @@ add_library(lcddriver src/Diagnostics/Driver/LCDDriver.cpp)
 
 #Sample_Node
 file(MAKE_DIRECTORY /home/robot/catkin_ws/build/test_results/icarus_rover_v2/sample_node)
-add_library(sample_node_process src_templates/sample_node_process.cpp)
-add_dependencies(sample_node_process icarus_rover_v2_generate_messages_cpp)
+#add_library(sample_node_process src_templates/sample_node_process.cpp)
+#add_dependencies(sample_node_process icarus_rover_v2_generate_messages_cpp)
 add_executable(sample_node src_templates/sample_node.cpp)
-target_link_libraries(sample_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor sample_node_process)
-catkin_add_gtest(test_sample_node_process src_templates/unit_tests/test_sample_node_process.cpp)
-target_link_libraries(test_sample_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} sample_node_process)
+target_link_libraries(sample_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor)
+#catkin_add_gtest(test_sample_node_process src_templates/unit_tests/test_sample_node_process.cpp)
+#target_link_libraries(test_sample_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} sample_node_process)
+
+#file(MAKE_DIRECTORY /home/robot/catkin_ws/build/test_results/icarus_rover_v2/sample_node)
+#add_library(sample_node_process src_templates/sample_node_process.cpp)
+#add_dependencies(sample_node_process icarus_rover_v2_generate_messages_cpp)
+#add_executable(sample_node src_templates/sample_node.cpp)
+#target_link_libraries(sample_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor sample_node_process)
+#catkin_add_gtest(test_sample_node_process src_templates/unit_tests/test_sample_node_process.cpp)
+#target_link_libraries(test_sample_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} sample_node_process)
 
 #Master Node
 file(MAKE_DIRECTORY /home/robot/catkin_ws/build/test_results/icarus_rover_v2/master_node)
