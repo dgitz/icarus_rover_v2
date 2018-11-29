@@ -1,7 +1,7 @@
 #Target: dgitzrosmaster
 cmake_minimum_required(VERSION 2.8.3)
 project(icarus_rover_v2)
-
+set(CMAKE_BUILD_TYPE Debug)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
@@ -239,24 +239,16 @@ add_library(lcddriver src/Diagnostics/Driver/LCDDriver.cpp)
 
 #Sample_Node
 file(MAKE_DIRECTORY /home/robot/catkin_ws/build/test_results/icarus_rover_v2/sample_node)
-#add_library(sample_node_process src_templates/sample_node_process.cpp)
-#add_dependencies(sample_node_process icarus_rover_v2_generate_messages_cpp)
+add_library(sample_node_process src_templates/SampleNodeProcess.cpp)
+add_dependencies(sample_node_process icarus_rover_v2_generate_messages_cpp)
 add_executable(sample_node src_templates/sample_node.cpp)
-target_link_libraries(sample_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor)
-#catkin_add_gtest(test_sample_node_process src_templates/unit_tests/test_sample_node_process.cpp)
-#target_link_libraries(test_sample_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} sample_node_process)
-
-#file(MAKE_DIRECTORY /home/robot/catkin_ws/build/test_results/icarus_rover_v2/sample_node)
-#add_library(sample_node_process src_templates/sample_node_process.cpp)
-#add_dependencies(sample_node_process icarus_rover_v2_generate_messages_cpp)
-#add_executable(sample_node src_templates/sample_node.cpp)
-#target_link_libraries(sample_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor sample_node_process)
-#catkin_add_gtest(test_sample_node_process src_templates/unit_tests/test_sample_node_process.cpp)
-#target_link_libraries(test_sample_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} sample_node_process)
+target_link_libraries(sample_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor sample_node_process)
+catkin_add_gtest(test_sample_node_process src_templates/unit_tests/test_sample_node_process.cpp)
+target_link_libraries(test_sample_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} sample_node_process)
 
 #Master Node
 file(MAKE_DIRECTORY /home/robot/catkin_ws/build/test_results/icarus_rover_v2/master_node)
-add_library(master_node_process src/Control/master_node_process.cpp)
+add_library(master_node_process src/Control/MasterNodeProcess.cpp)
 add_dependencies(master_node_process icarus_rover_v2_generate_messages_cpp)
 add_executable(master_node src/Control/master_node.cpp)
 target_link_libraries(master_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor serialmessage master_node_process)
@@ -292,7 +284,7 @@ target_link_libraries(test_diagnostic_node_process ${catkin_LIBRARIES} ${Boost_L
 
 #Network Transceiver Node
 file(MAKE_DIRECTORY /home/robot/catkin_ws/build/test_results/icarus_rover_v2/networktransceiver_node)
-add_library(networktransceiver_node_process src/Communication/networktransceiver_node_process.cpp)
+add_library(networktransceiver_node_process src/Communication/NetworkTransceiverNodeProcess.cpp)
 add_dependencies(networktransceiver_node_process icarus_rover_v2_generate_messages_cpp)
 add_executable(networktransceiver_node src/Communication/networktransceiver_node.cpp)
 target_link_libraries(networktransceiver_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} logger udpmessage resourcemonitor networktransceiver_node_process)
@@ -319,7 +311,7 @@ target_link_libraries(test_safety_node_process ${catkin_LIBRARIES} ${Boost_LIBRA
 
 #HatController Node
 file(MAKE_DIRECTORY /home/robot/catkin_ws/build/test_results/icarus_rover_v2/hatcontroller_node)
-add_library(hatcontroller_node_process src/Board/hatcontroller_node_process.cpp)
+add_library(hatcontroller_node_process src/Board/HatControllerNodeProcess.cpp)
 add_dependencies(hatcontroller_node_process icarus_rover_v2_generate_messages_cpp)
 #add_executable(hatcontroller_node src/Board/hatcontroller_node.cpp)
 #target_link_libraries(hatcontroller_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor wiringPi i2cmessage gpiohatdriver servohatdriver #terminalhatdriver hatcontroller_node_process)

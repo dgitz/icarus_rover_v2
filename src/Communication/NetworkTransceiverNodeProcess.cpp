@@ -1,42 +1,25 @@
-#include "networktransceiver_node_process.h"
-/*! \brief Constructor
- */
-NetworkTransceiverNodeProcess::NetworkTransceiverNodeProcess(std::string _base_node_name,
-		std::string _node_name)
-{
-	base_node_name = _base_node_name;
-	node_name = _node_name;
-	unittest_running = false;
-	run_time = 0.0;
-	ros_time = 0.0;
-	initialized = false;
-	ready = false;
-	remote_heartbeat_pass = false;
-	init_messages();
-}
-/*! \brief Deconstructor
- */
-NetworkTransceiverNodeProcess::~NetworkTransceiverNodeProcess()
-{
-
-}
-/*! \brief Initialize Process
- */
-icarus_rover_v2::diagnostic NetworkTransceiverNodeProcess::init(icarus_rover_v2::diagnostic indiag,std::string hostname)
-{
-	myhostname = hostname;
-	diagnostic = indiag;
-	mydevice.DeviceName = hostname;
-	return diagnostic;
-}
-/*! \brief Time Update of Process
- */
-icarus_rover_v2::diagnostic NetworkTransceiverNodeProcess::update(double dt,double timestamp)
+#include "NetworkTransceiverNodeProcess.h"
+icarus_rover_v2::diagnostic  NetworkTransceiverNodeProcess::finish_initialization()
 {
 	icarus_rover_v2::diagnostic diag = diagnostic;
-	run_time += dt;
-	ros_time = timestamp;
-	if(initialized == true) { ready = true; }
+	init_messages();
+	return diagnostic;
+}
+void NetworkTransceiverNodeProcess::set_networkconfiguration(std::string t_multicast_group,int t_send_multicast_port,int t_recv_unicast_port)
+	{
+		multicast_group = t_multicast_group;
+		send_multicast_port = t_send_multicast_port;
+		recv_unicast_port = t_recv_unicast_port;
+	}
+icarus_rover_v2::diagnostic NetworkTransceiverNodeProcess::update(double t_dt,double t_ros_time)
+{
+	if(initialized == true)
+	{
+		ready = true;
+
+	}
+	icarus_rover_v2::diagnostic diag = diagnostic;
+	diag = update_baseprocess(t_dt,t_ros_time);
 	for(std::size_t i = 0; i < messages.size(); i++)
 	{
 		if(messages.at(i).sent_counter > 0)
@@ -49,12 +32,15 @@ icarus_rover_v2::diagnostic NetworkTransceiverNodeProcess::update(double dt,doub
 			messages.at(i).recv_rate = (double)(messages.at(i).recv_counter)/run_time;
 		}
 	}
+	if(diag.Level <= NOTICE)
+	{
+		diag.Diagnostic_Type = NOERROR;
+		diag.Level = INFO;
+		diag.Diagnostic_Message = NOERROR;
+		diag.Description = "Node Running.";
+		diagnostic = diag;
+	}
 
-	diag.Diagnostic_Type = NOERROR;
-	diag.Level = INFO;
-	diag.Diagnostic_Message = NOERROR;
-	diag.Description = "Node Running";
-	diagnostic = diag;
 	return diag;
 }
 icarus_rover_v2::diagnostic NetworkTransceiverNodeProcess::check_remoteHeartbeats()
@@ -90,62 +76,49 @@ icarus_rover_v2::diagnostic NetworkTransceiverNodeProcess::check_remoteHeartbeat
 	if(heartbeat_pass == true)
 	{
 		diag.Diagnostic_Type = COMMUNICATIONS;
-				diag.Level = INFO;
-				diag.Diagnostic_Message = NOERROR;
-				diag.Description = "Remote Heartbeat Check Passed.";
+		diag.Level = INFO;
+		diag.Diagnostic_Message = NOERROR;
+		diag.Description = "Remote Heartbeat Check Passed.";
 	}
 	remote_heartbeat_pass = heartbeat_pass;
 	return diag;
 }
-/*! \brief Setup Process Device info
- */
-icarus_rover_v2::diagnostic NetworkTransceiverNodeProcess::new_devicemsg(icarus_rover_v2::device device)
+icarus_rover_v2::diagnostic NetworkTransceiverNodeProcess::new_devicemsg(const icarus_rover_v2::device::ConstPtr& device)
 {
 	icarus_rover_v2::diagnostic diag = diagnostic;
-	bool new_device = true;
-	if(device.DeviceName == myhostname)
-	{
-
-	}
 	return diag;
 }
-/*! \brief Process Command Message
- */
-std::vector<icarus_rover_v2::diagnostic> NetworkTransceiverNodeProcess::new_commandmsg(icarus_rover_v2::command cmd)
+std::vector<icarus_rover_v2::diagnostic> NetworkTransceiverNodeProcess::new_commandmsg(const icarus_rover_v2::command::ConstPtr& t_msg)
 {
 	std::vector<icarus_rover_v2::diagnostic> diaglist;
 	icarus_rover_v2::diagnostic diag = diagnostic;
-	if (cmd.Command == ROVERCOMMAND_RUNDIAGNOSTIC) {
-		if (cmd.Option1 == LEVEL1) {
+	if (t_msg->Command == ROVERCOMMAND_RUNDIAGNOSTIC)
+	{
+		if (t_msg->Option1 == LEVEL1)
+		{
 			diaglist.push_back(diag);
-		} else if (cmd.Option1 == LEVEL2) {
-			diaglist = check_program_variables();
+		}
+		else if (t_msg->Option1 == LEVEL2)
+		{
+			diaglist = check_programvariables();
 			return diaglist;
-		} else if (cmd.Option1 == LEVEL3) {
+		}
+		else if (t_msg->Option1 == LEVEL3)
+		{
 			diaglist = run_unittest();
 			return diaglist;
-		} else if (cmd.Option1 == LEVEL4) {
+		}
+		else if (t_msg->Option1 == LEVEL4)
+		{
 		}
 	}
 	return diaglist;
 }
-/*! \brief Self-Diagnostic-Check Program Variables
- */
-std::vector<icarus_rover_v2::diagnostic> NetworkTransceiverNodeProcess::check_program_variables()
+std::vector<icarus_rover_v2::diagnostic> NetworkTransceiverNodeProcess::check_programvariables()
 {
 	std::vector<icarus_rover_v2::diagnostic> diaglist;
-	icarus_rover_v2::diagnostic diag=diagnostic;
+	icarus_rover_v2::diagnostic diag = diagnostic;
 	bool status = true;
-
-	if(initialized == false)
-	{
-		status = false;
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Level = WARN;
-		diag.Diagnostic_Message = INITIALIZING;
-		diag.Description = "Node Not Initialized Yet.";
-		diaglist.push_back(diag);
-	}
 	bool any_message_sent = false;
 	for(std::size_t i = 0; i < messages.size(); i++)
 	{
@@ -173,16 +146,17 @@ std::vector<icarus_rover_v2::diagnostic> NetworkTransceiverNodeProcess::check_pr
 	{
 		diaglist.push_back(diag_heartbeat);
 	}
-	if(status == true)
-	{
+	if (status == true) {
 		diag.Diagnostic_Type = SOFTWARE;
 		diag.Level = INFO;
 		diag.Diagnostic_Message = DIAGNOSTIC_PASSED;
-		diag.Description = "Checked Program Variables -> PASSED";
+		diag.Description = "Checked Program Variables -> PASSED.";
 		diaglist.push_back(diag);
-	}
-	else
-	{
+	} else {
+		diag.Diagnostic_Type = SOFTWARE;
+		diag.Level = WARN;
+		diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
+		diag.Description = "Checked Program Variables -> FAILED.";
 		diaglist.push_back(diag);
 	}
 	return diaglist;
@@ -259,17 +233,17 @@ icarus_rover_v2::diagnostic NetworkTransceiverNodeProcess::new_message_recv(uint
 std::vector<NetworkTransceiverNodeProcess::QueueElement> NetworkTransceiverNodeProcess::get_sendqueue(uint8_t level)
 {
 	std::vector<NetworkTransceiverNodeProcess::QueueElement> buffer;
-	if (level == PRIORITYLEVEL_HIGH)
+	if (level == PriorityLevel::HIGH)
 	{
 		buffer = sendqueue_highpriority;
 		sendqueue_highpriority.clear();
 	}
-	else if (level == PRIORITYLEVEL_MEDIUM)
+	else if (level == PriorityLevel::MEDIUM)
 	{
 		buffer= sendqueue_mediumpriority;
 		sendqueue_mediumpriority.clear();
 	}
-	else if(level == PRIORITYLEVEL_LOW)
+	else if(level == PriorityLevel::LOW)
 	{
 		buffer= sendqueue_lowpriority;
 		sendqueue_lowpriority.clear();
@@ -289,16 +263,16 @@ bool NetworkTransceiverNodeProcess::push_sendqueue(uint16_t id,std::string msg)
 		if(messages.at(i).id == id)
 		{
 			found = true;
-			if (messages.at(i).priority_level == PRIORITYLEVEL_HIGH)
+			if (messages.at(i).priority_level == PriorityLevel::HIGH)
 			{
 
 				state = push_sendhighqueue(id,msg);
 			}
-			else if (messages.at(i).priority_level == PRIORITYLEVEL_MEDIUM)
+			else if (messages.at(i).priority_level == PriorityLevel::MEDIUM)
 			{
 				state = push_sendmediumqueue(id,msg);
 			}
-			else if (messages.at(i).priority_level == PRIORITYLEVEL_LOW)
+			else if (messages.at(i).priority_level == PriorityLevel::LOW)
 			{
 				state = push_sendlowqueue(id,msg);
 			}
@@ -314,7 +288,7 @@ void NetworkTransceiverNodeProcess::init_messages()
 		Message newmessage;
 		newmessage.id = POWER_ID;
 		newmessage.name = "Power";
-		newmessage.priority_level = PRIORITYLEVEL_MEDIUM;
+		newmessage.priority_level = PriorityLevel::MEDIUM;
 		newmessage.target_sendrate = 1.0;
 		messages.push_back(newmessage);
 	}
@@ -322,7 +296,7 @@ void NetworkTransceiverNodeProcess::init_messages()
 		Message newmessage;
 		newmessage.id = CONFIGURE_ANA_PORT_ID;
 		newmessage.name = "Configure ANA Port ID";
-		newmessage.priority_level = PRIORITYLEVEL_LOW;
+		newmessage.priority_level = PriorityLevel::LOW;
 		newmessage.target_sendrate = 1.0;
 		messages.push_back(newmessage);
 	}
@@ -330,7 +304,7 @@ void NetworkTransceiverNodeProcess::init_messages()
 		Message newmessage;
 		newmessage.id = PPS_ID;
 		newmessage.name = "PPS";
-		newmessage.priority_level = PRIORITYLEVEL_HIGH;
+		newmessage.priority_level = PriorityLevel::HIGH;
 		newmessage.target_sendrate = 1.0;
 		messages.push_back(newmessage);
 	}
@@ -338,7 +312,7 @@ void NetworkTransceiverNodeProcess::init_messages()
 		Message newmessage;
 		newmessage.id = FINDTARGET_ID;
 		newmessage.name = "Find Target";
-		newmessage.priority_level = PRIORITYLEVEL_LOW;
+		newmessage.priority_level = PriorityLevel::LOW;
 		newmessage.target_sendrate = 0.5;
 		messages.push_back(newmessage);
 	}
@@ -346,7 +320,7 @@ void NetworkTransceiverNodeProcess::init_messages()
 		Message newmessage;
 		newmessage.id = SET_DIO_PORT_DEFAULTVALUE_ID;
 		newmessage.name = "Set DIO Port Default Value";
-		newmessage.priority_level = PRIORITYLEVEL_LOW;
+		newmessage.priority_level = PriorityLevel::LOW;
 		newmessage.target_sendrate = 1.0;
 		messages.push_back(newmessage);
 	}
@@ -355,7 +329,7 @@ void NetworkTransceiverNodeProcess::init_messages()
 		Message newmessage;
 		newmessage.id = HEARTBEAT_ID;
 		newmessage.name = "Heartbeat";
-		newmessage.priority_level = PRIORITYLEVEL_HIGH;
+		newmessage.priority_level = PriorityLevel::HIGH;
 		newmessage.target_sendrate = 5.0;
 		messages.push_back(newmessage);
 	}
@@ -364,7 +338,7 @@ void NetworkTransceiverNodeProcess::init_messages()
 		Message newmessage;
 		newmessage.id = ARM_STATUS_ID;
 		newmessage.name = "Arm Status";
-		newmessage.priority_level = PRIORITYLEVEL_HIGH;
+		newmessage.priority_level = PriorityLevel::HIGH;
 		newmessage.target_sendrate = 10.0;
 		messages.push_back(newmessage);
 	}
@@ -372,7 +346,7 @@ void NetworkTransceiverNodeProcess::init_messages()
 		Message newmessage;
 		newmessage.id = ARMCONTROL_ID;
 		newmessage.name = "Arm Control";
-		newmessage.priority_level = PRIORITYLEVEL_MEDIUM;
+		newmessage.priority_level = PriorityLevel::MEDIUM;
 		newmessage.target_sendrate = 2.0;
 		messages.push_back(newmessage);
 	}
@@ -380,7 +354,7 @@ void NetworkTransceiverNodeProcess::init_messages()
 		Message newmessage;
 		newmessage.id = FIRMWAREVERSION_ID;
 		newmessage.name = "Firmware Version";
-		newmessage.priority_level = PRIORITYLEVEL_LOW;
+		newmessage.priority_level = PriorityLevel::LOW;
 		newmessage.target_sendrate = 1.0;
 		messages.push_back(newmessage);
 	}
@@ -388,7 +362,7 @@ void NetworkTransceiverNodeProcess::init_messages()
 		Message newmessage;
 		newmessage.id = GET_ANA_PORT1_ID;
 		newmessage.name = "Get ANA Port1";
-		newmessage.priority_level = PRIORITYLEVEL_LOW;
+		newmessage.priority_level = PriorityLevel::LOW;
 		newmessage.target_sendrate = 1.0;
 		messages.push_back(newmessage);
 	}
@@ -396,7 +370,7 @@ void NetworkTransceiverNodeProcess::init_messages()
 		Message newmessage;
 		newmessage.id = GET_DIO_PORT1_ID;
 		newmessage.name = "Get DIO Port1";
-		newmessage.priority_level = PRIORITYLEVEL_LOW;
+		newmessage.priority_level = PriorityLevel::LOW;
 		newmessage.target_sendrate = 1.0;
 		messages.push_back(newmessage);
 	}
@@ -404,7 +378,7 @@ void NetworkTransceiverNodeProcess::init_messages()
 		Message newmessage;
 		newmessage.id = SET_DIO_PORT_ID;
 		newmessage.name = "Set DIO Port";
-		newmessage.priority_level = PRIORITYLEVEL_LOW;
+		newmessage.priority_level = PriorityLevel::LOW;
 		newmessage.target_sendrate = 1.0;
 		messages.push_back(newmessage);
 	}
@@ -412,7 +386,7 @@ void NetworkTransceiverNodeProcess::init_messages()
 		Message newmessage;
 		newmessage.id = MODE_ID;
 		newmessage.name = "Mode";
-		newmessage.priority_level = PRIORITYLEVEL_MEDIUM;
+		newmessage.priority_level = PriorityLevel::MEDIUM;
 		newmessage.target_sendrate = 2.0;
 		messages.push_back(newmessage);
 	}
@@ -420,7 +394,7 @@ void NetworkTransceiverNodeProcess::init_messages()
 		Message newmessage;
 		newmessage.id = CONFIGURE_DIO_PORT_ID;
 		newmessage.name = "Configure DIO Port";
-		newmessage.priority_level = PRIORITYLEVEL_LOW;
+		newmessage.priority_level = PriorityLevel::LOW;
 		newmessage.target_sendrate = 1.0;
 		messages.push_back(newmessage);
 	}
@@ -428,7 +402,7 @@ void NetworkTransceiverNodeProcess::init_messages()
 		Message newmessage;
 		newmessage.id = TESTMESSAGECOMMAND_ID;
 		newmessage.name = "Test Message Command";
-		newmessage.priority_level = PRIORITYLEVEL_MEDIUM;
+		newmessage.priority_level = PriorityLevel::MEDIUM;
 		newmessage.target_sendrate = 2.0;
 		messages.push_back(newmessage);
 	}
@@ -436,7 +410,7 @@ void NetworkTransceiverNodeProcess::init_messages()
 		Message newmessage;
 		newmessage.id = TESTMESSAGECOUNTER_ID;
 		newmessage.name = "Test Message Counter";
-		newmessage.priority_level = PRIORITYLEVEL_MEDIUM;
+		newmessage.priority_level = PriorityLevel::MEDIUM;
 		newmessage.target_sendrate = 2.0;
 		messages.push_back(newmessage);
 	}
@@ -444,7 +418,7 @@ void NetworkTransceiverNodeProcess::init_messages()
 		Message newmessage;
 		newmessage.id = DEVICE_ID;
 		newmessage.name = "Device";
-		newmessage.priority_level = PRIORITYLEVEL_LOW;
+		newmessage.priority_level = PriorityLevel::LOW;
 		newmessage.target_sendrate = 2.0;
 		messages.push_back(newmessage);
 	}
@@ -452,7 +426,7 @@ void NetworkTransceiverNodeProcess::init_messages()
 		Message newmessage;
 		newmessage.id = DIAGNOSTIC_ID;
 		newmessage.name = "Diagnostic";
-		newmessage.priority_level = PRIORITYLEVEL_LOW;
+		newmessage.priority_level = PriorityLevel::LOW;
 		newmessage.target_sendrate = 2.0;
 		messages.push_back(newmessage);
 	}
@@ -460,7 +434,7 @@ void NetworkTransceiverNodeProcess::init_messages()
 		Message newmessage;
 		newmessage.id = RESOURCE_ID;
 		newmessage.name = "Resource";
-		newmessage.priority_level = PRIORITYLEVEL_LOW;
+		newmessage.priority_level = PriorityLevel::LOW;
 		newmessage.target_sendrate = 1.0;
 		messages.push_back(newmessage);
 	}
@@ -468,7 +442,7 @@ void NetworkTransceiverNodeProcess::init_messages()
 		Message newmessage;
 		newmessage.id = REMOTECONTROL_ID;
 		newmessage.name = "Remote Control";
-		newmessage.priority_level = PRIORITYLEVEL_HIGH;
+		newmessage.priority_level = PriorityLevel::HIGH;
 		newmessage.target_sendrate = 10.0;
 		messages.push_back(newmessage);
 	}
@@ -476,7 +450,7 @@ void NetworkTransceiverNodeProcess::init_messages()
 		Message newmessage;
 		newmessage.id = COMMAND_ID;
 		newmessage.name = "Command";
-		newmessage.priority_level = PRIORITYLEVEL_HIGH;
+		newmessage.priority_level = PriorityLevel::HIGH;
 		newmessage.target_sendrate = 10.0;
 		messages.push_back(newmessage);
 	}
@@ -484,7 +458,7 @@ void NetworkTransceiverNodeProcess::init_messages()
 		Message newmessage;
 		newmessage.id = USERMESSAGE_ID;
 		newmessage.name = "User Message";
-		newmessage.priority_level = PRIORITYLEVEL_LOW;
+		newmessage.priority_level = PriorityLevel::LOW;
 		newmessage.target_sendrate = 1.0;
 		messages.push_back(newmessage);
 	}
@@ -492,7 +466,7 @@ void NetworkTransceiverNodeProcess::init_messages()
 		Message newmessage;
 		newmessage.id = TUNECONTROLGROUP_ID;
 		newmessage.name = "Tune ControlGroup";
-		newmessage.priority_level = PRIORITYLEVEL_MEDIUM;
+		newmessage.priority_level = PriorityLevel::MEDIUM;
 		newmessage.target_sendrate = 10.0;
 		messages.push_back(newmessage);
 	}
@@ -524,119 +498,4 @@ std::string NetworkTransceiverNodeProcess::get_messageinfo(bool v)
 		}
 	}
 	return std::string(tempstr);
-}
-/*! \brief Run Unit Test
- */
-std::vector<icarus_rover_v2::diagnostic> NetworkTransceiverNodeProcess::run_unittest() {
-	std::vector<icarus_rover_v2::diagnostic> diaglist;
-	if (unittest_running == false) {
-		unittest_running = true;
-		icarus_rover_v2::diagnostic diag = diagnostic;
-		bool status = true;
-		std::string data;
-		std::string cmd =
-				"cd ~/catkin_ws && "
-						"bash devel/setup.bash && catkin_make run_tests_icarus_rover_v2_gtest_test_"
-						+ base_node_name
-						+ "_process >/dev/null 2>&1 && "
-								"mv /home/robot/catkin_ws/build/test_results/icarus_rover_v2/gtest-test_"
-						+ base_node_name
-						+ "_process.xml "
-								"/home/robot/catkin_ws/build/test_results/icarus_rover_v2/"
-						+ base_node_name + "/ >/dev/null 2>&1";
-		system(cmd.c_str());
-		cmd =
-				"cd ~/catkin_ws && bash devel/setup.bash && catkin_test_results build/test_results/icarus_rover_v2/"
-						+ base_node_name + "/";
-		FILE * stream;
-		const int max_buffer = 256;
-		char buffer[max_buffer];
-		cmd.append(" 2>&1");
-		stream = popen(cmd.c_str(), "r");
-		if (stream) {
-			if (!feof(stream)) {
-				if (fgets(buffer, max_buffer, stream) != NULL) {
-					data.append(buffer);
-				}
-				pclose(stream);
-			}
-		}
-		std::vector<std::string> strs;
-		std::size_t start = data.find(":");
-		data.erase(0, start + 1);
-		boost::split(strs, data, boost::is_any_of(",: "),
-				boost::token_compress_on);
-		if(strs.size() < 6)
-		{
-			diag.Diagnostic_Type = SOFTWARE;
-			diag.Level = ERROR;
-			diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
-			char tempstr[1024];
-			sprintf(tempstr,"Unable to process Unit Test Result: %s",data.c_str());
-			diag.Description = std::string(tempstr);
-			diaglist.push_back(diag);
-			return diaglist;
-		}
-		int test_count = std::atoi(strs.at(1).c_str());
-		int error_count = std::atoi(strs.at(3).c_str());
-		int failure_count = std::atoi(strs.at(5).c_str());
-		if (test_count == 0) {
-			diag.Diagnostic_Type = SOFTWARE;
-			diag.Level = ERROR;
-			diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
-			diag.Description = "Test Count: 0.";
-			diaglist.push_back(diag);
-			status = false;
-		}
-		if (error_count > 0) {
-			diag.Diagnostic_Type = SOFTWARE;
-			diag.Level = ERROR;
-			diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
-			char tempstr[512];
-			sprintf(tempstr, "Error Count: %d", error_count);
-			diag.Description = std::string(tempstr);
-			diaglist.push_back(diag);
-			status = false;
-		}
-		if (failure_count > 0) {
-			diag.Diagnostic_Type = SOFTWARE;
-			diag.Level = ERROR;
-			diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
-			char tempstr[512];
-			sprintf(tempstr, "Failure Count: %d", failure_count);
-			diag.Description = std::string(tempstr);
-			diaglist.push_back(diag);
-			status = false;
-		}
-		if (status == true) {
-			diag.Diagnostic_Type = SOFTWARE;
-			diag.Level = NOTICE;
-			diag.Diagnostic_Message = DIAGNOSTIC_PASSED;
-			diag.Description = "Unit Test -> PASSED";
-			diaglist.push_back(diag);
-		} else {
-			diag.Diagnostic_Type = SOFTWARE;
-			uint8_t highest_error = INFO;
-			for (std::size_t i = 0; i < diaglist.size(); i++) {
-				if (diaglist.at(i).Level > highest_error) {
-					highest_error = diaglist.at(i).Level;
-				}
-			}
-			diag.Level = highest_error;
-			diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
-			diag.Description = "Unit Test -> FAILED";
-			diaglist.push_back(diag);
-		}
-
-		unittest_running = false;
-	} else {
-
-		icarus_rover_v2::diagnostic diag = diagnostic;
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Level = WARN;
-		diag.Diagnostic_Message = DROPPING_PACKETS;
-		diag.Description = "Unit Test -> IS STILL IN PROGRESS";
-		diaglist.push_back(diag);
-	}
-	return diaglist;
 }

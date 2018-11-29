@@ -4,7 +4,7 @@
 #include "icarus_rover_v2/command.h"
 #include "icarus_rover_v2/device.h"
 #include "icarus_rover_v2/diagnostic.h"
-#include "../sample_node_process.h"
+#include "../SampleNodeProcess.h"
 
 std::string Node_Name = "/unittest_sample_node_process";
 std::string Host_Name = "unittest";
@@ -33,20 +33,21 @@ SampleNodeProcess* initializeprocess()
 	device.Architecture = "x86_64";
 
 	SampleNodeProcess *process;
-	process = new SampleNodeProcess("sample_node",Node_Name);
-	diagnostic = process->init(diagnostic,std::string(Host_Name));
-	EXPECT_TRUE(diagnostic.Level <= NOTICE);
-	EXPECT_TRUE(process->get_initialized() == false);
+	process = new SampleNodeProcess;
+	process->initialize("sample_node",Node_Name,Host_Name);
+	process->set_diagnostic(diagnostic);
+	process->finish_initialization();
+	EXPECT_TRUE(process->is_initialized() == false);
 	process->set_mydevice(device);
-	EXPECT_TRUE(process->get_initialized() == true);
+	EXPECT_TRUE(process->is_initialized() == true);
 	EXPECT_TRUE(process->get_mydevice().DeviceName == device.DeviceName);
 	return process;
 }
 SampleNodeProcess* readyprocess(SampleNodeProcess* process)
 {
-	icarus_rover_v2::diagnostic diag = process->update(0);
+	icarus_rover_v2::diagnostic diag = process->update(0.0,0.0);
 	EXPECT_TRUE(diag.Level <= NOTICE);
-	EXPECT_TRUE(process->get_ready() == true);
+	EXPECT_TRUE(process->is_ready() == true);
 	return process;
 }
 TEST(Template,Process_Initialization)
@@ -66,7 +67,7 @@ TEST(Template,Process_Command)
 	bool slowrate_fire = false; //0.1 Hz
 	while(current_time <= time_to_run)
 	{
-		icarus_rover_v2::diagnostic diag = process->update(dt);
+		icarus_rover_v2::diagnostic diag = process->update(dt,current_time);
 		EXPECT_TRUE(diag.Level <= NOTICE);
 		int current_time_ms = (int)(current_time*1000.0);
 		if((current_time_ms % 100) == 0)
@@ -84,13 +85,15 @@ TEST(Template,Process_Command)
 			slowrate_fire = true;
 		}
 		else { slowrate_fire = false; }
+
 		icarus_rover_v2::command cmd;
 		cmd.Command = ROVERCOMMAND_RUNDIAGNOSTIC;
+
 		if(fastrate_fire == true) //Nothing to do here
 		{
-
 			cmd.Option1 = LEVEL1;
-			std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(cmd);
+			icarus_rover_v2::command::ConstPtr cmd_ptr(new icarus_rover_v2::command(cmd));
+			std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
 			for(std::size_t i = 0; i < diaglist.size(); i++)
 			{
 				EXPECT_TRUE(diaglist.at(i).Level <= NOTICE);
@@ -102,7 +105,8 @@ TEST(Template,Process_Command)
 		if(mediumrate_fire == true)
 		{
 			cmd.Option1 = LEVEL2;
-			std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(cmd);
+			icarus_rover_v2::command::ConstPtr cmd_ptr(new icarus_rover_v2::command(cmd));
+			std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
 			for(std::size_t i = 0; i < diaglist.size(); i++)
 			{
 				EXPECT_TRUE(diaglist.at(i).Level <= NOTICE);

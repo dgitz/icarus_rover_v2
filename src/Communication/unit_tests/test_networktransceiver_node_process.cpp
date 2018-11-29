@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "../networktransceiver_node_process.h"
+#include "../NetworkTransceiverNodeProcess.h"
 #include "ros/ros.h"
 #include "ros/time.h"
 #include "icarus_rover_v2/command.h"
@@ -34,12 +34,14 @@ NetworkTransceiverNodeProcess* initializeprocess()
 	device.Architecture = "x86_64";
 
 	NetworkTransceiverNodeProcess *process;
-	process = new NetworkTransceiverNodeProcess("networktransceiver_node",Node_Name);
-	diagnostic = process->init(diagnostic,std::string(Host_Name));
+	process = new NetworkTransceiverNodeProcess;
+	process->initialize("networktransceiver_node",Node_Name,Host_Name);
+	process->set_diagnostic(diagnostic);
+	process->finish_initialization();
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
-	EXPECT_TRUE(process->get_initialized() == false);
+	EXPECT_TRUE(process->is_initialized() == false);
 	process->set_mydevice(device);
-	EXPECT_TRUE(process->get_initialized() == true);
+	EXPECT_TRUE(process->is_initialized() == true);
 	EXPECT_TRUE(process->get_mydevice().DeviceName == device.DeviceName);
 	return process;
 }
@@ -47,7 +49,7 @@ NetworkTransceiverNodeProcess* readyprocess(NetworkTransceiverNodeProcess* proce
 {
 	icarus_rover_v2::diagnostic diag = process->update(0.0,0.0);
 	EXPECT_TRUE(diag.Level <= NOTICE);
-	EXPECT_TRUE(process->get_ready() == true);
+	EXPECT_TRUE(process->is_ready() == true);
 	return process;
 }
 TEST(Template,Process_Initialization)
@@ -95,7 +97,8 @@ TEST(StressTest,RemoteHeartbeat)
 		{
 			process->new_remoteheartbeatmsg(current_time,"Remote1",current_time,current_time+.01);
 			cmd.Option1 = LEVEL1;
-			std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(cmd);
+			icarus_rover_v2::command::ConstPtr cmd_ptr(new icarus_rover_v2::command(cmd));
+			std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
 			for(std::size_t i = 0; i < diaglist.size(); i++)
 			{
 				EXPECT_TRUE(diaglist.at(i).Level <= NOTICE);
@@ -106,7 +109,8 @@ TEST(StressTest,RemoteHeartbeat)
 		if(mediumrate_fire == true)
 		{
 			cmd.Option1 = LEVEL2;
-			std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(cmd);
+			icarus_rover_v2::command::ConstPtr cmd_ptr(new icarus_rover_v2::command(cmd));
+			std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
 			for(std::size_t i = 0; i < diaglist.size(); i++)
 			{
 				EXPECT_TRUE(diaglist.at(i).Level <= NOTICE);
@@ -159,7 +163,8 @@ TEST(Template,Process_Command)
 		{
 			process->new_remoteheartbeatmsg(current_time,"Remote1",current_time,current_time+.01);
 			cmd.Option1 = LEVEL1;
-			std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(cmd);
+			icarus_rover_v2::command::ConstPtr cmd_ptr(new icarus_rover_v2::command(cmd));
+			std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
 			for(std::size_t i = 0; i < diaglist.size(); i++)
 			{
 				EXPECT_TRUE(diaglist.at(i).Level <= NOTICE);
@@ -170,7 +175,8 @@ TEST(Template,Process_Command)
 		if(mediumrate_fire == true)
 		{
 			cmd.Option1 = LEVEL2;
-			std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(cmd);
+			icarus_rover_v2::command::ConstPtr cmd_ptr(new icarus_rover_v2::command(cmd));
+			std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
 			for(std::size_t i = 0; i < diaglist.size(); i++)
 			{
 				EXPECT_TRUE(diaglist.at(i).Level <= NOTICE);

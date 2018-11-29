@@ -1,5 +1,5 @@
-#ifndef SAMPLE_H
-#define SAMPLE_H
+#ifndef HATCONTROLLERNODE_H
+#define HATCONTROLLERNODE_H
 //Start Template Code: Includes
 #include "ros/ros.h"
 #include "std_msgs/String.h"
@@ -27,7 +27,22 @@
 //End User Code: Defines
 
 //Start User Code: Includes
-#include "sample_node_process.h"
+#include <wiringPiI2C.h>
+#include "hatcontroller_node_process.h"
+#include "Driver/ServoHatDriver.h"
+#include "Driver/TerminalHatDriver.h"
+#include "Driver/GPIOHatDriver.h"
+#include <stdio.h>
+#include <string.h>
+#include <serialmessage.h>
+#include <i2cmessage.h>
+#include <unistd.h>			//Used for UART
+#include <fcntl.h>			//Used for UART
+#include <termios.h>		//Used for UART
+#include <sys/ioctl.h>
+#include <boost/thread.hpp>
+#include <dirent.h>
+#include <sys/types.h>
 //End User Code: Includes
 
 //Start User Code: Data Structures
@@ -48,6 +63,8 @@ void signalinterrupt_handler(int sig);
 //End Template Code: Function Prototypes
 
 //Start User Code: Function Prototypes
+void ArmedState_Callback(const std_msgs::UInt8::ConstPtr& msg);
+void signalinterrupt_handler(int sig);
 //End User Code: Function Prototypes
 
 //Start Template Code: Define Global variables
@@ -86,6 +103,44 @@ double ros_rate;
 //End Template Code: Define Global Variables
 
 //Start User Code: Define Global Variables
-SampleNodeProcess *process;
+ros::Time last_message_received_time;
+HatControllerNodeProcess* process;
+ros::Publisher digitalinput_pub;
+ros::Subscriber pwmoutput_sub;
+ros::Time last_pwmoutput_sub_time;
+std::vector<ros::Subscriber> diagnostic_subs;
+ros::Time last_diagnostic_sub_time;
+ros::Subscriber digitaloutput_sub;
+ros::Time last_digitaloutput_time;
+ros::Publisher analoginput_pub;
+ros::Publisher forcesensorinput_pub;
+ros::Time gpio_comm_test_start;
+bool checking_gpio_comm;
+int message_receive_counter;
+std::vector<boost::thread> threads;
+
+int current_num;
+int last_num;
+int missed_counter;
+bool new_message;
+bool message_started;
+bool message_completed;
+int message_buffer_index;
+unsigned char message_buffer[64];
+int packet_length;
+ros::Subscriber armed_state_sub;
+bool ready_to_arm;
+ros::Publisher ready_to_arm_pub;
+
+std::vector<ServoHatDriver> ServoHats;
+std::vector<GPIOHatDriver> GPIOHats;
+TerminalHatDriver TerminalHat;
+I2CMessageHandler *i2cmessagehandler;
+std::vector<ros::Publisher> signal_sensor_pubs;
+std::vector<std::string> signal_sensor_names;
+icarus_rover_v2::device myDevice;
+std::vector<ros::Publisher> digitalinput_pubs;
+std::vector<std::string> digitalinput_names;
+//TerminalHatDriver TerminalHat;
 //End User Code: Define Global Variables
 #endif
