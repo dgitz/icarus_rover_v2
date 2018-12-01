@@ -142,6 +142,7 @@ protected:
 	bool resourcemonitor_initialized;
 	double ros_rate;
 
+	ros::Time boot_time;
 	ros::Time last_001hz_timer;
 	ros::Time last_01hz_timer;
 	ros::Time last_1hz_timer;

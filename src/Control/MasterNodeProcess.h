@@ -115,5 +115,6 @@ private:
 	std::string device_filepath;
 	std::string system_filepath;
 	double device_temperature;
+	std::vector<icarus_rover_v2::device> devices_to_publish;
 };
 #endif

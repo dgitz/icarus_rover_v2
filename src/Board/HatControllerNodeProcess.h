@@ -18,7 +18,6 @@ public:
 	//Structs
 	struct Sensor
 	{
-		double tov;
 		uint8_t status;
 		bool initialized;
 		std::string type;
@@ -27,13 +26,12 @@ public:
 		icarus_rover_v2::device connected_hat;
 		icarus_rover_v2::pin connected_pin;
 		bool convert;
-		double value;
-		std::string units;
 		std::string output_datatype;
 		double min_inputvalue;
 		double max_inputvalue;
 		double min_outputvalue;
 		double max_outputvalue;
+		icarus_rover_v2::signal signal;
 	};
 	///Initialization Functions
 	/*! \brief NodeProcess specific Initialization
@@ -50,7 +48,7 @@ public:
 	void set_analyzetiming(bool v) { analyze_timing = v; }
 	bool get_analyzetiming() { return analyze_timing; }
 	uint8_t get_armedstate() { return armed_state; }
-	bool get_ready_to_arm() { return ready_to_arm; }
+
 	//Message Functions
 	/*! \brief  Process Command Message.
 	 *

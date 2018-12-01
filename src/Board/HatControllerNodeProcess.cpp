@@ -15,6 +15,7 @@ icarus_rover_v2::diagnostic  HatControllerNodeProcess::finish_initialization()
 icarus_rover_v2::diagnostic HatControllerNodeProcess::update(double t_dt,double t_ros_time)
 {
 	icarus_rover_v2::diagnostic diag = diagnostic;
+	diag = update_baseprocess(t_dt,t_ros_time);
 	if((mydevice.HatCount == 0) and (mydevice.SensorCount == 0))
 	{
 		if(initialized == true) { ready = true; }
@@ -39,12 +40,11 @@ icarus_rover_v2::diagnostic HatControllerNodeProcess::update(double t_dt,double 
 		diag.Diagnostic_Message = INITIALIZING;
 		diag.Description = "Initializing";
 	}
-
-	diag = update_baseprocess(t_dt,t_ros_time);
 	ready_to_arm = status;
 	if(status == false)
 	{
 		armed_state = ARMEDSTATUS_DISARMED_CANNOTARM;
+
 	}
 	else
 	{
@@ -53,7 +53,7 @@ icarus_rover_v2::diagnostic HatControllerNodeProcess::update(double t_dt,double 
 		diag.Diagnostic_Message = NOERROR;
 		diag.Description = "Node Running";
 	}
-
+	diagnostic = diag;
 	return diag;
 }
 std::vector<icarus_rover_v2::diagnostic> HatControllerNodeProcess::new_commandmsg(const icarus_rover_v2::command::ConstPtr& t_msg)
@@ -204,7 +204,6 @@ icarus_rover_v2::diagnostic HatControllerNodeProcess::new_devicemsg(const icarus
 
 							else
 							{
-								printf("3\n");
 								diag.Level = ERROR;
 								diag.Diagnostic_Type = SOFTWARE;
 								diag.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
@@ -224,7 +223,7 @@ icarus_rover_v2::diagnostic HatControllerNodeProcess::new_devicemsg(const icarus
 							{
 								Sensor new_sensor;
 								new_sensor.initialized = false;
-								new_sensor.value = 0.0;
+								new_sensor.signal.value = 0.0;
 								new_sensor.name = t_newdevice->pins.at(i).ConnectedSensor;
 								new_sensor.connected_hat = device;
 								new_sensor.connected_pin = t_newdevice->pins.at(i);
@@ -454,19 +453,20 @@ bool HatControllerNodeProcess::update_sensor(const icarus_rover_v2::device::Cons
 		if((sensors.at(i).connected_hat.DeviceName == t_device->DeviceName) and
 				(sensors.at(i).connected_pin.Name == t_pin->Name))
 		{
-			sensors.at(i).tov = tov;
-			sensors.at(i).status = SIGNALSTATE_UPDATED;
+			sensors.at(i).signal.tov = convert_time(tov);
+			sensors.at(i).signal.status = SIGNALSTATE_UPDATED;
 			if(sensors.at(i).convert == false)
 			{
-				sensors.at(i).value = value;
+				sensors.at(i).signal.value = value;
 			}
 			else
 			{
-				sensors.at(i).value = map_input_to_output(value,sensors.at(i).min_inputvalue,
+				sensors.at(i).signal.value = map_input_to_output(value,sensors.at(i).min_inputvalue,
 						sensors.at(i).max_inputvalue,
 						sensors.at(i).min_inputvalue,
 						sensors.at(i).max_outputvalue);
 			}
+			sensors.at(i).signal.rms = -1;
 			return true;
 		}
 	}
@@ -922,7 +922,7 @@ bool HatControllerNodeProcess::parse_sensorfile(TiXmlDocument doc,std::string na
 		TiXmlElement *l_pUnits = l_pRootElement->FirstChildElement( "Units" );
 		if(NULL != l_pUnits)
 		{
-			sensors.at(sensor_index).units = l_pUnits->GetText();
+			sensors.at(sensor_index).signal.units = l_pUnits->GetText();
 		}
 		else { printf("Sensor: %s Element: Units not found.\n",sensors.at(sensor_index).name.c_str()); return false; }
 

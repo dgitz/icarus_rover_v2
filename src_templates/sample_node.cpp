@@ -107,6 +107,7 @@ bool SampleNode::run_1hz()
 }
 bool SampleNode::run_10hz()
 {
+	ready_to_arm = process->get_ready_to_arm();
 	icarus_rover_v2::diagnostic diag = process->update(0.1,ros::Time::now().toSec());
 	if(diag.Level > WARN)
 	{

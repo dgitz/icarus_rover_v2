@@ -25,6 +25,7 @@
 #include <icarus_rover_v2/leverarm.h>
 #include <icarus_rover_v2/controlgroup.h>
 #include <icarus_rover_v2/iopins.h>
+#include <icarus_rover_v2/signal.h>
 //Project
 #include "Definitions.h"
 
@@ -69,6 +70,7 @@ public:
 	double get_runtime() { return run_time; }
 	bool is_initialized() { return initialized; }
 	bool is_ready() { return ready; }
+	bool get_ready_to_arm() { return ready_to_arm; }
 
 	//Message Functions
 	virtual icarus_rover_v2::diagnostic new_devicemsg(const icarus_rover_v2::device::ConstPtr& device) = 0;
@@ -80,11 +82,14 @@ public:
 	/*! \brief Runs Unit Test on Derived Process. */
 	std::vector<icarus_rover_v2::diagnostic> run_unittest();
 	ros::Time convert_time(struct timeval t);
+	ros::Time convert_time(double t);
 	//Printing Functions
 protected:
 	icarus_rover_v2::diagnostic update_baseprocess(double t_dt,double t_ros_time);
 	icarus_rover_v2::device convert_fromptr(const icarus_rover_v2::device::ConstPtr& t_ptr);
 	icarus_rover_v2::pin convert_fromptr(const icarus_rover_v2::pin::ConstPtr& t_ptr);
+	icarus_rover_v2::command convert_fromptr(const icarus_rover_v2::command::ConstPtr& t_ptr);
+	icarus_rover_v2::diagnostic convert_fromptr(const icarus_rover_v2::diagnostic::ConstPtr& t_ptr);
 	icarus_rover_v2::diagnostic diagnostic;
 	bool initialized;
 	bool ready;

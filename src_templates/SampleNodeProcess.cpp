@@ -19,9 +19,9 @@ icarus_rover_v2::diagnostic SampleNodeProcess::update(double t_dt,double t_ros_t
 		diag.Level = INFO;
 		diag.Diagnostic_Message = NOERROR;
 		diag.Description = "Node Running.";
-		diagnostic = diag;
-	}
 
+	}
+	diagnostic = diag;
 	return diag;
 }
 icarus_rover_v2::diagnostic SampleNodeProcess::new_devicemsg(const icarus_rover_v2::device::ConstPtr& device)

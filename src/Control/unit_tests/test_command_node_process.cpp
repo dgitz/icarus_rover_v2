@@ -3,7 +3,7 @@
 #include "ros/time.h"
 #include "icarus_rover_v2/device.h"
 #include "icarus_rover_v2/diagnostic.h"
-#include "../command_node_process.h"
+#include "../CommandNodeProcess.h"
 
 std::string Node_Name = "/unittest_command_node_process";
 std::string Host_Name = "unittest";
@@ -19,52 +19,51 @@ int DeviceID = 123;
 CommandNodeProcess* initializeprocess()
 {
 	icarus_rover_v2::diagnostic diagnostic;
-    diagnostic.DeviceName = ros_DeviceName;
-    diagnostic.Node_Name = Node_Name;
-    diagnostic.System = ROVER;
-    diagnostic.SubSystem = ROBOT_CONTROLLER;
-    diagnostic.Component = CONTROLLER_NODE;
+	diagnostic.DeviceName = ros_DeviceName;
+	diagnostic.Node_Name = Node_Name;
+	diagnostic.System = ROVER;
+	diagnostic.SubSystem = ROBOT_CONTROLLER;
+	diagnostic.Component = CONTROLLER_NODE;
 
-    diagnostic.Diagnostic_Type = NOERROR;
-    diagnostic.Level = INFO;
-    diagnostic.Diagnostic_Message = INITIALIZING;
-    diagnostic.Description = "Node Initializing";
+	diagnostic.Diagnostic_Type = NOERROR;
+	diagnostic.Level = INFO;
+	diagnostic.Diagnostic_Message = INITIALIZING;
+	diagnostic.Description = "Node Initializing";
 
 	icarus_rover_v2::device device;
-    device.DeviceName = diagnostic.DeviceName;
-    device.BoardCount = 0;
-    device.SensorCount = 0;
-    device.DeviceParent = "None";
-    device.Architecture = "x86_64";
+	device.DeviceName = diagnostic.DeviceName;
+	device.BoardCount = 0;
+	device.SensorCount = 0;
+	device.DeviceParent = "None";
+	device.Architecture = "x86_64";
 
 	CommandNodeProcess* process;
-	process = new CommandNodeProcess("command_node",Node_Name);
-	diagnostic = process->init(diagnostic,std::string(Host_Name));
-    EXPECT_TRUE(diagnostic.Level <= NOTICE);
-    EXPECT_TRUE(process->get_initialized() == false);
-    process->set_mydevice(device);
-    EXPECT_TRUE(process->get_initialized() == true);
-    EXPECT_TRUE(process->get_mydevice().DeviceName == device.DeviceName);
+	process = new CommandNodeProcess;
+	process->set_diagnostic(diagnostic);
+	process->finish_initialization();
+	EXPECT_TRUE(diagnostic.Level <= NOTICE);
+	EXPECT_TRUE(process->is_initialized() == false);
+	process->set_mydevice(device);
+	EXPECT_TRUE(process->is_initialized() == true);
+	EXPECT_TRUE(process->get_mydevice().DeviceName == device.DeviceName);
 	EXPECT_EQ(process->get_currentcommand().Command,ROVERCOMMAND_BOOT);
 	EXPECT_EQ(process->get_currentstate(),NODESTATE_BOOTING);
-	diagnostic = process->new_devicemsg(device);
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 	process->set_batterylevel_perc(100.0);
-
 	return process;
 }
 CommandNodeProcess* readyprocess(CommandNodeProcess* process)
 {
-    icarus_rover_v2::diagnostic diag = process->update(0);
-    EXPECT_TRUE(diag.Level <= NOTICE);
-    EXPECT_TRUE(process->get_ready() == true);
+	icarus_rover_v2::diagnostic diag = process->update(0.0,0.0);
+	EXPECT_TRUE(diag.Level <= NOTICE);
+	EXPECT_TRUE(process->is_ready() == true);
 	EXPECT_EQ(process->get_currentstate(),NODESTATE_RUNNING);
 	EXPECT_EQ(process->get_currentcommand().Command,ROVERCOMMAND_NONE);
-    return process;
+	return process;
 }
 TEST(Template,Process_Initialization)
 {
-    CommandNodeProcess* process = initializeprocess();
+	CommandNodeProcess* process = initializeprocess();
 }
 TEST(PeriodicCommands,TestA)
 {
@@ -80,13 +79,12 @@ TEST(PeriodicCommands,TestA)
 	double time_to_run = 20.0;
 	double dt = 0.001;
 	double current_time = 0.0;
-
 	int level1_counter = 0;
 	int level2_counter = 0;
 	int level3_counter = 0;
 	while(current_time <= time_to_run)
 	{
-		icarus_rover_v2::diagnostic diag = process->update(dt);
+		icarus_rover_v2::diagnostic diag = process->update(dt,current_time);
 		EXPECT_TRUE(diag.Level <= NOTICE);
 		std::vector<icarus_rover_v2::command> p_commands = process->get_PeriodicCommands();
 		for(std::size_t i = 0; i < p_commands.size(); i++)
@@ -110,13 +108,13 @@ TEST(ArmDisarm,TestA)
 	CommandNodeProcess* process = initializeprocess();
 	process = readyprocess(process);
 
-	diagnostic = process->update(1.0/(FAST_RATE*1000.0));
+	diagnostic = process->update(1.0/(FAST_RATE*1000.0),(double)(0)*1.0/(FAST_RATE*1000.0));
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 	EXPECT_EQ(process->get_currentstate(),NODESTATE_RUNNING);
 	EXPECT_EQ(process->get_currentcommand().Command,ROVERCOMMAND_NONE);
 	for(int i = 0; i < 10; i++)
 	{
-		diagnostic = process->update(1.0/(FAST_RATE*1000.0));
+		diagnostic = process->update(1.0/(FAST_RATE*1000.0),(double)(i)*1.0/(FAST_RATE*1000.0));
 		EXPECT_TRUE(diagnostic.Level <= NOTICE);
 		EXPECT_EQ(process->get_armeddisarmed_state(),ARMEDSTATUS_DISARMED_CANNOTARM);
 	}
@@ -134,38 +132,39 @@ TEST(ArmDisarm,TestA)
 	for(int i = 0; i < ready_to_arm_topics.size(); i++)
 	{
 		process->new_readytoarmmsg(ready_to_arm_topics.at(i),false);
-		diagnostic = process->update(1.0/(FAST_RATE*1000.0));
+		diagnostic = process->update(1.0/(FAST_RATE*1000.0),(double)(i)*1.0/(FAST_RATE*1000.0));
 		EXPECT_TRUE(diagnostic.Level <= NOTICE);
 		EXPECT_EQ(process->get_armeddisarmed_state(),ARMEDSTATUS_DISARMED_CANNOTARM);
 	}
 	for(int i = 0; i < (ready_to_arm_topics.size()-1); i++)
 	{
 		process->new_readytoarmmsg(ready_to_arm_topics.at(i),true);
-		diagnostic = process->update(1.0/(FAST_RATE*1000.0));
+		diagnostic = process->update(1.0/(FAST_RATE*1000.0),(double)(i)*1.0/(FAST_RATE*1000.0));
 		EXPECT_TRUE(diagnostic.Level <= NOTICE);
 		EXPECT_EQ(process->get_armeddisarmed_state(),ARMEDSTATUS_DISARMED_CANNOTARM);
 	}
 	process->new_readytoarmmsg(ready_to_arm_topics.at(ready_to_arm_topics.size()-1),true);
-	diagnostic = process->update(1.0/(FAST_RATE*1000.0));
+	diagnostic = process->update(1.0/(FAST_RATE*1000.0),(double)(0)*1.0/(FAST_RATE*1000.0));
 	EXPECT_EQ(process->get_armeddisarmed_state(),ARMEDSTATUS_DISARMED);
 	process->new_readytoarmmsg(ready_to_arm_topics.at(0),false);
-	diagnostic = process->update(1.0/(FAST_RATE*1000.0));
-    EXPECT_TRUE(diagnostic.Level <= NOTICE);
+	diagnostic = process->update(1.0/(FAST_RATE*1000.0),(double)(0)*1.0/(FAST_RATE*1000.0));
+	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 	EXPECT_EQ(process->get_armeddisarmed_state(),ARMEDSTATUS_DISARMED_CANNOTARM);
 
 
 	process->new_readytoarmmsg(ready_to_arm_topics.at(0),true);
-	diagnostic = process->update(1.0/(FAST_RATE*1000.0));
+	diagnostic = process->update(1.0/(FAST_RATE*1000.0),(double)(0)*1.0/(FAST_RATE*1000.0));
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 	EXPECT_EQ(process->get_armeddisarmed_state(),ARMEDSTATUS_DISARMED);
-    icarus_rover_v2::command arm_command;
-    arm_command.Command = ROVERCOMMAND_ARM;
-	diagnostic = process->new_user_commandmsg(arm_command);
+	icarus_rover_v2::command arm_command;
+	arm_command.Command = ROVERCOMMAND_ARM;
+	icarus_rover_v2::command::ConstPtr cmd_ptr(new icarus_rover_v2::command(arm_command));
+	diagnostic = process->new_user_commandmsg(cmd_ptr);
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 	EXPECT_EQ(process->get_currentcommand().Command,ROVERCOMMAND_ARM);
 	for(int i = 0; i < 10; i++)
 	{
-		diagnostic = process->update(1.0/(FAST_RATE*1000.0));
+		diagnostic = process->update(1.0/(FAST_RATE*1000.0),(double)(i)*1.0/(FAST_RATE*1000.0));
 		EXPECT_TRUE(diagnostic.Level <= NOTICE);
 		EXPECT_EQ(process->get_armeddisarmed_state(),ARMEDSTATUS_ARMED);
 	}
@@ -203,7 +202,7 @@ TEST(AutoRecharge,TestA)
 	EXPECT_EQ(process->get_currentcommand().Command,ROVERCOMMAND_ACQUIRE_TARGET);
 	EXPECT_EQ(process->get_currentstate(),NODESTATE_ACQUIRING_TARGET);
 }
-*/
+ */
 int main(int argc, char **argv){
 	testing::InitGoogleTest(&argc, argv);
 	return RUN_ALL_TESTS();

@@ -94,6 +94,8 @@ icarus_rover_v2::diagnostic NetworkTransceiverNode::finish_initialization()
 	icarus_rover_v2::diagnostic diag = diagnostic;
 	pps1_sub = n->subscribe<std_msgs::Bool>("/1PPS",1,&NetworkTransceiverNode::PPS1_Callback,this);
 	command_sub = n->subscribe<icarus_rover_v2::command>("/command",1,&NetworkTransceiverNode::Command_Callback,this);
+	std::string armed_disarmed_state_topic = "/armed_state";
+	armed_disarmed_state_sub = n->subscribe<std_msgs::UInt8>(armed_disarmed_state_topic,10,&NetworkTransceiverNode::ArmedState_Callback,this);
 	std::string device_topic = "/" + std::string(host_name) + "_master_node/srv_device";
 	srv_device = n->serviceClient<icarus_rover_v2::srv_device>(device_topic);
 	if(process->get_UIMode()=="Diagnostics_GUI")
@@ -226,6 +228,7 @@ bool NetworkTransceiverNode::run_1hz()
 }
 bool NetworkTransceiverNode::run_10hz()
 {
+	ready_to_arm = process->get_ready_to_arm();
 	if((process->get_remoteheartbeatresult() == true) and
 			(1 == 1)) //Others??
 	{

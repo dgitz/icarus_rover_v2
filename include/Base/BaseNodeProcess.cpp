@@ -24,6 +24,14 @@ ros::Time BaseNodeProcess::convert_time(struct timeval t_)
 	t.nsec = t_.tv_usec*1000;
 	return t;
 }
+ros::Time BaseNodeProcess::convert_time(double t_)
+{
+	ros::Time t;
+	t.sec = (int64_t)t_;
+	double rem = t_-(double)t.sec;
+	t.nsec = (int64_t)(rem*1000000.0);
+	return t;
+}
 std::vector<icarus_rover_v2::diagnostic> BaseNodeProcess::run_unittest()
 {
 
@@ -184,4 +192,29 @@ icarus_rover_v2::pin BaseNodeProcess::convert_fromptr(const icarus_rover_v2::pin
 	pin.Value = t_ptr->Value;
 	pin.stamp = t_ptr->stamp;
 	return pin;
+}
+icarus_rover_v2::command BaseNodeProcess::convert_fromptr(const icarus_rover_v2::command::ConstPtr& t_ptr)
+{
+	icarus_rover_v2::command cmd;
+	cmd.Command = t_ptr->Command;
+	cmd.CommandText = t_ptr->CommandText;
+	cmd.Description = t_ptr->Description;
+	cmd.Option1 = t_ptr->Option1;
+	cmd.Option2 = t_ptr->Option2;
+	cmd.Option3 = t_ptr->Option3;
+	return cmd;
+}
+icarus_rover_v2::diagnostic BaseNodeProcess::convert_fromptr(const icarus_rover_v2::diagnostic::ConstPtr& t_ptr)
+{
+	icarus_rover_v2::diagnostic diag;
+	diag.Component = t_ptr->Component;
+	diag.Description = t_ptr->Description;
+	diag.DeviceName = t_ptr->DeviceName;
+	diag.Diagnostic_Message = t_ptr->Diagnostic_Message;
+	diag.Diagnostic_Type = t_ptr->Diagnostic_Type;
+	diag.Level = t_ptr->Level;
+	diag.Node_Name = t_ptr->Node_Name;
+	diag.SubSystem = t_ptr->SubSystem;
+	diag.System = t_ptr->System;
+	return diag;
 }

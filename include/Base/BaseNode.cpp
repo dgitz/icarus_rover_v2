@@ -30,6 +30,7 @@ icarus_rover_v2::diagnostic BaseNode::preinitialize_basenode(int argc,char **arg
 	ros::init(argc,argv,base_node_name);
 	n.reset(new ros::NodeHandle);
 	node_name = ros::this_node::getName();
+	boot_time = ros::Time::now();
 	firmware.Generic_Node_Name = base_node_name;
 	firmware.Node_Name = node_name;
 	diagnostic.Diagnostic_Type = NOERROR;
@@ -160,6 +161,10 @@ icarus_rover_v2::diagnostic BaseNode::read_baselaunchparameters()
 	}
 	ros_rate = max_rate * 4.0;
 	if(ros_rate > 100.0) { ros_rate = 100.0; }
+	if(ros_rate <= 1.0)
+	{
+		ros_rate = 20.0;
+	}
 	char tempstr[512];
 	sprintf(tempstr,"Running Node at Rate: %4.2f Hz.",ros_rate);
 	logger->log_notice(std::string(tempstr));
@@ -196,12 +201,6 @@ bool BaseNode::update()
 		run_01hz();
 		last_01hz_timer = ros::Time::now();
 		firmware_pub.publish(firmware);
-	}
-	mtime = measure_time_diff(ros::Time::now(),last_1hz_timer);
-	if(mtime >= 1.0)
-	{
-		run_1hz();
-		last_1hz_timer = ros::Time::now();
 		if(resourcemonitor_initialized == true)
 		{
 			resource_diagnostic = resourcemonitor->update();
@@ -221,6 +220,13 @@ bool BaseNode::update()
 				resource_pub.publish(resourcemonitor->get_resourceused());
 			}
 		}
+	}
+	mtime = measure_time_diff(ros::Time::now(),last_1hz_timer);
+	if(mtime >= 1.0)
+	{
+		run_1hz();
+		last_1hz_timer = ros::Time::now();
+
 
 	}
 	mtime = measure_time_diff(ros::Time::now(),last_10hz_timer);

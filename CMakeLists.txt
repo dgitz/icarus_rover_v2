@@ -257,7 +257,7 @@ target_link_libraries(test_master_node_process ${catkin_LIBRARIES} ${Boost_LIBRA
 
 #Command Node
 file(MAKE_DIRECTORY /home/robot/catkin_ws/build/test_results/icarus_rover_v2/command_node)
-add_library(command_node_process src/Control/command_node_process.cpp)
+add_library(command_node_process src/Control/CommandNodeProcess.cpp)
 add_dependencies(command_node_process icarus_rover_v2_generate_messages_cpp)
 add_executable(command_node src/Control/command_node.cpp)
 target_link_libraries(command_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor command_node_process)
@@ -275,7 +275,7 @@ target_link_libraries(test_timemaster_node_process ${catkin_LIBRARIES} ${Boost_L
 
 #Diagnostic Node
 file(MAKE_DIRECTORY /home/robot/catkin_ws/build/test_results/icarus_rover_v2/diagnostic_node)
-add_library(diagnostic_node_process src/Diagnostics/diagnostic_node_process.cpp)
+add_library(diagnostic_node_process src/Diagnostics/DiagnosticNodeProcess.cpp)
 add_dependencies(diagnostic_node_process icarus_rover_v2_generate_messages_cpp)
 add_executable(diagnostic_node src/Diagnostics/diagnostic_node.cpp)
 target_link_libraries(diagnostic_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} logger resourcemonitor diagnostic_node_process lcddriver)

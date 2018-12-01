@@ -37,8 +37,7 @@ bool MasterNode::start(int argc,char **argv)
 		logger->log_error("Couldn't initialize ActiveNodeList. Exiting.\n");
 		return false;
 	}
-	devices_to_publish = process->get_childdevices();
-	print_deviceinfo();
+
 	diagnostic = process->set_serialportlist(find_serialports());
 	if(diagnostic.Level > NOTICE)
 	{
@@ -59,6 +58,7 @@ bool MasterNode::start(int argc,char **argv)
 	diagnostic = process->finish_initialization();
 	set_mydevice(process->get_mydevice());
 	process->set_initialized();
+	print_deviceinfo();
 	if(diagnostic.Level < WARN)
 	{
 		diagnostic.Diagnostic_Type = NOERROR;
@@ -91,6 +91,7 @@ icarus_rover_v2::diagnostic MasterNode::finish_initialization()
 	leverarm_srv = n->advertiseService(srv_leverarm_topic,&MasterNode::leverarm_service,this);
 	std::string device_resourceavail_topic = "/" + process->get_mydevice().DeviceName + "/resource_available";
 	device_resourceavail_pub = n->advertise<icarus_rover_v2::resource>(device_resourceavail_topic,1);
+
 	return diagnostic;
 }
 bool MasterNode::run_001hz()
@@ -162,6 +163,7 @@ bool MasterNode::run_1hz()
 }
 bool MasterNode::run_10hz()
 {
+	ready_to_arm = process->get_ready_to_arm();
 	icarus_rover_v2::diagnostic diag = process->update(0.1,ros::Time::now().toSec());
 	if(diag.Level > WARN)
 	{
@@ -422,11 +424,11 @@ bool MasterNode::device_service(icarus_rover_v2::srv_device::Request &req,
 	else if(std::string::npos != req.query.find("DeviceType="))
 	{
 		std::string devicetype = req.query.substr(11,req.query.size());
-		for(std::size_t i = 0; i < devices_to_publish.size(); i++)
+		for(std::size_t i = 0; i < process->get_childdevices().size(); i++)
 		{
-			if(devices_to_publish.at(i).DeviceType == devicetype)
+			if(process->get_childdevices().at(i).DeviceType == devicetype)
 			{
-				res.data.push_back(devices_to_publish.at(i));
+				res.data.push_back(process->get_childdevices().at(i));
 			}
 		}
 		return true;
@@ -475,9 +477,9 @@ void MasterNode::print_deviceinfo()
 {
 	char tempstr[8192];
 	sprintf(tempstr,"Loading Devices:\n");
-	for(std::size_t i = 0; i < devices_to_publish.size(); i++)
+	for(std::size_t i = 0; i < process->get_childdevices().size(); ++i)
 	{
-		sprintf(tempstr,"%s[%d] Device: %s\n",tempstr,(int)i,devices_to_publish.at(i).DeviceName.c_str());
+		sprintf(tempstr,"%s[%d] Device: %s\n",tempstr,(int)i,process->get_childdevices().at(i).DeviceName.c_str());
 	}
 	logger->log_notice(std::string(tempstr));
 }

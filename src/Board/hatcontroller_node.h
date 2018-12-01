@@ -1,36 +1,47 @@
 // Derived class
-#include "SampleNodeProcess.cpp"
+#include "HatControllerNodeProcess.cpp"
 #include "../include/Base/BaseNode.cpp"
 //C System Files
+#include <unistd.h>			//Used for UART
+#include <fcntl.h>			//Used for UART
+#include <termios.h>		//Used for UART
+#include <sys/ioctl.h>
+#include <dirent.h>
+#include <sys/types.h>
 //C++ System Files
 //ROS Base Functionality
 //ROS Messages
 //Project
-/*! \class SampleNode SampleNode.h "SampleNode.h"
- *  \brief This is a SampleNode class.  Used for the sample_node node.
+#include <wiringPiI2C.h>
+#include "Driver/ServoHatDriver.h"
+#include "Driver/TerminalHatDriver.h"
+#include "Driver/GPIOHatDriver.h"
+#include <i2cmessage.h>
+/*! \class HatControllerNode HatControllerNode.h "HatControllerNode.h"
+ *  \brief This is a HatControllerNode class.  Used for the hatcontroller_node node.
  *
  */
-class SampleNode: public BaseNode {
+class HatControllerNode: public BaseNode {
 public:
 
 	const string BASE_NODE_NAME = "sample_node";
 
-	const uint8_t MAJOR_RELEASE_VERSION = 3;
+	const uint8_t MAJOR_RELEASE_VERSION = 2;
 	const uint8_t MINOR_RELEASE_VERSION = 0;
-	const uint8_t BUILD_NUMBER = 1;
-	const string FIRMWARE_DESCRIPTION = "Latest Rev: 26-November-2018";
+	const uint8_t BUILD_NUMBER = 0;
+	const string FIRMWARE_DESCRIPTION = "Latest Rev: 29-November-2018";
 
 	const uint8_t DIAGNOSTIC_SYSTEM = ROVER;
 	const uint8_t DIAGNOSTIC_SUBSYSTEM = ROBOT_CONTROLLER;
-	const uint8_t DIAGNOSTIC_COMPONENT = TIMING_NODE;
-	~SampleNode()
+	const uint8_t DIAGNOSTIC_COMPONENT = GPIO_NODE;
+	~HatControllerNode()
 	{
 	}
 	/*! \brief Initialize
 	 *
 	 */
 	bool start(int argc,char **argv);
-	SampleNodeProcess* get_process() { return process; }
+	HatControllerNodeProcess* get_process() { return process; }
 	void thread_loop();
 
 	//Cleanup
@@ -58,6 +69,9 @@ private:
 	void PPS1_Callback(const std_msgs::Bool::ConstPtr& t_msg);
 	void Command_Callback(const icarus_rover_v2::command::ConstPtr& t_msg);
 	bool new_devicemsg(std::string query,icarus_rover_v2::device t_device);
+	void ArmedState_Callback(const std_msgs::UInt8::ConstPtr& msg);
+	void DigitalOutput_Callback(const icarus_rover_v2::pin::ConstPtr& msg);
+	void PwmOutput_Callback(const icarus_rover_v2::pin::ConstPtr& msg);
 	//Support Functions
 
 
@@ -66,6 +80,25 @@ private:
 	ros::Subscriber pps1_sub;
 	ros::Subscriber command_sub;
 	ros::ServiceClient srv_device;
-	SampleNodeProcess *process;
+	HatControllerNodeProcess *process;
+
+	std::vector<ServoHatDriver> ServoHats;
+	std::vector<GPIOHatDriver> GPIOHats;
+	TerminalHatDriver TerminalHat;
+	I2CMessageHandler *i2cmessagehandler;
+	std::vector<ros::Publisher> signal_sensor_pubs;
+	std::vector<ros::Publisher> digitalinput_pubs;
+
+	ros::Publisher digitalinput_pub;
+	ros::Subscriber pwmoutput_sub;
+	ros::Time last_pwmoutput_sub_time;
+	std::vector<ros::Subscriber> diagnostic_subs;
+	ros::Time last_diagnostic_sub_time;
+	ros::Subscriber digitaloutput_sub;
+	ros::Time last_digitaloutput_time;
+	ros::Publisher analoginput_pub;
+	ros::Publisher forcesensorinput_pub;
+	ros::Subscriber armed_state_sub;
+	ros::Publisher ready_to_arm_pub;
 
 };

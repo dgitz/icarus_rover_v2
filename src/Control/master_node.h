@@ -74,8 +74,8 @@ private:
 
 	std::string base_node_name;
 	ros::Subscriber pps1_sub;
-	ros::Publisher device_resourceavail_pub;\
-	std::vector<icarus_rover_v2::device> devices_to_publish;
+	ros::Publisher device_resourceavail_pub;
+
 	ros::Subscriber command_sub;
 	MasterNodeProcess *process;
 	ros::ServiceServer device_srv;
