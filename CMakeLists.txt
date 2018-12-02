@@ -293,16 +293,16 @@ target_link_libraries(test_networktransceiver_node_process ${catkin_LIBRARIES} $
 
 #CommandLauncher Node
 file(MAKE_DIRECTORY /home/robot/catkin_ws/build/test_results/icarus_rover_v2/commandlauncher_node)
-add_library(commandlauncher_node_process src/Control/commandlauncher_node_process.cpp)
+add_library(commandlauncher_node_process src/Control/CommandLauncherNodeProcess.cpp)
 add_dependencies(commandlauncher_node_process icarus_rover_v2_generate_messages_cpp)
-#add_executable(commandlauncher_node src/Control/commandlauncher_node.cpp)
-#target_link_libraries(commandlauncher_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor commandlauncher_node_process)
+add_executable(commandlauncher_node src/Control/commandlauncher_node.cpp)
+target_link_libraries(commandlauncher_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor commandlauncher_node_process)
 catkin_add_gtest(test_commandlauncher_node_process src/Control/unit_tests/test_commandlauncher_node_process.cpp)
 target_link_libraries(test_commandlauncher_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} commandlauncher_node_process)
 
 #Safety Node
 file(MAKE_DIRECTORY /home/robot/catkin_ws/build/test_results/icarus_rover_v2/safety_node)
-add_library(safety_node_process src/Diagnostics/safety_node_process.cpp)
+add_library(safety_node_process src/Diagnostics/SafetyNodeProcess.cpp)
 add_dependencies(safety_node_process icarus_rover_v2_generate_messages_cpp)
 #add_executable(safety_node src/Diagnostics/safety_node.cpp) #Only compatible for ControlModule
 #target_link_libraries(safety_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor safety_node_process terminalhatdriver)

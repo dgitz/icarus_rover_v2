@@ -5,7 +5,7 @@
 #include "icarus_rover_v2/device.h"
 #include "icarus_rover_v2/diagnostic.h"
 #include "icarus_rover_v2/command.h"
-#include "../safety_node_process.h"
+#include "../SafetyNodeProcess.h"
 
 std::string Node_Name = "/unittest_safety_node_process";
 std::string Host_Name = "ControlModule1";
@@ -34,13 +34,13 @@ SafetyNodeProcess* initializeprocess()
 	device.DeviceParent = "None";
 
 	SafetyNodeProcess *process;
-	process = new SafetyNodeProcess("safety_node",Node_Name);
-	diagnostic = process->init(diagnostic,std::string(Host_Name));
-	EXPECT_TRUE(diagnostic.Level <= NOTICE);
-	EXPECT_TRUE(process->get_initialized() == false);
+	process = new SafetyNodeProcess;
+    process->initialize("safety_node",Node_Name,Host_Name);
+	process->set_diagnostic(diagnostic);
+	process->finish_initialization();
+	EXPECT_TRUE(process->is_initialized() == false);
 	process->set_mydevice(device);
-	EXPECT_TRUE(process->get_initialized() == true);
-	EXPECT_TRUE(process->get_ready() == false);
+	EXPECT_TRUE(process->is_initialized() == true);
 	EXPECT_TRUE(process->get_mydevice().DeviceName == device.DeviceName);
 
 	icarus_rover_v2::device hat1;
@@ -62,46 +62,44 @@ SafetyNodeProcess* initializeprocess()
 	hat1.pins.push_back(newpin);
 
 
-	diagnostic = process->update(0.02);
+	diagnostic = process->update(0.02,0.02);
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 
-	diagnostic = process->new_devicemsg(hat1);
+    icarus_rover_v2::device::ConstPtr hat_ptr(new icarus_rover_v2::device(hat1));
+	diagnostic = process->new_devicemsg(hat_ptr);
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 
 
-	EXPECT_TRUE(process->get_ready() == false);
+	EXPECT_TRUE(process->is_ready() == false);
 	EXPECT_FALSE(process->is_hat_running(hat1.DeviceType,hat1.ID));
 	diagnostic = process->set_terminalhat_initialized();
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
-	EXPECT_TRUE(process->get_ready() == true);
-
-
-
+	EXPECT_TRUE(process->is_ready() == true);
 
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 	EXPECT_TRUE(process->is_hat_running(hat1.DeviceType,hat1.ID));
 
-	diagnostic = process->update(0.02);
+	diagnostic = process->update(0.02,0.04);
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 	EXPECT_TRUE(process->get_ready_to_arm() == false);
 	EXPECT_TRUE(process->get_pinnumber(newpin.Name) == newpin.Number);
 	EXPECT_TRUE(process->set_pinvalue(newpin.Name,0));
-	diagnostic = process->update(0.02);
+	diagnostic = process->update(0.02,0.06);
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 	EXPECT_TRUE(process->get_ready_to_arm() == false);
 
 	EXPECT_TRUE(process->set_pinvalue(newpin.Name,1));
-	diagnostic = process->update(0.02);
+	diagnostic = process->update(0.02,0.08);
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 	EXPECT_TRUE(process->get_ready_to_arm() == true);
 
 	EXPECT_TRUE(process->set_pinvalue(newpin.Name,0));
-	diagnostic = process->update(0.02);
+	diagnostic = process->update(0.02,0.10);
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 	EXPECT_TRUE(process->get_ready_to_arm() == false);
 
 	EXPECT_TRUE(process->set_pinvalue(newpin.Name,1));
-	diagnostic = process->update(0.02);
+	diagnostic = process->update(0.02,0.12);
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 	EXPECT_TRUE(process->get_ready_to_arm() == true);
 
@@ -109,9 +107,9 @@ SafetyNodeProcess* initializeprocess()
 }
 SafetyNodeProcess* readyprocess(SafetyNodeProcess* process)
 {
-	icarus_rover_v2::diagnostic diag = process->update(0);
+	icarus_rover_v2::diagnostic diag = process->update(0.0,0.0);
 	EXPECT_TRUE(diag.Level <= NOTICE);
-	EXPECT_TRUE(process->get_ready() == true);
+	EXPECT_TRUE(process->is_ready() == true);
 	return process;
 }
 TEST(Template,Process_Initialization)
@@ -132,7 +130,7 @@ TEST(Template,Process_Command)
 
 	while(current_time <= time_to_run)
 	{
-		icarus_rover_v2::diagnostic diag = process->update(dt);
+		icarus_rover_v2::diagnostic diag = process->update(dt,current_time);
 		EXPECT_TRUE(diag.Level <= NOTICE);
 		int current_time_ms = (int)(current_time*1000.0);
 		if((current_time_ms % 100) == 0)
@@ -155,7 +153,8 @@ TEST(Template,Process_Command)
 		if(fastrate_fire == true)
 		{
 			cmd.Option1 = LEVEL1;
-			std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(cmd);
+            icarus_rover_v2::command::ConstPtr cmd_ptr(new icarus_rover_v2::command(cmd));
+			std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
 			for(std::size_t i = 0; i < diaglist.size(); i++)
 			{
 				EXPECT_TRUE(diaglist.at(i).Level <= NOTICE);
@@ -166,7 +165,8 @@ TEST(Template,Process_Command)
 		if(mediumrate_fire == true)
 		{
 			cmd.Option1 = LEVEL2;
-			std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(cmd);
+            icarus_rover_v2::command::ConstPtr cmd_ptr(new icarus_rover_v2::command(cmd));
+			std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
 			for(std::size_t i = 0; i < diaglist.size(); i++)
 			{
 				EXPECT_TRUE(diaglist.at(i).Level <= NOTICE);
@@ -185,9 +185,9 @@ TEST(Template,Process_Command)
 TEST(DeviceOperation,DeviceRunning)
 {
 	SafetyNodeProcess* process = initializeprocess();
-	icarus_rover_v2::diagnostic diagnostic = process->update(0.0);
+	icarus_rover_v2::diagnostic diagnostic = process->update(0.0,0.0);
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
-	EXPECT_TRUE(process->update(0.0).Level <= NOTICE);
+	EXPECT_TRUE(process->update(0.0,0.0).Level <= NOTICE);
 
 
 }
