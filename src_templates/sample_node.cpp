@@ -3,7 +3,7 @@ bool kill_node = false;
 bool SampleNode::start(int argc,char **argv)
 {
 	bool status = false;
-    process = new SampleNodeProcess();
+	process = new SampleNodeProcess();
 	set_basenodename(BASE_NODE_NAME);
 	initialize_firmware(MAJOR_RELEASE_VERSION,MINOR_RELEASE_VERSION,BUILD_NUMBER,FIRMWARE_DESCRIPTION);
 	initialize_diagnostic(DIAGNOSTIC_SYSTEM,DIAGNOSTIC_SUBSYSTEM,DIAGNOSTIC_COMPONENT);
@@ -17,7 +17,7 @@ bool SampleNode::start(int argc,char **argv)
 	{
 		return false;
 	}
-	
+
 	process->initialize(get_basenodename(),get_nodename(),get_hostname());
 	process->set_diagnostic(diagnostic);
 	process->finish_initialization();
@@ -97,11 +97,11 @@ bool SampleNode::run_1hz()
 		}
 	}
 	icarus_rover_v2::diagnostic diag = process->get_diagnostic();
-		if(diag.Level >= NOTICE)
-		{
-			get_logger()->log_diagnostic(diag);
-			diagnostic_pub.publish(diag);
-		}
+	//if(diag.Level >= NOTICE)
+	{
+		get_logger()->log_diagnostic(diag);
+		diagnostic_pub.publish(diag);
+	}
 
 	return true;
 }
