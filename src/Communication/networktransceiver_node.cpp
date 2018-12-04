@@ -134,7 +134,7 @@ icarus_rover_v2::diagnostic NetworkTransceiverNode::finish_initialization()
 		diag.Diagnostic_Type = NOERROR;
 		diag.Level = ERROR;
 		diag.Diagnostic_Message = INITIALIZING_ERROR;
-		diag.Description = "ouldn't initialize send socket.  Exiting.";
+		diag.Description = "Couldn't initialize send socket.  Exiting.";
 		logger->log_diagnostic(diag);
 		return diag;
 	}
@@ -143,7 +143,7 @@ icarus_rover_v2::diagnostic NetworkTransceiverNode::finish_initialization()
 		diag.Diagnostic_Type = NOERROR;
 		diag.Level = ERROR;
 		diag.Diagnostic_Message = INITIALIZING_ERROR;
-		diag.Description = "ouldn't initialize recv socket.  Exiting.";
+		diag.Description = "Couldn't initialize recv socket.  Exiting.";
 		logger->log_diagnostic(diag);
 		return diag;
 	}
@@ -545,7 +545,6 @@ void NetworkTransceiverNode::thread_loop()
 				}
 				break;
 			case UDPMessageHandler::UDP_RemoteControl_ID:
-
 				success = udpmessagehandler->decode_RemoteControlUDP(items,&t,&axis1,&axis2,&axis3,&axis4,&axis5,&axis6,&axis7,&axis8,
 						&button1,&button2,&button3,&button4,&button5,&button6,&button7,&button8);
 				if(success == 1)
@@ -662,6 +661,7 @@ int main(int argc, char **argv) {
 	{
 		status = node->update();
 	}
+	node->cleanup();
 	node->get_logger()->log_info("Node Finished Safely.");
 	return 0;
 }

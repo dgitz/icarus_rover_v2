@@ -10,6 +10,8 @@
 #include <std_msgs/Bool.h>
 #include "sensor_msgs/Joy.h"
 #include "std_msgs/UInt8.h"
+#include "std_msgs/Float32.h"
+#include <sensor_msgs/JointState.h>
 #include <icarus_rover_v2/diagnostic.h>
 #include "icarus_rover_v2/firmware.h"
 #include "icarus_rover_v2/heartbeat.h"

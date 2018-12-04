@@ -4,7 +4,6 @@
 //ROS Base Functionality
 //ROS Messages
 //Project
-
 /*! \class NetworkTransceiverNodeProcess NetworkTransceiverNodeProcess.h "NetworkTransceiverNodeProcess.h"
  *  \brief This is a NetworkTransceiverNodeProcess class.  Used for the networktransceiver_node node.
  *

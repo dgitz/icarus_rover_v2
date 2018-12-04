@@ -1,33 +1,18 @@
-#include "boardcontroller_node_process.h"
-BoardControllerNodeProcess::BoardControllerNodeProcess(std::string _base_node_name,
-		std::string _node_name)
-{
-	base_node_name = _base_node_name;
-	node_name = _node_name;
-	unittest_running = false;
-	run_time = 0.0;
-	init_messages();
-	initialized = false;
-	ready = false;
-	ready_to_arm = false;
-	LEDPixelMode = LEDPIXELMODE_ERROR;
-	encoder_count = 0;
-}
-BoardControllerNodeProcess::~BoardControllerNodeProcess()
-{
-
-}
-icarus_rover_v2::diagnostic BoardControllerNodeProcess::init(icarus_rover_v2::diagnostic indiag,std::string hostname)
-{
-	myhostname = hostname;
-	diagnostic = indiag;
-	return diagnostic;
-}
-icarus_rover_v2::diagnostic BoardControllerNodeProcess::update(double dt)
+#include "BoardControllerNodeProcess.h"
+icarus_rover_v2::diagnostic  BoardControllerNodeProcess::finish_initialization()
 {
 	icarus_rover_v2::diagnostic diag = diagnostic;
-	run_time += dt;
+	init_messages();
+
+	LEDPixelMode = LEDPIXELMODE_ERROR;
+	encoder_count = 0;
+	return diagnostic;
+}
+icarus_rover_v2::diagnostic BoardControllerNodeProcess::update(double t_dt,double t_ros_time)
+{
+	icarus_rover_v2::diagnostic diag = diagnostic;
 	LEDPixelMode = LEDPIXELMODE_NORMAL;
+	diag = update_baseprocess(t_dt,t_ros_time);
 	bool boards_ready = true;
 	for(std::size_t i = 0; i < boards_running.size(); i++)
 	{
@@ -93,15 +78,173 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::update(double dt)
 		diag.Diagnostic_Type = SOFTWARE;
 		diag.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
 		char tempstr[512];
-		sprintf(tempstr,"All info for Boards not received yet.",mydevice.DeviceName.c_str());
+		sprintf(tempstr,"All info for Boards not received yet.");
 		diag.Description = std::string(tempstr);
 	}
 	diagnostic = diag;
+	diagnostic = diag;
 	return diag;
 }
-std::vector<Message> BoardControllerNodeProcess::get_querymessages_tosend()
+icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_devicemsg(const icarus_rover_v2::device::ConstPtr& t_newdevice)
 {
-	std::vector<Message> querymessages;
+	icarus_rover_v2::diagnostic diag = diagnostic;
+	if(initialized == true)
+	{
+		if(ready == false)
+		{
+			if(t_newdevice->DeviceParent == host_name)
+			{
+				if(board_present(t_newdevice) == true)
+				{
+					diag.Level = WARN;
+					diag.Diagnostic_Type = SOFTWARE;
+					diag.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
+					char tempstr[512];
+					sprintf(tempstr,"Board: %s already loaded.",
+							t_newdevice->DeviceName.c_str());
+					diag.Description = std::string(tempstr);
+					return diag;
+				}
+				std::size_t board_message = t_newdevice->DeviceType.find("Board");
+				if((board_message != std::string::npos))
+				{
+					icarus_rover_v2::device board_device = convert_fromptr(t_newdevice);
+					if(t_newdevice->DeviceType == "ArduinoBoard")
+					{
+						for(std::size_t i = 0; i < t_newdevice->pins.size(); i++)
+						{
+							if((t_newdevice->pins.at(i).Function == map_PinFunction_ToString(PINMODE_ANALOG_INPUT) or
+									(t_newdevice->pins.at(i).Function == map_PinFunction_ToString(PINMODE_QUADRATUREENCODER_INPUT))))
+							{
+								Sensor new_sensor;
+								new_sensor.initialized = false;
+								new_sensor.signal.value = 0.0;
+								new_sensor.name = t_newdevice->pins.at(i).ConnectedSensor;
+								new_sensor.connected_board = board_device;
+								new_sensor.connected_pin = t_newdevice->pins.at(i);
+								new_sensor.signal.status = SIGNALSTATE_UNDEFINED;
+
+								sensors.push_back(new_sensor);
+								if(load_sensorinfo(new_sensor.name) == false)
+								{
+									diag.Level = ERROR;
+									diag.Diagnostic_Type = SOFTWARE;
+									diag.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
+									char tempstr[512];
+									sprintf(tempstr,"Unable to load info for Sensor: %s",new_sensor.name.c_str());
+									diag.Description = std::string(tempstr);
+									return diag;
+								}
+
+							}
+							else
+							{
+								diag.Level = ERROR;
+								diag.Diagnostic_Type = SOFTWARE;
+								diag.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
+								char tempstr[512];
+								sprintf(tempstr,"Board Type: %s Pin Function: %s Not supported.",
+										t_newdevice->DeviceType.c_str(),t_newdevice->pins.at(i).Function.c_str());
+								diag.Description = std::string(tempstr);
+								return diag;
+							}
+						}
+						boards.push_back(board_device);
+						BoardDiagnostic board_diag;
+						board_diag.id = t_newdevice->ID;
+						board_diag.diagnostic.System = SYSTEM_UNKNOWN;
+						board_diag.diagnostic.SubSystem = SUBSYSTEM_UNKNOWN;
+						board_diag.diagnostic.Component = COMPONENT_UNKNOWN;
+						board_diag.diagnostic.Diagnostic_Type = GENERAL_ERROR;
+						board_diag.diagnostic.Diagnostic_Message = UNKNOWN_STATE;
+						board_diag.diagnostic.Level = LEVEL_UNKNOWN;
+						board_diag.diagnostic.Description = "No Info received yet for this Board.";
+						board_diagnostics.push_back(board_diag);
+						boards_running.push_back(true);
+					}
+					else
+					{
+						diag.Level = ERROR;
+						diag.Diagnostic_Type = SOFTWARE;
+						diag.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
+						char tempstr[512];
+						sprintf(tempstr,"Device Type: %s Not supported.",t_newdevice->DeviceType.c_str());
+						diag.Description = std::string(tempstr);
+						return diag;
+					}
+
+				}
+
+			}
+		}
+		else
+		{
+
+		}
+	}
+	if((boards.size() == mydevice.BoardCount) and
+			(sensors_initialized() == true))
+	{
+		ready = true;
+	}
+	diag.Level = INFO;
+	diag.Diagnostic_Type = COMMUNICATIONS;
+	diag.Diagnostic_Message = NOERROR;
+	char tempstr[512];
+	sprintf(tempstr,"Initialized: %d Ready: %d",initialized,ready);
+	diag.Description = std::string(tempstr);
+	return diag;
+}
+std::vector<icarus_rover_v2::diagnostic> BoardControllerNodeProcess::new_commandmsg(const icarus_rover_v2::command::ConstPtr& t_msg)
+{
+	std::vector<icarus_rover_v2::diagnostic> diaglist;
+	icarus_rover_v2::diagnostic diag = diagnostic;
+	if (t_msg->Command == ROVERCOMMAND_RUNDIAGNOSTIC)
+	{
+		if (t_msg->Option1 == LEVEL1)
+		{
+			diaglist.push_back(diag);
+		}
+		else if (t_msg->Option1 == LEVEL2)
+		{
+			diaglist = check_programvariables();
+			return diaglist;
+		}
+		else if (t_msg->Option1 == LEVEL3)
+		{
+			diaglist = run_unittest();
+			return diaglist;
+		}
+		else if (t_msg->Option1 == LEVEL4)
+		{
+		}
+	}
+	return diaglist;
+}
+std::vector<icarus_rover_v2::diagnostic> BoardControllerNodeProcess::check_programvariables()
+{
+	std::vector<icarus_rover_v2::diagnostic> diaglist;
+	icarus_rover_v2::diagnostic diag = diagnostic;
+	bool status = true;
+
+	if (status == true) {
+		diag.Diagnostic_Type = SOFTWARE;
+		diag.Level = INFO;
+		diag.Diagnostic_Message = DIAGNOSTIC_PASSED;
+		diag.Description = "Checked Program Variables -> PASSED.";
+		diaglist.push_back(diag);
+	} else {
+		diag.Diagnostic_Type = SOFTWARE;
+		diag.Level = WARN;
+		diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
+		diag.Description = "Checked Program Variables -> FAILED.";
+		diaglist.push_back(diag);
+	}
+	return diaglist;
+}
+std::vector<BoardControllerNodeProcess::Message> BoardControllerNodeProcess::get_querymessages_tosend()
+{
+	std::vector<BoardControllerNodeProcess::Message> querymessages;
 	for(std::size_t i = 0; i < messages.size(); i++)
 	{
 		if((messages.at(i).type == "Query") and (messages.at(i).send_me == true))
@@ -111,7 +254,7 @@ std::vector<Message> BoardControllerNodeProcess::get_querymessages_tosend()
 	}
 	return querymessages;
 }
-std::vector<Message> BoardControllerNodeProcess::get_commandmessages_tosend()
+std::vector<BoardControllerNodeProcess::BoardControllerNodeProcess::Message> BoardControllerNodeProcess::get_commandmessages_tosend()
 {
 	std::vector<Message> commandmessages;
 	for(std::size_t i = 0; i < messages.size(); i++)
@@ -297,6 +440,7 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_message_GetDIOPort1(
 	int16_t v[6] = {v1,v2};
 	icarus_rover_v2::diagnostic diag = diagnostic;
 	icarus_rover_v2::device board = find_board(boardid);
+	icarus_rover_v2::device::ConstPtr board_ptr(new icarus_rover_v2::device(board));
 	if(board.DeviceName == "")
 	{
 		char tempstr[255];
@@ -309,10 +453,11 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_message_GetDIOPort1(
 	}
 	for(uint8_t i = 0; i < 2; i++)
 	{
-		icarus_rover_v2::pin pin = find_pin(board,"QuadratureEncoderInput",i);
+		icarus_rover_v2::pin pin = find_pin(board_ptr,"QuadratureEncoderInput",i);
+		icarus_rover_v2::pin::ConstPtr pin_ptr(new icarus_rover_v2::pin(pin));
 		if(pin.Name != "")
 		{
-			if(update_sensor(board,pin,tov,(double)v[i]) == false)
+			if(update_sensor(board_ptr,pin_ptr,tov,(double)v[i]) == false)
 			{
 			}
 		}
@@ -407,6 +552,7 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_message_GetANAPort1(
 	uint16_t v[6] = {v1,v2,v3,v4,v5,v6};
 	icarus_rover_v2::diagnostic diag = diagnostic;
 	icarus_rover_v2::device board = find_board(boardid);
+	icarus_rover_v2::device::ConstPtr board_ptr(new icarus_rover_v2::device(board));
 	if(board.DeviceName == "")
 	{
 		char tempstr[255];
@@ -419,10 +565,11 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_message_GetANAPort1(
 	}
 	for(uint8_t i = 0; i < 6; i++)
 	{
-		icarus_rover_v2::pin pin = find_pin(board,"AnalogInput",i);
+		icarus_rover_v2::pin pin = find_pin(board_ptr,"AnalogInput",i);
+		icarus_rover_v2::pin::ConstPtr pin_ptr(new icarus_rover_v2::pin(pin));
 		if(pin.Name != "")
 		{
-			if(update_sensor(board,pin,tov,(double)v[i]) == false)
+			if(update_sensor(board_ptr,pin_ptr,tov,(double)v[i]) == false)
 			{
 
 			}
@@ -438,121 +585,11 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_message_GetANAPort1(
 
 
 }
-icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_devicemsg(icarus_rover_v2::device newdevice)
-{
-	icarus_rover_v2::diagnostic diag = diagnostic;
-	if(initialized == true)
-	{
-		if(ready == false)
-		{
-			if(newdevice.DeviceParent == myhostname)
-			{
-				if(board_present(newdevice) == true)
-				{
-					diag.Level = WARN;
-					diag.Diagnostic_Type = SOFTWARE;
-					diag.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
-					char tempstr[512];
-					sprintf(tempstr,"Board: %s already loaded.",
-							newdevice.DeviceName.c_str());
-					diag.Description = std::string(tempstr);
-					return diag;
-				}
-				std::size_t board_message = newdevice.DeviceType.find("Board");
-				if((board_message != std::string::npos))
-				{
-					if(newdevice.DeviceType == "ArduinoBoard")
-					{
-						for(std::size_t i = 0; i < newdevice.pins.size(); i++)
-						{
-							if((newdevice.pins.at(i).Function == map_PinFunction_ToString(PINMODE_ANALOG_INPUT) or
-									(newdevice.pins.at(i).Function == map_PinFunction_ToString(PINMODE_QUADRATUREENCODER_INPUT))))
-							{
-								Sensor new_sensor;
-								new_sensor.initialized = false;
-								new_sensor.value = 0.0;
-								new_sensor.name = newdevice.pins.at(i).ConnectedSensor;
-								new_sensor.connected_board = newdevice;
-								new_sensor.connected_pin = newdevice.pins.at(i);
-								new_sensor.status = SIGNALSTATE_UNDEFINED;
-
-								sensors.push_back(new_sensor);
-								if(load_sensorinfo(new_sensor.name) == false)
-								{
-									diag.Level = ERROR;
-									diag.Diagnostic_Type = SOFTWARE;
-									diag.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
-									char tempstr[512];
-									sprintf(tempstr,"Unable to load info for Sensor: %s",new_sensor.name.c_str());
-									diag.Description = std::string(tempstr);
-									return diag;
-								}
-
-							}
-							else
-							{
-								diag.Level = ERROR;
-								diag.Diagnostic_Type = SOFTWARE;
-								diag.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
-								char tempstr[512];
-								sprintf(tempstr,"Board Type: %s Pin Function: %s Not supported.",
-										newdevice.DeviceType.c_str(),newdevice.pins.at(i).Function.c_str());
-								diag.Description = std::string(tempstr);
-								return diag;
-							}
-						}
-						printf("Added Board\n");
-						boards.push_back(newdevice);
-						BoardDiagnostic board_diag;
-						board_diag.id = newdevice.ID;
-						board_diag.diagnostic.System = SYSTEM_UNKNOWN;
-						board_diag.diagnostic.SubSystem = SUBSYSTEM_UNKNOWN;
-						board_diag.diagnostic.Component = COMPONENT_UNKNOWN;
-						board_diag.diagnostic.Diagnostic_Type = GENERAL_ERROR;
-						board_diag.diagnostic.Diagnostic_Message = UNKNOWN_STATE;
-						board_diag.diagnostic.Level = LEVEL_UNKNOWN;
-						board_diag.diagnostic.Description = "No Info received yet for this Board.";
-						board_diagnostics.push_back(board_diag);
-						boards_running.push_back(true);
-					}
-					else
-					{
-						diag.Level = ERROR;
-						diag.Diagnostic_Type = SOFTWARE;
-						diag.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
-						char tempstr[512];
-						sprintf(tempstr,"Device Type: %s Not supported.",newdevice.DeviceType.c_str());
-						diag.Description = std::string(tempstr);
-						return diag;
-					}
-
-				}
-
-			}
-		}
-		else
-		{
-
-		}
-	}
-	if((boards.size() == mydevice.BoardCount) and
-			(sensors_initialized() == true))
-	{
-		ready = true;
-	}
-	diag.Level = INFO;
-	diag.Diagnostic_Type = COMMUNICATIONS;
-	diag.Diagnostic_Message = NOERROR;
-	char tempstr[512];
-	sprintf(tempstr,"Initialized: %d Ready: %d",initialized,ready);
-	diag.Description = std::string(tempstr);
-	return diag;
-}
-bool BoardControllerNodeProcess::board_present(icarus_rover_v2::device device)
+bool BoardControllerNodeProcess::board_present(const icarus_rover_v2::device::ConstPtr& device)
 {
 	for(std::size_t i = 0; i < boards.size(); i++)
 	{
-		if((boards.at(i).DeviceName == device.DeviceName))
+		if((boards.at(i).DeviceName == device->DeviceName))
 		{
 			return true;
 		}
@@ -640,22 +677,22 @@ bool BoardControllerNodeProcess::sensors_initialized()
 	}
 	return sensors_init;
 }
-bool BoardControllerNodeProcess::update_sensor(icarus_rover_v2::device board,icarus_rover_v2::pin pin,double tov,double value)
+bool BoardControllerNodeProcess::update_sensor(const icarus_rover_v2::device::ConstPtr& board,const icarus_rover_v2::pin::ConstPtr& pin,double tov,double value)
 {
 	for(std::size_t i = 0; i < sensors.size(); i++)
 	{
-		if((sensors.at(i).connected_board.DeviceName == board.DeviceName) and
-				(sensors.at(i).connected_pin.Name == pin.Name))
+		if((sensors.at(i).connected_board.DeviceName == board->DeviceName) and
+				(sensors.at(i).connected_pin.Name == pin->Name))
 		{
-			sensors.at(i).tov = tov;
-			sensors.at(i).status = SIGNALSTATE_UPDATED;
+			sensors.at(i).signal.tov = convert_time(tov);
+			sensors.at(i).signal.status = SIGNALSTATE_UPDATED;
 			if(sensors.at(i).convert == false)
 			{
-				sensors.at(i).value = value;
+				sensors.at(i).signal.value = value;
 			}
 			else
 			{
-				sensors.at(i).value = map_input_to_output(value,sensors.at(i).min_inputvalue,
+				sensors.at(i).signal.value = map_input_to_output(value,sensors.at(i).min_inputvalue,
 						sensors.at(i).max_inputvalue,
 						sensors.at(i).min_inputvalue,
 						sensors.at(i).max_outputvalue);
@@ -679,13 +716,13 @@ icarus_rover_v2::device BoardControllerNodeProcess::find_board(uint8_t boardid)
 	empty_device.DeviceType = "";
 	return empty_device;
 }
-icarus_rover_v2::pin BoardControllerNodeProcess::find_pin(icarus_rover_v2::device board,std::string pinfunction,uint8_t pinnumber)
+icarus_rover_v2::pin BoardControllerNodeProcess::find_pin(const icarus_rover_v2::device::ConstPtr& board,std::string pinfunction,uint8_t pinnumber)
 {
-	for(std::size_t i = 0; i < board.pins.size(); i++)
+	for(std::size_t i = 0; i < board->pins.size(); i++)
 	{
-		if((board.pins.at(i).Function == pinfunction) and (board.pins.at(i).Number == pinnumber))
+		if((board->pins.at(i).Function == pinfunction) and (board->pins.at(i).Number == pinnumber))
 		{
-			return board.pins.at(i);
+			return board->pins.at(i);
 		}
 	}
 	icarus_rover_v2::pin empty_pin;
@@ -693,13 +730,13 @@ icarus_rover_v2::pin BoardControllerNodeProcess::find_pin(icarus_rover_v2::devic
 	empty_pin.Function = "";
 	return empty_pin;
 }
-icarus_rover_v2::pin find_pin(icarus_rover_v2::device board,std::string pinname)
+icarus_rover_v2::pin find_pin(const icarus_rover_v2::device::ConstPtr& board,std::string pinname)
 {
-	for(std::size_t i = 0; i < board.pins.size(); i++)
+	for(std::size_t i = 0; i < board->pins.size(); i++)
 	{
-		if((board.pins.at(i).ConnectedDevice == pinname))
+		if((board->pins.at(i).ConnectedDevice == pinname))
 		{
-			return board.pins.at(i);
+			return board->pins.at(i);
 		}
 	}
 	icarus_rover_v2::pin empty_pin;
@@ -822,7 +859,7 @@ bool BoardControllerNodeProcess::parse_sensorfile(TiXmlDocument doc,std::string 
 		TiXmlElement *l_pUnits = l_pRootElement->FirstChildElement( "Units" );
 		if(NULL != l_pUnits)
 		{
-			sensors.at(sensor_index).units = l_pUnits->GetText();
+			sensors.at(sensor_index).signal.units = l_pUnits->GetText();
 		}
 		else { printf("Sensor: %s Element: Units not found.\n",sensors.at(sensor_index).name.c_str()); return false; }
 
@@ -857,162 +894,4 @@ double BoardControllerNodeProcess::map_input_to_output(double input_value,double
 		if(out < max_output) { out = max_output; }
 	}
 	return out;
-}
-/*! \brief Process Command Message
- */
-std::vector<icarus_rover_v2::diagnostic> BoardControllerNodeProcess::new_commandmsg(
-		icarus_rover_v2::command cmd) {
-	std::vector<icarus_rover_v2::diagnostic> diaglist;
-	icarus_rover_v2::diagnostic diag = diagnostic;
-	if (cmd.Command == ROVERCOMMAND_RUNDIAGNOSTIC) {
-		if (cmd.Option1 == LEVEL1) {
-			diaglist.push_back(diag);
-		} else if (cmd.Option1 == LEVEL2) {
-			diaglist = check_program_variables();
-			return diaglist;
-		} else if (cmd.Option1 == LEVEL3) {
-			diaglist = run_unittest();
-			return diaglist;
-		} else if (cmd.Option1 == LEVEL4) {
-		}
-	}
-	return diaglist;
-}
-/*! \brief Self-Diagnostic-Check Program Variables
- */
-std::vector<icarus_rover_v2::diagnostic> BoardControllerNodeProcess::check_program_variables() {
-	std::vector<icarus_rover_v2::diagnostic> diaglist;
-	icarus_rover_v2::diagnostic diag = diagnostic;
-	bool status = true;
-
-	if (status == true) {
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Level = INFO;
-		diag.Diagnostic_Message = DIAGNOSTIC_PASSED;
-		diag.Description = "Checked Program Variables -> PASSED";
-		diaglist.push_back(diag);
-	} else {
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Level = WARN;
-		diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
-		diag.Description = "Checked Program Variables -> FAILED";
-		diaglist.push_back(diag);
-	}
-	return diaglist;
-}
-/*! \brief Run Unit Test
- */
-std::vector<icarus_rover_v2::diagnostic> BoardControllerNodeProcess::run_unittest() {
-	std::vector<icarus_rover_v2::diagnostic> diaglist;
-	if (unittest_running == false) {
-		unittest_running = true;
-		icarus_rover_v2::diagnostic diag = diagnostic;
-		bool status = true;
-		std::string data;
-		std::string cmd =
-				"cd ~/catkin_ws && "
-						"bash devel/setup.bash && catkin_make run_tests_icarus_rover_v2_gtest_test_"
-						+ base_node_name
-						+ "_process >/dev/null 2>&1 && "
-								"mv /home/robot/catkin_ws/build/test_results/icarus_rover_v2/gtest-test_"
-						+ base_node_name
-						+ "_process.xml "
-								"/home/robot/catkin_ws/build/test_results/icarus_rover_v2/"
-						+ base_node_name + "/ >/dev/null 2>&1";
-		system(cmd.c_str());
-		cmd =
-				"cd ~/catkin_ws && bash devel/setup.bash && catkin_test_results build/test_results/icarus_rover_v2/"
-						+ base_node_name + "/";
-		FILE * stream;
-
-		const int max_buffer = 256;
-		char buffer[max_buffer];
-		cmd.append(" 2>&1");
-		stream = popen(cmd.c_str(), "r");
-		if (stream) {
-			if (!feof(stream)) {
-				if (fgets(buffer, max_buffer, stream) != NULL) {
-					data.append(buffer);
-				}
-				pclose(stream);
-			}
-		}
-		std::vector<std::string> strs;
-		std::size_t start = data.find(":");
-		data.erase(0, start + 1);
-		boost::split(strs, data, boost::is_any_of(",: "),
-				boost::token_compress_on);
-		if(strs.size() < 6)
-		{
-			diag.Diagnostic_Type = SOFTWARE;
-			diag.Level = ERROR;
-			diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
-			char tempstr[1024];
-			sprintf(tempstr,"Unable to process Unit Test Result: %s",data.c_str());
-			diag.Description = std::string(tempstr);
-			diaglist.push_back(diag);
-			return diaglist;
-		}
-		int test_count = std::atoi(strs.at(1).c_str());
-		int error_count = std::atoi(strs.at(3).c_str());
-		int failure_count = std::atoi(strs.at(5).c_str());
-		if (test_count == 0) {
-			diag.Diagnostic_Type = SOFTWARE;
-			diag.Level = ERROR;
-			diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
-			diag.Description = "Test Count: 0.";
-			diaglist.push_back(diag);
-			status = false;
-		}
-		if (error_count > 0) {
-			diag.Diagnostic_Type = SOFTWARE;
-			diag.Level = ERROR;
-			diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
-			char tempstr[512];
-			sprintf(tempstr, "Error Count: %d", error_count);
-			diag.Description = std::string(tempstr);
-			diaglist.push_back(diag);
-			status = false;
-		}
-		if (failure_count > 0) {
-			diag.Diagnostic_Type = SOFTWARE;
-			diag.Level = ERROR;
-			diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
-			char tempstr[512];
-			sprintf(tempstr, "Failure Count: %d", failure_count);
-			diag.Description = std::string(tempstr);
-			diaglist.push_back(diag);
-			status = false;
-		}
-		if (status == true) {
-			diag.Diagnostic_Type = SOFTWARE;
-			diag.Level = NOTICE;
-			diag.Diagnostic_Message = DIAGNOSTIC_PASSED;
-			diag.Description = "Unit Test -> PASSED";
-			diaglist.push_back(diag);
-		} else {
-			diag.Diagnostic_Type = SOFTWARE;
-			uint8_t highest_error = INFO;
-			for (std::size_t i = 0; i < diaglist.size(); i++) {
-				if (diaglist.at(i).Level > highest_error) {
-					highest_error = diaglist.at(i).Level;
-				}
-			}
-			diag.Level = highest_error;
-			diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
-			diag.Description = "Unit Test -> FAILED";
-			diaglist.push_back(diag);
-		}
-
-		unittest_running = false;
-	} else {
-
-		icarus_rover_v2::diagnostic diag = diagnostic;
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Level = WARN;
-		diag.Diagnostic_Message = DROPPING_PACKETS;
-		diag.Description = "Unit Test -> IS STILL IN PROGRESS";
-		diaglist.push_back(diag);
-	}
-	return diaglist;
 }

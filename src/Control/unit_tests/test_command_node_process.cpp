@@ -39,6 +39,7 @@ CommandNodeProcess* initializeprocess()
 
 	CommandNodeProcess* process;
 	process = new CommandNodeProcess;
+	process->initialize("command_node",Node_Name,Host_Name);
 	process->set_diagnostic(diagnostic);
 	process->finish_initialization();
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);

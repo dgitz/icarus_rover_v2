@@ -320,8 +320,8 @@ target_link_libraries(test_hatcontroller_node_process ${catkin_LIBRARIES} ${Boos
 
 #Audio Node
 file(MAKE_DIRECTORY /home/robot/catkin_ws/build/test_results/icarus_rover_v2/audio_node)
-add_library(audio_node_process src/User_Control/audio_node_process.cpp)
-add_dependencies(audio_node_process icarus_rover_v2_generate_messages_cpp)
+add_library(audio_node_process src/User_Control/AudioNodeProcess.cpp)
+#add_dependencies(audio_node_process icarus_rover_v2_generate_messages_cpp)
 add_executable(audio_node src/User_Control/audio_node.cpp) 
 target_link_libraries(audio_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor audio_node_process)
 catkin_add_gtest(test_audio_node_process src/User_Control/unit_tests/test_audio_node_process.cpp)
@@ -329,7 +329,7 @@ target_link_libraries(test_audio_node_process ${catkin_LIBRARIES} ${Boost_LIBRAR
 
 #Topic Remapper Node
 file(MAKE_DIRECTORY /home/robot/catkin_ws/build/test_results/icarus_rover_v2/topicremapper_node)
-add_library(topicremapper_node_process src/Communication/topicremapper_node_process.cpp)
+add_library(topicremapper_node_process src/Communication/TopicRemapperNodeProcess.cpp)
 add_dependencies(topicremapper_node_process icarus_rover_v2_generate_messages_cpp)
 add_executable(topicremapper_node src/Communication/topicremapper_node.cpp)
 target_link_libraries(topicremapper_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} logger resourcemonitor topicremapper_node_process)
@@ -339,51 +339,10 @@ target_link_libraries(test_topicremapper_node_process ${catkin_LIBRARIES} ${Boos
 
 #Board Controller Node
 file(MAKE_DIRECTORY /home/robot/catkin_ws/build/test_results/icarus_rover_v2/boardcontroller_node)
-add_library(boardcontroller_node_process src/Board/boardcontroller_node_process.cpp)
+add_library(boardcontroller_node_process src/Board/BoardControllerNodeProcess.cpp)
 add_dependencies(boardcontroller_node_process icarus_rover_v2_generate_messages_cpp)
 add_executable(boardcontroller_node src/Board/boardcontroller_node.cpp)
 target_link_libraries(boardcontroller_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} spimessage boardcontroller_node_process logger resourcemonitor)
 catkin_add_gtest(test_boardcontroller_node_process src/Board/unit_tests/test_boardcontroller_node_process.cpp)
 target_link_libraries(test_boardcontroller_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES}  ${TinyXML_LIBRARIES} spimessage boardcontroller_node_process logger)
-
-
-
-
-
-#add_executable(cameracapture_node src/Vision/cameracapture_node.cpp)
-#target_link_libraries(cameracapture_node ${OpenCV_LIBRARIES} ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor visionhelper)
-
-#add_executable(speaker_node src/Communication/speaker_node.cpp)
-#target_link_libraries(speaker_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} speaker_node_process logger resourcemonitor)
-#catkin_add_gtest(test_speaker_node_process src/Communication/unit_tests/test_speaker_node_process.cpp)
-#target_link_libraries(test_speaker_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} speaker_node_process logger)
-
-
-
-#add_executable(powermonitor_node src/Control/powermonitor_node.cpp)
-#target_link_libraries(powermonitor_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor powermonitor_node_process)
-#catkin_add_gtest(test_powermonitor_node_process src/Control/unit_tests/test_powermonitor_node_process.cpp)
-#target_link_libraries(test_powermonitor_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} powermonitor_node_process logger)
-
-
-
-
-
-
-
-#add_library(imu_node_process src/Pose/imu_node_process.cpp)
-add_library(visionhelper util/visionhelper.cpp)
-
-#add_library(pose_node_process src/Pose/pose_node_process.cpp)
-add_library(autodrive_node_process src/Control/autodrive_node_process.cpp)
-add_dependencies(autodrive_node_process icarus_rover_v2_generate_messages_cpp)
-
-
-
-
-add_library(speaker_node_process src/Communication/speaker_node_process.cpp)
-add_dependencies(speaker_node_process icarus_rover_v2_generate_messages_cpp)
-
-
-
 

@@ -186,6 +186,7 @@ int main(int argc, char **argv) {
 	{
 		status = node->update();
 	}
+	node->cleanup();
 	node->get_logger()->log_info("Node Finished Safely.");
 	return 0;
 }

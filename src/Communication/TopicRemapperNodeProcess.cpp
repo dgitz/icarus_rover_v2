@@ -1,101 +1,77 @@
-#include "topicremapper_node_process.h"
-/*! \brief Constructor
- */
-TopicRemapperNodeProcess::TopicRemapperNodeProcess(std::string _base_node_name,
-		std::string _node_name)
+#include "TopicRemapperNodeProcess.h"
+icarus_rover_v2::diagnostic  TopicRemapperNodeProcess::finish_initialization()
 {
-	base_node_name = _base_node_name;
-	node_name = _node_name;
-	unittest_running = false;
-	run_time = 0.0;
-	initialized = false;
+    icarus_rover_v2::diagnostic diag = diagnostic;
+    return diagnostic;
 }
-/*! \brief Deconstructor
- */
-TopicRemapperNodeProcess::~TopicRemapperNodeProcess()
+icarus_rover_v2::diagnostic TopicRemapperNodeProcess::update(double t_dt,double t_ros_time)
 {
+	if(initialized == true)
+	{
+		ready = true;
 
-}
-/*! \brief Initialize Process
- */
-icarus_rover_v2::diagnostic TopicRemapperNodeProcess::init(icarus_rover_v2::diagnostic indiag,std::string hostname)
-{
-   	myhostname = hostname;
-	diagnostic = indiag;
-	mydevice.DeviceName = hostname;
-	return diagnostic;
-}
-/*! \brief Time Update of Process
- */
-icarus_rover_v2::diagnostic TopicRemapperNodeProcess::update(double dt)
-{
-	run_time += dt;
-    if((mydevice.BoardCount == 0) and (mydevice.SensorCount == 0))
-    {
-        if(initialized == true) { ready = true; }
-    }
+	}
 	icarus_rover_v2::diagnostic diag = diagnostic;
-	diag.Diagnostic_Type = NOERROR;
-	diag.Level = INFO;
-	diag.Diagnostic_Message = NOERROR;
-	diag.Description = "Node Running";
+	diag = update_baseprocess(t_dt,t_ros_time);
+	if(diag.Level <= NOTICE)
+	{
+		diag.Diagnostic_Type = NOERROR;
+		diag.Level = INFO;
+		diag.Diagnostic_Message = NOERROR;
+		diag.Description = "Node Running.";
+
+	}
 	diagnostic = diag;
 	return diag;
 }
-/*! \brief Setup Process Device info
- */
-icarus_rover_v2::diagnostic TopicRemapperNodeProcess::new_devicemsg(icarus_rover_v2::device device)
+icarus_rover_v2::diagnostic TopicRemapperNodeProcess::new_devicemsg(const icarus_rover_v2::device::ConstPtr& device)
 {
-    icarus_rover_v2::diagnostic diag = diagnostic;
-	bool new_device = true;
-	if(device.DeviceName == myhostname)
-	{
-
-    }
-    return diag;
+	icarus_rover_v2::diagnostic diag = diagnostic;
+	return diag;
 }
-/*! \brief Process Command Message
- */
-std::vector<icarus_rover_v2::diagnostic> TopicRemapperNodeProcess::new_commandmsg(icarus_rover_v2::command cmd)
+std::vector<icarus_rover_v2::diagnostic> TopicRemapperNodeProcess::new_commandmsg(const icarus_rover_v2::command::ConstPtr& t_msg)
 {
 	std::vector<icarus_rover_v2::diagnostic> diaglist;
 	icarus_rover_v2::diagnostic diag = diagnostic;
-	if (cmd.Command == ROVERCOMMAND_RUNDIAGNOSTIC) {
-		if (cmd.Option1 == LEVEL1) {
+	if (t_msg->Command == ROVERCOMMAND_RUNDIAGNOSTIC)
+	{
+		if (t_msg->Option1 == LEVEL1)
+		{
 			diaglist.push_back(diag);
-		} else if (cmd.Option1 == LEVEL2) {
-			diaglist = check_program_variables();
+		}
+		else if (t_msg->Option1 == LEVEL2)
+		{
+			diaglist = check_programvariables();
 			return diaglist;
-		} else if (cmd.Option1 == LEVEL3) {
+		}
+		else if (t_msg->Option1 == LEVEL3)
+		{
 			diaglist = run_unittest();
 			return diaglist;
-		} else if (cmd.Option1 == LEVEL4) {
+		}
+		else if (t_msg->Option1 == LEVEL4)
+		{
 		}
 	}
 	return diaglist;
 }
-/*! \brief Self-Diagnostic-Check Program Variables
- */
-std::vector<icarus_rover_v2::diagnostic> TopicRemapperNodeProcess::check_program_variables()
+std::vector<icarus_rover_v2::diagnostic> TopicRemapperNodeProcess::check_programvariables()
 {
 	std::vector<icarus_rover_v2::diagnostic> diaglist;
-	icarus_rover_v2::diagnostic diag=diagnostic;
+	icarus_rover_v2::diagnostic diag = diagnostic;
 	bool status = true;
 
-	if(status == true)
-	{
+	if (status == true) {
 		diag.Diagnostic_Type = SOFTWARE;
 		diag.Level = INFO;
 		diag.Diagnostic_Message = DIAGNOSTIC_PASSED;
-		diag.Description = "Checked Program Variables -> PASSED";
+		diag.Description = "Checked Program Variables -> PASSED.";
 		diaglist.push_back(diag);
-	}
-	else
-	{
+	} else {
 		diag.Diagnostic_Type = SOFTWARE;
 		diag.Level = WARN;
 		diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
-		diag.Description = "Checked Program Variables -> FAILED";
+		diag.Description = "Checked Program Variables -> FAILED.";
 		diaglist.push_back(diag);
 	}
 	return diaglist;
@@ -187,13 +163,13 @@ int TopicRemapperNodeProcess::parse_topicmapfile(TiXmlDocument doc)
 								in.name = l_pName->GetText();
 							}
                             else { return -1; }
-                            
+
                             TiXmlElement *l_pIndex = l_pInput->FirstChildElement("Index");
                             if(NULL != l_pIndex)
                             {
                                 in.index = std::atoi(l_pIndex->GetText());
                             }
-                            
+
                             TiXmlElement *l_pMinValue = l_pInput->FirstChildElement("MinValue");
                             if(NULL != l_pMinValue)
                             {
@@ -203,7 +179,7 @@ int TopicRemapperNodeProcess::parse_topicmapfile(TiXmlDocument doc)
                             {
                             	in.minvalue = 0.0;
                             }
-                            
+
                             TiXmlElement *l_pMaxValue = l_pInput->FirstChildElement("MaxValue");
                             if(NULL != l_pMaxValue)
                             {
@@ -222,7 +198,7 @@ int TopicRemapperNodeProcess::parse_topicmapfile(TiXmlDocument doc)
 						}
 					}
 				}
-        
+
 				//Outputs
 				std::vector<OutputChannel> outputs;
 				//std::vector<ros::Publisher> pubs;
@@ -380,12 +356,12 @@ icarus_rover_v2::diagnostic TopicRemapperNodeProcess::load(std::string topicmapf
         char tempstr[512];
         sprintf(tempstr,"Unable to load: %s",topicmapfilepath.c_str());
         diag.Description = std::string(tempstr);
-        return diag;   
+        return diag;
     }
 }
 std::string TopicRemapperNodeProcess::print_topicmaps()
 {
-    std::ostringstream ss; 
+    std::ostringstream ss;
     ss << "------ Topic Map -----" << std::endl;
     for(int i = 0; i < TopicMaps.size();i++)
     {
@@ -395,21 +371,21 @@ std::string TopicRemapperNodeProcess::print_topicmaps()
         }
         else
         {
-            ss << "i: " << i << " Output Mode: " << TopicMaps.at(i).outputmode.mode << " Type: " << TopicMaps.at(i).outputmode.type << 
+            ss << "i: " << i << " Output Mode: " << TopicMaps.at(i).outputmode.mode << " Type: " << TopicMaps.at(i).outputmode.type <<
                 " Topic: " << TopicMaps.at(i).outputmode.topic << " Name: " << TopicMaps.at(i).outputmode.name << " Index: " << TopicMaps.at(i).outputmode.index <<
                 " Required Value: " << TopicMaps.at(i).outputmode.required_value << std::endl;
         }
 
         {
             ss << "i: " << i << " Input Channel Type: " << TopicMaps.at(i).in.type << " Topic: " << TopicMaps.at(i).in.topic << " Name: " <<
-                TopicMaps.at(i).in.name << " Index: " << TopicMaps.at(i).in.index << " Min Value: " << TopicMaps.at(i).in.minvalue << 
+                TopicMaps.at(i).in.name << " Index: " << TopicMaps.at(i).in.index << " Min Value: " << TopicMaps.at(i).in.minvalue <<
                 " Max Value: " << TopicMaps.at(i).in.maxvalue << std::endl;
         }
         {
             for(std::size_t j = 0; j < TopicMaps.at(i).outs.size();j++)
             {
                ss << "i: " << i << " Output Channel[" << j << "]: Type: " << TopicMaps.at(i).outs.at(j).type << " Topic: " << TopicMaps.at(i).outs.at(j).topic <<
-                " ParentDevice: " << TopicMaps.at(i).outs.at(j).parentdevice << " Pin: " << TopicMaps.at(i).outs.at(j).pinnumber << " Function: " << 
+                " ParentDevice: " << TopicMaps.at(i).outs.at(j).parentdevice << " Pin: " << TopicMaps.at(i).outs.at(j).pinnumber << " Function: " <<
                 TopicMaps.at(i).outs.at(j).function << " Max Value: " << TopicMaps.at(i).outs.at(j).maxvalue << " Neutral Value: " << TopicMaps.at(i).outs.at(j).neutralvalue <<
                 " Min Value: " << TopicMaps.at(i).outs.at(j).minvalue << " Deadband: " << TopicMaps.at(i).outs.at(j).deadband << std::endl;
             }
@@ -429,7 +405,7 @@ double TopicRemapperNodeProcess::scale_value(double x,double neutral,double x1,d
     if(x < (-1.0*deadband))
     {
         double m = (y1-neutral)/(x1-(-1.0*deadband));
-        out = m*(x-x1)+y1;    
+        out = m*(x-x1)+y1;
     }
     else if(x > deadband)
     {
@@ -556,7 +532,7 @@ icarus_rover_v2::diagnostic TopicRemapperNodeProcess::new_joymsg(sensor_msgs::Jo
                 	}
                 	else
                 	{
-                    
+
                 		if(ch.type == "icarus_rover_v2/pin")
                 		{
                 			icarus_rover_v2::pin newpin;
@@ -613,9 +589,9 @@ icarus_rover_v2::diagnostic TopicRemapperNodeProcess::new_joymsg(sensor_msgs::Jo
                 			}
                 			//map.pubs.at(j).publish(joint);
                 		}
-                        
+
                 	}
-                    
+
                 }
             }
             if(map.in.name == "button")
@@ -637,7 +613,7 @@ icarus_rover_v2::diagnostic TopicRemapperNodeProcess::new_joymsg(sensor_msgs::Jo
 		}
 		TopicMaps.at(i) = map;
 	}
-    
+
     diag.Diagnostic_Type = COMMUNICATIONS;
     diag.Level = INFO;
     diag.Diagnostic_Message = NOERROR;
@@ -660,13 +636,13 @@ std::vector<icarus_rover_v2::pin> TopicRemapperNodeProcess::get_outputs_pins()
                 out.ParentDevice = ch.parentdevice;
                 out.Function = ch.function;
                 out.Number = ch.pinnumber;
-                out.Value = ch.value;                
+                out.Value = ch.value;
                 outs.push_back(out);
             }
         }
     }
     return outs;
-    
+
 }
 std::vector<std_msgs::Float32> TopicRemapperNodeProcess::get_outputs_float32()
 {
@@ -679,127 +655,10 @@ std::vector<std_msgs::Float32> TopicRemapperNodeProcess::get_outputs_float32()
             {
                 std_msgs::Float32 out;
                 OutputChannel ch = TopicMaps.at(i).outs.at(j);
-                out.data = ch.value;                
+                out.data = ch.value;
                 outs.push_back(out);
             }
         }
     }
     return outs;
 }
-/*! \brief Run Unit Test
- */
-std::vector<icarus_rover_v2::diagnostic> TopicRemapperNodeProcess::run_unittest() {
-	std::vector<icarus_rover_v2::diagnostic> diaglist;
-	if (unittest_running == false) {
-		unittest_running = true;
-		icarus_rover_v2::diagnostic diag = diagnostic;
-		bool status = true;
-		std::string data;
-		std::string cmd =
-				"cd ~/catkin_ws && "
-						"bash devel/setup.bash && catkin_make run_tests_icarus_rover_v2_gtest_test_"
-						+ base_node_name
-						+ "_process >/dev/null 2>&1 && "
-								"mv /home/robot/catkin_ws/build/test_results/icarus_rover_v2/gtest-test_"
-						+ base_node_name
-						+ "_process.xml "
-								"/home/robot/catkin_ws/build/test_results/icarus_rover_v2/"
-						+ base_node_name + "/ >/dev/null 2>&1";
-		system(cmd.c_str());
-		cmd =
-				"cd ~/catkin_ws && bash devel/setup.bash && catkin_test_results build/test_results/icarus_rover_v2/"
-						+ base_node_name + "/";
-		FILE * stream;
-
-		const int max_buffer = 256;
-		char buffer[max_buffer];
-		cmd.append(" 2>&1");
-		stream = popen(cmd.c_str(), "r");
-		if (stream) {
-			if (!feof(stream)) {
-				if (fgets(buffer, max_buffer, stream) != NULL) {
-					data.append(buffer);
-				}
-				pclose(stream);
-			}
-		}
-		std::vector<std::string> strs;
-		std::size_t start = data.find(":");
-		data.erase(0, start + 1);
-		boost::split(strs, data, boost::is_any_of(",: "),
-				boost::token_compress_on);
-		if(strs.size() < 6)
-		{
-			diag.Diagnostic_Type = SOFTWARE;
-			diag.Level = ERROR;
-			diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
-			char tempstr[1024];
-			sprintf(tempstr,"Unable to process Unit Test Result: %s",data.c_str());
-			diag.Description = std::string(tempstr);
-			diaglist.push_back(diag);
-			return diaglist;
-		}
-		int test_count = std::atoi(strs.at(1).c_str());
-		int error_count = std::atoi(strs.at(3).c_str());
-		int failure_count = std::atoi(strs.at(5).c_str());
-		if (test_count == 0) {
-			diag.Diagnostic_Type = SOFTWARE;
-			diag.Level = ERROR;
-			diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
-			diag.Description = "Test Count: 0.";
-			diaglist.push_back(diag);
-			status = false;
-		}
-		if (error_count > 0) {
-			diag.Diagnostic_Type = SOFTWARE;
-			diag.Level = ERROR;
-			diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
-			char tempstr[512];
-			sprintf(tempstr, "Error Count: %d", error_count);
-			diag.Description = std::string(tempstr);
-			diaglist.push_back(diag);
-			status = false;
-		}
-		if (failure_count > 0) {
-			diag.Diagnostic_Type = SOFTWARE;
-			diag.Level = ERROR;
-			diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
-			char tempstr[512];
-			sprintf(tempstr, "Failure Count: %d", failure_count);
-			diag.Description = std::string(tempstr);
-			diaglist.push_back(diag);
-			status = false;
-		}
-		if (status == true) {
-			diag.Diagnostic_Type = SOFTWARE;
-			diag.Level = NOTICE;
-			diag.Diagnostic_Message = DIAGNOSTIC_PASSED;
-			diag.Description = "Unit Test -> PASSED";
-			diaglist.push_back(diag);
-		} else {
-			diag.Diagnostic_Type = SOFTWARE;
-			uint8_t highest_error = INFO;
-			for (std::size_t i = 0; i < diaglist.size(); i++) {
-				if (diaglist.at(i).Level > highest_error) {
-					highest_error = diaglist.at(i).Level;
-				}
-			}
-			diag.Level = highest_error;
-			diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
-			diag.Description = "Unit Test -> FAILED";
-			diaglist.push_back(diag);
-		}
-
-		unittest_running = false;
-	} else {
-
-		icarus_rover_v2::diagnostic diag = diagnostic;
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Level = WARN;
-		diag.Diagnostic_Message = DROPPING_PACKETS;
-		diag.Description = "Unit Test -> IS STILL IN PROGRESS";
-		diaglist.push_back(diag);
-	}
-	return diaglist;
-}
-

@@ -47,10 +47,10 @@ icarus_rover_v2::diagnostic NetworkTransceiverNodeProcess::check_remoteHeartbeat
 {
 	icarus_rover_v2::diagnostic diag = diagnostic;
 	bool heartbeat_pass = true;
-	for(int i = 0; i < remote_devices.size();i++)
+	double now = ros::Time::now().toSec();
+	for(int i = 0; i < remote_devices.size();++i)
 	{
-		double last_beat_time_sec = remote_devices.at(i).current_beatepoch_sec + remote_devices.at(i).offset_sec;
-		double time_since_last = ros_time - last_beat_time_sec;
+		double time_since_last = now-remote_devices.at(i).current_beatepoch_sec;
 		if(time_since_last > 1.0)
 		{
 			heartbeat_pass = false;
@@ -171,7 +171,7 @@ icarus_rover_v2::diagnostic NetworkTransceiverNodeProcess::new_remoteheartbeatms
 		if(name == remote_devices.at(i).Name)
 		{
 			add_new_entry = false;
-			remote_devices.at(i).current_beatepoch_sec = current_beat;
+			remote_devices.at(i).current_beatepoch_sec = timestamp;
 			remote_devices.at(i).expected_beatepoch_sec = expected_beat;
 			break;
 		}
@@ -180,9 +180,9 @@ icarus_rover_v2::diagnostic NetworkTransceiverNodeProcess::new_remoteheartbeatms
 	{
 		RemoteDevice dev;
 		dev.Name = name;
-		dev.current_beatepoch_sec = current_beat;
+		dev.current_beatepoch_sec = timestamp;
 		dev.expected_beatepoch_sec = expected_beat;
-		dev.offset_sec = timestamp-dev.current_beatepoch_sec;
+		dev.offset_sec = 0.0;//timestamp-dev.current_beatepoch_sec;
 		remote_devices.push_back(dev);
 	}
 	if(add_new_entry == true)
