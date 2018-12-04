@@ -4,7 +4,7 @@
 #include "icarus_rover_v2/command.h"
 #include "icarus_rover_v2/device.h"
 #include "icarus_rover_v2/diagnostic.h"
-#include "../audio_node_process.h"
+#include "../AudioNodeProcess.h"
 #include <stdio.h>
 #include <sys/types.h>
 #include <dirent.h>
@@ -41,13 +41,14 @@ AudioNodeProcess* initializeprocess(bool stereo)
 
 
 	AudioNodeProcess *process;
-	process = new AudioNodeProcess("audio_node",Node_Name);
-	diagnostic = process->init(diagnostic,std::string(Host_Name));
-	EXPECT_TRUE(diagnostic.Level <= NOTICE);
-	EXPECT_TRUE(process->get_initialized() == false);
+	process = new AudioNodeProcess;
+    process->initialize("audio_node",Node_Name,Host_Name);
+	process->set_diagnostic(diagnostic);
+	process->finish_initialization();
+	EXPECT_TRUE(process->is_initialized() == false);
 	process->set_mydevice(device);
-	EXPECT_TRUE(process->get_initialized() == true);
-	EXPECT_TRUE(process->get_ready() == false);
+	EXPECT_TRUE(process->is_initialized() == true);
+	EXPECT_TRUE(process->get_mydevice().DeviceName == device.DeviceName);
 
 	if(stereo == true)
 	{
@@ -57,7 +58,8 @@ AudioNodeProcess* initializeprocess(bool stereo)
 		microphone.DeviceType = "Microphone";
 		microphone.DeviceParent = ros_DeviceName;
 		microphone.Capabilities.push_back("stereo");
-		diagnostic = process->new_devicemsg(microphone);
+        icarus_rover_v2::device::ConstPtr device_ptr(new icarus_rover_v2::device(microphone));
+		diagnostic = process->new_devicemsg(device_ptr);
 		EXPECT_TRUE(diagnostic.Level <= NOTICE);
 
 	}
@@ -68,7 +70,8 @@ AudioNodeProcess* initializeprocess(bool stereo)
 		left_microphone.DeviceType = "Microphone";
 		left_microphone.DeviceParent = ros_DeviceName;
 		left_microphone.Capabilities.push_back("mono");
-		diagnostic = process->new_devicemsg(left_microphone);
+		icarus_rover_v2::device::ConstPtr microphoneleft_ptr(new icarus_rover_v2::device(left_microphone));
+		diagnostic = process->new_devicemsg(microphoneleft_ptr);
 		EXPECT_TRUE(diagnostic.Level <= NOTICE);
 
 		icarus_rover_v2::device right_microphone;
@@ -76,7 +79,8 @@ AudioNodeProcess* initializeprocess(bool stereo)
 		right_microphone.DeviceType = "Microphone";
 		right_microphone.DeviceParent = ros_DeviceName;
 		right_microphone.Capabilities.push_back("mono");
-		diagnostic = process->new_devicemsg(right_microphone);
+		icarus_rover_v2::device::ConstPtr microphoneright_ptr(new icarus_rover_v2::device(right_microphone));
+		diagnostic = process->new_devicemsg(microphoneright_ptr);
 		EXPECT_TRUE(diagnostic.Level <= NOTICE);
 	}
 
@@ -85,7 +89,8 @@ AudioNodeProcess* initializeprocess(bool stereo)
 		amplifier.DeviceName = "AudioAmplifier1";
 		amplifier.DeviceType = "AudioAmplifier";
 		amplifier.DeviceParent = ros_DeviceName;
-		diagnostic = process->new_devicemsg(amplifier);
+		icarus_rover_v2::device::ConstPtr device_ptr(new icarus_rover_v2::device(amplifier));
+		diagnostic = process->new_devicemsg(device_ptr);
 		EXPECT_TRUE(diagnostic.Level <= NOTICE);
 	}
 	EXPECT_TRUE(process->get_mydevice().DeviceName == device.DeviceName);
@@ -99,7 +104,7 @@ AudioNodeProcess* readyprocess(AudioNodeProcess* process)
 {
 	icarus_rover_v2::diagnostic diag = process->update(0.0,0);
 	EXPECT_TRUE(diag.Level <= NOTICE);
-	EXPECT_TRUE(process->get_ready() == true);
+	EXPECT_TRUE(process->is_ready() == true);
 	return process;
 }
 TEST(Template,Process_Initialization)
@@ -166,7 +171,8 @@ TEST(Template,AudioStorage_Play)
 		if(fastrate_fire == true)
 		{
 			cmd.Option1 = LEVEL1;
-			std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(cmd);
+			icarus_rover_v2::command::ConstPtr cmd_ptr(new icarus_rover_v2::command(cmd));
+			std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
 			for(std::size_t i = 0; i < diaglist.size(); i++)
 			{
 				EXPECT_TRUE(diaglist.at(i).Level <= NOTICE);
@@ -177,7 +183,8 @@ TEST(Template,AudioStorage_Play)
 		if(mediumrate_fire == true)
 		{
 			cmd.Option1 = LEVEL2;
-			std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(cmd);
+			icarus_rover_v2::command::ConstPtr cmd_ptr(new icarus_rover_v2::command(cmd));
+			std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
 			for(std::size_t i = 0; i < diaglist.size(); i++)
 			{
 				EXPECT_TRUE(diaglist.at(i).Level <= NOTICE);
@@ -254,7 +261,8 @@ TEST(Template,AudioStorage_Delete)
 		if(fastrate_fire == true)
 		{
 			cmd.Option1 = LEVEL1;
-			std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(cmd);
+			icarus_rover_v2::command::ConstPtr cmd_ptr(new icarus_rover_v2::command(cmd));
+			std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
 			for(std::size_t i = 0; i < diaglist.size(); i++)
 			{
 				EXPECT_TRUE(diaglist.at(i).Level <= NOTICE);
@@ -265,7 +273,8 @@ TEST(Template,AudioStorage_Delete)
 		if(mediumrate_fire == true)
 		{
 			cmd.Option1 = LEVEL2;
-			std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(cmd);
+			icarus_rover_v2::command::ConstPtr cmd_ptr(new icarus_rover_v2::command(cmd));
+			std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
 			for(std::size_t i = 0; i < diaglist.size(); i++)
 			{
 				EXPECT_TRUE(diaglist.at(i).Level <= NOTICE);
@@ -367,7 +376,8 @@ TEST(Template,AudioStorage_Archive)
 		if(fastrate_fire == true)
 		{
 			cmd.Option1 = LEVEL1;
-			std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(cmd);
+			icarus_rover_v2::command::ConstPtr cmd_ptr(new icarus_rover_v2::command(cmd));
+			std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
 			for(std::size_t i = 0; i < diaglist.size(); i++)
 			{
 				EXPECT_TRUE(diaglist.at(i).Level <= NOTICE);
@@ -378,7 +388,8 @@ TEST(Template,AudioStorage_Archive)
 		if(mediumrate_fire == true)
 		{
 			cmd.Option1 = LEVEL2;
-			std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(cmd);
+			icarus_rover_v2::command::ConstPtr cmd_ptr(new icarus_rover_v2::command(cmd));
+			std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
 			for(std::size_t i = 0; i < diaglist.size(); i++)
 			{
 				EXPECT_TRUE(diaglist.at(i).Level <= NOTICE);
@@ -436,7 +447,6 @@ TEST(Template,AudioStorage_Archive)
 	}
 	else
 		perror ("Couldn't open the directory");
-	printf("%d %d %d\n",archivedfile_count,process->get_numberaudiofiles_removed(),audiotrigger_count);
 	archivedfile_count = archivedfile_count -2;
 	EXPECT_TRUE(archivedfile_count == (process->get_numberaudiofiles_removed()));
 

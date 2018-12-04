@@ -5,7 +5,7 @@
 #include "icarus_rover_v2/device.h"
 #include "icarus_rover_v2/diagnostic.h"
 #include "icarus_rover_v2/command.h"
-#include "../hatcontroller_node_process.h"
+#include "../HatControllerNodeProcess.h"
 
 std::string Node_Name = "/unittest_hatcontroller_node_process";
 std::string Host_Name = "ControlModule1";
@@ -36,12 +36,14 @@ HatControllerNodeProcess* initializeprocess()
 	device.Architecture = "x86_64";
 
 	HatControllerNodeProcess *process;
-	process = new HatControllerNodeProcess("hatcontroller_node",Node_Name);
-	diagnostic = process->init(diagnostic,std::string(Host_Name));
+	process = new HatControllerNodeProcess;
+	process->initialize("hatcontroller_node",Node_Name,Host_Name);
+	process->set_diagnostic(diagnostic);
+	process->finish_initialization();
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
-	EXPECT_TRUE(process->get_initialized() == false);
+	EXPECT_TRUE(process->is_initialized() == false);
 	process->set_mydevice(device);
-	EXPECT_TRUE(process->get_initialized() == true);
+	EXPECT_TRUE(process->is_initialized() == true);
 	EXPECT_TRUE(process->get_mydevice().DeviceName == device.DeviceName);
 	return process;
 }
@@ -60,20 +62,22 @@ HatControllerNodeProcess* initializeprocess(icarus_rover_v2::device device)
 	diagnostic.Description = "Node Initializing";
 
 	HatControllerNodeProcess *process;
-	process = new HatControllerNodeProcess("hatcontroller_node",Node_Name);
-	diagnostic = process->init(diagnostic,std::string(Host_Name));
-	EXPECT_TRUE(diagnostic.Level <= NOTICE);
-	EXPECT_TRUE(process->get_initialized() == false);
-	process->set_mydevice(device);
-	EXPECT_TRUE(process->get_initialized() == true);
-	EXPECT_TRUE(process->get_mydevice().DeviceName == device.DeviceName);
+	process = new HatControllerNodeProcess;
+		process->initialize("hatcontroller_node",Node_Name,Host_Name);
+		process->set_diagnostic(diagnostic);
+		process->finish_initialization();
+		EXPECT_TRUE(diagnostic.Level <= NOTICE);
+		EXPECT_TRUE(process->is_initialized() == false);
+		process->set_mydevice(device);
+		EXPECT_TRUE(process->is_initialized() == true);
+		EXPECT_TRUE(process->get_mydevice().DeviceName == device.DeviceName);
 	return process;
 }
 HatControllerNodeProcess* readyprocess(HatControllerNodeProcess* process)
 {
-	icarus_rover_v2::diagnostic diag = process->update(0);
+	icarus_rover_v2::diagnostic diag = process->update(0.0,0.0);
 	EXPECT_TRUE(diag.Level <= NOTICE);
-	EXPECT_TRUE(process->get_ready() == true);
+	EXPECT_TRUE(process->is_ready() == true);
 	return process;
 }
 TEST(Template,Process_Initialization_ServoHat)
@@ -138,19 +142,12 @@ TEST(Template,Process_Initialization_ServoHat)
 		servohat1_device.pins.push_back(newpin);
 	}
 
-
-
-
-
-	diagnostic = process->init(diagnostic,std::string(Host_Name));
-	EXPECT_TRUE(diagnostic.Level <= NOTICE);
-
 	process->set_mydevice(ros_device);
-	EXPECT_TRUE(process->get_initialized() == true);
+	EXPECT_TRUE(process->is_initialized() == true);
 	EXPECT_TRUE(process->is_ready() == false);
 
-	diagnostic = process->new_devicemsg(servohat1_device);
-	printf("%s\n",diagnostic.Description.c_str());
+	icarus_rover_v2::device::ConstPtr dev_ptr(new icarus_rover_v2::device(servohat1_device));
+	diagnostic = process->new_devicemsg(dev_ptr);
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 
 	EXPECT_TRUE(process->is_ready() == true);
@@ -221,15 +218,12 @@ TEST(Template,Process_Initialization_GPIOHat)
 	}
 
 
-	diagnostic = process->init(diagnostic,std::string(Host_Name));
-	EXPECT_TRUE(diagnostic.Level <= NOTICE);
-
 	process->set_mydevice(ros_device);
-	EXPECT_TRUE(process->get_initialized() == true);
+	EXPECT_TRUE(process->is_initialized() == true);
 	EXPECT_TRUE(process->is_ready() == false);
 
-	diagnostic = process->new_devicemsg(gpiohat1_device);
-	printf("%s\n",diagnostic.Description.c_str());
+	icarus_rover_v2::device::ConstPtr dev_ptr(new icarus_rover_v2::device(gpiohat1_device));
+	diagnostic = process->new_devicemsg(dev_ptr);
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 
 	EXPECT_TRUE(process->is_ready() == true);
@@ -247,7 +241,7 @@ TEST(Template,Process_Command)
 	bool slowrate_fire = false; //0.1 Hz
 	while(current_time <= time_to_run)
 	{
-		icarus_rover_v2::diagnostic diag = process->update(dt);
+		icarus_rover_v2::diagnostic diag = process->update(dt,current_time);
 		EXPECT_TRUE(diag.Level <= NOTICE);
 		int current_time_ms = (int)(current_time*1000.0);
 		if((current_time_ms % 100) == 0)
@@ -270,7 +264,8 @@ TEST(Template,Process_Command)
 		if(fastrate_fire == true)
 		{
 			cmd.Option1 = LEVEL1;
-			std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(cmd);
+			icarus_rover_v2::command::ConstPtr cmd_ptr(new icarus_rover_v2::command(cmd));
+			std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
 			for(std::size_t i = 0; i < diaglist.size(); i++)
 			{
 				EXPECT_TRUE(diaglist.at(i).Level <= NOTICE);
@@ -280,12 +275,10 @@ TEST(Template,Process_Command)
 		}
 		if(mediumrate_fire == true)
 		{
-			std_msgs::Bool pps;
-			pps.data = true;
-			diag = process->new_ppsmsg(pps);
 			EXPECT_TRUE(diag.Level <= NOTICE);
 			cmd.Option1 = LEVEL2;
-			std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(cmd);
+			icarus_rover_v2::command::ConstPtr cmd_ptr(new icarus_rover_v2::command(cmd));
+			std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
 			for(std::size_t i = 0; i < diaglist.size(); i++)
 			{
 				EXPECT_TRUE(diaglist.at(i).Level <= NOTICE);
@@ -302,7 +295,7 @@ TEST(Template,Process_Command)
 }
 TEST(DeviceInitialization,DeviceInitialization_TerminalHat)
 {
-	HatControllerNodeProcess* process = initializeprocess();
+
 	icarus_rover_v2::device ros_device;
 	ros_device.DeviceName = ros_DeviceName;
 	ros_device.DeviceParent = ros_ParentDevice;
@@ -310,37 +303,8 @@ TEST(DeviceInitialization,DeviceInitialization_TerminalHat)
 	ros_device.BoardCount = 0;
 	ros_device.HatCount = 1;
 	ros_device.ID = 123;
+	HatControllerNodeProcess* process = initializeprocess(ros_device);
 
-
-	icarus_rover_v2::diagnostic diagnostic;
-	diagnostic.DeviceName = ros_DeviceName;
-	diagnostic.Node_Name = Node_Name;
-	diagnostic.System = ROVER;
-	diagnostic.SubSystem = ROBOT_CONTROLLER;
-	diagnostic.Component = GPIO_NODE;
-
-	diagnostic.Diagnostic_Type = NOERROR;
-	diagnostic.Level = INFO;
-	diagnostic.Diagnostic_Message = INITIALIZING;
-	diagnostic.Description = "Node Initializing";
-	Logger *logger;
-	std::string log_output = Node_Name + boost::lexical_cast<std::string>(1);
-	logger = new Logger("DEBUG","UNIT_TESTS",log_output);
-	process->init(diagnostic,std::string(Host_Name));
-	process->set_analyzetiming(true);
-	process->set_mydevice(ros_device);
-	EXPECT_EQ(process->get_armedstate(),ARMEDSTATUS_DISARMED_CANNOTARM);
-	EXPECT_EQ(process->get_ready_to_arm(),false);
-
-	diagnostic = process->new_devicemsg(ros_device);
-	EXPECT_TRUE(diagnostic.Level <= NOTICE);
-	EXPECT_TRUE(process->get_initialized() == true);
-	EXPECT_TRUE(process->get_ready() == false);
-
-	std_msgs::Bool pps;
-	pps.data = true;
-	diagnostic = process->new_ppsmsg(pps);
-	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 
 	icarus_rover_v2::device hat1;
 	hat1.DeviceName = "TerminalHat1";
@@ -370,18 +334,18 @@ TEST(DeviceInitialization,DeviceInitialization_TerminalHat)
 		hat1.pins.push_back(newpin);
 	}
 
-	diagnostic = process->update(0.02);
+	icarus_rover_v2::diagnostic diagnostic = process->update(0.02,0.02);
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 
-	diagnostic = process->new_devicemsg(hat1);
+	icarus_rover_v2::device::ConstPtr hat1_ptr(new icarus_rover_v2::device(hat1));
+	diagnostic = process->new_devicemsg(hat1_ptr);
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
-
 
 	EXPECT_TRUE(process->is_ready() == true);
 	diagnostic = process->set_terminalhat_initialized();
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 
-	diagnostic = process->update(0.02);
+	diagnostic = process->update(0.02,0.04);
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 
 	EXPECT_EQ(process->get_ready_to_arm(),true);
@@ -420,7 +384,7 @@ TEST(DeviceInitialization,DeviceInitialization_TerminalHat)
 	}
 	diagnostic = process->new_armedstatemsg(ARMEDSTATUS_DISARMED);
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
-	diagnostic = process->update(0.02);
+	diagnostic = process->update(0.02,0.06);
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 	EXPECT_TRUE(process->get_armedstate() == ARMEDSTATUS_DISARMED);
 
@@ -445,7 +409,8 @@ TEST(DeviceInitialization,DeviceInitialization_TerminalHat)
 		gettimeofday(&now,NULL);
 		pin.stamp = process->convert_time(now);
 		usleep(10000);
-		diagnostic = process->new_pinmsg(pin);
+		icarus_rover_v2::pin::ConstPtr pin_ptr(new icarus_rover_v2::pin(pin));
+		diagnostic = process->new_pinmsg(pin_ptr);
 		EXPECT_TRUE(diagnostic.Level <= NOTICE);
 		//p.pins.push_back(pin);
 
@@ -490,14 +455,6 @@ TEST(DeviceInitialization,DeviceInitialization_ServoHat_GPIOHat_TerminalHat)
 	EXPECT_EQ(process->get_armedstate(),ARMEDSTATUS_DISARMED_CANNOTARM);
 	EXPECT_EQ(process->get_ready_to_arm(),false);
 
-	diagnostic = process->new_devicemsg(ros_device);
-	EXPECT_TRUE(diagnostic.Level <= NOTICE);
-	EXPECT_TRUE(process->get_initialized() == true);
-	EXPECT_TRUE(process->is_ready() == false);
-
-	std_msgs::Bool pps;
-	pps.data = true;
-	diagnostic = process->new_ppsmsg(pps);
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 
 	icarus_rover_v2::device hat1;
@@ -591,18 +548,21 @@ TEST(DeviceInitialization,DeviceInitialization_ServoHat_GPIOHat_TerminalHat)
 		else { gpio_output_nonactuator_pins.push_back(newpin); }
 		hat3.pins.push_back(newpin);
 	}
-	diagnostic = process->update(0.02);
+	diagnostic = process->update(0.02,.02);
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 
-	diagnostic = process->new_devicemsg(hat1);
-	EXPECT_TRUE(diagnostic.Level <= NOTICE);
-	EXPECT_TRUE(process->is_ready() == false);
-
-	diagnostic = process->new_devicemsg(hat2);
+	icarus_rover_v2::device::ConstPtr hat1_ptr(new icarus_rover_v2::device(hat1));
+	diagnostic = process->new_devicemsg(hat1_ptr);
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 	EXPECT_TRUE(process->is_ready() == false);
 
-	diagnostic = process->new_devicemsg(hat3);
+	icarus_rover_v2::device::ConstPtr hat2_ptr(new icarus_rover_v2::device(hat2));
+	diagnostic = process->new_devicemsg(hat2_ptr);
+	EXPECT_TRUE(diagnostic.Level <= NOTICE);
+	EXPECT_TRUE(process->is_ready() == false);
+
+	icarus_rover_v2::device::ConstPtr hat3_ptr(new icarus_rover_v2::device(hat3));
+	diagnostic = process->new_devicemsg(hat3_ptr);
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 	EXPECT_TRUE(process->is_ready() == true);
 
@@ -611,19 +571,19 @@ TEST(DeviceInitialization,DeviceInitialization_ServoHat_GPIOHat_TerminalHat)
 
 	diagnostic = process->set_hat_running("ServoHat",hat1.ID);
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
-	diagnostic = process->update(0.02);
+	diagnostic = process->update(0.02,.04);
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 	EXPECT_EQ(process->get_ready_to_arm(),false);
 
 	diagnostic = process->set_hat_running("GPIOHat",hat2.ID);
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
-	diagnostic = process->update(0.02);
+	diagnostic = process->update(0.02,.06);
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 	EXPECT_EQ(process->get_ready_to_arm(),false);
 
 	diagnostic = process->set_hat_running("TerminalHat",hat3.ID);
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
-	diagnostic = process->update(0.02);
+	diagnostic = process->update(0.02,.08);
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 	EXPECT_EQ(process->get_ready_to_arm(),true);
 
@@ -686,7 +646,7 @@ TEST(DeviceInitialization,DeviceInitialization_ServoHat_GPIOHat_TerminalHat)
 	}
 	diagnostic = process->new_armedstatemsg(ARMEDSTATUS_DISARMED);
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
-	diagnostic = process->update(0.02);
+	diagnostic = process->update(0.02,0.1);
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 	EXPECT_TRUE(process->get_armedstate() == ARMEDSTATUS_DISARMED);
 	servohat_pins.clear();
@@ -733,7 +693,8 @@ TEST(DeviceInitialization,DeviceInitialization_ServoHat_GPIOHat_TerminalHat)
 		gettimeofday(&now,NULL);
 		pin.stamp = process->convert_time(now);
 		usleep(10000);
-		diagnostic = process->new_pinmsg(pin);
+		icarus_rover_v2::pin::ConstPtr pin_ptr(new icarus_rover_v2::pin(pin));
+		diagnostic = process->new_pinmsg(pin_ptr);
 		EXPECT_TRUE(diagnostic.Level <= NOTICE);
 
 	}
@@ -769,7 +730,7 @@ TEST(DeviceInitialization,DeviceInitialization_ServoHat_GPIOHat_TerminalHat)
 	}
 	diagnostic = process->new_armedstatemsg(ARMEDSTATUS_ARMED);
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
-	diagnostic = process->update(0.02);
+	diagnostic = process->update(0.02,0.12);
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 	EXPECT_TRUE(process->get_armedstate() == ARMEDSTATUS_ARMED);
 	servohat_pins.clear();

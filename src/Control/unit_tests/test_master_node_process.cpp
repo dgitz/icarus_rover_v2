@@ -3,7 +3,7 @@
 #include "ros/time.h"
 #include "icarus_rover_v2/device.h"
 #include "icarus_rover_v2/diagnostic.h"
-#include "../master_node_process.h"
+#include "../MasterNodeProcess.h"
 
 std::string Node_Name = "/unittest_master_node_process";
 std::string Host_Name = "dgitzrosmaster";
@@ -31,32 +31,35 @@ MasterNodeProcess* initializeprocess(std::string devicepath,std::string systempa
 	diagnostic_status.Description = "Node Initializing";
 
 	MasterNodeProcess* process;
-	process = new MasterNodeProcess("master_node",Node_Name);
-	diagnostic_status = process->init(diagnostic_status,std::string(Host_Name),devicepath,systempath);
+	process = new MasterNodeProcess;
+	process->initialize("master_node",Node_Name,Host_Name);
+	process->set_diagnostic(diagnostic_status);
+	process->set_filepaths(systempath,devicepath);
+	diagnostic_status = process->finish_initialization();
 	EXPECT_TRUE(diagnostic_status.Level <= NOTICE);
-    std::vector<icarus_rover_v2::device> child_devices = process->get_childdevices();
-    EXPECT_TRUE(child_devices.size() > 0);
-    printf("-----CHILD DEVICES-----\n");
-    process->print_device(child_devices);
-    std::vector<MasterNodeProcess::LeverArm> leverarms = process->get_allleverarms();
-    printf("-----LEVER ARMS-----\n");
-    process->print_leverarm(leverarms);
-    process->set_initialized(true);
+	std::vector<icarus_rover_v2::device> child_devices = process->get_childdevices();
+	EXPECT_TRUE(child_devices.size() > 0);
+	printf("-----CHILD DEVICES-----\n");
+	process->print_device(child_devices);
+	std::vector<MasterNodeProcess::LeverArm> leverarms = process->get_allleverarms();
+	printf("-----LEVER ARMS-----\n");
+	process->print_leverarm(leverarms);
+	process->set_initialized();
 	return process;
 }
 MasterNodeProcess* readyprocess(MasterNodeProcess* process)
 {
-    icarus_rover_v2::diagnostic diag = process->update(0);
-    EXPECT_TRUE(diag.Level <= NOTICE);
-    EXPECT_TRUE(process->get_ready() == true);
-    return process;
+	icarus_rover_v2::diagnostic diag = process->update(0.0,0.0);
+	EXPECT_TRUE(diag.Level <= NOTICE);
+	EXPECT_TRUE(process->is_ready() == true);
+	return process;
 }
 TEST(Template,Process_Initialization)
 {
 
 	return;
 	MasterNodeProcess* process = initializeprocess("/home/robot/catkin_ws/src/icarus_rover_v2/src/Control/unit_tests/UnitTestDeviceFile.xml",
-    		"/home/robot/catkin_ws/src/icarus_rover_v2/src/Control/unit_tests/UnitTestSystemFile.xml");
+			"/home/robot/catkin_ws/src/icarus_rover_v2/src/Control/unit_tests/UnitTestSystemFile.xml");
 }
 
 TEST(Template,Process_Command)
@@ -79,7 +82,7 @@ TEST(Template,Process_Command)
 		bool slowrate_fire = false; //0.1 Hz
 		while(current_time <= time_to_run)
 		{
-			icarus_rover_v2::diagnostic diag = process->update(dt);
+			icarus_rover_v2::diagnostic diag = process->update(dt,current_time);
 			EXPECT_TRUE(diag.Level <= NOTICE);
 			int current_time_ms = (int)(current_time*1000.0);
 			if((current_time_ms % 100) == 0)
@@ -105,7 +108,8 @@ TEST(Template,Process_Command)
 			if(mediumrate_fire == true)
 			{
 				cmd.Option1 = LEVEL2;
-				std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(cmd);
+				icarus_rover_v2::command::ConstPtr cmd_ptr(new icarus_rover_v2::command(cmd));
+				std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
 				for(std::size_t i = 0; i < diaglist.size(); i++)
 				{
 					EXPECT_TRUE(diaglist.at(i).Level <= NOTICE);
@@ -116,7 +120,8 @@ TEST(Template,Process_Command)
 			if(slowrate_fire == true)
 			{
 				cmd.Option1 = LEVEL1;
-				std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(cmd);
+				icarus_rover_v2::command::ConstPtr cmd_ptr(new icarus_rover_v2::command(cmd));
+				std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
 				for(std::size_t i = 0; i < diaglist.size(); i++)
 				{
 					EXPECT_TRUE(diaglist.at(i).Level <= NOTICE);
@@ -130,35 +135,35 @@ TEST(Template,Process_Command)
 }
 TEST(ProcessInitialization,NormalOperation)
 {
-    std::vector<std::string> devicepathlist;
-    devicepathlist.push_back("/home/robot/catkin_ws/src/icarus_rover_v2/src/Control/unit_tests/UnitTestDeviceFile.xml");
-    devicepathlist.push_back("/home/robot/catkin_ws/src/icarus_rover_v2/src/Control/unit_tests/DeviceFile.xml");
-    for(std::size_t i = 0; i < devicepathlist.size(); i++)
-    {
-        std::string devicepath = devicepathlist.at(i);
-        std::string systempath = "/home/robot/catkin_ws/src/icarus_rover_v2/src/Control/unit_tests/UnitTestSystemFile.xml";
-        //printf("Loading: %s\n",path.c_str());
-        MasterNodeProcess* process = initializeprocess(devicepath,systempath);
-        std::vector<std::string> serialportlist;
-        serialportlist.push_back("/dev/ttyUSB0");
-        serialportlist.push_back("/dev/ttyACM0");
-        //serialportlist.push_back("/dev/ttyS0");
-    
-        icarus_rover_v2::diagnostic diag = process->set_serialportlist(serialportlist);
-        EXPECT_TRUE(diag.Level <= NOTICE);
-        if(i == 0)
-        {
-            EXPECT_TRUE(process->get_allserialbaudrates().size() == 1);
-        }
-        else if(i == 1)
-        {
-            EXPECT_TRUE(process->get_allserialbaudrates().size() == 1);
-        }
-        icarus_rover_v2::leverarm la_IMU1;
+	std::vector<std::string> devicepathlist;
+	devicepathlist.push_back("/home/robot/catkin_ws/src/icarus_rover_v2/src/Control/unit_tests/UnitTestDeviceFile.xml");
+	devicepathlist.push_back("/home/robot/catkin_ws/src/icarus_rover_v2/src/Control/unit_tests/DeviceFile.xml");
+	for(std::size_t i = 0; i < devicepathlist.size(); i++)
+	{
+		std::string devicepath = devicepathlist.at(i);
+		std::string systempath = "/home/robot/catkin_ws/src/icarus_rover_v2/src/Control/unit_tests/UnitTestSystemFile.xml";
+		//printf("Loading: %s\n",path.c_str());
+		MasterNodeProcess* process = initializeprocess(devicepath,systempath);
+		std::vector<std::string> serialportlist;
+		serialportlist.push_back("/dev/ttyUSB0");
+		serialportlist.push_back("/dev/ttyACM0");
+		//serialportlist.push_back("/dev/ttyS0");
+
+		icarus_rover_v2::diagnostic diag = process->set_serialportlist(serialportlist);
+		EXPECT_TRUE(diag.Level <= NOTICE);
+		if(i == 0)
+		{
+			EXPECT_TRUE(process->get_allserialbaudrates().size() == 1);
+		}
+		else if(i == 1)
+		{
+			EXPECT_TRUE(process->get_allserialbaudrates().size() == 1);
+		}
+		icarus_rover_v2::leverarm la_IMU1;
 		EXPECT_TRUE(process->get_leverarm(&la_IMU1,"IMU1"));
 
 		process->print_leverarm("IMU1","BodyOrigin",la_IMU1);
-    }
+	}
 
 }
 int main(int argc, char **argv){
