@@ -17,7 +17,6 @@
 #include "icarus_rover_v2/heartbeat.h"
 #include <icarus_rover_v2/device.h>
 #include "icarus_rover_v2/command.h"
-#include <icarus_rover_v2/diagnostic.h>
 #include <icarus_rover_v2/device.h>
 #include <icarus_rover_v2/resource.h>
 #include <icarus_rover_v2/pin.h>
@@ -60,7 +59,12 @@ public:
 	/*! \brief Sets Device Info.  When this function is executed, the Process will now be "initialized". */
 	void set_mydevice(icarus_rover_v2::device t_device);
 	/*! \brief Sets Process Diagnostic info. */
-	void set_diagnostic(icarus_rover_v2::diagnostic t_diagnostic) { diagnostic = t_diagnostic; }
+	void set_diagnostic(icarus_rover_v2::diagnostic t_diagnostic)
+	{
+		diagnostic = t_diagnostic;
+		diagnostic.DeviceName = host_name;
+		diagnostic.Node_Name = node_name;
+	}
 
 	//Update Functions
 	/*! \brief Update function must be implemented in Derived Process.  This is used for all state machine logic, etc. */

@@ -403,7 +403,7 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::send_querymessage(unsign
 std::string BoardControllerNodeProcess::get_messageinfo(bool v)
 {
 	char tempstr[2048];
-	sprintf(tempstr,"");
+	sprintf(tempstr,"%s","");
 
 	for(std::size_t i = 0; i < messages.size(); i++)
 	{
