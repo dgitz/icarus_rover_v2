@@ -18,7 +18,7 @@ LCDDriver::~LCDDriver()
 
 int LCDDriver::init(int _width,int _height)
 {
-    
+
 	width = _width;
 	height = _height;
 	buffer_max = width*height;
@@ -71,7 +71,7 @@ int LCDDriver::init(int _width,int _height)
 		return 0;
 	}
 	fd = port;
-    initialized = true;
+	initialized = true;
 	return 1;
 }
 int LCDDriver::send(std::string buffer)
@@ -83,7 +83,7 @@ int LCDDriver::send(std::string buffer)
 	locked = true;
 	if(buffer.size() > buffer_max)
 	{
-		printf("Buffer is too big: %d/%d\n",buffer.size(),buffer_max);
+		printf("Buffer is too big: %d/%d\n",(int)buffer.size(),buffer_max);
 		return -1;
 	}
 	write(fd,"|-",2);
@@ -91,25 +91,98 @@ int LCDDriver::send(std::string buffer)
 	locked = false;
 	return n_written;
 }
+std::string LCDDriver::map_color_tostring(Color c)
+{
+	switch(c)
+	{
+	case UNKNOWN:
+		return "UNKNOWN";
+		break;
+	case YELLOW:
+		return "YELLOW";
+		break;
+	case RED:
+		return "RED";
+		break;
+	case GREEN:
+		return "GREEN";
+		break;
+	case PURPLE:
+		return "PURPLE";
+		break;
+	case BLUE:
+		return "BLUE";
+		break;
+	default:
+		return "UNKNOWN";
+		break;
+	}
+}
+int LCDDriver::set_color(Color c)
+{
+	int v = 0;
+	switch(c)
+	{
+	case UNKNOWN:
+		return 0;
+		break;
+	case YELLOW:
+		v = set_backlightred(100);
+		v += set_backlightgreen(100);
+		v += set_backlightblue(0);
+		return v;
+		break;
+	case RED:
+		v = set_backlightred(100);
+		v += set_backlightgreen(0);
+		v += set_backlightblue(0);
+		return v;
+		break;
+	case GREEN:
+		v = set_backlightred(0);
+		v += set_backlightgreen(100);
+		v += set_backlightblue(0);
+		return v;
+		break;
+	case PURPLE:
+		v = set_backlightred(50);
+		v += set_backlightgreen(0);
+		v += set_backlightblue(100);
+		return v;
+		break;
+	case BLUE:
+		v = set_backlightred(0);
+		v += set_backlightgreen(0);
+		v += set_backlightblue(100);
+		return v;
+		break;
+	default:
+		return 0;
+		break;
+	}
+}
 int LCDDriver::set_backlightred(int v)
 {
 	backlight_red = v;
 	char tempstr[2];
-	sprintf(tempstr,"|%c",(unsigned char)(map_value(v,128,157)));
-    return write(fd,tempstr,2);
+	int v1 = map_value(v,RED_START,RED_STOP);
+	sprintf(tempstr,"|%c",(unsigned char)(v1));
+	return write(fd,tempstr,2);
 }
 int LCDDriver::set_backlightgreen(int v)
 {
 	backlight_green = v;
 	char tempstr[2];
-	sprintf(tempstr,"|%c",(unsigned char)(map_value(v,158,187)));
+	int v1 = map_value(v,GREEN_START,GREEN_STOP);
+	sprintf(tempstr,"|%c",(unsigned char)(v1));
 	return write(fd,tempstr,2);
 }
 int LCDDriver::set_backlightblue(int v)
 {
 	backlight_blue = v;
 	char tempstr[2];
-	sprintf(tempstr,"|%c",(unsigned char)(map_value(v,188,217)));
+	int v1 = map_value(v,BLUE_START,BLUE_STOP);
+	sprintf(tempstr,"|%c",(unsigned char)(v1));
 	return write(fd,tempstr,2);
 }
 int LCDDriver::map_value(int v, int min, int max)

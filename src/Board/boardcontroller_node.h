@@ -72,6 +72,7 @@ private:
 	int spiTxRx(unsigned char txDat);
 	int sendMessageQuery(unsigned char query, unsigned char * inputbuffer);
 	int sendMessageCommand(unsigned char command,unsigned char * outputbuffer);
+	void ArmedState_Callback(const std_msgs::UInt8::ConstPtr& msg);
 	//Support Functions
 
 
@@ -86,5 +87,6 @@ private:
 	std::vector<ros::Publisher> signal_sensor_pubs;
 	uint32_t passed_checksum;
 	uint32_t failed_checksum;
+	ros::Subscriber armed_state_sub;
 
 };

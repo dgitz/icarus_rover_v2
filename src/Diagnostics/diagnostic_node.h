@@ -65,6 +65,7 @@ private:
 	void diagnostic_Callback(const icarus_rover_v2::diagnostic::ConstPtr& msg,const std::string &topicname);
 	void ArmedState_Callback(const std_msgs::UInt8::ConstPtr& msg);
 	//Support Functions
+    /*! \brief  Log RAM and CPU Usage */
 	bool log_resources();
 
 
@@ -83,5 +84,6 @@ private:
 	LCDDriver lcd;
 	ros::Subscriber armed_state_sub;
 	bool logging_initialized;
+	uint8_t last_armedstate;
 
 };

@@ -22,16 +22,33 @@ class LCDDriver
 {
 public:
 
-
+	enum Color
+	{
+		UNKNOWN=0,
+		RED=1,
+		YELLOW=2,
+		GREEN=3,
+		PURPLE=4,
+		BLUE=5,
+		WHITE=6 //LAST
+	};
+	const int RED_START = 128;
+	const int RED_STOP = 157;
+	const int GREEN_START = 158;
+	const int GREEN_STOP = 187;
+	const int BLUE_START = 188;
+	const int BLUE_STOP = 217;
 	LCDDriver();
 	~LCDDriver();
 	int init(int _width, int _height);
+	int set_color(Color c);
 	int set_backlightred(int v);
 	int set_backlightgreen(int v);
 	int set_backlightblue(int v);
 	int send(std::string buffer);
 	int test_comm(int v);
     bool get_initialized() { return initialized; }
+    std::string map_color_tostring(Color c);
 
 private:
 	int map_value(int v, int min, int max);

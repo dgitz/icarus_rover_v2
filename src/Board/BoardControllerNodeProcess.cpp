@@ -3,7 +3,7 @@ icarus_rover_v2::diagnostic  BoardControllerNodeProcess::finish_initialization()
 {
 	icarus_rover_v2::diagnostic diag = diagnostic;
 	init_messages();
-
+	current_command.Command = ROVERCOMMAND_NONE;
 	LEDPixelMode = LEDPIXELMODE_ERROR;
 	encoder_count = 0;
 	return diagnostic;
@@ -199,6 +199,7 @@ std::vector<icarus_rover_v2::diagnostic> BoardControllerNodeProcess::new_command
 {
 	std::vector<icarus_rover_v2::diagnostic> diaglist;
 	icarus_rover_v2::diagnostic diag = diagnostic;
+	current_command = convert_fromptr(t_msg);
 	if (t_msg->Command == ROVERCOMMAND_RUNDIAGNOSTIC)
 	{
 		if (t_msg->Option1 == LEVEL1)
@@ -220,6 +221,10 @@ std::vector<icarus_rover_v2::diagnostic> BoardControllerNodeProcess::new_command
 		}
 	}
 	return diaglist;
+}
+void BoardControllerNodeProcess::new_armedstatemsg(uint8_t t_armed_state)
+{
+	armed_state = t_armed_state;
 }
 std::vector<icarus_rover_v2::diagnostic> BoardControllerNodeProcess::check_programvariables()
 {
@@ -333,6 +338,22 @@ void BoardControllerNodeProcess::init_messages()
 		newmessage.id = SPIMessageHandler::SPI_Diagnostic_ID;
 		newmessage.name = "Diagnostic";
 		newmessage.type = "Query";
+		newmessage.send_me = false;
+		messages.push_back(newmessage);
+	}
+	{
+		Message newmessage;
+		newmessage.id = SPIMessageHandler::SPI_Command_ID;
+		newmessage.name = "Command";
+		newmessage.type = "Command";
+		newmessage.send_me = false;
+		messages.push_back(newmessage);
+	}
+	{
+		Message newmessage;
+		newmessage.id = SPIMessageHandler::SPI_Arm_Status_ID;
+		newmessage.name = "ArmStatus";
+		newmessage.type = "Command";
 		newmessage.send_me = false;
 		messages.push_back(newmessage);
 	}

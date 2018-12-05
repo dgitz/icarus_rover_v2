@@ -17,11 +17,13 @@ static void show_usage(std::string name)
 			<< "\t-w,--width\t\tSet Screen Width (Default=20)\n"
 			<< "\t-h,--height\t\tSet Screen Height (Default=4)\n"
 			<< "\t-m,--mode\t\tOperation Mode \n"
-			<< "\t\t Possible Modes: text (Default),colorsweep\n"
+			<< "\t\t Possible Modes: text (Default),colorsweep,colorcycle\n"
 			<< "\t\t mode==text:\n"
 			<< "\t\t -o,--output\t\t Output Text\n"
 			<< "\t\t mode==colorsweep:\n"
 			<< "\t\t -o,--output\t\t Output Text\n"
+			<< "\t\t mode==colorcycle:\n"
+			<< "\t\t No extra Options.\n"
 			<< std::endl;
 }
 
@@ -181,6 +183,21 @@ int main(int argc, char* argv[])
 
 		int bytes_written = lcd.send(output);
 	}
+	else if(mode == "colorcycle")
+	{
+		LCDDriver::Color start = LCDDriver::RED;
+		LCDDriver::Color finish = LCDDriver::WHITE;
+		for(int i = (int)start;i < (int)finish;++i)
+		{
+			char tempstr[48];
+			sprintf(tempstr,"Color=%s",lcd.map_color_tostring(static_cast<LCDDriver::Color>(i)).c_str());
+			printf("%s\n",tempstr);
+			int v = lcd.set_color(static_cast<LCDDriver::Color>(i));
+			lcd.send(tempstr);
+			usleep(10000000);
+
+		}
+	}
 	else if(mode == "colorsweep")
 	{
 		for(int i = 0; i < 100; i+=5)
@@ -189,17 +206,17 @@ int main(int argc, char* argv[])
 			{
 				printf("Did not set Red Backlight.\n");
 			}
-            usleep(10000);
+			usleep(10000);
 			if(lcd.set_backlightgreen(0) <= 0)
 			{
 				printf("Did not set Green Backlight.\n");
 			}
-            usleep(10000);
+			usleep(10000);
 			if(lcd.set_backlightblue(0) <= 0)
 			{
 				printf("Did not set Blue Backlight.\n");
 			}
-            usleep(10000);
+			usleep(10000);
 			int bytes_written = lcd.send(output);
 			usleep(500000);
 		}
@@ -209,17 +226,17 @@ int main(int argc, char* argv[])
 			{
 				printf("Did not set Red Backlight.\n");
 			}
-            usleep(10000);
+			usleep(10000);
 			if(lcd.set_backlightgreen(i) <= 0)
 			{
 				printf("Did not set Green Backlight.\n");
 			}
-            usleep(10000);
+			usleep(10000);
 			if(lcd.set_backlightblue(0) <= 0)
 			{
 				printf("Did not set Blue Backlight.\n");
 			}
-            usleep(10000);
+			usleep(10000);
 			int bytes_written = lcd.send(output);
 			usleep(500000);
 		}
@@ -229,17 +246,17 @@ int main(int argc, char* argv[])
 			{
 				printf("Did not set Red Backlight.\n");
 			}
-            usleep(10000);
+			usleep(10000);
 			if(lcd.set_backlightgreen(0) <= 0)
 			{
 				printf("Did not set Green Backlight.\n");
 			}
-            usleep(10000);
+			usleep(10000);
 			if(lcd.set_backlightblue(i) <= 0)
 			{
 				printf("Did not set Blue Backlight.\n");
 			}
-            usleep(10000);
+			usleep(10000);
 			int bytes_written = lcd.send(output);
 			usleep(500000);
 		}

@@ -13,9 +13,11 @@
 class BoardControllerNodeProcess: public BaseNodeProcess {
 public:
 	//Constants
+    /*! \brief  Require 2 Encoders in DeviceFile. */
 	const uint8_t REQUIRED_ENCODER_COUNT = 2;
 	//Enums
 	//Structs
+    /*! \brief  SPI Message statistics structure */
 	struct Message
 	{
 		unsigned char id;
@@ -27,13 +29,14 @@ public:
 		double recv_rate;
 		bool send_me;
 	};
-
+    /*! \brief  Board Diagnostic statistic structure */
 	struct BoardDiagnostic
 	{
 		uint16_t id;
 		icarus_rover_v2::diagnostic diagnostic;
 		double lasttime_rx;
 	};
+    /*! \brief Sensor info structure */
 	struct Sensor
 	{
 		icarus_rover_v2::signal signal;
@@ -51,31 +54,33 @@ public:
 		double max_outputvalue;
 	};
 	///Initialization Functions
-	/*! \brief NodeProcess specific Initialization
-	 *
-	 */
+	/*! \brief NodeProcess specific Initialization  */
 	icarus_rover_v2::diagnostic finish_initialization();
 	//Update Functions
-	/*! \brief Implementation of the update function
-	 *
-	 */
+	/*! \brief Implementation of the update function */
 	icarus_rover_v2::diagnostic update(double t_dt,double t_ros_time);
-
 	//Attribute Functions
-
+	icarus_rover_v2::command get_current_command() { return current_command; }
+	uint8_t get_armed_state() { return armed_state; }
 	//Message Functions
-	/*! \brief  Process Command Message.
-	 *
-	 */
+	/*! \brief  Process Command Message. */
 	std::vector<icarus_rover_v2::diagnostic> new_commandmsg(const icarus_rover_v2::command::ConstPtr& t_msg);
+    /*! \brief  Process Device Message. */
 	icarus_rover_v2::diagnostic new_devicemsg(const icarus_rover_v2::device::ConstPtr& device);
+    /*! \brief  Process Armed State Message. */
+	void new_armedstatemsg(uint8_t t_armed_state);
 	icarus_rover_v2::diagnostic new_message_sent(unsigned char id);
 	icarus_rover_v2::diagnostic new_message_recv(unsigned char id);
 	std::string get_messageinfo(bool v);
+    /*! \brief  Send SPI Query Message */
 	icarus_rover_v2::diagnostic send_querymessage(unsigned char id);
+    /*! \brief  Get list of Query Messages to Send */
 	std::vector<Message> get_querymessages_tosend();
+    /*! \brief Send SPI Command Message. */
 	icarus_rover_v2::diagnostic send_commandmessage(unsigned char id);
+    /*! \brief  Get list of Command Messages to Send */
 	std::vector<Message> get_commandmessages_tosend();
+    /*! \brief  Get parameters to send to LED Strip */
 	icarus_rover_v2::diagnostic get_LEDStripControlParameters(unsigned char& LEDPixelMode,unsigned char& Param1,unsigned char& Param2);
 	//Individual message processing
 	icarus_rover_v2::diagnostic new_message_TestMessageCounter(uint8_t boardid,unsigned char v1,unsigned char v2,unsigned char v3,unsigned char v4,
@@ -98,9 +103,7 @@ public:
 	//Printing Functions
 protected:
 private:
-	/*! \brief Process Specific Implementation
-	 *
-	 */
+	/*! \brief Process Specific Implementation */
 	std::vector<icarus_rover_v2::diagnostic> check_programvariables();
 	void init_messages();
 	std::string map_PinFunction_ToString(int function);
@@ -122,4 +125,6 @@ private:
 	std::vector<bool> boards_running;
 	unsigned char LEDPixelMode;
 	uint8_t encoder_count;
+	icarus_rover_v2::command current_command;
+	uint8_t armed_state;
 };
