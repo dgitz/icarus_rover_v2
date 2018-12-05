@@ -47,6 +47,7 @@ icarus_rover_v2::diagnostic DiagnosticNode::read_launchparameters()
 icarus_rover_v2::diagnostic DiagnosticNode::finish_initialization()
 {
 	icarus_rover_v2::diagnostic diag = diagnostic;
+	last_armedstate = ARMEDSTATUS_UNDEFINED;
 	logging_initialized = false;
 	pps1_sub = n->subscribe<std_msgs::Bool>("/1PPS",1,&DiagnosticNode::PPS1_Callback,this);
 	command_sub = n->subscribe<icarus_rover_v2::command>("/command",1,&DiagnosticNode::Command_Callback,this);
@@ -238,11 +239,35 @@ bool DiagnosticNode::new_devicemsg(std::string query,icarus_rover_v2::device t_d
 			process->set_mydevice(t_device);
 		}
 	}
-
-	if((process->is_initialized() == true))
+	else
 	{
-		icarus_rover_v2::device::ConstPtr device_ptr(new icarus_rover_v2::device(t_device));
-		icarus_rover_v2::diagnostic diag = process->new_devicemsg(device_ptr);
+		if(process->is_ready() == false)
+		{
+			icarus_rover_v2::device::ConstPtr dev_ptr(new icarus_rover_v2::device(t_device));
+			icarus_rover_v2::diagnostic diag = process->new_devicemsg(dev_ptr);
+			logger->log_diagnostic(diag);
+			if(process->is_ready() == true)
+			{
+				logger->log_notice("Device is now ready.");
+				if(process->get_lcdavailable() == true)
+				{
+					uint8_t lcd_width,lcd_height;
+					lcd_width = process->get_lcdwidth();
+					lcd_height = process->get_lcdheight();
+					int v = lcd.init(lcd_width,lcd_height);
+					if(v <= 0)
+					{
+						logger->log_error("Couldn't Initialize LCD. Exiting.");
+						kill_node = 1;
+					}
+					else
+					{
+						lcd.set_color(LCDDriver::YELLOW);
+						logger->log_notice("Initialized LCD.");
+					}
+				}
+			}
+		}
 	}
 	return true;
 }
@@ -318,10 +343,49 @@ void DiagnosticNode::heartbeat_Callback(const icarus_rover_v2::heartbeat::ConstP
 }
 void DiagnosticNode::ArmedState_Callback(const std_msgs::UInt8::ConstPtr& msg)
 {
-	uint8_t armed_state = msg->data;
-
-	//diagnostic_status = process->new_armedstatemsg(msg->data);
-	process->new_armedstatemsg(armed_state);
+	process->new_armedstatemsg(msg->data);
+	if(msg->data != last_armedstate)
+	{
+		if(process->get_lcdavailable() == true)
+		{
+			switch(msg->data)
+			{
+			case ARMEDSTATUS_UNDEFINED:
+				lcd.set_color(LCDDriver::RED);
+				break;
+			case ARMEDSTATUS_DISARMING:
+				lcd.set_color(LCDDriver::GREEN);
+				break;
+			case ARMEDSTATUS_DISARMED_CANNOTARM:
+				lcd.set_color(LCDDriver::YELLOW);
+				break;
+			case ARMEDSTATUS_DISARMED:
+				lcd.set_color(LCDDriver::GREEN);
+				break;
+			case ARMEDSTATUS_ARMING:
+				if(process->get_RobotUnderRemoteControl() == true)
+				{
+					lcd.set_color(LCDDriver::PURPLE);
+				}
+				else
+				{
+					lcd.set_color(LCDDriver::BLUE);
+				}
+				break;
+			case ARMEDSTATUS_ARMED:
+				if(process->get_RobotUnderRemoteControl() == true)
+				{
+					lcd.set_color(LCDDriver::PURPLE);
+				}
+				else
+				{
+					lcd.set_color(LCDDriver::BLUE);
+				}
+				break;
+			}
+		}
+	}
+	last_armedstate = msg->data;
 }
 bool DiagnosticNode::log_resources()
 {
@@ -492,6 +556,11 @@ void DiagnosticNode::thread_loop()
 }
 void DiagnosticNode::cleanup()
 {
+	if(process->get_lcdavailable() == true)
+	{
+		lcd.set_color(LCDDriver::RED);
+		lcd.send("SHUTTING DOWN");
+	}
 }
 /*! \brief Attempts to kill a node when an interrupt is received.
  *
@@ -511,6 +580,7 @@ int main(int argc, char **argv) {
 	{
 		status = node->update();
 	}
+	node->cleanup();
 	node->get_logger()->log_info("Node Finished Safely.");
 	return 0;
 }

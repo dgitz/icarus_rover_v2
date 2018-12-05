@@ -2,6 +2,7 @@
 icarus_rover_v2::diagnostic  DiagnosticNodeProcess::finish_initialization()
 {
 	icarus_rover_v2::diagnostic diag = diagnostic;
+	current_command.Command = ROVERCOMMAND_NONE;
 	last_cmd_timer = 0.0;
 	last_cmddiagnostic_timer = 0.0;
 	lcd_partnumber = "617003";
@@ -14,16 +15,12 @@ icarus_rover_v2::diagnostic  DiagnosticNodeProcess::finish_initialization()
 	bad_diagnostic_received = false;
 	lcd_available = true;
 	lcdclock_timer = 0.0;
+	RCControl = true;
 	init_diaglevels();
 	return diagnostic;
 }
 icarus_rover_v2::diagnostic DiagnosticNodeProcess::update(double t_dt,double t_ros_time)
 {
-	if(initialized == true)
-	{
-		ready = true;
-
-	}
 	last_cmddiagnostic_timer += t_dt;
 	lcdclock_timer+=t_dt;
 
@@ -113,6 +110,7 @@ std::vector<icarus_rover_v2::diagnostic> DiagnosticNodeProcess::new_commandmsg(c
 	icarus_rover_v2::diagnostic diag = diagnostic;
 	if (t_msg->Command == ROVERCOMMAND_RUNDIAGNOSTIC)
 	{
+		RCControl = true;
 		last_cmddiagnostic_timer = 0.0;
 		if (t_msg->Option1 == LEVEL1)
 		{
@@ -132,6 +130,24 @@ std::vector<icarus_rover_v2::diagnostic> DiagnosticNodeProcess::new_commandmsg(c
 		{
 		}
 	}
+
+	else if(t_msg->Command == ROVERCOMMAND_ACQUIRE_TARGET)
+	{
+		RCControl = false;
+	}
+	else if(t_msg->Command == ROVERCOMMAND_SEARCHFOR_RECHARGE_FACILITY)
+	{
+		RCControl = false;
+	}
+	else if(t_msg->Command == ROVERCOMMAND_STOPSEARCHFOR_RECHARGE_FACILITY)
+	{
+		RCControl = false;
+	}
+	else
+	{
+		RCControl = true;
+	}
+
 	return diaglist;
 }
 std::vector<icarus_rover_v2::diagnostic> DiagnosticNodeProcess::check_programvariables()
@@ -502,45 +518,7 @@ std::vector<icarus_rover_v2::diagnostic> DiagnosticNodeProcess::check_tasks()
 			diag.Description = tempstr;
 			diaglist.push_back(diag);
 		}
-		/*
-		if(newTask.PID <= 0)
-		{
-			task_ok = false;
-			char tempstr[512];
-			sprintf(tempstr,"Task: %s does not have a valid PID.",newTask.Task_Name.c_str());
-			logger->log_warn(tempstr);
-			diagnostic_status.Diagnostic_Message = HIGH_RESOURCE_USAGE;
-			diagnostic_status.Level = WARN;
-			diagnostic_status.Description = tempstr;
-			diagnostic_pub.publish(diagnostic_status);
-		}
-		double resource_time_duration = measure_time_diff(ros::Time::now(),newTask.last_resource_received);
-		//printf("Task: %s Resource Time: %f\r\n",newTask.Task_Name.c_str(),resource_time_duration);
-		if( resource_time_duration > 5.0)
-		{
-			task_ok = false;
-			char tempstr[512];
-			sprintf(tempstr,"Task: %s has not reported resources used in %.1f seconds",newTask.Task_Name.c_str(),resource_time_duration);
-			logger->log_warn(tempstr);
-			diagnostic_status.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
-			diagnostic_status.Level = WARN;
-			diagnostic_status.Description = tempstr;
-			diagnostic_pub.publish(diagnostic_status);
-		}
-
-		double diagnostic_time_duration = measure_time_diff(ros::Time::now(),newTask.last_diagnostic_received);
-		if( resource_time_duration > 5.0)
-		{
-			task_ok = false;
-			char tempstr[512];
-			sprintf(tempstr,"Task: %s has not reported diagnostics in %.1f seconds",newTask.Task_Name.c_str(),diagnostic_time_duration);
-			logger->log_warn(tempstr);
-			diagnostic_status.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
-			diagnostic_status.Level = WARN;
-			diagnostic_status.Description = tempstr;
-			diagnostic_pub.publish(diagnostic_status);
-		}
-		 */
+		
 		double heartbeat_time_duration = run_time-Task.last_heartbeat_received;
 		if(heartbeat_time_duration > 5.0)
 		{

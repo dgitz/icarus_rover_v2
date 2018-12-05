@@ -15,6 +15,7 @@ public:
 	const double WORSTDIAG_TIMELIMIT = 5.0f;
 	const double WAITNODE_BRINGUP_TIME = 20.0f;
 	//Enums
+
 	//Structs
 	struct Task
 	{
@@ -29,9 +30,6 @@ public:
 		std::string resource_topic;
 		std::string diagnostic_topic;
 		std::string heartbeat_topic;
-		//ros::Subscriber resource_sub;
-		//ros::Subscriber diagnostic_sub;
-		//ros::Subscriber heartbeat_sub;
 	};
 
 	struct DeviceResourceAvailable
@@ -56,14 +54,17 @@ public:
 	 *
 	 */
 	icarus_rover_v2::diagnostic update(double t_dt,double t_ros_time);
+    /*! \brief Checks tasks for CPU,RAM issues and for heartbeats */
 	std::vector<icarus_rover_v2::diagnostic> check_tasks();
 	//Attribute Functions
+	bool get_RobotUnderRemoteControl() { return RCControl; }
 	double get_worstdiag_timelimit() { return WORSTDIAG_TIMELIMIT; }
 	double get_waitnode_bringup_time() { return WAITNODE_BRINGUP_TIME; }
 	uint8_t get_lcdwidth(){ return lcd_width; }
 	uint8_t get_lcdheight() { return lcd_height; }
 	void set_batterylevel(double v) { battery_level = v;}
 	void set_batteryvoltage(double v) { voltage_received = true; battery_voltage = v;}
+    /*! \brief Disable LCD */
 	void no_connectedlcd()
 	{
 		lcd_available = false;
@@ -80,14 +81,17 @@ public:
 	void set_log_resources_used(bool v) { log_resource_used = v; }
 	bool get_log_resources_used() { return log_resource_used; }
 	//Message Functions
-	/*! \brief  Process Command Message.  All implementation should use at least the code in this Sample Function.
-	 *
-	 */
+	/*! \brief  Process Command Message. */
 	std::vector<icarus_rover_v2::diagnostic> new_commandmsg(const icarus_rover_v2::command::ConstPtr& t_msg);
+    /*! \brief  Process Device Message. */
 	icarus_rover_v2::diagnostic new_devicemsg(const icarus_rover_v2::device::ConstPtr& device);
+    /*! \brief  Process Heartbeat Message. */
 	void new_heartbeatmsg(std::string topicname);
+    /*! \brief  Process Resource Message. */
 	void new_resourcemsg(std::string topicname,const icarus_rover_v2::resource::ConstPtr& resource);
+    /*! \brief  Process Diagnostic Message. */
 	void new_diagnosticmsg(std::string topicname,const icarus_rover_v2::diagnostic::ConstPtr& diagnostic);
+    /*! \brief  Process Armed State Message. */
 	void new_armedstatemsg(uint8_t v) { armed_state = v; }
 	//Support Functions
 	std::string build_lcdmessage();
@@ -130,4 +134,5 @@ private:
 	double lcdclock_timer;
 	uint8_t armed_state;
 	bool log_resource_used;
+	bool RCControl;
 };

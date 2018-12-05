@@ -53,6 +53,8 @@ icarus_rover_v2::diagnostic BoardControllerNode::finish_initialization()
 	command_sub = n->subscribe<icarus_rover_v2::command>("/command",1,&BoardControllerNode::Command_Callback,this);
 	std::string device_topic = "/" + std::string(host_name) + "_master_node/srv_device";
 	srv_device = n->serviceClient<icarus_rover_v2::srv_device>(device_topic);
+	std::string armed_state_topic = "/armed_state";
+	armed_state_sub = n->subscribe<std_msgs::UInt8>(armed_state_topic,1,&BoardControllerNode::ArmedState_Callback,this);
 	spi_device = open("/dev/spidev0.0", O_RDWR);
 	unsigned int clock_rate = 1000000;
 	ioctl (spi_device, SPI_IOC_WR_MAX_SPEED_HZ, &clock_rate);
@@ -136,6 +138,8 @@ bool BoardControllerNode::run_10hz()
 bool BoardControllerNode::run_loop1()
 {
 	process->send_commandmessage(SPIMessageHandler::SPI_LEDStripControl_ID);
+	process->send_commandmessage(SPIMessageHandler::SPI_Command_ID);
+	process->send_commandmessage(SPIMessageHandler::SPI_Arm_Status_ID);
 	process->send_querymessage(SPIMessageHandler::SPI_Diagnostic_ID);
 	icarus_rover_v2::diagnostic diag = process->get_diagnostic();
 	if(diag.Level > WARN)
@@ -245,6 +249,8 @@ bool BoardControllerNode::run_loop3()
 		}
 	}
 	std::vector<BoardControllerNodeProcess::Message> commandmessages_tosend = process->get_commandmessages_tosend();
+	icarus_rover_v2::command cmd = process->get_current_command();
+	uint8_t armed_state = process->get_armed_state();
 	for(std::size_t i = 0; i < commandmessages_tosend.size(); i++)
 	{
 		int success;
@@ -256,12 +262,26 @@ bool BoardControllerNode::run_loop3()
 		case SPIMessageHandler::SPI_LEDStripControl_ID:
 			diag = process->get_LEDStripControlParameters(v1,v2,v3);
 			success = spimessagehandler->encode_LEDStripControlSPI(outputbuffer,&length,v1,v2,v3);
+			sendMessageCommand(commandmessages_tosend.at(i).id,outputbuffer);
+			process->new_message_sent(SPIMessageHandler::SPI_LEDStripControl_ID);
 			break;
+		case SPIMessageHandler::SPI_Command_ID:
+
+			success = spimessagehandler->encode_CommandSPI(outputbuffer,&length,cmd.Command,cmd.Option1,cmd.Option2,cmd.Option3);
+			sendMessageCommand(commandmessages_tosend.at(i).id,outputbuffer);
+			process->new_message_sent(SPIMessageHandler::SPI_Command_ID);
+			break;
+		case SPIMessageHandler::SPI_Arm_Status_ID:
+
+			success = spimessagehandler->encode_Arm_StatusSPI(outputbuffer,&length,armed_state);
+			sendMessageCommand(commandmessages_tosend.at(i).id,outputbuffer);
+			process->new_message_sent(SPIMessageHandler::SPI_Arm_Status_ID);
+			break;
+
 		default:
 			break;
 		}
-		sendMessageCommand(commandmessages_tosend.at(i).id,outputbuffer);
-		process->new_message_sent(SPIMessageHandler::SPI_LEDStripControl_ID);
+
 	}
 	return true;
 }
@@ -307,6 +327,10 @@ bool BoardControllerNode::new_devicemsg(std::string query,icarus_rover_v2::devic
 		}
 	}
 	return true;
+}
+void BoardControllerNode::ArmedState_Callback(const std_msgs::UInt8::ConstPtr& msg)
+{
+	process->new_armedstatemsg(msg->data);
 }
 int BoardControllerNode::spiTxRx(unsigned char txDat)
 {
