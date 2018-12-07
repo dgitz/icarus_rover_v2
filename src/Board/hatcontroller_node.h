@@ -88,16 +88,13 @@ private:
 	I2CMessageHandler *i2cmessagehandler;
 	std::vector<ros::Publisher> signal_sensor_pubs;
 	std::vector<ros::Publisher> digitalinput_pubs;
-
-	ros::Publisher digitalinput_pub;
-	ros::Subscriber pwmoutput_sub;
+	std::vector<std::string> signal_digitalinput_names;
+	std::vector<ros::Subscriber> pwmoutput_subs;
+	std::vector<ros::Subscriber> digitaloutput_subs;
 	ros::Time last_pwmoutput_sub_time;
 	std::vector<ros::Subscriber> diagnostic_subs;
 	ros::Time last_diagnostic_sub_time;
-	ros::Subscriber digitaloutput_sub;
 	ros::Time last_digitaloutput_time;
-	ros::Publisher analoginput_pub;
-	ros::Publisher forcesensorinput_pub;
 	ros::Subscriber armed_state_sub;
 	ros::Publisher ready_to_arm_pub;
 

@@ -235,19 +235,6 @@ int TopicRemapperNodeProcess::parse_topicmapfile(TiXmlDocument doc)
 								{
 									out.pinnumber = std::atoi(l_pPinNumber->GetText());
 								}
-								else
-								{
-									if(output_type == "icarus_rover_v2/pin")
-									{
-										printf("Output: %s Requires the OutputChannel Tag: PinNumber\n",out.topic.c_str());
-										return -1;
-									}
-									else
-									{
-										out.pinnumber = -1;
-									}
-
-								}
 
 								TiXmlElement *l_pFunction = l_pOutputChannel->FirstChildElement( "Function" );
 								if(NULL != l_pFunction)
