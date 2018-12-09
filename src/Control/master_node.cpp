@@ -482,7 +482,7 @@ void MasterNode::print_deviceinfo()
 		sprintf(tempstr,"%s[%d] Device: %s\n",tempstr,(int)i,process->get_childdevices().at(i).DeviceName.c_str());
 		for(std::size_t j = 0; j < process->get_childdevices().at(i).pins.size(); ++j)
 		{
-			sprintf(tempstr,"%s  [%d] Pin: %s:%d\n",tempstr,j,process->get_childdevices().at(i).pins.at(j).Name.c_str(),process->get_childdevices().at(i).pins.at(j).Number);
+			sprintf(tempstr,"%s  [%d] Pin: %s:%d\n",tempstr,(int)j,process->get_childdevices().at(i).pins.at(j).Name.c_str(),process->get_childdevices().at(i).pins.at(j).Number);
 		}
 	}
 	logger->log_notice(std::string(tempstr));

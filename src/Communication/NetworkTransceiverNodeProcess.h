@@ -11,7 +11,7 @@
 class NetworkTransceiverNodeProcess: public BaseNodeProcess {
 public:
 	//Constants
-	//Enums
+	//Enumstouch
 	enum PriorityLevel
 	{
 		UNDEFINED = 0,

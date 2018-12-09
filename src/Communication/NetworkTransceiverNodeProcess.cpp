@@ -47,7 +47,7 @@ icarus_rover_v2::diagnostic NetworkTransceiverNodeProcess::check_remoteHeartbeat
 {
 	icarus_rover_v2::diagnostic diag = diagnostic;
 	bool heartbeat_pass = true;
-	double now = ros::Time::now().toSec();
+	double now = ros_time;
 	for(int i = 0; i < remote_devices.size();++i)
 	{
 		double time_since_last = now-remote_devices.at(i).current_beatepoch_sec;

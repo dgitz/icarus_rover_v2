@@ -180,7 +180,8 @@ TEST(Template,LCDMessage)
 			bad_diag.DeviceName = "BigDeviceName";
 			bad_diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
 			bad_diag.Description = "1234567890123456789012345678901234567890";
-			process->new_diagnosticmsg("test1",bad_diag);
+			icarus_rover_v2::diagnostic::ConstPtr diag_ptr(new icarus_rover_v2::diagnostic(bad_diag));
+			process->new_diagnosticmsg("test1",diag_ptr);
 		}
 		else if(current_time < 2.0*process->get_worstdiag_timelimit())
 		{
@@ -189,7 +190,8 @@ TEST(Template,LCDMessage)
 			bad_diag.DeviceName = "SmDe";
 			bad_diag.Diagnostic_Message = MISSING_HEARTBEATS;
 			bad_diag.Description = "1234";
-			process->new_diagnosticmsg("test1",bad_diag);
+			icarus_rover_v2::diagnostic::ConstPtr diag_ptr(new icarus_rover_v2::diagnostic(bad_diag));
+			process->new_diagnosticmsg("test1",diag_ptr);
 		}
 		diag = process->update(dt,current_time);
 		double battery_level = 100.0*current_time/time_to_run;
