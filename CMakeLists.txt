@@ -75,6 +75,7 @@ add_message_files(
   controlgroup.msg
   leverarm.msg
   encoder.msg
+  timesyncinfo.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -271,12 +272,21 @@ target_link_libraries(test_command_node_process ${catkin_LIBRARIES} ${Boost_LIBR
 
 #TimeMaster Node
 file(MAKE_DIRECTORY /home/robot/catkin_ws/build/test_results/icarus_rover_v2/timemaster_node)
-add_library(timemaster_node_process src/Timing/timemaster_node_process.cpp)
+add_library(timemaster_node_process src/Timing/TimeMasterNodeProcess.cpp)
 #add_dependencies(timemaster_node_process icarus_rover_v2_generate_messages_cpp)
 add_executable(timemaster_node src/Timing/timemaster_node.cpp)
 target_link_libraries(timemaster_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor timemaster_node_process)
 catkin_add_gtest(test_timemaster_node_process src/Timing/unit_tests/test_timemaster_node_process.cpp)
 target_link_libraries(test_timemaster_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} timemaster_node_process logger serialmessage)
+
+#TimeSlave Node
+file(MAKE_DIRECTORY /home/robot/catkin_ws/build/test_results/icarus_rover_v2/timeslave_node)
+add_library(timeslave_node_process src/Timing/TimeSlaveNodeProcess.cpp)
+#add_dependencies(timeslave_node_process icarus_rover_v2_generate_messages_cpp)
+add_executable(timeslave_node src/Timing/timeslave_node.cpp)
+target_link_libraries(timeslave_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor timeslave_node_process)
+catkin_add_gtest(test_timeslave_node_process src/Timing/unit_tests/test_timeslave_node_process.cpp)
+target_link_libraries(test_timeslave_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} timeslave_node_process logger serialmessage)
 
 #Diagnostic Node
 file(MAKE_DIRECTORY /home/robot/catkin_ws/build/test_results/icarus_rover_v2/diagnostic_node)

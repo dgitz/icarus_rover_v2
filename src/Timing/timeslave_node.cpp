@@ -1,9 +1,9 @@
-#include "timemaster_node.h"
+#include "timeslave_node.h"
 bool kill_node = false;
-bool TimeMasterNode::start(int argc,char **argv)
+bool TimeSlaveNode::start(int argc,char **argv)
 {
 	bool status = false;
-	process = new TimeMasterNodeProcess();
+	process = new TimeSlaveNodeProcess();
 	set_basenodename(BASE_NODE_NAME);
 	initialize_firmware(MAJOR_RELEASE_VERSION,MINOR_RELEASE_VERSION,BUILD_NUMBER,FIRMWARE_DESCRIPTION);
 	initialize_diagnostic(DIAGNOSTIC_SYSTEM,DIAGNOSTIC_SUBSYSTEM,DIAGNOSTIC_COMPONENT);
@@ -38,56 +38,40 @@ bool TimeMasterNode::start(int argc,char **argv)
 	return status;
 }
 
-icarus_rover_v2::diagnostic TimeMasterNode::read_launchparameters()
+icarus_rover_v2::diagnostic TimeSlaveNode::read_launchparameters()
 {
 	icarus_rover_v2::diagnostic diag = diagnostic;
-	std::string pps_source;
-	std::string param_pps_source = node_name +"/pps_source";
-	if(n->getParam(param_pps_source,pps_source) == false)
-	{
-		logger->log_warn("Missing Parameter: pps_source.  Using default: self");
-		pps_source = "self";
-	}
-	if(process->set_ppssource(pps_source) == false)
-	{
-		char tempstr[512];
-		sprintf(tempstr,"PPS Source: %s Not Supported",pps_source.c_str());
-		logger->log_error(std::string(tempstr));
-	}
-	if(pps_source == "self")
-	{
-		publish_1pps = true;
-		std::string pps1_topic = "/1PPS";
-		pps1_pub =  n->advertise<std_msgs::Bool>(pps1_topic,10);
-	}
-
 	get_logger()->log_notice("Configuration Files Loaded.");
 	return diagnostic;
 }
-icarus_rover_v2::diagnostic TimeMasterNode::finish_initialization()
+icarus_rover_v2::diagnostic TimeSlaveNode::finish_initialization()
 {
 	icarus_rover_v2::diagnostic diag = diagnostic;
-	pps1_sub = n->subscribe<std_msgs::Bool>("/1PPS",1,&TimeMasterNode::PPS1_Callback,this);
-	command_sub = n->subscribe<icarus_rover_v2::command>("/command",1,&TimeMasterNode::Command_Callback,this);
+	pps1_sub = n->subscribe<std_msgs::Bool>("/1PPS",1,&TimeSlaveNode::PPS1_Callback,this);
+	command_sub = n->subscribe<icarus_rover_v2::command>("/command",1,&TimeSlaveNode::Command_Callback,this);
 	std::string device_topic = "/" + std::string(host_name) + "_master_node/srv_device";
 	srv_device = n->serviceClient<icarus_rover_v2::srv_device>(device_topic);
-	last_pps1_timer = ros::Time::now();
+	std::string timesyncinfo_topic = "/" + process->get_mydevice().DeviceName + "/timesyncinfo";
+	timesyncinfo_pub = n->advertise<icarus_rover_v2::timesyncinfo>(timesyncinfo_topic,1);
 	return diagnostic;
 }
-bool TimeMasterNode::run_001hz()
+bool TimeSlaveNode::run_001hz()
 {
 	return true;
 }
-bool TimeMasterNode::run_01hz()
+bool TimeSlaveNode::run_01hz()
 {
-	icarus_rover_v2::diagnostic diag = process->get_diagnostic();
+	icarus_rover_v2::diagnostic diag = process->update_timeservers();
 	{
 		get_logger()->log_diagnostic(diag);
 		diagnostic_pub.publish(diag);
 	}
+	timesyncinfo_pub.publish(process->get_timesyncinfo());
+	print_timeserverinfo();
+
 	return true;
 }
-bool TimeMasterNode::run_1hz()
+bool TimeSlaveNode::run_1hz()
 {
 	if((process->is_initialized() == true) and (process->is_ready() == true))
 	{
@@ -118,7 +102,6 @@ bool TimeMasterNode::run_1hz()
 		}
 	}
 	icarus_rover_v2::diagnostic diag = process->get_diagnostic();
-	//if(diag.Level >= NOTICE)
 	{
 		get_logger()->log_diagnostic(diag);
 		diagnostic_pub.publish(diag);
@@ -126,25 +109,10 @@ bool TimeMasterNode::run_1hz()
 
 	return true;
 }
-bool TimeMasterNode::run_10hz()
+bool TimeSlaveNode::run_10hz()
 {
 	ready_to_arm = process->get_ready_to_arm();
-
-	return true;
-}
-bool TimeMasterNode::run_loop1()
-{
-	if(process->publish_1pps())
-	{
-		std_msgs::Bool msg;
-		msg.data = true;
-		pps1_pub.publish(msg);
-	}
-	return true;
-}
-bool TimeMasterNode::run_loop2()
-{
-	icarus_rover_v2::diagnostic diag = process->update(measure_time_diff(ros::Time::now(),last_loop2_timer),ros::Time::now().toSec());
+	icarus_rover_v2::diagnostic diag = process->update(0.1,ros::Time::now().toSec());
 	if(diag.Level > WARN)
 	{
 		get_logger()->log_diagnostic(diag);
@@ -152,22 +120,30 @@ bool TimeMasterNode::run_loop2()
 	}
 	return true;
 }
-bool TimeMasterNode::run_loop3()
+bool TimeSlaveNode::run_loop1()
+{
+	return true;
+}
+bool TimeSlaveNode::run_loop2()
+{
+	return true;
+}
+bool TimeSlaveNode::run_loop3()
 {
 	return true;
 }
 
-void TimeMasterNode::PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
+void TimeSlaveNode::PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
 	new_ppsmsg(msg);
 }
 
-void TimeMasterNode::Command_Callback(const icarus_rover_v2::command::ConstPtr& t_msg)
+void TimeSlaveNode::Command_Callback(const icarus_rover_v2::command::ConstPtr& t_msg)
 {
 	std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(t_msg);
 	new_commandmsg_result(t_msg,diaglist);
 }
-bool TimeMasterNode::new_devicemsg(std::string query,icarus_rover_v2::device t_device)
+bool TimeSlaveNode::new_devicemsg(std::string query,icarus_rover_v2::device t_device)
 {
 	if(query == "SELF")
 	{
@@ -185,15 +161,46 @@ bool TimeMasterNode::new_devicemsg(std::string query,icarus_rover_v2::device t_d
 	}
 	return true;
 }
+void TimeSlaveNode::print_timeserverinfo()
+{
+	std::vector<TimeSlaveNodeProcess::TimeServer> time_servers = process->get_timeservers();
+	for(std::size_t i = 0; i < time_servers.size(); i++)
+	{
+		char tempstr[512];
+		sprintf(tempstr,"[%d] %s Cnt: %ld T:%4.2f Delay: %4.2f Offset: %4.2f Jitter: %4.2f",
+				(int)i,time_servers.at(i).name.c_str(),time_servers.at(i).update_count,
+				time_servers.at(i).updated_time,time_servers.at(i).delay,time_servers.at(i).offset,time_servers.at(i).jitter);
+		switch(time_servers.at(i).level)
+		{
+		case INFO:
+			get_logger()->log_info(tempstr);
+			break;
+		case NOTICE:
+			get_logger()->log_notice(tempstr);
+			break;
+		case WARN:
+			get_logger()->log_info(tempstr);
+			break;
+		case ERROR:
+			get_logger()->log_error(tempstr);
+			break;
+		case FATAL:
+			get_logger()->log_fatal(tempstr);
+			break;
 
-void TimeMasterNode::thread_loop()
+		}
+
+	}
+
+}
+void TimeSlaveNode::thread_loop()
 {
 	while(kill_node == false)
 	{
 		ros::Duration(1.0).sleep();
 	}
 }
-void TimeMasterNode::cleanup()
+void TimeSlaveNode::cleanup()
 {
 }
 /*! \brief Attempts to kill a node when an interrupt is received.
@@ -207,9 +214,9 @@ void signalinterrupt_handler(int sig)
 int main(int argc, char **argv) {
 	signal(SIGINT, signalinterrupt_handler);
 	signal(SIGTERM, signalinterrupt_handler);
-	TimeMasterNode *node = new TimeMasterNode();
+	TimeSlaveNode *node = new TimeSlaveNode();
 	bool status = node->start(argc,argv);
-	std::thread thread(&TimeMasterNode::thread_loop, node);
+	std::thread thread(&TimeSlaveNode::thread_loop, node);
 	while((status == true) and (kill_node == false))
 	{
 		status = node->update();
