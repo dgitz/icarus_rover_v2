@@ -1,36 +1,36 @@
 // Derived class
-#include "TimeMasterNodeProcess.cpp"
+#include "TimeSlaveNodeProcess.cpp"
 #include "../include/Base/BaseNode.cpp"
 //C System Files
 //C++ System Files
 //ROS Base Functionality
 //ROS Messages
 //Project
-/*! \class TimeMasterNode TimeMasterNode.h "TimeMasterNode.h"
- *  \brief This is a TimeMasterNode class.  Used for the timemaster_node node.
+/*! \class TimeSlaveNode TimeSlaveNode.h "TimeSlaveNode.h"
+ *  \brief This is a TimeSlaveNode class.  Used for the timeslave_node node.
  *
  */
-class TimeMasterNode: public BaseNode {
+class TimeSlaveNode: public BaseNode {
 public:
 
-	const string BASE_NODE_NAME = "timemaster_node";
+	const string BASE_NODE_NAME = "timeslave_node";
 
-	const uint8_t MAJOR_RELEASE_VERSION = 1;
+	const uint8_t MAJOR_RELEASE_VERSION = 0;
 	const uint8_t MINOR_RELEASE_VERSION = 0;
-	const uint8_t BUILD_NUMBER = 0;
+	const uint8_t BUILD_NUMBER = 1;
 	const string FIRMWARE_DESCRIPTION = "Latest Rev: 12-December-2018";
 
 	const uint8_t DIAGNOSTIC_SYSTEM = ROVER;
 	const uint8_t DIAGNOSTIC_SUBSYSTEM = ROBOT_CONTROLLER;
 	const uint8_t DIAGNOSTIC_COMPONENT = TIMING_NODE;
-	~TimeMasterNode()
+	~TimeSlaveNode()
 	{
 	}
 	/*! \brief Initialize
 	 *
 	 */
 	bool start(int argc,char **argv);
-	TimeMasterNodeProcess* get_process() { return process; }
+	TimeSlaveNodeProcess* get_process() { return process; }
 	void thread_loop();
 
 	//Cleanup
@@ -59,17 +59,15 @@ private:
 	void Command_Callback(const icarus_rover_v2::command::ConstPtr& t_msg);
 	bool new_devicemsg(std::string query,icarus_rover_v2::device t_device);
 	//Support Functions
-
+	//Printing Functions
+	void print_timeserverinfo();
 
 
 	std::string base_node_name;
 	ros::Subscriber pps1_sub;
-	ros::Publisher pps1_pub;
-	ros::Time pps1_timer;
-	ros::Time last_pps1_timer;
 	ros::Subscriber command_sub;
+	ros::Publisher timesyncinfo_pub;
 	ros::ServiceClient srv_device;
-	TimeMasterNodeProcess *process;
-	bool publish_1pps;
+	TimeSlaveNodeProcess *process;
 
 };

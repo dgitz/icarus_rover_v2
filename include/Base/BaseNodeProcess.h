@@ -27,6 +27,7 @@
 #include <icarus_rover_v2/controlgroup.h>
 #include <icarus_rover_v2/iopins.h>
 #include <icarus_rover_v2/signal.h>
+#include <icarus_rover_v2/timesyncinfo.h>
 //Project
 #include "Definitions.h"
 
