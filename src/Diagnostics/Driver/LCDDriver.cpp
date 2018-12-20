@@ -23,11 +23,11 @@ int LCDDriver::init(int _width,int _height)
 	height = _height;
 	buffer_max = width*height;
 	int id = -1;
-	int port = open( "/dev/ttyAMA0",O_RDWR| O_NONBLOCK | O_NDELAY );
+	int port = open( "/dev/ttyUSB0",O_RDWR| O_NONBLOCK | O_NDELAY );
 	/* Error Handling */
 	if ( port < 0 )
 	{
-		printf("Error opening /dev/ttyAMA0. Exiting.\n");
+		printf("Error opening /dev/ttyUSB0. Exiting.\n");
 		return 0;
 	}
 
