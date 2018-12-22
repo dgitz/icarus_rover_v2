@@ -1,0 +1,6 @@
+<?xml version="1.0" ?>
+<SensorConfigFile>
+    <MountingAngleRoll>-10.0</MountingAngleRoll>
+    <MountingAnglePitch>-30.0</MountingAnglePitch>
+    <MountingAngleYaw>-170.0</MountingAngleYaw>
+</SensorConfigFile>

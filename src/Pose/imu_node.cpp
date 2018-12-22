@@ -101,6 +101,8 @@ bool IMUNode::run_1hz()
 						char tempstr[512];
 						sprintf(tempstr,"IMU Driver Started: %s",imus.at(i).devicename.c_str());
 						logger->log_notice(tempstr);
+
+						print_3x3_matricies(imus.at(i).devicename,process->get_imu(imus.at(i).devicename).rotate_matrix);
 					}
 					else
 					{
@@ -238,7 +240,63 @@ bool IMUNode::new_devicemsg(std::string query,icarus_rover_v2::device t_device)
 	}
 	return true;
 }
-
+void IMUNode::print_3x3_matricies(std::string devicename,IMUNodeProcess::RotationMatrix mat)
+{
+	{
+		char tempstr[1024];
+		sprintf(tempstr,"%s-Rotation Matrix Acc:\n"
+				"%4.4f %4.4f %4.4f\n"
+				"%4.4f %4.4f %4.4f\n"
+				"%4.4f %4.4f %4.4f",
+				devicename.c_str(),
+				mat.Rotation_Acc(0,0),
+				mat.Rotation_Acc(0,1),
+				mat.Rotation_Acc(0,2),
+				mat.Rotation_Acc(1,0),
+				mat.Rotation_Acc(1,1),
+				mat.Rotation_Acc(1,2),
+				mat.Rotation_Acc(2,0),
+				mat.Rotation_Acc(2,1),
+				mat.Rotation_Acc(2,2));
+		logger->log_debug(std::string(tempstr));
+	}
+	{
+		char tempstr[1024];
+		sprintf(tempstr,"%s-Rotation Matrix Gyro:\n"
+				"%4.4f %4.4f %4.4f\n"
+				"%4.4f %4.4f %4.4f\n"
+				"%4.4f %4.4f %4.4f",
+				devicename.c_str(),
+				mat.Rotation_Gyro(0,0),
+				mat.Rotation_Gyro(0,1),
+				mat.Rotation_Gyro(0,2),
+				mat.Rotation_Gyro(1,0),
+				mat.Rotation_Gyro(1,1),
+				mat.Rotation_Gyro(1,2),
+				mat.Rotation_Gyro(2,0),
+				mat.Rotation_Gyro(2,1),
+				mat.Rotation_Gyro(2,2));
+		logger->log_debug(std::string(tempstr));
+	}
+	{
+		char tempstr[1024];
+		sprintf(tempstr,"%s-Rotation Matrix Mag:\n"
+				"%4.4f %4.4f %4.4f\n"
+				"%4.4f %4.4f %4.4f\n"
+				"%4.4f %4.4f %4.4f",
+				devicename.c_str(),
+				mat.Rotation_Mag(0,0),
+				mat.Rotation_Mag(0,1),
+				mat.Rotation_Mag(0,2),
+				mat.Rotation_Mag(1,0),
+				mat.Rotation_Mag(1,1),
+				mat.Rotation_Mag(1,2),
+				mat.Rotation_Mag(2,0),
+				mat.Rotation_Mag(2,1),
+				mat.Rotation_Mag(2,2));
+		logger->log_debug(std::string(tempstr));
+	}
+}
 void IMUNode::thread_loop()
 {
 	while(kill_node == false)

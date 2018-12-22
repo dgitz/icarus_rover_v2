@@ -5,7 +5,6 @@ A. Test IMU
 Nodes:
 A. imu_node
 TODO:
-- Convert Raw IMU data to SI Units
  
 Purpose:
 Reads IMU Data
