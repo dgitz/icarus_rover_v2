@@ -60,6 +60,9 @@ private:
 	bool new_devicemsg(std::string query,icarus_rover_v2::device t_device);
 	//Support Functions
 
+	//Printing Functions
+	void print_3x3_matricies(std::string devicename,IMUNodeProcess::RotationMatrix mat);
+
 
 
 	std::string base_node_name;
