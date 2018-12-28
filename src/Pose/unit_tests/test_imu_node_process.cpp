@@ -66,7 +66,32 @@ IMUNodeProcess* initializeprocess(std::string imuname)
 	EXPECT_TRUE(process->get_mydevice().DeviceName == device.DeviceName);
 	EXPECT_TRUE(process->is_ready() == false);
 	icarus_rover_v2::device::ConstPtr imu_ptr(new icarus_rover_v2::device(imu));
-	diagnostic = process->new_devicemsg(imu_ptr);
+	icarus_rover_v2::leverarm leverarm;
+
+	if(imuname == "IMU1")
+	{
+		leverarm.name = imuname;
+		leverarm.reference = "BodyOrigin";
+		leverarm.x.value = 0.0;
+		leverarm.y.value = 0.0;
+		leverarm.z.value = 0.0;
+		leverarm.roll.value = 0.0;
+		leverarm.pitch.value = 0.0;
+		leverarm.yaw.value = 0.0;
+	}
+	else if(imuname == "IMU2")
+	{
+		leverarm.name = imuname;
+		leverarm.reference = "BodyOrigin";
+		leverarm.x.value = 0.0;
+		leverarm.y.value = 0.0;
+		leverarm.z.value = 0.0;
+		leverarm.roll.value = -10.0;
+		leverarm.pitch.value = -30.0;
+		leverarm.yaw.value = -170.0;
+	}
+	icarus_rover_v2::leverarm::ConstPtr leverarm_ptr(new icarus_rover_v2::leverarm(leverarm));
+	diagnostic = process->new_devicemsg(imu_ptr,leverarm_ptr);
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 	EXPECT_TRUE(process->is_ready() == true);
 	EXPECT_TRUE(process->get_imus_initialized() == true);

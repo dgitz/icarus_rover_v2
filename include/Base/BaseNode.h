@@ -14,8 +14,8 @@
 //ROS Messages
 #include <icarus_rover_v2/device.h>
 #include <icarus_rover_v2/srv_device.h>
-#include <icarus_rover_v2/srv_device.h>
 #include <icarus_rover_v2/srv_connection.h>
+#include <icarus_rover_v2/leverarm.h>
 #include <icarus_rover_v2/srv_leverarm.h>
 
 //Project

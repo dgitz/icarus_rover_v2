@@ -161,6 +161,17 @@ icarus_rover_v2::diagnostic IMUNodeProcess::new_imumsg(std::string devicename,IM
 icarus_rover_v2::diagnostic IMUNodeProcess::new_devicemsg(const icarus_rover_v2::device::ConstPtr& device)
 {
 	icarus_rover_v2::diagnostic diag = diagnostic;
+	diag.Diagnostic_Type = DATA_STORAGE;
+	diag.Level = ERROR;
+	diag.Diagnostic_Message = INITIALIZING_ERROR;
+	char tempstr[512];
+	sprintf(tempstr,"DeviceType: %s Not Supported.",device->DeviceType.c_str());
+	diag.Description = std::string(tempstr);
+	return diag;
+}
+icarus_rover_v2::diagnostic IMUNodeProcess::new_devicemsg(const icarus_rover_v2::device::ConstPtr& device,const icarus_rover_v2::leverarm::ConstPtr& leverarm)
+{
+	icarus_rover_v2::diagnostic diag = diagnostic;
 	if(device->DeviceType == "IMU")
 	{
 		if(device->PartNumber == "110012")
@@ -189,6 +200,10 @@ icarus_rover_v2::diagnostic IMUNodeProcess::new_devicemsg(const icarus_rover_v2:
 			newimu.diagnostic.Description = "IMU Initialized.";
 			newimu.imu_data.xacc.rms = 0.0;
 			newimu.xacc_rms_mean1 = 0.0;
+			newimu.mounting_angle_offset_pitch_deg = leverarm->pitch.value;
+			newimu.mounting_angle_offset_roll_deg = leverarm->roll.value;
+			newimu.mounting_angle_offset_yaw_deg = leverarm->yaw.value;
+			newimu.rotate_matrix = generate_rotation_matrix(newimu.mounting_angle_offset_roll_deg,newimu.mounting_angle_offset_pitch_deg,newimu.mounting_angle_offset_yaw_deg);
 			newimu.imu_data.xacc.units = "m/s^2";
 			newimu.imu_data.yacc.units = "m/s^2";
 			newimu.imu_data.zacc.units = "m/s^2";
@@ -230,16 +245,9 @@ bool IMUNodeProcess::set_imu_running(std::string devicename)
 	{
 		if(imus.at(i).devicename == devicename)
 		{
-			if(load_sensorinfo(devicename) == true)
-			{
-				imus.at(i).running = true;
-				imus_running = true;
-				return true;
-			}
-			else
-			{
-				return false;
-			}
+			imus.at(i).running = true;
+			imus_running = true;
+			return true;
 		}
 	}
 	return false;
@@ -393,12 +401,14 @@ bool IMUNodeProcess::load_sensorinfo(std::string devicename)
 			bool loaded = doc.LoadFile();
 			if(loaded == false)
 			{
-				printf("[%s]: Unable to load Sensor Config at: %s\n",devicename.c_str(),imus.at(i).sensor_info_path.c_str());
+				printf("[%s]: Unable to load Sensor Config at: %s, but not required Yet.\n",devicename.c_str(),imus.at(i).sensor_info_path.c_str());
+				return true;
 			}
 			TiXmlElement *l_pRootElement = doc.RootElement();
 			double mao_roll,mao_pitch,mao_yaw;
 			if(NULL != l_pRootElement)
 			{
+				/*
 				TiXmlElement *l_proll_mao = l_pRootElement->FirstChildElement("MountingAngleRoll");
 				if(NULL != l_proll_mao)
 				{
@@ -419,13 +429,10 @@ bool IMUNodeProcess::load_sensorinfo(std::string devicename)
 					mao_yaw = std::atof(l_pyaw_mao->GetText());
 				}
 				else { return false; }
+				*/
 
 			}
 			else { return false;}
-			if(set_imu_mounting_angles(devicename,mao_roll,mao_pitch,mao_yaw) == false)
-			{
-				return false;
-			}
 			return true;
 		}
 	}

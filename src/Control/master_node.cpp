@@ -6,7 +6,7 @@ bool MasterNode::start(int argc,char **argv)
 	bool status = false;
 	process = new MasterNodeProcess();
 	disable_readytoarm_publisher();
-		serialmessagehandler = new SerialMessageHandler;
+	serialmessagehandler = new SerialMessageHandler;
 	set_basenodename(BASE_NODE_NAME);
 	initialize_firmware(MAJOR_RELEASE_VERSION,MINOR_RELEASE_VERSION,BUILD_NUMBER,FIRMWARE_DESCRIPTION);
 	initialize_diagnostic(DIAGNOSTIC_SYSTEM,DIAGNOSTIC_SUBSYSTEM,DIAGNOSTIC_COMPONENT);
@@ -424,11 +424,24 @@ bool MasterNode::device_service(icarus_rover_v2::srv_device::Request &req,
 	else if(std::string::npos != req.query.find("DeviceType="))
 	{
 		std::string devicetype = req.query.substr(11,req.query.size());
-		for(std::size_t i = 0; i < process->get_childdevices().size(); i++)
+		if(std::string::npos != req.filter.find("*"))
 		{
-			if(process->get_childdevices().at(i).DeviceType == devicetype)
+			for(std::size_t i = 0; i < process->get_alldevices().size(); i++)
 			{
-				res.data.push_back(process->get_childdevices().at(i));
+				if(process->get_alldevices().at(i).DeviceType == devicetype)
+				{
+					res.data.push_back(process->get_alldevices().at(i));
+				}
+			}
+		}
+		else
+		{
+			for(std::size_t i = 0; i < process->get_childdevices().size(); i++)
+			{
+				if(process->get_childdevices().at(i).DeviceType == devicetype)
+				{
+					res.data.push_back(process->get_childdevices().at(i));
+				}
 			}
 		}
 		return true;
@@ -480,6 +493,15 @@ void MasterNode::print_deviceinfo()
 	for(std::size_t i = 0; i < process->get_childdevices().size(); ++i)
 	{
 		sprintf(tempstr,"%s[%d] Device: %s\n",tempstr,(int)i,process->get_childdevices().at(i).DeviceName.c_str());
+		icarus_rover_v2::leverarm la;
+		if(process->get_leverarm(&la,process->get_childdevices().at(i).DeviceName) == true)
+		{
+			sprintf(tempstr,"%s  LeverArm: Reference: %s X:%4.2f (m) Y:%4.2f (m) Z:%4.2f (m) Roll:%4.2f (deg) Pitch: %4.2f (deg) Yaw: %4.2f (deg)",
+					tempstr,
+					la.reference.c_str(),
+					la.x.value,la.y.value,la.z.value,
+					la.roll.value,la.pitch.value,la.yaw.value);
+		}
 		for(std::size_t j = 0; j < process->get_childdevices().at(i).pins.size(); ++j)
 		{
 			sprintf(tempstr,"%s  [%d] Pin: %s:%d\n",tempstr,(int)j,process->get_childdevices().at(i).pins.at(j).Name.c_str(),process->get_childdevices().at(i).pins.at(j).Number);

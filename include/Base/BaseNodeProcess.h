@@ -81,7 +81,7 @@ public:
 	bool get_ready_to_arm() { return ready_to_arm; }
 
 	//Message Functions
-	virtual icarus_rover_v2::diagnostic new_devicemsg(const icarus_rover_v2::device::ConstPtr& device) = 0;
+	virtual icarus_rover_v2::diagnostic new_devicemsg(const icarus_rover_v2::device::ConstPtr& t_device) = 0;
 	virtual std::vector<icarus_rover_v2::diagnostic> new_commandmsg(const icarus_rover_v2::command::ConstPtr& t_msg) = 0;
 
 	//Support Functions
@@ -98,6 +98,7 @@ protected:
 	icarus_rover_v2::pin convert_fromptr(const icarus_rover_v2::pin::ConstPtr& t_ptr);
 	icarus_rover_v2::command convert_fromptr(const icarus_rover_v2::command::ConstPtr& t_ptr);
 	icarus_rover_v2::diagnostic convert_fromptr(const icarus_rover_v2::diagnostic::ConstPtr& t_ptr);
+	icarus_rover_v2::imu convert_fromptr(const icarus_rover_v2::imu::ConstPtr& t_ptr);
 	icarus_rover_v2::diagnostic diagnostic;
 	bool initialized;
 	bool ready;

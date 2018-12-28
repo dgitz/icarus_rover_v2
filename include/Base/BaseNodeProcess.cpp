@@ -218,3 +218,19 @@ icarus_rover_v2::diagnostic BaseNodeProcess::convert_fromptr(const icarus_rover_
 	diag.System = t_ptr->System;
 	return diag;
 }
+icarus_rover_v2::imu BaseNodeProcess::convert_fromptr(const icarus_rover_v2::imu::ConstPtr& t_ptr)
+{
+	icarus_rover_v2::imu imu;
+	imu.header = t_ptr->header;
+	imu.tov = t_ptr->tov;
+	imu.xacc = t_ptr->xacc;
+	imu.yacc = t_ptr->yacc;
+	imu.zacc = t_ptr->zacc;
+	imu.xgyro = t_ptr->xgyro;
+	imu.ygyro = t_ptr->ygyro;
+	imu.zgyro = t_ptr->zgyro;
+	imu.xmag = t_ptr->xmag;
+	imu.ymag = t_ptr->ymag;
+	imu.zmag = t_ptr->zmag;
+	return imu;
+}

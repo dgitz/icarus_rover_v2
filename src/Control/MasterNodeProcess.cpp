@@ -266,7 +266,7 @@ icarus_rover_v2::diagnostic MasterNodeProcess::load_systemfile(std::string path)
 
 			while( l_pLeverArm )
 			{
-				LeverArm la;
+				icarus_rover_v2::leverarm la;
 				TiXmlElement *l_pName = l_pLeverArm->FirstChildElement( "Name" );
 				if ( NULL != l_pName )
 				{
@@ -280,6 +280,7 @@ icarus_rover_v2::diagnostic MasterNodeProcess::load_systemfile(std::string path)
 					la.reference = l_pReference->GetText();
 				}
 				else { return diag_error; }
+
 				if(la.reference != "BodyOrigin")
 				{
 					char tempstr2[512];
@@ -291,42 +292,42 @@ icarus_rover_v2::diagnostic MasterNodeProcess::load_systemfile(std::string path)
 				TiXmlElement *l_pX = l_pLeverArm->FirstChildElement( "x" );
 				if ( NULL != l_pX )
 				{
-					la.leverarm.x.value = std::atof(l_pX->GetText());
+					la.x.value = std::atof(l_pX->GetText());
 				}
 				else { return diag_error; }
 
 				TiXmlElement *l_pY = l_pLeverArm->FirstChildElement( "y" );
 				if ( NULL != l_pY )
 				{
-					la.leverarm.y.value = std::atof(l_pY->GetText());
+					la.y.value = std::atof(l_pY->GetText());
 				}
 				else { return diag_error; }
 
 				TiXmlElement *l_pZ = l_pLeverArm->FirstChildElement( "z" );
 				if ( NULL != l_pZ )
 				{
-					la.leverarm.z.value = std::atof(l_pZ->GetText());
+					la.z.value = std::atof(l_pZ->GetText());
 				}
 				else { return diag_error; }
 
 				TiXmlElement *l_pRoll = l_pLeverArm->FirstChildElement( "roll" );
 				if ( NULL != l_pRoll )
 				{
-					la.leverarm.roll.value = std::atof(l_pRoll->GetText());
+					la.roll.value = std::atof(l_pRoll->GetText());
 				}
 				else { return diag_error; }
 
 				TiXmlElement *l_pPitch = l_pLeverArm->FirstChildElement( "pitch" );
 				if ( NULL != l_pPitch )
 				{
-					la.leverarm.pitch.value = std::atof(l_pPitch->GetText());
+					la.pitch.value = std::atof(l_pPitch->GetText());
 				}
 				else { return diag_error; }
 
 				TiXmlElement *l_pYaw = l_pLeverArm->FirstChildElement( "yaw" );
 				if ( NULL != l_pYaw )
 				{
-					la.leverarm.yaw.value = std::atof(l_pYaw->GetText());
+					la.yaw.value = std::atof(l_pYaw->GetText());
 				}
 				else { return diag_error; }
 
@@ -616,20 +617,20 @@ void MasterNodeProcess::print_device(icarus_rover_v2::device device)
 {
 	printf("Device: %s\n",device.DeviceName.c_str());
 }
-void MasterNodeProcess::print_leverarm(std::vector<LeverArm> leverarms)
+void MasterNodeProcess::print_leverarm(std::vector<icarus_rover_v2::leverarm> leverarms)
 {
 	for(std::size_t i = 0; i < leverarms.size(); i++)
 	{
 		print_leverarm(leverarms.at(i));
 	}
 }
-void MasterNodeProcess::print_leverarm(LeverArm la)
+void MasterNodeProcess::print_leverarm(icarus_rover_v2::leverarm la)
 {
 	printf("LeverArm %s Reference: %s X: %f Y: %f Z: %f Roll: %f Pitch: %f Yaw: %f\n",
 			la.name.c_str(),
 			la.reference.c_str(),
-			la.leverarm.x.value,la.leverarm.y.value,la.leverarm.z.value,
-			la.leverarm.roll.value,la.leverarm.pitch.value,la.leverarm.yaw.value);
+			la.x.value,la.y.value,la.z.value,
+			la.roll.value,la.pitch.value,la.yaw.value);
 }
 void MasterNodeProcess::print_leverarm(std::string name,std::string reference,icarus_rover_v2::leverarm leverarm)
 {
@@ -645,7 +646,7 @@ bool MasterNodeProcess::get_leverarm(icarus_rover_v2::leverarm *leverarm,std::st
 	{
 		if(leverarms.at(i).name == name)
 		{
-			*leverarm = leverarms.at(i).leverarm;
+			*leverarm = leverarms.at(i);
 			return true;
 		}
 	}

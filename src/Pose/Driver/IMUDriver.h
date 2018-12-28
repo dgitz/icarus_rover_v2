@@ -23,6 +23,7 @@
 #include <sys/time.h>
 #include <vector>
 #include <boost/algorithm/string.hpp>
+#include <sys/time.h>
 #define COMM_LOSS_THRESHOLD 1.0f
 class IMUDriver
 {
@@ -46,19 +47,26 @@ public:
 
 	IMUDriver();
 	~IMUDriver();
+	void set_debugmode(uint8_t v) { debug_mode = v; }
 	int init(std::string t_connection_method,std::string t_port,std::string t_baudrate);
 	int finish();
     
 	RawIMU update();
     double measure_time_diff(struct timeval a,struct timeval b);
+    double measure_time_diff(double a,double b);
     std::string map_signalstate_tostring(uint8_t v);
     std::string get_rawdata() { return raw_data; } //For debugging
+    double get_timedelay() { return time_delay; }
 private:
+    uint64_t convert_time_toms(struct timeval t);
+    uint8_t debug_mode;
     std::vector<std::string> supported_connection_methods;
     std::string read_serialdata();
     double convert_time(struct timeval t);
     struct timeval now;
     struct timeval last;
+    struct timeval last_timeupdate;
+    double time_delay;
     std::string connection_method;
 	std::string port;
 	std::string baudrate;

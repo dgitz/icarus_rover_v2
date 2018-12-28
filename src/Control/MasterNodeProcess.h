@@ -52,12 +52,6 @@ public:
 		uint16_t id;
 		std::string pn;
 	};
-	struct LeverArm
-	{
-		icarus_rover_v2::leverarm leverarm;
-		std::string name;
-		std::string reference;
-	};
 	///Initialization Functions
 	/*! \brief Set filepaths for DeviceFile and SystemFile */
 	icarus_rover_v2::diagnostic set_filepaths(std::string t_system_filepath,std::string t_device_filepath);
@@ -78,7 +72,7 @@ public:
 	std::vector<SerialPort> get_serialports() { return serialports; }
 	std::vector<icarus_rover_v2::device> get_alldevices() { return allDevices; }
 	std::vector<icarus_rover_v2::device> get_childdevices() { return childDevices; }
-	std::vector<LeverArm> get_allleverarms() { return leverarms; }
+	std::vector<icarus_rover_v2::leverarm> get_allleverarms() { return leverarms; }
 	bool get_leverarm(icarus_rover_v2::leverarm *leverarm,std::string name);
 	double get_devicetemperature() { return device_temperature; }
 	void set_devicetemperature(double t_temperature) { device_temperature = t_temperature; }
@@ -93,8 +87,8 @@ public:
 	//Printing Functions
 	void print_device(std::vector<icarus_rover_v2::device> devices);
 	void print_device(icarus_rover_v2::device device);
-	void print_leverarm(std::vector<LeverArm> leverarms);
-	void print_leverarm(LeverArm leverarm);
+	void print_leverarm(std::vector<icarus_rover_v2::leverarm> leverarms);
+	void print_leverarm(icarus_rover_v2::leverarm leverarm);
 	void print_leverarm(std::string name,std::string reference,icarus_rover_v2::leverarm la);
 protected:
 private:
@@ -111,7 +105,7 @@ private:
 	std::vector<icarus_rover_v2::device> childDevices;
 	std::vector<SerialPort> serialports;
 	std::vector<std::string> serialport_baudrates;
-	std::vector<LeverArm> leverarms;
+	std::vector<icarus_rover_v2::leverarm> leverarms;
 	std::string device_filepath;
 	std::string system_filepath;
 	double device_temperature;
