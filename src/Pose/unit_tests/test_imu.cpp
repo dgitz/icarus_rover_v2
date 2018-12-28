@@ -16,13 +16,14 @@ static void show_usage(std::string name)
 			<< "\t-h,--help\t\tShow this help message\n"
 			<< "\t-d,--delay Delay (uS)\t\t Delay in micro Seconds.  Default is 100000.\n"
 			<< "\t-m,--mode\tMode: monitor. Default=monitor.\n"
+			<< "\t-r,--report\tReport: stat,acc,gyro,mag,all. Default=all.\n"
 			<< "\t-r,--rate\tRate: Update Rate of IMU.  Default=50.\n"
 			<< "\t-v,--verbose\tVerbosity: Default=0.\n"
 			<< "\t-p,--port\tSerial Port. Default=/dev/ttyAMA0.\n"
 			<< "\t-b,--baudrate\tBaud Rate. Default=115200.\n"
 			<< std::endl;
 }
-void print_imudata(IMUDriver driver,IMUDriver::RawIMU imu_data);
+void print_imudata(std::string report,IMUDriver driver,IMUDriver::RawIMU imu_data);
 int main(int argc, char* argv[])
 {
 	std::string mode = "monitor";
@@ -30,6 +31,7 @@ int main(int argc, char* argv[])
 	double rate = 50.0;
 	std::string port = "/dev/ttyAMA0";
 	std::string baudrate = "115200";
+	std::string report = "all";
 	int verbosity = 0;
 	struct timeval start_time,now,last;
 	gettimeofday(&now,NULL);
@@ -73,7 +75,21 @@ int main(int argc, char* argv[])
 			else
 			{
 				// Uh-oh, there was no argument to the destination option.
-				std::cerr << "--Pin Mode option requires one argument." << std::endl;
+				std::cerr << "-delay option requires one argument." << std::endl;
+				return 1;
+			}
+		}
+		else if ((arg == "-r") || (arg == "--report"))
+		{
+			if (i + 1 < argc)
+			{
+				report = argv[i+1];
+				i++;
+			}
+			else
+			{
+				// Uh-oh, there was no argument to the destination option.
+				std::cerr << "--report option requires one argument." << std::endl;
 				return 1;
 			}
 		}
@@ -111,7 +127,7 @@ int main(int argc, char* argv[])
 		{
 			gettimeofday(&now,NULL);
 			imu_data = imu.update();
-			print_imudata(imu,imu_data);
+			print_imudata(report,imu,imu_data);
 
 
 
@@ -121,7 +137,7 @@ int main(int argc, char* argv[])
 	imu.finish();
 	return 0;
 }
-void print_imudata(IMUDriver driver,IMUDriver::RawIMU imu_data)
+void print_imudata(std::string report,IMUDriver driver,IMUDriver::RawIMU imu_data)
 {
 	std::string start_color = "";
 	std::string end_color = "";
@@ -152,24 +168,44 @@ void print_imudata(IMUDriver driver,IMUDriver::RawIMU imu_data)
 		end_color = END_COLOR;
 		break;
 	}
-
-	printf("%s[IMU] Delay=%4.2f T=%4.2f U=%ld R=%4.2f State: %s Acc: X=%4.2f Y=%4.2f Z=%4.2f Gyro: X=%4.2f Y=%4.2f Z=%4.2f Mag: X=%4.2f Y=%4.2f Z=%4.2f\n%s",
-			start_color.c_str(),
-			driver.get_timedelay(),
-			imu_data.tov,
-			imu_data.update_count,
-			imu_data.update_rate,
-			driver.map_signalstate_tostring(imu_data.signal_state).c_str(),
-			imu_data.acc_x,
-			imu_data.acc_y,
-			imu_data.acc_z,
-			imu_data.gyro_x,
-			imu_data.gyro_y,
-			imu_data.gyro_z,
-			imu_data.mag_x,
-			imu_data.mag_y,
-			imu_data.mag_z,
-			end_color.c_str()
-	);
+	char tempstr[1024];
+	sprintf(tempstr,"%s[IMU] ",
+			start_color.c_str());
+	if((report == "stat") or (report == "all"))
+	{
+		sprintf(tempstr,"%s Delay=%4.2f T=%4.2f U=%ld R=%4.2f State: %s",
+					tempstr,
+					driver.get_timedelay(),
+					imu_data.tov,
+					imu_data.update_count,
+					imu_data.update_rate,
+					driver.map_signalstate_tostring(imu_data.signal_state).c_str());
+	}
+	if((report == "acc") or (report == "all"))
+	{
+		sprintf(tempstr,"%s Acc: X=%4.2f Y=%4.2f Z=%4.2f",
+				tempstr,
+				imu_data.acc_x,
+				imu_data.acc_y,
+				imu_data.acc_z);
+	}
+	if((report == "gyro") or (report == "all"))
+	{
+		sprintf(tempstr,"%s Gyro: X=%4.2f Y=%4.2f Z=%4.2f",
+				tempstr,
+				imu_data.gyro_x,
+				imu_data.gyro_y,
+				imu_data.gyro_z);
+	}
+	if((report == "mag") or (report == "all"))
+	{
+		sprintf(tempstr,"%s Mag: X=%4.2f Y=%4.2f Z=%4.2f",
+				tempstr,
+				imu_data.mag_x,
+				imu_data.mag_y,
+				imu_data.mag_z);
+	}
+	sprintf(tempstr,"%s%s\n",tempstr,end_color.c_str());
+	printf("%s",tempstr);
 
 }

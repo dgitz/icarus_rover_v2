@@ -151,9 +151,9 @@ icarus_rover_v2::diagnostic PoseNodeProcess::new_imumsg(std::string topic, const
 			imus.at(i).orientation_pitch.status = SIGNALSTATE_UPDATED;
 			imus.at(i).orientation_roll.status = SIGNALSTATE_UPDATED;
 			imus.at(i).orientation_yaw.value = 0.0;
-			imus.at(i).transform.setOrigin( tf::Vector3(0.0,0.0, 0.0) );
+			imus.at(i).transform.setOrigin( tf::Vector3(0.0,0.1+(double)(i)*0.1, 0.0) ); //Set Pose of IMU arbitrarily for debugging
 			tf::Quaternion q;
-			q.setRPY(imus.at(i).orientation_roll.value, imus.at(i).orientation_pitch.value, imus.at(i).orientation_yaw.value);
+			q.setRPY(-imus.at(i).orientation_roll.value, imus.at(i).orientation_pitch.value, imus.at(i).orientation_yaw.value);
 			imus.at(i).transform.setRotation(q);
 			found = true;
 		}

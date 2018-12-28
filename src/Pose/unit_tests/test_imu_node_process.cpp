@@ -103,7 +103,6 @@ TEST(Template,Process_Initialization)
 {
 	IMUNodeProcess* process = initializeprocess("IMU1");
 }
-
 TEST(Template,Process_Msg)
 {
 	IMUNodeProcess* process = initializeprocess("IMU1");
@@ -150,6 +149,7 @@ TEST(Template,Process_Msg)
 			for(std::size_t i = 0; i < imus.size(); ++i)
 			{
 				IMUDriver::RawIMU raw_imudata;
+				raw_imudata.signal_state = SIGNALSTATE_UPDATED;
 				raw_imudata.acc_x = 1.0;
 				raw_imudata.acc_y = 2.0;
 				raw_imudata.acc_z = 3.0;
@@ -171,6 +171,87 @@ TEST(Template,Process_Msg)
 				EXPECT_TRUE((fabs((raw_imudata.mag_x/imus.at(i).mag_scale_factor)-processed_imudata.xmag.value) < .0001));
 				EXPECT_TRUE((fabs((raw_imudata.mag_y/imus.at(i).mag_scale_factor)-processed_imudata.ymag.value) < .0001));
 				EXPECT_TRUE((fabs((raw_imudata.mag_z/imus.at(i).mag_scale_factor)-processed_imudata.zmag.value) < .0001));
+				EXPECT_TRUE(process->get_ready_to_arm() == true);
+			}
+
+		}
+		if(mediumrate_fire == true)
+		{
+		}
+		if(slowrate_fire == true)
+		{
+		}
+		current_time += dt;
+	}
+	EXPECT_TRUE(process->get_runtime() >= time_to_run);
+}
+
+TEST(Template,Process_BadMsg)
+{
+	IMUNodeProcess* process = initializeprocess("IMU1");
+	EXPECT_TRUE(process->set_imu_info_path("IMU1","/home/robot/catkin_ws/src/icarus_rover_v2/src/Pose/unit_tests/IMU1.xml"));
+	double time_to_run = 20.0;
+	double dt = 0.001;
+	double current_time = 0.0;
+	bool fastrate_fire = false; //10 Hz
+	bool mediumrate_fire = false; //1 Hz
+	bool slowrate_fire = false; //0.1 Hz
+	while(current_time <= time_to_run)
+	{
+		icarus_rover_v2::diagnostic diag = process->update(dt,current_time);
+		int current_time_ms = (int)(current_time*1000.0);
+		if((current_time_ms % 100) == 0)
+		{
+			fastrate_fire = true;
+		}
+		else { fastrate_fire = false; }
+		if((current_time_ms % 1000) == 0)
+		{
+			mediumrate_fire = true;
+		}
+		else { mediumrate_fire = false; }
+		if((current_time_ms % 10000) == 0)
+		{
+			slowrate_fire = true;
+		}
+		else { slowrate_fire = false; }
+
+		if(fastrate_fire == true) //Nothing to do here
+		{
+			if(process->get_imus_running() == false)
+			{
+				std::vector<IMUNodeProcess::IMU> imus = process->get_imus();
+				for(std::size_t i = 0; i < imus.size(); ++i)
+				{
+					EXPECT_TRUE(process->set_imu_running(imus.at(i).devicename));
+				}
+			}
+			EXPECT_TRUE(process->get_imus_running());
+			std::vector<IMUNodeProcess::IMU> imus = process->get_imus();
+			for(std::size_t i = 0; i < imus.size(); ++i)
+			{
+				IMUDriver::RawIMU raw_imudata;
+				raw_imudata.signal_state = SIGNALSTATE_INVALID;
+				raw_imudata.acc_x = 1.0;
+				raw_imudata.acc_y = 2.0;
+				raw_imudata.acc_z = 3.0;
+				raw_imudata.gyro_x = 4.0;
+				raw_imudata.gyro_y = 5.0;
+				raw_imudata.gyro_z = 6.0;
+				raw_imudata.mag_x = 7.0;
+				raw_imudata.mag_y = 8.0;
+				raw_imudata.mag_z = 9.0;
+				icarus_rover_v2::imu processed_imudata;
+
+				EXPECT_TRUE(process->new_imumsg(imus.at(i).devicename,raw_imudata,processed_imudata).Level > NOTICE);
+				if(current_time >= process->get_commtimeout_threshold())
+				{
+					EXPECT_TRUE(process->get_ready_to_arm() == false);
+				}
+				else
+				{
+					EXPECT_TRUE(process->get_ready_to_arm() == true);
+				}
 			}
 
 		}
@@ -284,6 +365,7 @@ TEST(Template,Process_Command)
 			for(std::size_t i = 0; i < imus.size(); ++i)
 			{
 				IMUDriver::RawIMU raw_imudata;
+				raw_imudata.signal_state = SIGNALSTATE_UPDATED;
 				raw_imudata.acc_x = 1.0;
 				raw_imudata.acc_y = 2.0;
 				raw_imudata.acc_z = 3.0;
@@ -424,6 +506,7 @@ TEST(Template,Rotation_Computation)
 			for(std::size_t i = 0; i < imus.size(); ++i)
 			{
 				IMUDriver::RawIMU raw_imudata;
+				raw_imudata.signal_state = SIGNALSTATE_UPDATED;
 				raw_imudata.acc_x = 1.1234*imu2.acc_scale_factor;
 				raw_imudata.acc_y = -2.345*imu2.acc_scale_factor;
 				raw_imudata.acc_z = 8.761*imu2.acc_scale_factor;
@@ -520,6 +603,7 @@ TEST(Template,RMS_Computation)
 		for(std::size_t i = 0; i < imus.size(); ++i)
 		{
 			IMUDriver::RawIMU raw_imudata;
+			raw_imudata.signal_state = SIGNALSTATE_UPDATED;
 			raw_imudata.acc_x = (double)(counter % 11)*imu1.acc_scale_factor; //sawtooth
 			raw_imudata.acc_y = (double)(counter % 11)*imu1.acc_scale_factor;
 			raw_imudata.acc_z = (double)(counter % 11)*imu1.acc_scale_factor;
@@ -549,7 +633,6 @@ TEST(Template,RMS_Computation)
 		counter++;
 	}
 }
-
 int main(int argc, char **argv){
 	testing::InitGoogleTest(&argc, argv);
 	return RUN_ALL_TESTS();

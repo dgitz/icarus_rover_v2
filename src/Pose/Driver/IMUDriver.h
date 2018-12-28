@@ -66,6 +66,7 @@ private:
     struct timeval now;
     struct timeval last;
     struct timeval last_timeupdate;
+    bool timesync_tx_count;
     double time_delay;
     std::string connection_method;
 	std::string port;

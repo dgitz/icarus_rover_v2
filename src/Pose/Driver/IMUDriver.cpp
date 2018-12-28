@@ -3,6 +3,7 @@ IMUDriver::IMUDriver()
 {
 	debug_mode = 0;
 	time_delay = 0.0;
+	timesync_tx_count = 0;
     supported_connection_methods.push_back("serial");
     imu_data.signal_state = SIGNALSTATE_INITIALIZING;
 	conn_fd = -1;
@@ -104,13 +105,13 @@ IMUDriver::RawIMU IMUDriver::update()
     gettimeofday(&now,NULL);
     if(connection_method == "serial")
     {   
-    	double v = measure_time_diff(now,last_timeupdate);
-    	if(measure_time_diff(now,last_timeupdate) > 10.0)
+    	if((measure_time_diff(now,last_timeupdate) > 100.0) or (timesync_tx_count == 0))
     	{
     		char tempstr[32];
     		sprintf(tempstr,"$T%4.2f*",convert_time(now));
     		int count = write(conn_fd,tempstr,strlen(tempstr));
     		gettimeofday(&last_timeupdate,NULL);
+    		timesync_tx_count++;
     	}
 
         std::string data = read_serialdata();
@@ -163,6 +164,7 @@ IMUDriver::RawIMU IMUDriver::update()
         }
         if(status == true) //parsing is ok
         {
+        	gettimeofday(&now,NULL);
         	time_delay = convert_time(now)-t_imu.tov;
         	if(fabs(time_delay) > 0.25)
         	{
@@ -182,6 +184,7 @@ IMUDriver::RawIMU IMUDriver::update()
     else
     {
     }
+    gettimeofday(&now,NULL);
     if(measure_time_diff(now,last) > COMM_LOSS_THRESHOLD)
     {
         t_imu.signal_state = SIGNALSTATE_INVALID;
