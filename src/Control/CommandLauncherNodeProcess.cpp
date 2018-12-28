@@ -172,11 +172,11 @@ std::string CommandLauncherNodeProcess::get_processinfo()
 	for(std::size_t i = 0; i < processlist.size(); i++)
 	{
 		sprintf(tempstr,"%sProcess: %s Init: %d Running: %d PID: %d Restarted: %d",tempstr,
-						processlist.at(i).name.c_str(),
-						processlist.at(i).initialized,
-						processlist.at(i).running,
-						processlist.at(i).pid,
-						processlist.at(i).restart_counter);
+				processlist.at(i).name.c_str(),
+				processlist.at(i).initialized,
+				processlist.at(i).running,
+				processlist.at(i).pid,
+				processlist.at(i).restart_counter);
 	}
 	return std::string(tempstr);
 }

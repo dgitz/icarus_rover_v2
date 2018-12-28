@@ -63,7 +63,6 @@ public:
 	 */
 	std::vector<icarus_rover_v2::diagnostic> new_commandmsg(const icarus_rover_v2::command::ConstPtr& t_msg);
 	icarus_rover_v2::diagnostic new_devicemsg(const icarus_rover_v2::device::ConstPtr& device);
-
 	//Support Functions
 	std::string lookup_deviceIP(std::string hostname); //Returns "" on failure
 	uint32_t lookup_port(std::string portname); //Returns 0 on failure

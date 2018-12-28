@@ -16,6 +16,7 @@
 class IMUNodeProcess: public BaseNodeProcess {
 public:
 	//Constants
+	const double IMU_INVALID_TIME_THRESHOLD = 1.0f;
 	//Enums
 	//Structs
 	struct RotationMatrix
@@ -62,6 +63,7 @@ public:
 		double ymag_rms_mean1;
 		double zmag_rms_mean1;
 		RotationMatrix rotate_matrix;
+		double lasttime_rx;
 
 	};
 	///Initialization Functions
@@ -76,6 +78,7 @@ public:
 	icarus_rover_v2::diagnostic update(double t_dt,double t_ros_time);
 
 	//Attribute Functions
+	double get_commtimeout_threshold() { return IMU_INVALID_TIME_THRESHOLD; }
 	std::vector<IMU> get_imus() { return imus; }
 	IMU get_imu(std::string devicename);
 	bool set_imu_running(std::string devicename);
@@ -89,6 +92,7 @@ public:
 	 */
 	std::vector<icarus_rover_v2::diagnostic> new_commandmsg(const icarus_rover_v2::command::ConstPtr& t_msg);
 	icarus_rover_v2::diagnostic new_devicemsg(const icarus_rover_v2::device::ConstPtr& device);
+	icarus_rover_v2::diagnostic new_devicemsg(const icarus_rover_v2::device::ConstPtr& device,const icarus_rover_v2::leverarm::ConstPtr& leverarm);
 	icarus_rover_v2::diagnostic new_imumsg(std::string devicename,IMUDriver::RawIMU imu_data,icarus_rover_v2::imu &proc_imu);
 
 	//Support Functions
@@ -96,6 +100,7 @@ public:
 	//Printing Functions
 protected:
 private:
+	std::string map_signalstate_tostring(uint8_t v);
     bool load_sensorinfo(std::string devicename);
     bool set_imu_mounting_angles(std::string devicename,double roll_deg,double pitch_deg,double yaw_deg);
 	/*! \brief Process Specific Implementation

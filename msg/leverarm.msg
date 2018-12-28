@@ -1,5 +1,7 @@
 #leverarm
 Header header
+string name
+string reference
 signal yaw
 signal pitch
 signal roll

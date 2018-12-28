@@ -17,10 +17,12 @@ icarus_rover_v2::diagnostic IMUNodeProcess::update(double t_dt,double t_ros_time
 	}
 	icarus_rover_v2::diagnostic diag = diagnostic;
 	diag = update_baseprocess(t_dt,t_ros_time);
+	bool ok = true;
 	for(std::size_t i = 0; i < imus.size(); ++i)
 	{
-		if((imus.at(i).running == true) and (run_time > 20.0))
+		if((imus.at(i).running == true) and (run_time > IMU_INVALID_TIME_THRESHOLD))
 		{
+			double dt = run_time - imus.at(i).lasttime_rx;
 			if(imus.at(i).update_count == 0)
 			{
 				icarus_rover_v2::diagnostic imu_diagnostic = imus.at(i).diagnostic;
@@ -32,6 +34,20 @@ icarus_rover_v2::diagnostic IMUNodeProcess::update(double t_dt,double t_ros_time
 				imu_diagnostic.Description = std::string(tempstr);
 				imus.at(i).diagnostic = imu_diagnostic;
 				diag = imu_diagnostic;
+				ok = false;
+			}
+			else if(dt >=IMU_INVALID_TIME_THRESHOLD)
+			{
+				icarus_rover_v2::diagnostic imu_diagnostic = imus.at(i).diagnostic;
+				imu_diagnostic.Diagnostic_Type = SENSORS;
+				imu_diagnostic.Level = ERROR;
+				imu_diagnostic.Diagnostic_Message = DROPPING_PACKETS;
+				char tempstr[512];
+				sprintf(tempstr,"No IMU Data from %s in %f Seconds.",imus.at(i).devicename.c_str(),dt);
+				imu_diagnostic.Description = std::string(tempstr);
+				imus.at(i).diagnostic = imu_diagnostic;
+				diag = imu_diagnostic;
+				ok = false;
 			}
 		}
 	}
@@ -42,6 +58,14 @@ icarus_rover_v2::diagnostic IMUNodeProcess::update(double t_dt,double t_ros_time
 		diag.Diagnostic_Message = NOERROR;
 		diag.Description = "Node Running.";
 
+	}
+	if(ok == true)
+	{
+		ready_to_arm = true;
+	}
+	else
+	{
+		ready_to_arm = false;
 	}
 	diagnostic = diag;
 	return diag;
@@ -54,6 +78,17 @@ icarus_rover_v2::diagnostic IMUNodeProcess::new_imumsg(std::string devicename,IM
 	{
 		if(imus.at(i).devicename == devicename)
 		{
+
+			if(imu_data.signal_state != SIGNALSTATE_UPDATED)
+			{
+				diag.Diagnostic_Type = SENSORS;
+				diag.Level = WARN;
+				diag.Diagnostic_Message = DROPPING_PACKETS;
+				char tempstr[512];
+				sprintf(tempstr,"IMU State: %s",map_signalstate_tostring(imu_data.signal_state).c_str());
+				diag.Description = std::string(tempstr);
+				return diag;
+			}
 			proc_imu = imus.at(i).imu_data;
 
 			imus.at(i).imu_data.tov = imu_data.tov;
@@ -131,7 +166,7 @@ icarus_rover_v2::diagnostic IMUNodeProcess::new_imumsg(std::string devicename,IM
 			proc_imu.xmag.status = SIGNALSTATE_UPDATED;
 			proc_imu.ymag.status = SIGNALSTATE_UPDATED;
 			proc_imu.zmag.status = SIGNALSTATE_UPDATED;
-
+			imus.at(i).lasttime_rx = run_time;
 			imus.at(i).update_count++;
 			imus.at(i).update_rate = (double)(imus.at(i).update_count)/run_time;
 			imus.at(i).imu_data = proc_imu;
@@ -161,6 +196,17 @@ icarus_rover_v2::diagnostic IMUNodeProcess::new_imumsg(std::string devicename,IM
 icarus_rover_v2::diagnostic IMUNodeProcess::new_devicemsg(const icarus_rover_v2::device::ConstPtr& device)
 {
 	icarus_rover_v2::diagnostic diag = diagnostic;
+	diag.Diagnostic_Type = DATA_STORAGE;
+	diag.Level = ERROR;
+	diag.Diagnostic_Message = INITIALIZING_ERROR;
+	char tempstr[512];
+	sprintf(tempstr,"DeviceType: %s Not Supported.",device->DeviceType.c_str());
+	diag.Description = std::string(tempstr);
+	return diag;
+}
+icarus_rover_v2::diagnostic IMUNodeProcess::new_devicemsg(const icarus_rover_v2::device::ConstPtr& device,const icarus_rover_v2::leverarm::ConstPtr& leverarm)
+{
+	icarus_rover_v2::diagnostic diag = diagnostic;
 	if(device->DeviceType == "IMU")
 	{
 		if(device->PartNumber == "110012")
@@ -177,6 +223,7 @@ icarus_rover_v2::diagnostic IMUNodeProcess::new_devicemsg(const icarus_rover_v2:
 
 			newimu.update_count = 0;
 			newimu.update_rate = 0.0;
+			newimu.lasttime_rx = 0.0;
 			newimu.sensor_info_path = "/home/robot/config/sensors/" + device->DeviceName + "/" + device->DeviceName + ".xml";
 			newimu.diagnostic.DeviceName = device->DeviceName;
 			newimu.diagnostic.Node_Name = diag.Node_Name;
@@ -189,6 +236,10 @@ icarus_rover_v2::diagnostic IMUNodeProcess::new_devicemsg(const icarus_rover_v2:
 			newimu.diagnostic.Description = "IMU Initialized.";
 			newimu.imu_data.xacc.rms = 0.0;
 			newimu.xacc_rms_mean1 = 0.0;
+			newimu.mounting_angle_offset_pitch_deg = leverarm->pitch.value;
+			newimu.mounting_angle_offset_roll_deg = leverarm->roll.value;
+			newimu.mounting_angle_offset_yaw_deg = leverarm->yaw.value;
+			newimu.rotate_matrix = generate_rotation_matrix(newimu.mounting_angle_offset_roll_deg,newimu.mounting_angle_offset_pitch_deg,newimu.mounting_angle_offset_yaw_deg);
 			newimu.imu_data.xacc.units = "m/s^2";
 			newimu.imu_data.yacc.units = "m/s^2";
 			newimu.imu_data.zacc.units = "m/s^2";
@@ -230,16 +281,9 @@ bool IMUNodeProcess::set_imu_running(std::string devicename)
 	{
 		if(imus.at(i).devicename == devicename)
 		{
-			if(load_sensorinfo(devicename) == true)
-			{
-				imus.at(i).running = true;
-				imus_running = true;
-				return true;
-			}
-			else
-			{
-				return false;
-			}
+			imus.at(i).running = true;
+			imus_running = true;
+			return true;
 		}
 	}
 	return false;
@@ -393,12 +437,14 @@ bool IMUNodeProcess::load_sensorinfo(std::string devicename)
 			bool loaded = doc.LoadFile();
 			if(loaded == false)
 			{
-				printf("[%s]: Unable to load Sensor Config at: %s\n",devicename.c_str(),imus.at(i).sensor_info_path.c_str());
+				printf("[%s]: Unable to load Sensor Config at: %s, but not required Yet.\n",devicename.c_str(),imus.at(i).sensor_info_path.c_str());
+				return true;
 			}
 			TiXmlElement *l_pRootElement = doc.RootElement();
 			double mao_roll,mao_pitch,mao_yaw;
 			if(NULL != l_pRootElement)
 			{
+				/*
 				TiXmlElement *l_proll_mao = l_pRootElement->FirstChildElement("MountingAngleRoll");
 				if(NULL != l_proll_mao)
 				{
@@ -419,15 +465,39 @@ bool IMUNodeProcess::load_sensorinfo(std::string devicename)
 					mao_yaw = std::atof(l_pyaw_mao->GetText());
 				}
 				else { return false; }
+				 */
 
 			}
 			else { return false;}
-			if(set_imu_mounting_angles(devicename,mao_roll,mao_pitch,mao_yaw) == false)
-			{
-				return false;
-			}
 			return true;
 		}
 	}
 	return false;
+}
+std::string IMUNodeProcess::map_signalstate_tostring(uint8_t v)
+{
+	switch(v)
+	{
+	case SIGNALSTATE_UNDEFINED:
+		return "UNDEFINED";
+		break;
+	case SIGNALSTATE_INVALID:
+		return "INVALID";
+		break;
+	case SIGNALSTATE_INITIALIZING:
+		return "INITIALIZING";
+		break;
+	case SIGNALSTATE_UPDATED:
+		return "UPDATED";
+		break;
+	case SIGNALSTATE_HOLD:
+		return "HOLD";
+		break;
+	case SIGNALSTATE_CALIBRATING:
+		return "CALIBRATING";
+		break;
+	default:
+		return "UNDEFINED";
+		break;
+	}
 }

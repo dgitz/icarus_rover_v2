@@ -1,6 +1,9 @@
 #include "IMUDriver.h"
 IMUDriver::IMUDriver()
 {
+	debug_mode = 0;
+	time_delay = 0.0;
+	timesync_tx_count = 0;
     supported_connection_methods.push_back("serial");
     imu_data.signal_state = SIGNALSTATE_INITIALIZING;
 	conn_fd = -1;
@@ -27,6 +30,7 @@ IMUDriver::~IMUDriver()
 
 int IMUDriver::init(std::string t_connection_method,std::string t_port,std::string t_baudrate)
 {
+	gettimeofday(&last_timeupdate,NULL);
     connection_method = t_connection_method;
     if(connection_method == "serial")
     {
@@ -101,7 +105,17 @@ IMUDriver::RawIMU IMUDriver::update()
     gettimeofday(&now,NULL);
     if(connection_method == "serial")
     {   
+    	if((measure_time_diff(now,last_timeupdate) > 100.0) or (timesync_tx_count == 0))
+    	{
+    		char tempstr[32];
+    		sprintf(tempstr,"$T%4.2f*",convert_time(now));
+    		int count = write(conn_fd,tempstr,strlen(tempstr));
+    		gettimeofday(&last_timeupdate,NULL);
+    		timesync_tx_count++;
+    	}
+
         std::string data = read_serialdata();
+        tcflush(conn_fd,TCIOFLUSH);
         bool status = true;
         if(data.size() <= 4) //Definitely not enough characters.
         {
@@ -125,6 +139,7 @@ IMUDriver::RawIMU IMUDriver::update()
                 {
                     start = start.substr(1);
                     end = end.substr(0,end.size()-2);
+                    t_imu.tov = std::atof(start.c_str());
                     t_imu.acc_x = std::atof(items.at(1).c_str());
                     t_imu.acc_y = std::atof(items.at(2).c_str());
                     t_imu.acc_z = std::atof(items.at(3).c_str());
@@ -149,21 +164,31 @@ IMUDriver::RawIMU IMUDriver::update()
         }
         if(status == true) //parsing is ok
         {
-            t_imu.signal_state = SIGNALSTATE_UPDATED;
+        	gettimeofday(&now,NULL);
+        	time_delay = convert_time(now)-t_imu.tov;
+        	if(fabs(time_delay) > 0.25)
+        	{
+        		t_imu.signal_state = SIGNALSTATE_INVALID;
+        	}
+        	else
+        	{
+        		t_imu.signal_state = SIGNALSTATE_UPDATED;
+        	}
             t_imu.update_count++;
             t_imu.update_rate = 1.0/(measure_time_diff(now,last));
             gettimeofday(&last,NULL);
             
         }
+
     }
     else
     {
     }
+    gettimeofday(&now,NULL);
     if(measure_time_diff(now,last) > COMM_LOSS_THRESHOLD)
     {
         t_imu.signal_state = SIGNALSTATE_INVALID;
     }
-    t_imu.tov = convert_time(now);
     imu_data = t_imu;
     return imu_data;
 }
@@ -198,6 +223,10 @@ std::string IMUDriver::read_serialdata()
 		std::stringstream ss;
 		ss << response;
         raw_data = ss.str();
+        if(debug_mode == 1)
+        {
+        	printf("[RAW]: %s\n",raw_data.c_str());
+        }
 		return ss.str();
 	}
 }
@@ -206,6 +235,10 @@ double IMUDriver::measure_time_diff(struct timeval a,struct timeval b)
 	double a_sec = (double)a.tv_sec + (double)(a.tv_usec)/1000000.0;
 	double b_sec = (double)b.tv_sec + (double)(b.tv_usec)/1000000.0;
 	return a_sec-b_sec;
+}
+double IMUDriver::measure_time_diff(double a,double b)
+{
+	return a-b;
 }
 double IMUDriver::convert_time(struct timeval t)
 {

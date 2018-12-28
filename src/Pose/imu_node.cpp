@@ -51,6 +51,8 @@ icarus_rover_v2::diagnostic IMUNode::finish_initialization()
 	command_sub = n->subscribe<icarus_rover_v2::command>("/command",1,&IMUNode::Command_Callback,this);
 	std::string device_topic = "/" + std::string(host_name) + "_master_node/srv_device";
 	srv_device = n->serviceClient<icarus_rover_v2::srv_device>(device_topic);
+	std::string leverarm_topic = "/" + std::string(host_name) + "_master_node/srv_leverarm";
+	srv_leverarm = n->serviceClient<icarus_rover_v2::srv_leverarm>(leverarm_topic);
 
 	return diagnostic;
 }
@@ -141,13 +143,20 @@ bool IMUNode::run_1hz()
 			}
 		}
 		{
-			icarus_rover_v2::srv_device srv;
-			srv.request.query = "DeviceType=IMU";
-			if(srv_device.call(srv) == true)
+			icarus_rover_v2::srv_device dev_srv;
+
+			dev_srv.request.query = "DeviceType=IMU";
+			if(srv_device.call(dev_srv) == true)
 			{
-				for(std::size_t i = 0; i < srv.response.data.size(); i++)
+				for(std::size_t i = 0; i < dev_srv.response.data.size(); i++)
 				{
-					bool status = new_devicemsg(srv.request.query,srv.response.data.at(i));
+					icarus_rover_v2::srv_leverarm la_srv;
+					la_srv.request.name = dev_srv.response.data.at(i).DeviceName;
+					if(srv_leverarm.call(la_srv) == true)
+					{
+						bool status = new_devicemsg(dev_srv.request.query,dev_srv.response.data.at(i),la_srv.response.lever);
+					}
+
 				}
 			}
 			else
@@ -237,6 +246,16 @@ bool IMUNode::new_devicemsg(std::string query,icarus_rover_v2::device t_device)
 	{
 		icarus_rover_v2::device::ConstPtr device_ptr(new icarus_rover_v2::device(t_device));
 		icarus_rover_v2::diagnostic diag = process->new_devicemsg(device_ptr);
+	}
+	return true;
+}
+bool IMUNode::new_devicemsg(std::string query,icarus_rover_v2::device t_device,icarus_rover_v2::leverarm t_leverarm)
+{
+	if((process->is_initialized() == true))
+	{
+		icarus_rover_v2::device::ConstPtr device_ptr(new icarus_rover_v2::device(t_device));
+		icarus_rover_v2::leverarm::ConstPtr leverarm_ptr(new icarus_rover_v2::leverarm(t_leverarm));
+		icarus_rover_v2::diagnostic diag = process->new_devicemsg(device_ptr,leverarm_ptr);
 	}
 	return true;
 }

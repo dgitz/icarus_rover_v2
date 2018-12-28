@@ -1,36 +1,36 @@
 // Derived class
-#include "IMUNodeProcess.cpp"
+#include "PoseNodeProcess.cpp"
 #include "../include/Base/BaseNode.cpp"
 //C System Files
 //C++ System Files
 //ROS Base Functionality
 //ROS Messages
 //Project
-/*! \class IMUNode IMUNode.h "IMUNode.h"
- *  \brief This is a IMUNode class.  Used for the imu_node node.
+/*! \class PoseNode PoseNode.h "PoseNode.h"
+ *  \brief This is a SampleNode class.  Used for the sample_node node.
  *
  */
-class IMUNode: public BaseNode {
+class PoseNode: public BaseNode {
 public:
 
-	const string BASE_NODE_NAME = "imu_node";
+	const string BASE_NODE_NAME = "pose_node";
 
-	const uint8_t MAJOR_RELEASE_VERSION = 0;
+	const uint8_t MAJOR_RELEASE_VERSION = 3;
 	const uint8_t MINOR_RELEASE_VERSION = 0;
-	const uint8_t BUILD_NUMBER = 2;
+	const uint8_t BUILD_NUMBER = 1;
 	const string FIRMWARE_DESCRIPTION = "Latest Rev: 27-December-2018";
 
 	const uint8_t DIAGNOSTIC_SYSTEM = ROVER;
 	const uint8_t DIAGNOSTIC_SUBSYSTEM = ROBOT_CONTROLLER;
 	const uint8_t DIAGNOSTIC_COMPONENT = POSE_NODE;
-	~IMUNode()
+	~PoseNode()
 	{
 	}
 	/*! \brief Initialize
 	 *
 	 */
 	bool start(int argc,char **argv);
-	IMUNodeProcess* get_process() { return process; }
+	PoseNodeProcess* get_process() { return process; }
 	void thread_loop();
 
 	//Cleanup
@@ -58,11 +58,8 @@ private:
 	void PPS1_Callback(const std_msgs::Bool::ConstPtr& t_msg);
 	void Command_Callback(const icarus_rover_v2::command::ConstPtr& t_msg);
 	bool new_devicemsg(std::string query,icarus_rover_v2::device t_device);
-	bool new_devicemsg(std::string query,icarus_rover_v2::device t_device,icarus_rover_v2::leverarm t_leverarm);
+	void imumsg_Callback(const icarus_rover_v2::imu::ConstPtr& msg,const std::string &topic);
 	//Support Functions
-
-	//Printing Functions
-	void print_3x3_matricies(std::string devicename,IMUNodeProcess::RotationMatrix mat);
 
 
 
@@ -70,9 +67,7 @@ private:
 	ros::Subscriber pps1_sub;
 	ros::Subscriber command_sub;
 	ros::ServiceClient srv_device;
-	ros::ServiceClient srv_leverarm;
-    std::vector<IMUDriver> imu_drivers;
-    std::vector<ros::Publisher> imu_pubs;
-	IMUNodeProcess *process;
+	PoseNodeProcess *process;
+	std::vector<ros::Subscriber> imu_subs;
 
 };
