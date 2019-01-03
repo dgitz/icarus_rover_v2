@@ -17,4 +17,4 @@ assignees: ''
 
 **Additional context**
 
-**Clearance Criteria**
+**Closing Criteria**
