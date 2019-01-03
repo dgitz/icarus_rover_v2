@@ -4,6 +4,7 @@
 //ROS Base Functionality
 //ROS Messages
 //Project
+#include "PoseModel/Definitions/PoseDefinitions.h"
 #include <tf/transform_broadcaster.h>
 
 /*! \class PoseNodeProcess PoseNodeProcess.h "PoseNodeProcess.h"
@@ -68,6 +69,7 @@ private:
 	/*! \brief Process Specific Implementation
 	 *
 	 */
+    PoseAcceleration pose_acc;
 	std::vector<icarus_rover_v2::diagnostic> check_programvariables();
     PoseMode current_mode;
 	std::vector<IMUSensor> imus;
