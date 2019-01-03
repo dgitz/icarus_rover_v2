@@ -240,7 +240,7 @@ add_library(lcddriver src/Diagnostics/Driver/LCDDriver.cpp)
 #add_library(terminalhatdriver src/Board/Driver/TerminalHatDriver.cpp) #Only compatible for armv7l
 #add_library(gpiohatdriver src/Board/Driver/GPIOHatDriver.cpp) #Only compatible for armv7l
 #add_library(servohatdriver src/Board/Driver/ServoHatDriver.cpp) #Only compatible for armv7l
-add_library(imudriver src/Pose/Driver/IMUDriver.cpp)
+add_library(imudriver src/Sensor/Driver/IMUDriver.cpp)
 
 
 
@@ -363,20 +363,13 @@ target_link_libraries(test_boardcontroller_node_process ${catkin_LIBRARIES} ${Bo
 
 #IMU Node
 file(MAKE_DIRECTORY /home/robot/catkin_ws/build/test_results/icarus_rover_v2/imu_node)
-add_library(imu_node_process src/Pose/IMUNodeProcess.cpp)
+add_library(imu_node_process src/Sensor/IMUNodeProcess.cpp)
 add_dependencies(imu_node_process icarus_rover_v2_generate_messages_cpp)
-add_executable(imu_node src/Pose/imu_node.cpp)
+add_executable(imu_node src/Sensor/imu_node.cpp)
 target_link_libraries(imu_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} imu_node_process imudriver logger resourcemonitor)
-catkin_add_gtest(test_imu_node_process src/Pose/unit_tests/test_imu_node_process.cpp)
+catkin_add_gtest(test_imu_node_process src/Sensor/unit_tests/test_imu_node_process.cpp)
 target_link_libraries(test_imu_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES}  ${TinyXML_LIBRARIES} imu_node_process logger)
 
-#Pose Node
-file(MAKE_DIRECTORY /home/robot/catkin_ws/build/test_results/icarus_rover_v2/pose_node)
-add_library(pose_node_process src/Pose/PoseNodeProcess.cpp)
-add_dependencies(pose_node_process icarus_rover_v2_generate_messages_cpp)
-add_executable(pose_node src/Pose/pose_node.cpp)
-target_link_libraries(pose_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} pose_node_process logger resourcemonitor)
-catkin_add_gtest(test_pose_node_process src/Pose/unit_tests/test_pose_node_process.cpp)
-target_link_libraries(test_pose_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES}  ${TinyXML_LIBRARIES} pose_node_process logger)
-
+#Add CMakeLists for Pose
+add_subdirectory(src/Pose)
 
