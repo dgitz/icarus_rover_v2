@@ -3,6 +3,7 @@ IMUDriver::IMUDriver()
 {
 	debug_mode = 0;
 	time_delay = 0.0;
+	last_sequence_number = 0;
 	timesync_tx_count = 0;
     supported_connection_methods.push_back("serial");
     imu_data.signal_state = SIGNALSTATE_INITIALIZING;
@@ -102,6 +103,7 @@ int IMUDriver::finish()
 IMUDriver::RawIMU IMUDriver::update()
 {
     RawIMU t_imu = imu_data;
+    t_imu.updated = false;
     gettimeofday(&now,NULL);
     if(connection_method == "serial")
     {   
@@ -123,7 +125,7 @@ IMUDriver::RawIMU IMUDriver::update()
         }
         std::vector<std::string> items;
         boost::split(items,data,boost::is_any_of(","));
-        if((items.size() != 10) and (status == true))
+        if((items.size() != 11) and (status == true))
         {
             status = false;
         }
@@ -140,14 +142,22 @@ IMUDriver::RawIMU IMUDriver::update()
                     start = start.substr(1);
                     end = end.substr(0,end.size()-2);
                     t_imu.tov = std::atof(start.c_str());
-                    t_imu.acc_x = std::atof(items.at(1).c_str());
-                    t_imu.acc_y = std::atof(items.at(2).c_str());
-                    t_imu.acc_z = std::atof(items.at(3).c_str());
-                    t_imu.gyro_x = std::atof(items.at(4).c_str());
-                    t_imu.gyro_y = std::atof(items.at(5).c_str());
-                    t_imu.gyro_z = std::atof(items.at(6).c_str());
-                    t_imu.mag_x = std::atof(items.at(7).c_str());
-                    t_imu.mag_y = std::atof(items.at(8).c_str());
+                    t_imu.sequence_number = std::atoi(items.at(1).c_str());
+                    if(t_imu.update_count > 0)
+                    {
+                    	if(t_imu.sequence_number == last_sequence_number)
+                    	{
+
+                    	}
+                    }
+                    t_imu.acc_x = std::atof(items.at(2).c_str());
+                    t_imu.acc_y = std::atof(items.at(3).c_str());
+                    t_imu.acc_z = std::atof(items.at(4).c_str());
+                    t_imu.gyro_x = std::atof(items.at(5).c_str());
+                    t_imu.gyro_y = std::atof(items.at(6).c_str());
+                    t_imu.gyro_z = std::atof(items.at(7).c_str());
+                    t_imu.mag_x = std::atof(items.at(8).c_str());
+                    t_imu.mag_y = std::atof(items.at(9).c_str());
                     t_imu.mag_z = std::atof(end.c_str());
                     status = true;
                     
@@ -189,6 +199,7 @@ IMUDriver::RawIMU IMUDriver::update()
     {
         t_imu.signal_state = SIGNALSTATE_INVALID;
     }
+    t_imu.updated = true;
     imu_data = t_imu;
     return imu_data;
 }

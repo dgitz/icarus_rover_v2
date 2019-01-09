@@ -198,6 +198,7 @@ bool IMUNode::run_loop1()
 			{
 				icarus_rover_v2::imu proc_imu;
 				diag = process->new_imumsg(imus.at(i).devicename,imu_drivers.at(i).update(),proc_imu);
+				proc_imu.timestamp = ros::Time::now().toSec();
 				if(diag.Level <= NOTICE)
 				{
 					imu_pubs.at(i).publish(proc_imu);

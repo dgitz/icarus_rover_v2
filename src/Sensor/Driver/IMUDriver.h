@@ -30,10 +30,13 @@ class IMUDriver
 public:
     struct RawIMU
     {
+    	bool updated;
         uint8_t signal_state;
         uint64_t update_count;
+
         double update_rate;
         double tov;
+        uint16_t sequence_number;
         double acc_x;
         double acc_y;
         double acc_z;
@@ -58,6 +61,7 @@ public:
     std::string get_rawdata() { return raw_data; } //For debugging
     double get_timedelay() { return time_delay; }
 private:
+    uint16_t last_sequence_number;
     uint64_t convert_time_toms(struct timeval t);
     uint8_t debug_mode;
     std::vector<std::string> supported_connection_methods;

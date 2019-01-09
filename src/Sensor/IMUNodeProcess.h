@@ -49,6 +49,7 @@ public:
 		double gyro_scale_factor;
 		double mag_scale_factor;
 		uint64_t update_count;
+		uint16_t sequence_number;
 		double update_rate;
 		double mounting_angle_offset_roll_deg;
 		double mounting_angle_offset_pitch_deg;

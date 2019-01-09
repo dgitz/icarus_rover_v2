@@ -221,7 +221,8 @@ icarus_rover_v2::diagnostic BaseNodeProcess::convert_fromptr(const icarus_rover_
 icarus_rover_v2::imu BaseNodeProcess::convert_fromptr(const icarus_rover_v2::imu::ConstPtr& t_ptr)
 {
 	icarus_rover_v2::imu imu;
-	imu.header = t_ptr->header;
+	imu.timestamp = t_ptr->timestamp;
+	imu.sequence_number = t_ptr->sequence_number;
 	imu.tov = t_ptr->tov;
 	imu.xacc = t_ptr->xacc;
 	imu.yacc = t_ptr->yacc;

@@ -90,8 +90,10 @@ icarus_rover_v2::diagnostic IMUNodeProcess::new_imumsg(std::string devicename,IM
 				return diag;
 			}
 			proc_imu = imus.at(i).imu_data;
-
+			imus.at(i).sequence_number = imu_data.sequence_number;
 			imus.at(i).imu_data.tov = imu_data.tov;
+			proc_imu.tov = imu_data.tov;
+			proc_imu.sequence_number = imu_data.sequence_number;
 			{
 				double x = imu_data.acc_x/imus.at(i).acc_scale_factor;
 				double y = imu_data.acc_y/imus.at(i).acc_scale_factor;
@@ -102,13 +104,34 @@ icarus_rover_v2::diagnostic IMUNodeProcess::new_imumsg(std::string devicename,IM
 				proc_imu.xacc.value = vp(0);
 				proc_imu.yacc.value = vp(1);
 				proc_imu.zacc.value = vp(2);
-				imus.at(i).xacc_rms_mean1 += (pow(proc_imu.xacc.value,2.0)/(double)((imus.at(i).update_count+1))) - (imus.at(i).xacc_rms_mean1/(double)(imus.at(i).update_count+1));
+				if(imus.at(i).update_count == 0)
+				{
+					imus.at(i).xacc_rms_mean1 = pow(proc_imu.xacc.value,2.0);
+				}
+				else
+				{
+					imus.at(i).xacc_rms_mean1 += (pow(proc_imu.xacc.value,2.0)/(double)((imus.at(i).update_count+1))) - (imus.at(i).xacc_rms_mean1/(double)(imus.at(i).update_count+1));
+				}
 				proc_imu.xacc.rms = pow(imus.at(i).xacc_rms_mean1,0.5);
 
-				imus.at(i).yacc_rms_mean1 += (pow(proc_imu.yacc.value,2.0)/(double)((imus.at(i).update_count+1))) - (imus.at(i).yacc_rms_mean1/(double)(imus.at(i).update_count+1));
+				if(imus.at(i).update_count == 0)
+				{
+					imus.at(i).yacc_rms_mean1 = pow(proc_imu.yacc.value,2.0);
+				}
+				else
+				{
+					imus.at(i).yacc_rms_mean1 += (pow(proc_imu.yacc.value,2.0)/(double)((imus.at(i).update_count+1))) - (imus.at(i).yacc_rms_mean1/(double)(imus.at(i).update_count+1));
+				}
 				proc_imu.yacc.rms = pow(imus.at(i).yacc_rms_mean1,0.5);
 
-				imus.at(i).zacc_rms_mean1 += (pow(proc_imu.zacc.value,2.0)/(double)((imus.at(i).update_count+1))) - (imus.at(i).zacc_rms_mean1/(double)(imus.at(i).update_count+1));
+				if(imus.at(i).update_count == 0)
+				{
+					imus.at(i).zacc_rms_mean1 = pow(proc_imu.zacc.value,2.0);
+				}
+				else
+				{
+					imus.at(i).zacc_rms_mean1 += (pow(proc_imu.zacc.value,2.0)/(double)((imus.at(i).update_count+1))) - (imus.at(i).zacc_rms_mean1/(double)(imus.at(i).update_count+1));
+				}
 				proc_imu.zacc.rms = pow(imus.at(i).zacc_rms_mean1,0.5);
 
 			}
@@ -124,13 +147,34 @@ icarus_rover_v2::diagnostic IMUNodeProcess::new_imumsg(std::string devicename,IM
 				proc_imu.ygyro.value = vp(1);
 				proc_imu.zgyro.value = vp(2);
 
-				imus.at(i).xgyro_rms_mean1 += (pow(proc_imu.xgyro.value,2.0)/(double)((imus.at(i).update_count+1))) - (imus.at(i).xgyro_rms_mean1/(double)(imus.at(i).update_count+1));
+				if(imus.at(i).update_count == 0)
+				{
+					imus.at(i).xgyro_rms_mean1 = pow(proc_imu.xgyro.value,2.0);
+				}
+				else
+				{
+					imus.at(i).xgyro_rms_mean1 += (pow(proc_imu.xgyro.value,2.0)/(double)((imus.at(i).update_count+1))) - (imus.at(i).xgyro_rms_mean1/(double)(imus.at(i).update_count+1));
+				}
 				proc_imu.xgyro.rms = pow(imus.at(i).xgyro_rms_mean1,0.5);
 
-				imus.at(i).ygyro_rms_mean1 += (pow(proc_imu.ygyro.value,2.0)/(double)((imus.at(i).update_count+1))) - (imus.at(i).ygyro_rms_mean1/(double)(imus.at(i).update_count+1));
+				if(imus.at(i).update_count == 0)
+				{
+					imus.at(i).ygyro_rms_mean1 = pow(proc_imu.ygyro.value,2.0);
+				}
+				else
+				{
+					imus.at(i).ygyro_rms_mean1 += (pow(proc_imu.ygyro.value,2.0)/(double)((imus.at(i).update_count+1))) - (imus.at(i).ygyro_rms_mean1/(double)(imus.at(i).update_count+1));
+				}
 				proc_imu.ygyro.rms = pow(imus.at(i).ygyro_rms_mean1,0.5);
 
-				imus.at(i).zgyro_rms_mean1 += (pow(proc_imu.zgyro.value,2.0)/(double)((imus.at(i).update_count+1))) - (imus.at(i).zgyro_rms_mean1/(double)(imus.at(i).update_count+1));
+				if(imus.at(i).update_count == 0)
+				{
+					imus.at(i).zgyro_rms_mean1 = pow(proc_imu.zgyro.value,2.0);
+				}
+				else
+				{
+					imus.at(i).zgyro_rms_mean1 += (pow(proc_imu.zgyro.value,2.0)/(double)((imus.at(i).update_count+1))) - (imus.at(i).zgyro_rms_mean1/(double)(imus.at(i).update_count+1));
+				}
 				proc_imu.zgyro.rms = pow(imus.at(i).zgyro_rms_mean1,0.5);
 
 			}
@@ -146,13 +190,34 @@ icarus_rover_v2::diagnostic IMUNodeProcess::new_imumsg(std::string devicename,IM
 				proc_imu.ymag.value = vp(1);
 				proc_imu.zmag.value = vp(2);
 
-				imus.at(i).xmag_rms_mean1 += (pow(proc_imu.xmag.value,2.0)/(double)((imus.at(i).update_count+1))) - (imus.at(i).xmag_rms_mean1/(double)(imus.at(i).update_count+1));
+				if(imus.at(i).update_count == 0)
+				{
+					imus.at(i).xmag_rms_mean1 = pow(proc_imu.xmag.value,2.0);
+				}
+				else
+				{
+					imus.at(i).xmag_rms_mean1 += (pow(proc_imu.xmag.value,2.0)/(double)((imus.at(i).update_count+1))) - (imus.at(i).xmag_rms_mean1/(double)(imus.at(i).update_count+1));
+				}
 				proc_imu.xmag.rms = pow(imus.at(i).xmag_rms_mean1,0.5);
 
-				imus.at(i).ymag_rms_mean1 += (pow(proc_imu.ymag.value,2.0)/(double)((imus.at(i).update_count+1))) - (imus.at(i).ymag_rms_mean1/(double)(imus.at(i).update_count+1));
+				if(imus.at(i).update_count == 0)
+				{
+					imus.at(i).ymag_rms_mean1 = pow(proc_imu.ymag.value,2.0);
+				}
+				else
+				{
+					imus.at(i).ymag_rms_mean1 += (pow(proc_imu.ymag.value,2.0)/(double)((imus.at(i).update_count+1))) - (imus.at(i).ymag_rms_mean1/(double)(imus.at(i).update_count+1));
+				}
 				proc_imu.ymag.rms = pow(imus.at(i).ymag_rms_mean1,0.5);
 
-				imus.at(i).zmag_rms_mean1 += (pow(proc_imu.zmag.value,2.0)/(double)((imus.at(i).update_count+1))) - (imus.at(i).zmag_rms_mean1/(double)(imus.at(i).update_count+1));
+				if(imus.at(i).update_count == 0)
+				{
+					imus.at(i).zmag_rms_mean1 = pow(proc_imu.zmag.value,2.0);
+				}
+				else
+				{
+					imus.at(i).zmag_rms_mean1 += (pow(proc_imu.zmag.value,2.0)/(double)((imus.at(i).update_count+1))) - (imus.at(i).zmag_rms_mean1/(double)(imus.at(i).update_count+1));
+				}
 				proc_imu.zmag.rms = pow(imus.at(i).zmag_rms_mean1,0.5);
 			}
 
