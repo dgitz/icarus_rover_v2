@@ -41,7 +41,7 @@ MasterNodeProcess* initializeprocess(std::string devicepath,std::string systempa
 	EXPECT_TRUE(child_devices.size() > 0);
 	printf("-----CHILD DEVICES-----\n");
 	process->print_device(child_devices);
-	std::vector<MasterNodeProcess::LeverArm> leverarms = process->get_allleverarms();
+	std::vector<icarus_rover_v2::leverarm> leverarms = process->get_allleverarms();
 	printf("-----LEVER ARMS-----\n");
 	process->print_leverarm(leverarms);
 	process->set_initialized();
