@@ -173,9 +173,10 @@ void print_imudata(std::string report,IMUDriver driver,IMUDriver::RawIMU imu_dat
 			start_color.c_str());
 	if((report == "stat") or (report == "all"))
 	{
-		sprintf(tempstr,"%s Delay=%4.2f T=%4.2f U=%ld R=%4.2f State: %s",
+		sprintf(tempstr,"%s Delay=%4.2f Seq=%d T=%4.2f U=%ld R=%4.2f State: %s",
 					tempstr,
 					driver.get_timedelay(),
+					imu_data.sequence_number,
 					imu_data.tov,
 					imu_data.update_count,
 					imu_data.update_rate,

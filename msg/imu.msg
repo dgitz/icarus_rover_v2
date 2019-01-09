@@ -1,5 +1,6 @@
-Header header
-float32 tov
+float64 timestamp
+uint64 sequence_number
+float64 tov
 #linear acc
 signal xacc
 signal yacc

@@ -150,6 +150,7 @@ TEST(Template,Process_Msg)
 			{
 				IMUDriver::RawIMU raw_imudata;
 				raw_imudata.signal_state = SIGNALSTATE_UPDATED;
+				raw_imudata.tov = current_time;
 				raw_imudata.acc_x = 1.0;
 				raw_imudata.acc_y = 2.0;
 				raw_imudata.acc_z = 3.0;
@@ -232,6 +233,7 @@ TEST(Template,Process_BadMsg)
 			{
 				IMUDriver::RawIMU raw_imudata;
 				raw_imudata.signal_state = SIGNALSTATE_INVALID;
+				raw_imudata.tov = current_time;
 				raw_imudata.acc_x = 1.0;
 				raw_imudata.acc_y = 2.0;
 				raw_imudata.acc_z = 3.0;
@@ -366,6 +368,7 @@ TEST(Template,Process_Command)
 			{
 				IMUDriver::RawIMU raw_imudata;
 				raw_imudata.signal_state = SIGNALSTATE_UPDATED;
+				raw_imudata.tov = current_time;
 				raw_imudata.acc_x = 1.0;
 				raw_imudata.acc_y = 2.0;
 				raw_imudata.acc_z = 3.0;
@@ -604,6 +607,7 @@ TEST(Template,RMS_Computation)
 		{
 			IMUDriver::RawIMU raw_imudata;
 			raw_imudata.signal_state = SIGNALSTATE_UPDATED;
+			raw_imudata.tov = current_time;
 			raw_imudata.acc_x = (double)(counter % 11)*imu1.acc_scale_factor; //sawtooth
 			raw_imudata.acc_y = (double)(counter % 11)*imu1.acc_scale_factor;
 			raw_imudata.acc_z = (double)(counter % 11)*imu1.acc_scale_factor;
