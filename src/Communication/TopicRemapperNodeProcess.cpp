@@ -213,7 +213,7 @@ int TopicRemapperNodeProcess::parse_topicmapfile(TiXmlDocument doc)
 						if(NULL != l_pOutputType)
 						{
 							std::string output_type = l_pOutputType->GetText();
-							if((output_type == "icarus_rover_v2/pin") || (output_type == "std_msgs/Float32") || (output_type == "sensor_msgs/JointState"))
+							if((output_type == "eros/pin") || (output_type == "std_msgs/Float32") || (output_type == "sensor_msgs/JointState"))
 							{
 								out.type = output_type;
 								TiXmlElement *l_pTopic = l_pOutputChannel->FirstChildElement( "Topic" );
@@ -243,7 +243,7 @@ int TopicRemapperNodeProcess::parse_topicmapfile(TiXmlDocument doc)
 								}
 								else
 								{
-									if(output_type == "icarus_rover_v2/pin")
+									if(output_type == "eros/pin")
 									{
 										printf("Output: %s Requires the OutputChannel Tag: Function\n",out.topic.c_str());
 										return -1;
@@ -454,7 +454,7 @@ eros::diagnostic TopicRemapperNodeProcess::new_joymsg(sensor_msgs::Joy msg,std::
                 	{
                 		double in_value = msg.axes[map.in.index];
 
-						if(ch.type == "icarus_rover_v2/pin")
+						if(ch.type == "eros/pin")
 						{
 							double out = scale_value(in_value,ch.neutralvalue,map.in.minvalue,map.in.maxvalue,ch.minvalue,ch.maxvalue,ch.deadband);
 							eros::pin newpin;
@@ -520,7 +520,7 @@ eros::diagnostic TopicRemapperNodeProcess::new_joymsg(sensor_msgs::Joy msg,std::
                 	else
                 	{
 
-                		if(ch.type == "icarus_rover_v2/pin")
+                		if(ch.type == "eros/pin")
                 		{
                 			eros::pin newpin;
                 			newpin.stamp = msg.header.stamp;
@@ -616,7 +616,7 @@ std::vector<eros::pin> TopicRemapperNodeProcess::get_outputs_pins()
     {
         for(std::size_t j = 0; j < TopicMaps.at(i).outs.size(); j++)
         {
-            if(TopicMaps.at(i).outs.at(j).type == "icarus_rover_v2/pin")
+            if(TopicMaps.at(i).outs.at(j).type == "eros/pin")
             {
                 eros::pin out;
                 OutputChannel ch = TopicMaps.at(i).outs.at(j);

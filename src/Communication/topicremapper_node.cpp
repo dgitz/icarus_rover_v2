@@ -71,7 +71,7 @@ eros::diagnostic TopicRemapperNode::finish_initialization()
 		}
 		for(int j = 0; j < TopicMaps.at(i).outs.size();j++)
 		{
-			if(TopicMaps.at(i).outs.at(j).type == "icarus_rover_v2/pin")
+			if(TopicMaps.at(i).outs.at(j).type == "eros/pin")
 			{
 				ros::Publisher pub = n->advertise<eros::pin>(TopicMaps.at(i).outs.at(j).topic,10);
 				pin_pubs.push_back(pub);
