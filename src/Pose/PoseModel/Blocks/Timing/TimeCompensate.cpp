@@ -9,7 +9,7 @@ TimeCompensate::~TimeCompensate()
 {
 
 }
-icarus_rover_v2::signal TimeCompensate::new_signal(ros::Time current_time,icarus_rover_v2::signal input)
+eros::signal TimeCompensate::new_signal(ros::Time current_time,eros::signal input)
 {
 	if(method == SAMPLEANDHOLD)
 	{
@@ -37,7 +37,7 @@ icarus_rover_v2::signal TimeCompensate::new_signal(ros::Time current_time,icarus
 		}
 		else if(buffer.size() <= BUFFER_LENGTH)
 		{
-			icarus_rover_v2::signal out = input;
+			eros::signal out = input;
 			out.status = SIGNALSTATE_HOLD;
 			output = out;
 		}
@@ -49,7 +49,7 @@ icarus_rover_v2::signal TimeCompensate::new_signal(ros::Time current_time,icarus
 			double value_mean = value_sum/(double)(BUFFER_LENGTH);
 			double B0 = ((buffer.back().timestamp - t_mean) * (buffer.back().value-value_mean))/(buffer.back().timestamp-(t_mean*t_mean));
 			double B1 = value_mean-B1*t_mean;
-			icarus_rover_v2::signal out;
+			eros::signal out;
 			out.tov = current_time;
 			out.value = B0 + B1*out.tov.toSec();
 			out.status = SIGNALSTATE_EXTRAPOLATED;

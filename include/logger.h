@@ -3,7 +3,7 @@
 
 #include "ros/ros.h"
 #include "Definitions.h"
-#include <icarus_rover_v2/diagnostic.h>
+#include <eros/diagnostic.h>
 #include "../../eROS/include/DiagnosticClass.h"
 #include "ros/time.h"
 #include <stdio.h>
@@ -32,7 +32,7 @@ public:
     void log_warn(std::string tempstr);
     void log_error(std::string tempstr);
     void log_fatal(std::string tempstr);
-    void log_diagnostic(icarus_rover_v2::diagnostic diagnostic);
+    void log_diagnostic(eros::diagnostic diagnostic);
 private:
     int line_counter;
     int verbosity;

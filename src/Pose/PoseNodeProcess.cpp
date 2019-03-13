@@ -1,7 +1,7 @@
 #include "PoseNodeProcess.h"
-icarus_rover_v2::diagnostic  PoseNodeProcess::finish_initialization()
+eros::diagnostic  PoseNodeProcess::finish_initialization()
 {
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	eros::diagnostic diag = diagnostic;
 	imu_count = -1;
 	current_mode = PoseMode::CALIBRATE;
 	return diagnostic;
@@ -15,7 +15,7 @@ bool PoseNodeProcess::set_imucount(uint8_t v)
 	}
 	return false;
 }
-icarus_rover_v2::diagnostic PoseNodeProcess::update(double t_dt,double t_ros_time)
+eros::diagnostic PoseNodeProcess::update(double t_dt,double t_ros_time)
 {
 	if(initialized == true)
 	{
@@ -24,7 +24,7 @@ icarus_rover_v2::diagnostic PoseNodeProcess::update(double t_dt,double t_ros_tim
 			ready = true;
 		}
 	}
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	eros::diagnostic diag = diagnostic;
 	diag = update_baseprocess(t_dt,t_ros_time);
 	if(diag.Level <= NOTICE)
 	{
@@ -50,9 +50,9 @@ PoseNodeProcess::IMUSensor PoseNodeProcess::get_imudata(std::string name)
 	PoseNodeProcess::IMUSensor empty;
 	return empty;
 }
-icarus_rover_v2::diagnostic PoseNodeProcess::new_devicemsg(const icarus_rover_v2::device::ConstPtr& device)
+eros::diagnostic PoseNodeProcess::new_devicemsg(const eros::device::ConstPtr& device)
 {
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	eros::diagnostic diag = diagnostic;
 	if(device->DeviceType == "IMU")
 	{
 		PoseNodeProcess::IMUSensor newimu;
@@ -84,10 +84,10 @@ icarus_rover_v2::diagnostic PoseNodeProcess::new_devicemsg(const icarus_rover_v2
 	}
 	return diag;
 }
-std::vector<icarus_rover_v2::diagnostic> PoseNodeProcess::new_commandmsg(const icarus_rover_v2::command::ConstPtr& t_msg)
+std::vector<eros::diagnostic> PoseNodeProcess::new_commandmsg(const eros::command::ConstPtr& t_msg)
 {
-	std::vector<icarus_rover_v2::diagnostic> diaglist;
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	std::vector<eros::diagnostic> diaglist;
+	eros::diagnostic diag = diagnostic;
 	if (t_msg->Command == ROVERCOMMAND_RUNDIAGNOSTIC)
 	{
 		if (t_msg->Option1 == LEVEL1)
@@ -110,10 +110,10 @@ std::vector<icarus_rover_v2::diagnostic> PoseNodeProcess::new_commandmsg(const i
 	}
 	return diaglist;
 }
-std::vector<icarus_rover_v2::diagnostic> PoseNodeProcess::check_programvariables()
+std::vector<eros::diagnostic> PoseNodeProcess::check_programvariables()
 {
-	std::vector<icarus_rover_v2::diagnostic> diaglist;
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	std::vector<eros::diagnostic> diaglist;
+	eros::diagnostic diag = diagnostic;
 	bool status = true;
 
 	if (status == true) {
@@ -131,9 +131,9 @@ std::vector<icarus_rover_v2::diagnostic> PoseNodeProcess::check_programvariables
 	}
 	return diaglist;
 }
-icarus_rover_v2::diagnostic PoseNodeProcess::new_imumsg(std::string topic, const icarus_rover_v2::imu::ConstPtr& data)
+eros::diagnostic PoseNodeProcess::new_imumsg(std::string topic, const eros::imu::ConstPtr& data)
 {
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	eros::diagnostic diag = diagnostic;
 	bool found = false;
 	for(std::size_t i = 0; i < imus.size(); ++i)
 	{

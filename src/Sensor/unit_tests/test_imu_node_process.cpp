@@ -2,9 +2,6 @@
 #include "ros/ros.h"
 #include "ros/time.h"
 #include <map>
-#include "icarus_rover_v2/command.h"
-#include "icarus_rover_v2/device.h"
-#include "icarus_rover_v2/diagnostic.h"
 #include "../IMUNodeProcess.h"
 
 std::string Node_Name = "/unittest_imu_node_process";
@@ -28,7 +25,7 @@ void print_3x3matrix(std::string name,Eigen::Matrix3f mat)
 }
 IMUNodeProcess* initializeprocess(std::string imuname)
 {
-	icarus_rover_v2::diagnostic diagnostic;
+	eros::diagnostic diagnostic;
 	diagnostic.DeviceName = ros_DeviceName;
 	diagnostic.Node_Name = Node_Name;
 	diagnostic.System = ROVER;
@@ -40,14 +37,14 @@ IMUNodeProcess* initializeprocess(std::string imuname)
 	diagnostic.Diagnostic_Message = INITIALIZING;
 	diagnostic.Description = "Node Initializing";
 
-	icarus_rover_v2::device device;
+	eros::device device;
 	device.DeviceName = diagnostic.DeviceName;
 	device.BoardCount = 0;
 	device.SensorCount = 1;
 	device.DeviceParent = "None";
 	device.Architecture = "armv7l";
 
-	icarus_rover_v2::device imu;
+	eros::device imu;
 	imu.DeviceName = imuname;
 	imu.DeviceParent = ros_DeviceName;
 	imu.DeviceType = "IMU";
@@ -65,8 +62,8 @@ IMUNodeProcess* initializeprocess(std::string imuname)
 	EXPECT_TRUE(process->is_initialized() == true);
 	EXPECT_TRUE(process->get_mydevice().DeviceName == device.DeviceName);
 	EXPECT_TRUE(process->is_ready() == false);
-	icarus_rover_v2::device::ConstPtr imu_ptr(new icarus_rover_v2::device(imu));
-	icarus_rover_v2::leverarm leverarm;
+	eros::device::ConstPtr imu_ptr(new eros::device(imu));
+	eros::leverarm leverarm;
 
 	if(imuname == "IMU1")
 	{
@@ -90,7 +87,7 @@ IMUNodeProcess* initializeprocess(std::string imuname)
 		leverarm.pitch.value = -30.0;
 		leverarm.yaw.value = -170.0;
 	}
-	icarus_rover_v2::leverarm::ConstPtr leverarm_ptr(new icarus_rover_v2::leverarm(leverarm));
+	eros::leverarm::ConstPtr leverarm_ptr(new eros::leverarm(leverarm));
 	diagnostic = process->new_devicemsg(imu_ptr,leverarm_ptr);
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 	EXPECT_TRUE(process->is_ready() == true);
@@ -115,7 +112,7 @@ TEST(Template,Process_Msg)
 	bool slowrate_fire = false; //0.1 Hz
 	while(current_time <= time_to_run)
 	{
-		icarus_rover_v2::diagnostic diag = process->update(dt,current_time);
+		eros::diagnostic diag = process->update(dt,current_time);
 		EXPECT_TRUE(diag.Level <= NOTICE);
 		int current_time_ms = (int)(current_time*1000.0);
 		if((current_time_ms % 100) == 0)
@@ -160,7 +157,7 @@ TEST(Template,Process_Msg)
 				raw_imudata.mag_x = 7.0;
 				raw_imudata.mag_y = 8.0;
 				raw_imudata.mag_z = 9.0;
-				icarus_rover_v2::imu processed_imudata;
+				eros::imu processed_imudata;
 
 				EXPECT_TRUE(process->new_imumsg(imus.at(i).devicename,raw_imudata,processed_imudata).Level <= NOTICE);
 				EXPECT_TRUE((fabs((raw_imudata.acc_x/imus.at(i).acc_scale_factor)-processed_imudata.xacc.value) < .0001));
@@ -199,7 +196,7 @@ TEST(Template,Process_BadMsg)
 	bool slowrate_fire = false; //0.1 Hz
 	while(current_time <= time_to_run)
 	{
-		icarus_rover_v2::diagnostic diag = process->update(dt,current_time);
+		eros::diagnostic diag = process->update(dt,current_time);
 		int current_time_ms = (int)(current_time*1000.0);
 		if((current_time_ms % 100) == 0)
 		{
@@ -243,7 +240,7 @@ TEST(Template,Process_BadMsg)
 				raw_imudata.mag_x = 7.0;
 				raw_imudata.mag_y = 8.0;
 				raw_imudata.mag_z = 9.0;
-				icarus_rover_v2::imu processed_imudata;
+				eros::imu processed_imudata;
 
 				EXPECT_TRUE(process->new_imumsg(imus.at(i).devicename,raw_imudata,processed_imudata).Level > NOTICE);
 				if(current_time >= process->get_commtimeout_threshold())
@@ -280,7 +277,7 @@ TEST(Template,Process_Command)
 	bool slowrate_fire = false; //0.1 Hz
 	while(current_time <= time_to_run)
 	{
-		icarus_rover_v2::diagnostic diag = process->update(dt,current_time);
+		eros::diagnostic diag = process->update(dt,current_time);
 		EXPECT_TRUE(diag.Level <= NOTICE);
 		int current_time_ms = (int)(current_time*1000.0);
 		if((current_time_ms % 100) == 0)
@@ -299,14 +296,14 @@ TEST(Template,Process_Command)
 		}
 		else { slowrate_fire = false; }
 
-		icarus_rover_v2::command cmd;
+		eros::command cmd;
 		cmd.Command = ROVERCOMMAND_RUNDIAGNOSTIC;
 
 		if(fastrate_fire == true) //Nothing to do here
 		{
 			cmd.Option1 = LEVEL1;
-			icarus_rover_v2::command::ConstPtr cmd_ptr(new icarus_rover_v2::command(cmd));
-			std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
+			eros::command::ConstPtr cmd_ptr(new eros::command(cmd));
+			std::vector<eros::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
 			for(std::size_t i = 0; i < diaglist.size(); i++)
 			{
 				EXPECT_TRUE(diaglist.at(i).Level <= NOTICE);
@@ -378,7 +375,7 @@ TEST(Template,Process_Command)
 				raw_imudata.mag_x = 7.0;
 				raw_imudata.mag_y = 8.0;
 				raw_imudata.mag_z = 9.0;
-				icarus_rover_v2::imu processed_imudata;
+				eros::imu processed_imudata;
 
 				EXPECT_TRUE(process->new_imumsg(imus.at(i).devicename,raw_imudata,processed_imudata).Level <= NOTICE);
 			}
@@ -388,8 +385,8 @@ TEST(Template,Process_Command)
 		if(mediumrate_fire == true)
 		{
 			cmd.Option1 = LEVEL2;
-			icarus_rover_v2::command::ConstPtr cmd_ptr(new icarus_rover_v2::command(cmd));
-			std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
+			eros::command::ConstPtr cmd_ptr(new eros::command(cmd));
+			std::vector<eros::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
 			for(std::size_t i = 0; i < diaglist.size(); i++)
 			{
 				EXPECT_TRUE(diaglist.at(i).Level <= NOTICE);
@@ -422,7 +419,7 @@ TEST(Template,Rotation_Computation)
 	bool slowrate_fire = false; //0.1 Hz
 	while(current_time <= time_to_run)
 	{
-		icarus_rover_v2::diagnostic diag = process->update(dt,current_time);
+		eros::diagnostic diag = process->update(dt,current_time);
 		EXPECT_TRUE(diag.Level <= NOTICE);
 		int current_time_ms = (int)(current_time*1000.0);
 		if((current_time_ms % 100) == 0)
@@ -441,14 +438,14 @@ TEST(Template,Rotation_Computation)
 		}
 		else { slowrate_fire = false; }
 
-		icarus_rover_v2::command cmd;
+		eros::command cmd;
 		cmd.Command = ROVERCOMMAND_RUNDIAGNOSTIC;
 
 		if(fastrate_fire == true) //Nothing to do here
 		{
 			cmd.Option1 = LEVEL1;
-			icarus_rover_v2::command::ConstPtr cmd_ptr(new icarus_rover_v2::command(cmd));
-			std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
+			eros::command::ConstPtr cmd_ptr(new eros::command(cmd));
+			std::vector<eros::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
 			for(std::size_t i = 0; i < diaglist.size(); i++)
 			{
 				EXPECT_TRUE(diaglist.at(i).Level <= NOTICE);
@@ -519,7 +516,7 @@ TEST(Template,Rotation_Computation)
 				raw_imudata.mag_x = 90.1234*imu2.mag_scale_factor;
 				raw_imudata.mag_y = 80.213*imu2.mag_scale_factor;
 				raw_imudata.mag_z = 17.214*imu2.mag_scale_factor;
-				icarus_rover_v2::imu processed_imudata;
+				eros::imu processed_imudata;
 
 				EXPECT_TRUE(process->new_imumsg(imus.at(i).devicename,raw_imudata,processed_imudata).Level <= NOTICE);
 				//Check Rotated Acc Vector
@@ -548,8 +545,8 @@ TEST(Template,Rotation_Computation)
 		if(mediumrate_fire == true)
 		{
 			cmd.Option1 = LEVEL2;
-			icarus_rover_v2::command::ConstPtr cmd_ptr(new icarus_rover_v2::command(cmd));
-			std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
+			eros::command::ConstPtr cmd_ptr(new eros::command(cmd));
+			std::vector<eros::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
 			for(std::size_t i = 0; i < diaglist.size(); i++)
 			{
 				EXPECT_TRUE(diaglist.at(i).Level <= NOTICE);
@@ -591,7 +588,7 @@ TEST(Template,RMS_Computation)
 	int counter = 0;
 	while(current_time <= time_to_run)
 	{
-		icarus_rover_v2::diagnostic diag = process->update(dt,current_time);
+		eros::diagnostic diag = process->update(dt,current_time);
 
 		if(process->get_imus_running() == false)
 		{
@@ -617,7 +614,7 @@ TEST(Template,RMS_Computation)
 			raw_imudata.mag_x = (double)(counter % 11)*imu1.mag_scale_factor;
 			raw_imudata.mag_y = (double)(counter % 11)*imu1.mag_scale_factor;
 			raw_imudata.mag_z = (double)(counter % 11)*imu1.mag_scale_factor;
-			icarus_rover_v2::imu processed_imudata;
+			eros::imu processed_imudata;
 
 			EXPECT_TRUE(process->new_imumsg(imus.at(i).devicename,raw_imudata,processed_imudata).Level <= NOTICE);
 			std::map<long,double>::iterator front = rms_checkpoints.begin();

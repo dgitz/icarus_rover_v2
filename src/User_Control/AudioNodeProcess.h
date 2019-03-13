@@ -43,12 +43,12 @@ public:
 	/*! \brief NodeProcess specific Initialization
 	 *
 	 */
-	icarus_rover_v2::diagnostic finish_initialization();
+	eros::diagnostic finish_initialization();
 	//Update Functions
 	/*! \brief Implementation of the update function
 	 *
 	 */
-	icarus_rover_v2::diagnostic update(double t_dt,double t_ros_time);
+	eros::diagnostic update(double t_dt,double t_ros_time);
 
 	//Attribute Functions
     bool set_audiostoragedirectory(std::string v);
@@ -67,8 +67,8 @@ public:
 	/*! \brief  Process Command Message.  
 	 *
 	 */
-	std::vector<icarus_rover_v2::diagnostic> new_commandmsg(const icarus_rover_v2::command::ConstPtr& t_msg);
-	icarus_rover_v2::diagnostic new_devicemsg(const icarus_rover_v2::device::ConstPtr& device);
+	std::vector<eros::diagnostic> new_commandmsg(const eros::command::ConstPtr& t_msg);
+	eros::diagnostic new_devicemsg(const eros::device::ConstPtr& device);
     void new_armedstatemsg(uint8_t armed_state);
 	//Support Functions
    	bool new_audioplaytrigger(std::string trigger,bool bypass);
@@ -80,7 +80,7 @@ private:
 	/*! \brief Process Specific Implementation
 	 *
 	 */
-	std::vector<icarus_rover_v2::diagnostic> check_programvariables();
+	std::vector<eros::diagnostic> check_programvariables();
     void init_audioplayfiles();
     std::string exec(const char* cmd);
     
@@ -93,13 +93,13 @@ private:
     std::vector<AudioRecordFile> audiorecord_files;
     unsigned long int number_files_removed;
 
-    icarus_rover_v2::device amplifier;
+    eros::device amplifier;
     bool amplifier_initialized;
     bool amplifier_available;
-    icarus_rover_v2::device left_microphone;
+    eros::device left_microphone;
     bool left_microphone_initialized;
     bool left_microphone_available;
-    icarus_rover_v2::device right_microphone;
+    eros::device right_microphone;
     bool right_microphone_initialized;
     bool right_microphone_available;
 

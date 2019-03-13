@@ -1,7 +1,7 @@
 #include "BaseNodeProcess.h"
-icarus_rover_v2::diagnostic BaseNodeProcess::update_baseprocess(double t_dt,double t_ros_time)
+eros::diagnostic BaseNodeProcess::update_baseprocess(double t_dt,double t_ros_time)
 {
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	eros::diagnostic diag = diagnostic;
 	run_time+=t_dt;
 	ros_time = t_ros_time;
 	diag.Diagnostic_Type = NOERROR;
@@ -11,7 +11,7 @@ icarus_rover_v2::diagnostic BaseNodeProcess::update_baseprocess(double t_dt,doub
 	diagnostic = diag;
 	return diag;
 }
-void BaseNodeProcess::set_mydevice(icarus_rover_v2::device t_device)
+void BaseNodeProcess::set_mydevice(eros::device t_device)
 {
 	mydevice = t_device;
 	initialized = true;
@@ -32,13 +32,13 @@ ros::Time BaseNodeProcess::convert_time(double t_)
 	t.nsec = (int64_t)(rem*1000000.0);
 	return t;
 }
-std::vector<icarus_rover_v2::diagnostic> BaseNodeProcess::run_unittest()
+std::vector<eros::diagnostic> BaseNodeProcess::run_unittest()
 {
 
-	std::vector<icarus_rover_v2::diagnostic> diaglist;
+	std::vector<eros::diagnostic> diaglist;
 	if (unittest_running == false) {
 		unittest_running = true;
-		icarus_rover_v2::diagnostic diag = diagnostic;
+		eros::diagnostic diag = diagnostic;
 		bool status = true;
 		std::string data;
 		std::string cmd =
@@ -148,7 +148,7 @@ std::vector<icarus_rover_v2::diagnostic> BaseNodeProcess::run_unittest()
 	else
 	{
 
-		icarus_rover_v2::diagnostic diag = diagnostic;
+		eros::diagnostic diag = diagnostic;
 		diag.Diagnostic_Type = SOFTWARE;
 		diag.Level = WARN;
 		diag.Diagnostic_Message = DROPPING_PACKETS;
@@ -157,9 +157,9 @@ std::vector<icarus_rover_v2::diagnostic> BaseNodeProcess::run_unittest()
 	}
 	return diaglist;
 }
-icarus_rover_v2::device BaseNodeProcess::convert_fromptr(const icarus_rover_v2::device::ConstPtr& t_ptr)
+eros::device BaseNodeProcess::convert_fromptr(const eros::device::ConstPtr& t_ptr)
 {
-	icarus_rover_v2::device dev;
+	eros::device dev;
 	dev.Architecture = t_ptr->Architecture;
 	dev.BoardCount = t_ptr->BoardCount;
 	dev.Capabilities = t_ptr->Capabilities;
@@ -175,9 +175,9 @@ icarus_rover_v2::device BaseNodeProcess::convert_fromptr(const icarus_rover_v2::
 	dev.pins = t_ptr->pins;
 	return dev;
 }
-icarus_rover_v2::pin BaseNodeProcess::convert_fromptr(const icarus_rover_v2::pin::ConstPtr& t_ptr)
+eros::pin BaseNodeProcess::convert_fromptr(const eros::pin::ConstPtr& t_ptr)
 {
-	icarus_rover_v2::pin pin;
+	eros::pin pin;
 	pin.AuxTopic = t_ptr->AuxTopic;
 	pin.ConnectedDevice = t_ptr->ConnectedDevice;
 	pin.ConnectedSensor = t_ptr->ConnectedSensor;
@@ -193,9 +193,9 @@ icarus_rover_v2::pin BaseNodeProcess::convert_fromptr(const icarus_rover_v2::pin
 	pin.stamp = t_ptr->stamp;
 	return pin;
 }
-icarus_rover_v2::command BaseNodeProcess::convert_fromptr(const icarus_rover_v2::command::ConstPtr& t_ptr)
+eros::command BaseNodeProcess::convert_fromptr(const eros::command::ConstPtr& t_ptr)
 {
-	icarus_rover_v2::command cmd;
+	eros::command cmd;
 	cmd.Command = t_ptr->Command;
 	cmd.CommandText = t_ptr->CommandText;
 	cmd.Description = t_ptr->Description;
@@ -204,9 +204,9 @@ icarus_rover_v2::command BaseNodeProcess::convert_fromptr(const icarus_rover_v2:
 	cmd.Option3 = t_ptr->Option3;
 	return cmd;
 }
-icarus_rover_v2::diagnostic BaseNodeProcess::convert_fromptr(const icarus_rover_v2::diagnostic::ConstPtr& t_ptr)
+eros::diagnostic BaseNodeProcess::convert_fromptr(const eros::diagnostic::ConstPtr& t_ptr)
 {
-	icarus_rover_v2::diagnostic diag;
+	eros::diagnostic diag;
 	diag.Component = t_ptr->Component;
 	diag.Description = t_ptr->Description;
 	diag.DeviceName = t_ptr->DeviceName;
@@ -218,9 +218,9 @@ icarus_rover_v2::diagnostic BaseNodeProcess::convert_fromptr(const icarus_rover_
 	diag.System = t_ptr->System;
 	return diag;
 }
-icarus_rover_v2::imu BaseNodeProcess::convert_fromptr(const icarus_rover_v2::imu::ConstPtr& t_ptr)
+eros::imu BaseNodeProcess::convert_fromptr(const eros::imu::ConstPtr& t_ptr)
 {
-	icarus_rover_v2::imu imu;
+	eros::imu imu;
 	imu.timestamp = t_ptr->timestamp;
 	imu.sequence_number = t_ptr->sequence_number;
 	imu.tov = t_ptr->tov;

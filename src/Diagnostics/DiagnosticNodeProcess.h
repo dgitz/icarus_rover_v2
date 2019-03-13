@@ -42,20 +42,20 @@ public:
 	{
 		uint8_t Level;
 		double last_time;
-		icarus_rover_v2::diagnostic diag;
+		eros::diagnostic diag;
 	};
 	///Initialization Functions
 	/*! \brief NodeProcess specific Initialization
 	 *
 	 */
-	icarus_rover_v2::diagnostic finish_initialization();
+	eros::diagnostic finish_initialization();
 	//Update Functions
 	/*! \brief Implementation of the update function
 	 *
 	 */
-	icarus_rover_v2::diagnostic update(double t_dt,double t_ros_time);
+	eros::diagnostic update(double t_dt,double t_ros_time);
     /*! \brief Checks tasks for CPU,RAM issues and for heartbeats */
-	std::vector<icarus_rover_v2::diagnostic> check_tasks();
+	std::vector<eros::diagnostic> check_tasks();
 	//Attribute Functions
 	bool get_RobotUnderRemoteControl() { return RCControl; }
 	double get_worstdiag_timelimit() { return WORSTDIAG_TIMELIMIT; }
@@ -82,15 +82,15 @@ public:
 	bool get_log_resources_used() { return log_resource_used; }
 	//Message Functions
 	/*! \brief  Process Command Message. */
-	std::vector<icarus_rover_v2::diagnostic> new_commandmsg(const icarus_rover_v2::command::ConstPtr& t_msg);
+	std::vector<eros::diagnostic> new_commandmsg(const eros::command::ConstPtr& t_msg);
     /*! \brief  Process Device Message. */
-	icarus_rover_v2::diagnostic new_devicemsg(const icarus_rover_v2::device::ConstPtr& device);
+	eros::diagnostic new_devicemsg(const eros::device::ConstPtr& device);
     /*! \brief  Process Heartbeat Message. */
 	void new_heartbeatmsg(std::string topicname);
     /*! \brief  Process Resource Message. */
-	void new_resourcemsg(std::string topicname,const icarus_rover_v2::resource::ConstPtr& resource);
+	void new_resourcemsg(std::string topicname,const eros::resource::ConstPtr& resource);
     /*! \brief  Process Diagnostic Message. */
-	void new_diagnosticmsg(std::string topicname,const icarus_rover_v2::diagnostic::ConstPtr& diagnostic);
+	void new_diagnosticmsg(std::string topicname,const eros::diagnostic::ConstPtr& diagnostic);
     /*! \brief  Process Armed State Message. */
 	void new_armedstatemsg(uint8_t v) { armed_state = v; }
 	//Support Functions
@@ -101,7 +101,7 @@ private:
 	/*! \brief Process Specific Implementation
 	 *
 	 */
-	std::vector<icarus_rover_v2::diagnostic> check_programvariables();
+	std::vector<eros::diagnostic> check_programvariables();
 	std::string get_batterylevelstr(double v);
 	unsigned char get_lcdclockchar(int v);
 	std::string get_batteryvoltagestr();
@@ -129,7 +129,7 @@ private:
 	bool bad_diagnostic_received;
 	bool any_diagnostic_received;
 	bool lcd_available;
-	icarus_rover_v2::command current_command;
+	eros::command current_command;
 	bool command_received;
 	double lcdclock_timer;
 	uint8_t armed_state;

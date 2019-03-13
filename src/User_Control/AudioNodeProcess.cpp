@@ -1,7 +1,7 @@
 #include "AudioNodeProcess.h"
-icarus_rover_v2::diagnostic  AudioNodeProcess::finish_initialization()
+eros::diagnostic  AudioNodeProcess::finish_initialization()
 {
-    icarus_rover_v2::diagnostic diag = diagnostic;
+    eros::diagnostic diag = diagnostic;
 	audiorecord_timer = 0.0;
 	totalaudio_tokeep = 30.0;
 	number_files_removed = 0;
@@ -18,9 +18,9 @@ icarus_rover_v2::diagnostic  AudioNodeProcess::finish_initialization()
     last_armedstate = ARMEDSTATUS_UNDEFINED;
     return diagnostic;
 }
-icarus_rover_v2::diagnostic AudioNodeProcess::update(double t_dt,double t_ros_time)
+eros::diagnostic AudioNodeProcess::update(double t_dt,double t_ros_time)
 {
-    icarus_rover_v2::diagnostic diag = diagnostic;
+    eros::diagnostic diag = diagnostic;
     diag = update_baseprocess(t_dt,t_ros_time);
 	audiorecord_timer += t_dt;
 	if(microphone_count == 0)
@@ -123,10 +123,10 @@ icarus_rover_v2::diagnostic AudioNodeProcess::update(double t_dt,double t_ros_ti
 	
 	return diag;
 }
-icarus_rover_v2::diagnostic AudioNodeProcess::new_devicemsg(const icarus_rover_v2::device::ConstPtr& t_device)
+eros::diagnostic AudioNodeProcess::new_devicemsg(const eros::device::ConstPtr& t_device)
 {
-	icarus_rover_v2::diagnostic diag = diagnostic;
-    icarus_rover_v2::device device = convert_fromptr(t_device);
+	eros::diagnostic diag = diagnostic;
+    eros::device device = convert_fromptr(t_device);
     if(t_device->DeviceName == host_name)
 	{
 
@@ -176,10 +176,10 @@ icarus_rover_v2::diagnostic AudioNodeProcess::new_devicemsg(const icarus_rover_v
 	}
 	return diag;
 }
-std::vector<icarus_rover_v2::diagnostic> AudioNodeProcess::new_commandmsg(const icarus_rover_v2::command::ConstPtr& t_msg)
+std::vector<eros::diagnostic> AudioNodeProcess::new_commandmsg(const eros::command::ConstPtr& t_msg)
 {
-	std::vector<icarus_rover_v2::diagnostic> diaglist;
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	std::vector<eros::diagnostic> diaglist;
+	eros::diagnostic diag = diagnostic;
 	if (t_msg->Command == ROVERCOMMAND_RUNDIAGNOSTIC)
 	{
 		if (t_msg->Option1 == LEVEL1)
@@ -202,10 +202,10 @@ std::vector<icarus_rover_v2::diagnostic> AudioNodeProcess::new_commandmsg(const 
 	}
 	return diaglist;
 }
-std::vector<icarus_rover_v2::diagnostic> AudioNodeProcess::check_programvariables()
+std::vector<eros::diagnostic> AudioNodeProcess::check_programvariables()
 {
-	std::vector<icarus_rover_v2::diagnostic> diaglist;
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	std::vector<eros::diagnostic> diaglist;
+	eros::diagnostic diag = diagnostic;
 	bool status = true;
 
 	if (status == true) {

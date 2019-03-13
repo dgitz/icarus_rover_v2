@@ -1,19 +1,16 @@
-#include "TimeMasterNodeProcess.h"
-eros::diagnostic  TimeMasterNodeProcess::finish_initialization()
+#include "CalibrationNodeProcess.h"
+eros::diagnostic  CalibrationNodeProcess::finish_initialization()
 {
     eros::diagnostic diag = diagnostic;
-    	pps1_delay = 0;
-    	time_since_last_1pps = 0.0;
     return diagnostic;
 }
-eros::diagnostic TimeMasterNodeProcess::update(double t_dt,double t_ros_time)
+eros::diagnostic CalibrationNodeProcess::update(double t_dt,double t_ros_time)
 {
 	if(initialized == true)
 	{
 		ready = true;
 
 	}
-	time_since_last_1pps += t_dt;
 	eros::diagnostic diag = diagnostic;
 	diag = update_baseprocess(t_dt,t_ros_time);
 	if(diag.Level <= NOTICE)
@@ -27,12 +24,12 @@ eros::diagnostic TimeMasterNodeProcess::update(double t_dt,double t_ros_time)
 	diagnostic = diag;
 	return diag;
 }
-eros::diagnostic TimeMasterNodeProcess::new_devicemsg(const eros::device::ConstPtr& device)
+eros::diagnostic CalibrationNodeProcess::new_devicemsg(const eros::device::ConstPtr& device)
 {
 	eros::diagnostic diag = diagnostic;
 	return diag;
 }
-std::vector<eros::diagnostic> TimeMasterNodeProcess::new_commandmsg(const eros::command::ConstPtr& t_msg)
+std::vector<eros::diagnostic> CalibrationNodeProcess::new_commandmsg(const eros::command::ConstPtr& t_msg)
 {
 	std::vector<eros::diagnostic> diaglist;
 	eros::diagnostic diag = diagnostic;
@@ -58,7 +55,7 @@ std::vector<eros::diagnostic> TimeMasterNodeProcess::new_commandmsg(const eros::
 	}
 	return diaglist;
 }
-std::vector<eros::diagnostic> TimeMasterNodeProcess::check_programvariables()
+std::vector<eros::diagnostic> CalibrationNodeProcess::check_programvariables()
 {
 	std::vector<eros::diagnostic> diaglist;
 	eros::diagnostic diag = diagnostic;
@@ -78,22 +75,4 @@ std::vector<eros::diagnostic> TimeMasterNodeProcess::check_programvariables()
 		diaglist.push_back(diag);
 	}
 	return diaglist;
-}
-bool TimeMasterNodeProcess::set_ppssource(std::string v)
-{
-	if(v == "self")
-	{
-		pps_source = v;
-		return true;
-	}
-	return false;
-}
-bool TimeMasterNodeProcess::publish_1pps()
-{
-	if(time_since_last_1pps >= 1.0)
-	{
-		time_since_last_1pps = 0.0;
-		return true;
-	}
-	return false;
 }

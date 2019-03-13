@@ -75,7 +75,7 @@ TEST(BasicKalmanFilter,Initialization)
 }
 TEST(BasicKalmanFilter,AutoGenUnitTestFiles)
 {
-	icarus_rover_v2::diagnostic diagnostic;
+	eros::diagnostic diagnostic;
 	diagnostic.DeviceName = "Device1";
 	diagnostic.Node_Name = "Node1";
 	diagnostic.System = ROVER;

@@ -1,8 +1,6 @@
 #include <gtest/gtest.h>
 #include "ros/ros.h"
 #include "ros/time.h"
-#include "icarus_rover_v2/device.h"
-#include "icarus_rover_v2/diagnostic.h"
 #include "../BoardControllerNodeProcess.h"
 
 std::string Node_Name = "/unittest_boardcontroller_node_process";
@@ -17,7 +15,7 @@ bool check_if_initialized(BoardControllerNodeProcess process);
 void print_sensordata(std::vector<BoardControllerNodeProcess::Sensor> sensors);
 BoardControllerNodeProcess* initializeprocess()
 {
-	icarus_rover_v2::diagnostic diagnostic;
+	eros::diagnostic diagnostic;
 	diagnostic.DeviceName = ros_DeviceName;
 	diagnostic.Node_Name = Node_Name;
 	diagnostic.System = ROVER;
@@ -29,7 +27,7 @@ BoardControllerNodeProcess* initializeprocess()
 	diagnostic.Diagnostic_Message = INITIALIZING;
 	diagnostic.Description = "Node Initializing";
 
-	icarus_rover_v2::device device;
+	eros::device device;
 	device.DeviceName = diagnostic.DeviceName;
 	device.BoardCount = 0;
 	device.SensorCount = 0;
@@ -48,9 +46,9 @@ BoardControllerNodeProcess* initializeprocess()
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 	return process;
 }
-BoardControllerNodeProcess* initializeprocess(icarus_rover_v2::device device)
+BoardControllerNodeProcess* initializeprocess(eros::device device)
 {
-	icarus_rover_v2::diagnostic diagnostic;
+	eros::diagnostic diagnostic;
 	diagnostic.DeviceName = ros_DeviceName;
 	diagnostic.Node_Name = Node_Name;
 	diagnostic.System = ROVER;
@@ -80,7 +78,7 @@ TEST(Template,Process_Initialization)
 }
 TEST(DeviceInitialization,DeviceInitialization_ArduinoBoard)
 {
-	icarus_rover_v2::diagnostic diagnostic;
+	eros::diagnostic diagnostic;
 	diagnostic.DeviceName = ros_DeviceName;
 	diagnostic.Node_Name = Node_Name;
 	diagnostic.System = ROVER;
@@ -92,7 +90,7 @@ TEST(DeviceInitialization,DeviceInitialization_ArduinoBoard)
 	diagnostic.Diagnostic_Message = INITIALIZING;
 	diagnostic.Description = "Node Initializing";
 
-	icarus_rover_v2::device ros_device;
+	eros::device ros_device;
 	ros_device.DeviceName = ros_DeviceName;
 	ros_device.DeviceParent = "";
 	ros_device.DeviceType = ros_DeviceType;
@@ -100,7 +98,7 @@ TEST(DeviceInitialization,DeviceInitialization_ArduinoBoard)
 	ros_device.SensorCount = 0;
 	ros_device.ID = 17;
 
-	icarus_rover_v2::device arduinoboard1_device;
+	eros::device arduinoboard1_device;
 	arduinoboard1_device.DeviceName = "ArduinoBoard1";
 	arduinoboard1_device.DeviceParent = ros_DeviceName;
 	arduinoboard1_device.DeviceType = "ArduinoBoard";
@@ -109,7 +107,7 @@ TEST(DeviceInitialization,DeviceInitialization_ArduinoBoard)
 	arduinoboard1_device.ID = 0;
 
 	{
-		icarus_rover_v2::pin newpin;
+		eros::pin newpin;
 		newpin.ConnectedSensor = "LeftEncoder";
 		newpin.Name = "LeftEncoder";
 		newpin.Number = 0;
@@ -118,7 +116,7 @@ TEST(DeviceInitialization,DeviceInitialization_ArduinoBoard)
 	}
 
 	{
-		icarus_rover_v2::pin newpin;
+		eros::pin newpin;
 		newpin.ConnectedSensor = "RightEncoder";
 		newpin.Name = "RightEncoder";
 		newpin.Number = 1;
@@ -127,7 +125,7 @@ TEST(DeviceInitialization,DeviceInitialization_ArduinoBoard)
 	}
 
 	{
-		icarus_rover_v2::pin newpin;
+		eros::pin newpin;
 		newpin.ConnectedSensor = "BucketAngleSensor";
 		newpin.Name = "AnalogInput0";
 		newpin.Number = 0;
@@ -136,7 +134,7 @@ TEST(DeviceInitialization,DeviceInitialization_ArduinoBoard)
 	}
 
 	{
-		icarus_rover_v2::pin newpin;
+		eros::pin newpin;
 		newpin.ConnectedSensor = "BucketLiftSensor";
 		newpin.Name = "AnalogInput1";
 		newpin.Number = 1;
@@ -149,7 +147,7 @@ TEST(DeviceInitialization,DeviceInitialization_ArduinoBoard)
 	EXPECT_TRUE(process->is_initialized() == true);
 	EXPECT_TRUE(process->is_ready() == false);
 
-	icarus_rover_v2::device::ConstPtr arduinoboard1_ptr(new icarus_rover_v2::device(arduinoboard1_device));
+	eros::device::ConstPtr arduinoboard1_ptr(new eros::device(arduinoboard1_device));
 	diagnostic = process->new_devicemsg(arduinoboard1_ptr);
 	printf("%s\n",diagnostic.Description.c_str());
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);

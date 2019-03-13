@@ -1,6 +1,5 @@
 #Pose Blocks
 add_library(poseacceleration_block PoseAccelerationBlock.cpp)
-add_dependencies(poseacceleration_block icarus_rover_v2_generate_messages_cpp)
 
 
 catkin_add_gtest(test_pose_blocks unit_tests/test_pose_blocks.cpp)

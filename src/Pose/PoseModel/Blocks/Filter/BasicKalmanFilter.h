@@ -9,7 +9,7 @@
 #include <eigen3/Eigen/Dense>
 //ROS Base Functionality
 //ROS Messages
-#include <icarus_rover_v2/diagnostic.h>
+#include <eros/diagnostic.h>
 //Project
 #include "Definitions.h"
 
@@ -37,7 +37,7 @@ public:
 	/*! \brief Filter Initialization
 	 *
 	 */
-	icarus_rover_v2::diagnostic initialize(icarus_rover_v2::diagnostic _diagnostic,
+	eros::diagnostic initialize(eros::diagnostic _diagnostic,
 			uint8_t _input_count,
 			uint8_t _output_count,
 			double _initial_state,
@@ -57,7 +57,7 @@ public:
 	double update(VectorXf input,VectorXf input_weight);
 	//Printing Functions
 private:
-	icarus_rover_v2::diagnostic diagnostic;
+	eros::diagnostic diagnostic;
 	double output;
 	uint8_t input_count;
 	uint8_t output_count;

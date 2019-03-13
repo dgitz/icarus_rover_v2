@@ -3,6 +3,7 @@
 //C++ System Files
 //ROS Base Functionality
 //ROS Messages
+
 //Project
 #include <tinyxml.h>
 #define RMS_BUFFER_LIMIT 200
@@ -43,8 +44,8 @@ public:
 		std::string connection_method;
 		std::string device_path;
 		std::string comm_rate;
-		icarus_rover_v2::diagnostic diagnostic;
-		icarus_rover_v2::imu imu_data;
+		eros::diagnostic diagnostic;
+		eros::imu imu_data;
 		double acc_scale_factor;
 		double gyro_scale_factor;
 		double mag_scale_factor;
@@ -71,12 +72,12 @@ public:
 	/*! \brief NodeProcess specific Initialization
 	 *
 	 */
-	icarus_rover_v2::diagnostic finish_initialization();
+	eros::diagnostic finish_initialization();
 	//Update Functions
 	/*! \brief Implementation of the update function
 	 *
 	 */
-	icarus_rover_v2::diagnostic update(double t_dt,double t_ros_time);
+	eros::diagnostic update(double t_dt,double t_ros_time);
 
 	//Attribute Functions
 	double get_commtimeout_threshold() { return IMU_INVALID_TIME_THRESHOLD; }
@@ -91,10 +92,10 @@ public:
 	/*! \brief  Process Command Message.  All implementation should use at least the code in this Sample Function.
 	 *
 	 */
-	std::vector<icarus_rover_v2::diagnostic> new_commandmsg(const icarus_rover_v2::command::ConstPtr& t_msg);
-	icarus_rover_v2::diagnostic new_devicemsg(const icarus_rover_v2::device::ConstPtr& device);
-	icarus_rover_v2::diagnostic new_devicemsg(const icarus_rover_v2::device::ConstPtr& device,const icarus_rover_v2::leverarm::ConstPtr& leverarm);
-	icarus_rover_v2::diagnostic new_imumsg(std::string devicename,IMUDriver::RawIMU imu_data,icarus_rover_v2::imu &proc_imu);
+	std::vector<eros::diagnostic> new_commandmsg(const eros::command::ConstPtr& t_msg);
+	eros::diagnostic new_devicemsg(const eros::device::ConstPtr& device);
+	eros::diagnostic new_devicemsg(const eros::device::ConstPtr& device,const eros::leverarm::ConstPtr& leverarm);
+	eros::diagnostic new_imumsg(std::string devicename,IMUDriver::RawIMU imu_data,eros::imu &proc_imu);
 
 	//Support Functions
 
@@ -107,7 +108,7 @@ private:
 	/*! \brief Process Specific Implementation
 	 *
 	 */
-	std::vector<icarus_rover_v2::diagnostic> check_programvariables();
+	std::vector<eros::diagnostic> check_programvariables();
 	RotationMatrix generate_rotation_matrix(double mao_roll_deg,double mao_pitch_deg,double mao_yaw_deg);
 
 	std::vector<IMU> imus;

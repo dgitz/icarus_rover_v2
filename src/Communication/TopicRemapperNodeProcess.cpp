@@ -1,17 +1,17 @@
 #include "TopicRemapperNodeProcess.h"
-icarus_rover_v2::diagnostic  TopicRemapperNodeProcess::finish_initialization()
+eros::diagnostic  TopicRemapperNodeProcess::finish_initialization()
 {
-    icarus_rover_v2::diagnostic diag = diagnostic;
+    eros::diagnostic diag = diagnostic;
     return diagnostic;
 }
-icarus_rover_v2::diagnostic TopicRemapperNodeProcess::update(double t_dt,double t_ros_time)
+eros::diagnostic TopicRemapperNodeProcess::update(double t_dt,double t_ros_time)
 {
 	if(initialized == true)
 	{
 		ready = true;
 
 	}
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	eros::diagnostic diag = diagnostic;
 	diag = update_baseprocess(t_dt,t_ros_time);
 	if(diag.Level <= NOTICE)
 	{
@@ -24,15 +24,15 @@ icarus_rover_v2::diagnostic TopicRemapperNodeProcess::update(double t_dt,double 
 	diagnostic = diag;
 	return diag;
 }
-icarus_rover_v2::diagnostic TopicRemapperNodeProcess::new_devicemsg(const icarus_rover_v2::device::ConstPtr& device)
+eros::diagnostic TopicRemapperNodeProcess::new_devicemsg(const eros::device::ConstPtr& device)
 {
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	eros::diagnostic diag = diagnostic;
 	return diag;
 }
-std::vector<icarus_rover_v2::diagnostic> TopicRemapperNodeProcess::new_commandmsg(const icarus_rover_v2::command::ConstPtr& t_msg)
+std::vector<eros::diagnostic> TopicRemapperNodeProcess::new_commandmsg(const eros::command::ConstPtr& t_msg)
 {
-	std::vector<icarus_rover_v2::diagnostic> diaglist;
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	std::vector<eros::diagnostic> diaglist;
+	eros::diagnostic diag = diagnostic;
 	if (t_msg->Command == ROVERCOMMAND_RUNDIAGNOSTIC)
 	{
 		if (t_msg->Option1 == LEVEL1)
@@ -55,10 +55,10 @@ std::vector<icarus_rover_v2::diagnostic> TopicRemapperNodeProcess::new_commandms
 	}
 	return diaglist;
 }
-std::vector<icarus_rover_v2::diagnostic> TopicRemapperNodeProcess::check_programvariables()
+std::vector<eros::diagnostic> TopicRemapperNodeProcess::check_programvariables()
 {
-	std::vector<icarus_rover_v2::diagnostic> diaglist;
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	std::vector<eros::diagnostic> diaglist;
+	eros::diagnostic diag = diagnostic;
 	bool status = true;
 
 	if (status == true) {
@@ -307,9 +307,9 @@ int TopicRemapperNodeProcess::parse_topicmapfile(TiXmlDocument doc)
 	}
 	return TopicMaps.size();
 }
-icarus_rover_v2::diagnostic TopicRemapperNodeProcess::load(std::string topicmapfilepath)
+eros::diagnostic TopicRemapperNodeProcess::load(std::string topicmapfilepath)
 {
-    icarus_rover_v2::diagnostic diag = diagnostic;
+    eros::diagnostic diag = diagnostic;
     TiXmlDocument topicmap_doc(topicmapfilepath);
     bool topicmapfile_loaded = topicmap_doc.LoadFile();
 	if(topicmapfile_loaded == true)
@@ -415,9 +415,9 @@ double TopicRemapperNodeProcess::scale_value(double x,double neutral,double x1,d
     }
     return out;
 }
-icarus_rover_v2::diagnostic TopicRemapperNodeProcess::new_joymsg(sensor_msgs::Joy msg,std::string topic)
+eros::diagnostic TopicRemapperNodeProcess::new_joymsg(sensor_msgs::Joy msg,std::string topic)
 {
-    icarus_rover_v2::diagnostic diag = diagnostic;
+    eros::diagnostic diag = diagnostic;
     for(int i = 0; i < TopicMaps.size();i++)
 	{
         TopicMap map = TopicMaps.at(i);
@@ -457,7 +457,7 @@ icarus_rover_v2::diagnostic TopicRemapperNodeProcess::new_joymsg(sensor_msgs::Jo
 						if(ch.type == "icarus_rover_v2/pin")
 						{
 							double out = scale_value(in_value,ch.neutralvalue,map.in.minvalue,map.in.maxvalue,ch.minvalue,ch.maxvalue,ch.deadband);
-							icarus_rover_v2::pin newpin;
+							eros::pin newpin;
 							newpin.stamp = msg.header.stamp;
 							newpin.ParentDevice = ch.parentdevice;
 							newpin.DefaultValue = (int)ch.neutralvalue;
@@ -522,7 +522,7 @@ icarus_rover_v2::diagnostic TopicRemapperNodeProcess::new_joymsg(sensor_msgs::Jo
 
                 		if(ch.type == "icarus_rover_v2/pin")
                 		{
-                			icarus_rover_v2::pin newpin;
+                			eros::pin newpin;
                 			newpin.stamp = msg.header.stamp;
                 			newpin.ParentDevice = ch.parentdevice;
                 			newpin.DefaultValue = (int)ch.neutralvalue;
@@ -587,7 +587,7 @@ icarus_rover_v2::diagnostic TopicRemapperNodeProcess::new_joymsg(sensor_msgs::Jo
             	for(std::size_t j = 0; j < TopicMaps.at(i).outs.size();j++)
 				{
             		OutputChannel ch = TopicMaps.at(i).outs.at(j);
-            		icarus_rover_v2::pin newpin;
+            		eros::pin newpin;
 					newpin.stamp = msg.header.stamp;
 					newpin.ParentDevice = ch.parentdevice;
 					newpin.Function = ch.function;
@@ -609,16 +609,16 @@ icarus_rover_v2::diagnostic TopicRemapperNodeProcess::new_joymsg(sensor_msgs::Jo
     diag.Description = std::string(tempstr);
     return diag;
 }
-std::vector<icarus_rover_v2::pin> TopicRemapperNodeProcess::get_outputs_pins()
+std::vector<eros::pin> TopicRemapperNodeProcess::get_outputs_pins()
 {
-    std::vector<icarus_rover_v2::pin> outs;
+    std::vector<eros::pin> outs;
     for(std::size_t i = 0; i < TopicMaps.size(); i++)
     {
         for(std::size_t j = 0; j < TopicMaps.at(i).outs.size(); j++)
         {
             if(TopicMaps.at(i).outs.at(j).type == "icarus_rover_v2/pin")
             {
-                icarus_rover_v2::pin out;
+                eros::pin out;
                 OutputChannel ch = TopicMaps.at(i).outs.at(j);
                 out.ParentDevice = ch.parentdevice;
                 out.Function = ch.function;

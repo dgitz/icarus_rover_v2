@@ -37,9 +37,9 @@ bool NetworkTransceiverNode::start(int argc,char **argv)
 	return status;
 }
 
-icarus_rover_v2::diagnostic NetworkTransceiverNode::read_launchparameters()
+eros::diagnostic NetworkTransceiverNode::read_launchparameters()
 {
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	eros::diagnostic diag = diagnostic;
 	std::string send_multicast_group;
 	int send_multicast_port,recv_unicast_port;
 	std::string param_send_multicast_group = node_name +"/Send_Multicast_Group";
@@ -89,15 +89,15 @@ icarus_rover_v2::diagnostic NetworkTransceiverNode::read_launchparameters()
 	get_logger()->log_notice("Configuration Files Loaded.");
 	return diagnostic;
 }
-icarus_rover_v2::diagnostic NetworkTransceiverNode::finish_initialization()
+eros::diagnostic NetworkTransceiverNode::finish_initialization()
 {
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	eros::diagnostic diag = diagnostic;
 	pps1_sub = n->subscribe<std_msgs::Bool>("/1PPS",1,&NetworkTransceiverNode::PPS1_Callback,this);
-	command_sub = n->subscribe<icarus_rover_v2::command>("/command",1,&NetworkTransceiverNode::Command_Callback,this);
+	command_sub = n->subscribe<eros::command>("/command",1,&NetworkTransceiverNode::Command_Callback,this);
 	std::string armed_disarmed_state_topic = "/armed_state";
 	armed_disarmed_state_sub = n->subscribe<std_msgs::UInt8>(armed_disarmed_state_topic,10,&NetworkTransceiverNode::ArmedState_Callback,this);
 	std::string device_topic = "/" + std::string(host_name) + "_master_node/srv_device";
-	srv_device = n->serviceClient<icarus_rover_v2::srv_device>(device_topic);
+	srv_device = n->serviceClient<eros::srv_device>(device_topic);
 	if(process->get_UIMode()=="Diagnostics_GUI")
 	{
 		std::string joystick_topic = "/" + process->get_UIMode() + "/joystick";
@@ -122,10 +122,10 @@ icarus_rover_v2::diagnostic NetworkTransceiverNode::finish_initialization()
 		arm2_joy_pub =  n->advertise<sensor_msgs::Joy>(arm2_joystick_topic,1);
 
 		std::string user_command_topic = "/" + process->get_UIMode() + "/user_command";
-		user_command_pub = n->advertise<icarus_rover_v2::command>(user_command_topic,1);
+		user_command_pub = n->advertise<eros::command>(user_command_topic,1);
 
 		std::string controlgroup_topic = "/" + process->get_UIMode() + "/controlgroup";
-		controlgroup_pub = n->advertise<icarus_rover_v2::controlgroup>(controlgroup_topic,1);
+		controlgroup_pub = n->advertise<eros::controlgroup>(controlgroup_topic,1);
 
 	}
 	udpmessagehandler = new UDPMessageHandler();
@@ -151,7 +151,7 @@ icarus_rover_v2::diagnostic NetworkTransceiverNode::finish_initialization()
 }
 bool NetworkTransceiverNode::run_001hz()
 {
-	icarus_rover_v2::diagnostic diagnostic = rescan_topics(process->get_diagnostic());
+	eros::diagnostic diagnostic = rescan_topics(process->get_diagnostic());
 	if(diagnostic.Level > NOTICE)
 	{
 		logger->log_diagnostic(diagnostic);
@@ -162,7 +162,7 @@ bool NetworkTransceiverNode::run_001hz()
 bool NetworkTransceiverNode::run_01hz()
 {
 
-	icarus_rover_v2::diagnostic diag = process->get_diagnostic();
+	eros::diagnostic diag = process->get_diagnostic();
 	{
 		get_logger()->log_diagnostic(diag);
 		diagnostic_pub.publish(diag);
@@ -182,7 +182,7 @@ bool NetworkTransceiverNode::run_1hz()
 	{
 		{
 			{
-				icarus_rover_v2::srv_device srv;
+				eros::srv_device srv;
 				srv.request.query = "SELF";
 				if(srv_device.call(srv) == true)
 				{
@@ -217,7 +217,7 @@ bool NetworkTransceiverNode::run_1hz()
 
 		}
 	}
-	icarus_rover_v2::diagnostic diag = process->get_diagnostic();
+	eros::diagnostic diag = process->get_diagnostic();
 	if(diag.Level >= NOTICE)
 	{
 		get_logger()->log_diagnostic(diag);
@@ -238,7 +238,7 @@ bool NetworkTransceiverNode::run_10hz()
 	{
 		ready_to_arm = false;
 	}
-	icarus_rover_v2::diagnostic diag = process->update(0.1,ros::Time::now().toSec());
+	eros::diagnostic diag = process->update(0.1,ros::Time::now().toSec());
 	if(diag.Level > WARN)
 	{
 		get_logger()->log_diagnostic(diag);
@@ -307,12 +307,12 @@ void NetworkTransceiverNode::PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 	new_ppsmsg(msg);
 }
 
-void NetworkTransceiverNode::Command_Callback(const icarus_rover_v2::command::ConstPtr& t_msg)
+void NetworkTransceiverNode::Command_Callback(const eros::command::ConstPtr& t_msg)
 {
-	std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(t_msg);
+	std::vector<eros::diagnostic> diaglist = process->new_commandmsg(t_msg);
 	new_commandmsg_result(t_msg,diaglist);
 }
-bool NetworkTransceiverNode::new_devicemsg(std::string query,icarus_rover_v2::device t_device)
+bool NetworkTransceiverNode::new_devicemsg(std::string query,eros::device t_device)
 {
 	if(query == "SELF")
 	{
@@ -325,12 +325,12 @@ bool NetworkTransceiverNode::new_devicemsg(std::string query,icarus_rover_v2::de
 
 	if((process->is_initialized() == true))
 	{
-		icarus_rover_v2::device::ConstPtr device_ptr(new icarus_rover_v2::device(t_device));
-		icarus_rover_v2::diagnostic diag = process->new_devicemsg(device_ptr);
+		eros::device::ConstPtr device_ptr(new eros::device(t_device));
+		eros::diagnostic diag = process->new_devicemsg(device_ptr);
 	}
 	return true;
 }
-icarus_rover_v2::diagnostic NetworkTransceiverNode::rescan_topics(icarus_rover_v2::diagnostic diag)
+eros::diagnostic NetworkTransceiverNode::rescan_topics(eros::diagnostic diag)
 {
 	int found_new_topics = 0;
 
@@ -348,7 +348,7 @@ icarus_rover_v2::diagnostic NetworkTransceiverNode::rescan_topics(icarus_rover_v
 				char tempstr[255];
 				sprintf(tempstr,"Subscribing to resource topic: %s",info.name.c_str());
 				logger->log_info(tempstr);
-				ros::Subscriber sub = n->subscribe<icarus_rover_v2::resource>(info.name,20,&NetworkTransceiverNode::resource_Callback,this);
+				ros::Subscriber sub = n->subscribe<eros::resource>(info.name,20,&NetworkTransceiverNode::resource_Callback,this);
 				resource_subs.push_back(sub);
 			}
 		}
@@ -361,7 +361,7 @@ icarus_rover_v2::diagnostic NetworkTransceiverNode::rescan_topics(icarus_rover_v
 				char tempstr[255];
 				sprintf(tempstr,"Subscribing to diagnostic topic: %s",info.name.c_str());
 				logger->log_info(tempstr);
-				ros::Subscriber sub = n->subscribe<icarus_rover_v2::diagnostic>(info.name,20,&NetworkTransceiverNode::diagnostic_Callback,this);
+				ros::Subscriber sub = n->subscribe<eros::diagnostic>(info.name,20,&NetworkTransceiverNode::diagnostic_Callback,this);
 				diagnostic_subs.push_back(sub);
 			}
 		}
@@ -374,7 +374,7 @@ icarus_rover_v2::diagnostic NetworkTransceiverNode::rescan_topics(icarus_rover_v
 				char tempstr[255];
 				sprintf(tempstr,"Subscribing to firmware topic: %s",info.name.c_str());
 				logger->log_info(tempstr);
-				ros::Subscriber sub = n->subscribe<icarus_rover_v2::firmware>(info.name,1,&NetworkTransceiverNode::firmware_Callback,this);
+				ros::Subscriber sub = n->subscribe<eros::firmware>(info.name,1,&NetworkTransceiverNode::firmware_Callback,this);
 				firmware_subs.push_back(sub);
 			}
 		}
@@ -404,7 +404,7 @@ void NetworkTransceiverNode::ArmedState_Callback(const std_msgs::UInt8::ConstPtr
 	std::string send_string = udpmessagehandler->encode_Arm_StatusUDP(msg->data);
 	process->push_sendqueue(ARM_STATUS_ID,send_string);
 }
-void NetworkTransceiverNode::diagnostic_Callback(const icarus_rover_v2::diagnostic::ConstPtr& msg)
+void NetworkTransceiverNode::diagnostic_Callback(const eros::diagnostic::ConstPtr& msg)
 {
 	std::string send_string = udpmessagehandler->encode_DiagnosticUDP(
 			msg->DeviceName,
@@ -418,7 +418,7 @@ void NetworkTransceiverNode::diagnostic_Callback(const icarus_rover_v2::diagnost
 			msg->Description);
 	process->push_sendqueue(DIAGNOSTIC_ID,send_string);
 }
-void NetworkTransceiverNode::firmware_Callback(const icarus_rover_v2::firmware::ConstPtr& msg)
+void NetworkTransceiverNode::firmware_Callback(const eros::firmware::ConstPtr& msg)
 {
 	std::string send_string = udpmessagehandler->encode_FirmwareUDP(
 			msg->Node_Name,
@@ -429,7 +429,7 @@ void NetworkTransceiverNode::firmware_Callback(const icarus_rover_v2::firmware::
 
 	process->push_sendqueue(FIRMWARE_ID,send_string);
 }
-void NetworkTransceiverNode::resource_Callback(const icarus_rover_v2::resource::ConstPtr& msg)
+void NetworkTransceiverNode::resource_Callback(const eros::resource::ConstPtr& msg)
 {
 	std::string send_string = udpmessagehandler->encode_ResourceUDP(msg->Node_Name,
 			msg->RAM_MB,
@@ -515,7 +515,7 @@ void NetworkTransceiverNode::thread_loop()
 				success = udpmessagehandler->decode_CommandUDP(items,&command,&option1,&option2,&option3,&tempstr1,&tempstr2);
 				if(success == 1)
 				{
-					icarus_rover_v2::command newcommand;
+					eros::command newcommand;
 					newcommand.Command = command;
 					newcommand.Option1 = option1;
 					newcommand.Option2 = option2;
@@ -533,7 +533,7 @@ void NetworkTransceiverNode::thread_loop()
 				success = udpmessagehandler->decode_HeartbeatUDP(items,&tempstr1,&t,&t2);
 				if(success == 1)
 				{
-					icarus_rover_v2::diagnostic diag = process->new_remoteheartbeatmsg(ros::Time::now().toSec(),tempstr1,(double)t/1000.0,(double)t2/1000.0);
+					eros::diagnostic diag = process->new_remoteheartbeatmsg(ros::Time::now().toSec(),tempstr1,(double)t/1000.0,(double)t2/1000.0);
 					if(diag.Level > NOTICE)
 					{
 						logger->log_diagnostic(diag);
@@ -608,7 +608,7 @@ void NetworkTransceiverNode::thread_loop()
 				success = udpmessagehandler->decode_TuneControlGroupUDP(items,&tempstr1,&tempstr2,&v1,&v2,&v3,&int_1,&int_2,&int_3);
 				if(success == 1)
 				{
-					icarus_rover_v2::controlgroup cg;
+					eros::controlgroup cg;
 					cg.name = tempstr1;
 					cg.type = tempstr2;
 					cg.value1 = v1;

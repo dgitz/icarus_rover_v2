@@ -3,13 +3,14 @@
 //C++ System Files
 //ROS Base Functionality
 //ROS Messages
+#include <visualization_msgs/Marker.h>
 //Project
 
-/*! \class SampleNodeProcess SampleNodeProcess.h "SampleNodeProcess.h"
- *  \brief This is a SampleNodeProcess class.  Used for the sample_node node.
+/*! \class CalibrationNodeProcess CalibrationNodeProcess.h "CalibrationNodeProcess.h"
+ *  \brief This is a CalibrationNodeProcess class.  Used for the sample_node node.
  *
  */
-class SampleNodeProcess: public BaseNodeProcess {
+class CalibrationNodeProcess: public BaseNodeProcess {
 public:
     //Constants
     //Enums
@@ -28,7 +29,7 @@ public:
 	//Attribute Functions
 
 	//Message Functions
-	/*! \brief  Process Command Message.  All implementation should use at least the code in this Sample Function.
+	/*! \brief  Process Command Message.  All implementation should use at least the code in this Calibration Function.
 	 *
 	 */
 	std::vector<eros::diagnostic> new_commandmsg(const eros::command::ConstPtr& t_msg);

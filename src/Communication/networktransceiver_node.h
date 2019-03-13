@@ -49,11 +49,11 @@ private:
 	/*! \brief Read Node Specific Launch Parameters
 	 *
 	 */
-	icarus_rover_v2::diagnostic read_launchparameters();
+	eros::diagnostic read_launchparameters();
 	/*! \brief Setup other pubs/subs, other node specific init stuff
 	 *
 	 */
-	icarus_rover_v2::diagnostic finish_initialization();
+	eros::diagnostic finish_initialization();
 	bool initialize_sendsocket();
 	bool initialize_recvsocket();
 	//Update Functions
@@ -67,15 +67,15 @@ private:
 	//Attribute Functions
 	//Message Functions
 	void PPS1_Callback(const std_msgs::Bool::ConstPtr& t_msg);
-	void Command_Callback(const icarus_rover_v2::command::ConstPtr& t_msg);
-	bool new_devicemsg(std::string query,icarus_rover_v2::device t_device);
-	void diagnostic_Callback(const icarus_rover_v2::diagnostic::ConstPtr& msg);
-	void resource_Callback(const icarus_rover_v2::resource::ConstPtr& msg);
-	void firmware_Callback(const icarus_rover_v2::firmware::ConstPtr& msg);
+	void Command_Callback(const eros::command::ConstPtr& t_msg);
+	bool new_devicemsg(std::string query,eros::device t_device);
+	void diagnostic_Callback(const eros::diagnostic::ConstPtr& msg);
+	void resource_Callback(const eros::resource::ConstPtr& msg);
+	void firmware_Callback(const eros::firmware::ConstPtr& msg);
 	void ArmedState_Callback(const std_msgs::UInt8::ConstPtr& msg);
-	void device_callback(std::vector<icarus_rover_v2::device> devicelist);
+	void device_callback(std::vector<eros::device> devicelist);
 	//Support Functions
-	icarus_rover_v2::diagnostic rescan_topics(icarus_rover_v2::diagnostic diag);
+	eros::diagnostic rescan_topics(eros::diagnostic diag);
 
 	void process_udp_receive();
 

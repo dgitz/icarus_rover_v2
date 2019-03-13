@@ -38,21 +38,21 @@ bool CommandNode::start(int argc,char **argv)
 	return status;
 }
 
-icarus_rover_v2::diagnostic CommandNode::read_launchparameters()
+eros::diagnostic CommandNode::read_launchparameters()
 {
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	eros::diagnostic diag = diagnostic;
 	get_logger()->log_notice("Configuration Files Loaded.");
 	return diagnostic;
 }
-icarus_rover_v2::diagnostic CommandNode::finish_initialization()
+eros::diagnostic CommandNode::finish_initialization()
 {
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	eros::diagnostic diag = diagnostic;
 	pps1_sub = n->subscribe<std_msgs::Bool>("/1PPS",1,&CommandNode::PPS1_Callback,this);
-	command_sub = n->subscribe<icarus_rover_v2::command>("/command",1,&CommandNode::Command_Callback,this);
+	command_sub = n->subscribe<eros::command>("/command",1,&CommandNode::Command_Callback,this);
 	std::string device_topic = "/" + std::string(host_name) + "_master_node/srv_device";
-	srv_device = n->serviceClient<icarus_rover_v2::srv_device>(device_topic);
+	srv_device = n->serviceClient<eros::srv_device>(device_topic);
 	std::string command_topic = "/command";
-	command_pub =  n->advertise<icarus_rover_v2::command>(command_topic,1000);
+	command_pub =  n->advertise<eros::command>(command_topic,1000);
 
 	std::vector<std::string> ready_to_arm_topics;
 
@@ -108,7 +108,7 @@ icarus_rover_v2::diagnostic CommandNode::finish_initialization()
 		logger->log_diagnostic(diagnostic);
 		return diag;
 	}
-	user_command_sub = n->subscribe<icarus_rover_v2::command>(user_command_topic,10,&CommandNode::User_Command_Callback,this);
+	user_command_sub = n->subscribe<eros::command>(user_command_topic,10,&CommandNode::User_Command_Callback,this);
 
 	std::string armeddisarmed_state_topic = "/armed_state";
 	armeddisarmed_state_pub = n->advertise<std_msgs::UInt8>(armeddisarmed_state_topic,10);
@@ -120,7 +120,7 @@ bool CommandNode::run_001hz()
 }
 bool CommandNode::run_01hz()
 {
-	icarus_rover_v2::diagnostic diag = process->get_diagnostic();
+	eros::diagnostic diag = process->get_diagnostic();
 	{
 		get_logger()->log_diagnostic(diag);
 		diagnostic_pub.publish(diag);
@@ -138,7 +138,7 @@ bool CommandNode::run_1hz()
 	else if(process->is_initialized() == false)
 	{
 		{
-			icarus_rover_v2::srv_device srv;
+			eros::srv_device srv;
 			srv.request.query = "SELF";
 			if(srv_device.call(srv) == true)
 			{
@@ -157,7 +157,7 @@ bool CommandNode::run_1hz()
 			}
 		}
 	}
-	icarus_rover_v2::diagnostic diag = process->get_diagnostic();
+	eros::diagnostic diag = process->get_diagnostic();
 	if(diag.Level >= NOTICE)
 	{
 		get_logger()->log_diagnostic(diag);
@@ -173,13 +173,13 @@ bool CommandNode::run_10hz()
 	state.data = process->get_armeddisarmed_state();
 	armeddisarmed_state_pub.publish(state);
 
-	icarus_rover_v2::diagnostic diag = process->update(0.1,ros::Time::now().toSec());
+	eros::diagnostic diag = process->update(0.1,ros::Time::now().toSec());
 	if(diag.Level > WARN)
 	{
 		get_logger()->log_diagnostic(diag);
 		diagnostic_pub.publish(diag);
 	}
-	std::vector<icarus_rover_v2::command> periodiccommands = process->get_PeriodicCommands();
+	std::vector<eros::command> periodiccommands = process->get_PeriodicCommands();
 	for(std::size_t i = 0; i < periodiccommands.size(); i++)
 	{
 		command_pub.publish(periodiccommands.at(i));
@@ -204,12 +204,12 @@ void CommandNode::PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 	new_ppsmsg(msg);
 }
 
-void CommandNode::Command_Callback(const icarus_rover_v2::command::ConstPtr& t_msg)
+void CommandNode::Command_Callback(const eros::command::ConstPtr& t_msg)
 {
-	std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(t_msg);
+	std::vector<eros::diagnostic> diaglist = process->new_commandmsg(t_msg);
 	new_commandmsg_result(t_msg,diaglist);
 }
-bool CommandNode::new_devicemsg(std::string query,icarus_rover_v2::device t_device)
+bool CommandNode::new_devicemsg(std::string query,eros::device t_device)
 {
 	if(query == "SELF")
 	{
@@ -222,8 +222,8 @@ bool CommandNode::new_devicemsg(std::string query,icarus_rover_v2::device t_devi
 
 	if((process->is_initialized() == true))
 	{
-		icarus_rover_v2::device::ConstPtr device_ptr(new icarus_rover_v2::device(t_device));
-		icarus_rover_v2::diagnostic diag = process->new_devicemsg(device_ptr);
+		eros::device::ConstPtr device_ptr(new eros::device(t_device));
+		eros::diagnostic diag = process->new_devicemsg(device_ptr);
 	}
 	return true;
 }
@@ -231,9 +231,9 @@ void CommandNode::ReadyToArm_Callback(const std_msgs::Bool::ConstPtr& msg,const 
 {
 	process->new_readytoarmmsg(topic,msg->data);
 }
-void CommandNode::User_Command_Callback(const icarus_rover_v2::command::ConstPtr& msg)
+void CommandNode::User_Command_Callback(const eros::command::ConstPtr& msg)
 {
-	icarus_rover_v2::diagnostic diagnostic = process->new_user_commandmsg(msg);
+	eros::diagnostic diagnostic = process->new_user_commandmsg(msg);
 	logger->log_diagnostic(diagnostic);
 	diagnostic_pub.publish(diagnostic);
 }

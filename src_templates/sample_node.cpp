@@ -38,19 +38,19 @@ bool SampleNode::start(int argc,char **argv)
 	return status;
 }
 
-icarus_rover_v2::diagnostic SampleNode::read_launchparameters()
+eros::diagnostic SampleNode::read_launchparameters()
 {
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	eros::diagnostic diag = diagnostic;
 	get_logger()->log_notice("Configuration Files Loaded.");
 	return diagnostic;
 }
-icarus_rover_v2::diagnostic SampleNode::finish_initialization()
+eros::diagnostic SampleNode::finish_initialization()
 {
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	eros::diagnostic diag = diagnostic;
 	pps1_sub = n->subscribe<std_msgs::Bool>("/1PPS",1,&SampleNode::PPS1_Callback,this);
-	command_sub = n->subscribe<icarus_rover_v2::command>("/command",1,&SampleNode::Command_Callback,this);
+	command_sub = n->subscribe<eros::command>("/command",1,&SampleNode::Command_Callback,this);
 	std::string device_topic = "/" + std::string(host_name) + "_master_node/srv_device";
-	srv_device = n->serviceClient<icarus_rover_v2::srv_device>(device_topic);
+	srv_device = n->serviceClient<eros::srv_device>(device_topic);
 	return diagnostic;
 }
 bool SampleNode::run_001hz()
@@ -59,7 +59,7 @@ bool SampleNode::run_001hz()
 }
 bool SampleNode::run_01hz()
 {
-	icarus_rover_v2::diagnostic diag = process->get_diagnostic();
+	eros::diagnostic diag = process->get_diagnostic();
 	{
 		get_logger()->log_diagnostic(diag);
 		diagnostic_pub.publish(diag);
@@ -77,7 +77,7 @@ bool SampleNode::run_1hz()
 	else if(process->is_initialized() == false)
 	{
 		{
-			icarus_rover_v2::srv_device srv;
+			eros::srv_device srv;
 			srv.request.query = "SELF";
 			if(srv_device.call(srv) == true)
 			{
@@ -96,7 +96,7 @@ bool SampleNode::run_1hz()
 			}
 		}
 	}
-	icarus_rover_v2::diagnostic diag = process->get_diagnostic();
+	eros::diagnostic diag = process->get_diagnostic();
 	//if(diag.Level >= NOTICE)
 	{
 		get_logger()->log_diagnostic(diag);
@@ -108,7 +108,7 @@ bool SampleNode::run_1hz()
 bool SampleNode::run_10hz()
 {
 	ready_to_arm = process->get_ready_to_arm();
-	icarus_rover_v2::diagnostic diag = process->update(0.1,ros::Time::now().toSec());
+	eros::diagnostic diag = process->update(0.1,ros::Time::now().toSec());
 	if(diag.Level > WARN)
 	{
 		get_logger()->log_diagnostic(diag);
@@ -134,12 +134,12 @@ void SampleNode::PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 	new_ppsmsg(msg);
 }
 
-void SampleNode::Command_Callback(const icarus_rover_v2::command::ConstPtr& t_msg)
+void SampleNode::Command_Callback(const eros::command::ConstPtr& t_msg)
 {
-	std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(t_msg);
+	std::vector<eros::diagnostic> diaglist = process->new_commandmsg(t_msg);
 	new_commandmsg_result(t_msg,diaglist);
 }
-bool SampleNode::new_devicemsg(std::string query,icarus_rover_v2::device t_device)
+bool SampleNode::new_devicemsg(std::string query,eros::device t_device)
 {
 	if(query == "SELF")
 	{
@@ -152,8 +152,8 @@ bool SampleNode::new_devicemsg(std::string query,icarus_rover_v2::device t_devic
 
 	if((process->is_initialized() == true))
 	{
-		icarus_rover_v2::device::ConstPtr device_ptr(new icarus_rover_v2::device(t_device));
-		icarus_rover_v2::diagnostic diag = process->new_devicemsg(device_ptr);
+		eros::device::ConstPtr device_ptr(new eros::device(t_device));
+		eros::diagnostic diag = process->new_devicemsg(device_ptr);
 	}
 	return true;
 }

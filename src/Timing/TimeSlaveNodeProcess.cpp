@@ -1,7 +1,7 @@
 #include "TimeSlaveNodeProcess.h"
-icarus_rover_v2::diagnostic  TimeSlaveNodeProcess::finish_initialization()
+eros::diagnostic  TimeSlaveNodeProcess::finish_initialization()
 {
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	eros::diagnostic diag = diagnostic;
 	ntp_initialized = false;
 	ros_master_uri = "";
 	primary_time_server = "";
@@ -9,7 +9,7 @@ icarus_rover_v2::diagnostic  TimeSlaveNodeProcess::finish_initialization()
 	timesyncinfo.devicename = host_name;
 	return diagnostic;
 }
-icarus_rover_v2::diagnostic TimeSlaveNodeProcess::update(double t_dt,double t_ros_time)
+eros::diagnostic TimeSlaveNodeProcess::update(double t_dt,double t_ros_time)
 {
 	if(ntp_initialized == false)
 	{
@@ -37,7 +37,7 @@ icarus_rover_v2::diagnostic TimeSlaveNodeProcess::update(double t_dt,double t_ro
 	}
 	initialized = true;
 	ready = true;
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	eros::diagnostic diag = diagnostic;
 	diag = update_baseprocess(t_dt,t_ros_time);
 	if(diag.Level <= NOTICE)
 	{
@@ -50,15 +50,15 @@ icarus_rover_v2::diagnostic TimeSlaveNodeProcess::update(double t_dt,double t_ro
 	diagnostic = diag;
 	return diag;
 }
-icarus_rover_v2::diagnostic TimeSlaveNodeProcess::new_devicemsg(const icarus_rover_v2::device::ConstPtr& device)
+eros::diagnostic TimeSlaveNodeProcess::new_devicemsg(const eros::device::ConstPtr& device)
 {
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	eros::diagnostic diag = diagnostic;
 	return diag;
 }
-std::vector<icarus_rover_v2::diagnostic> TimeSlaveNodeProcess::new_commandmsg(const icarus_rover_v2::command::ConstPtr& t_msg)
+std::vector<eros::diagnostic> TimeSlaveNodeProcess::new_commandmsg(const eros::command::ConstPtr& t_msg)
 {
-	std::vector<icarus_rover_v2::diagnostic> diaglist;
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	std::vector<eros::diagnostic> diaglist;
+	eros::diagnostic diag = diagnostic;
 	if (t_msg->Command == ROVERCOMMAND_RUNDIAGNOSTIC)
 	{
 		if (t_msg->Option1 == LEVEL1)
@@ -81,10 +81,10 @@ std::vector<icarus_rover_v2::diagnostic> TimeSlaveNodeProcess::new_commandmsg(co
 	}
 	return diaglist;
 }
-std::vector<icarus_rover_v2::diagnostic> TimeSlaveNodeProcess::check_programvariables()
+std::vector<eros::diagnostic> TimeSlaveNodeProcess::check_programvariables()
 {
-	std::vector<icarus_rover_v2::diagnostic> diaglist;
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	std::vector<eros::diagnostic> diaglist;
+	eros::diagnostic diag = diagnostic;
 	bool status = true;
 
 	if (status == true) {
@@ -149,9 +149,9 @@ void TimeSlaveNodeProcess::set_timeserver(TimeSlaveNodeProcess::TimeServer serve
 		}
 	}
 }
-icarus_rover_v2::diagnostic TimeSlaveNodeProcess::update_timeservers()
+eros::diagnostic TimeSlaveNodeProcess::update_timeservers()
 {
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	eros::diagnostic diag = diagnostic;
 	//First check Primary Time Server
 	diag = update_timeserver(primary_time_server);
 	if(diag.Level > NOTICE)
@@ -246,9 +246,9 @@ icarus_rover_v2::diagnostic TimeSlaveNodeProcess::update_timeservers()
 	}
 	return diag;
 }
-icarus_rover_v2::diagnostic TimeSlaveNodeProcess::update_timeserver(std::string name)
+eros::diagnostic TimeSlaveNodeProcess::update_timeserver(std::string name)
 {
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	eros::diagnostic diag = diagnostic;
 	TimeSlaveNodeProcess::TimeServer server = get_timeserver(name);
 	if(unittesting_enabled == false)
 	{

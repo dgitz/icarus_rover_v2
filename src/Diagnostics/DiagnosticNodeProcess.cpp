@@ -1,7 +1,7 @@
 #include "DiagnosticNodeProcess.h"
-icarus_rover_v2::diagnostic  DiagnosticNodeProcess::finish_initialization()
+eros::diagnostic  DiagnosticNodeProcess::finish_initialization()
 {
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	eros::diagnostic diag = diagnostic;
 	current_command.Command = ROVERCOMMAND_NONE;
 	last_cmd_timer = 0.0;
 	last_cmddiagnostic_timer = 0.0;
@@ -19,12 +19,12 @@ icarus_rover_v2::diagnostic  DiagnosticNodeProcess::finish_initialization()
 	init_diaglevels();
 	return diagnostic;
 }
-icarus_rover_v2::diagnostic DiagnosticNodeProcess::update(double t_dt,double t_ros_time)
+eros::diagnostic DiagnosticNodeProcess::update(double t_dt,double t_ros_time)
 {
 	last_cmddiagnostic_timer += t_dt;
 	lcdclock_timer+=t_dt;
 
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	eros::diagnostic diag = diagnostic;
 	diag = update_baseprocess(t_dt,t_ros_time);
 	if(lcdclock_timer > 0.5)
 	{
@@ -68,9 +68,9 @@ icarus_rover_v2::diagnostic DiagnosticNodeProcess::update(double t_dt,double t_r
 	diagnostic = diag;
 	return diag;
 }
-icarus_rover_v2::diagnostic DiagnosticNodeProcess::new_devicemsg(const icarus_rover_v2::device::ConstPtr& device)
+eros::diagnostic DiagnosticNodeProcess::new_devicemsg(const eros::device::ConstPtr& device)
 {
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	eros::diagnostic diag = diagnostic;
 	if(device->DeviceName == host_name)
 	{
 
@@ -104,10 +104,10 @@ icarus_rover_v2::diagnostic DiagnosticNodeProcess::new_devicemsg(const icarus_ro
 	}
 	return diag;
 }
-std::vector<icarus_rover_v2::diagnostic> DiagnosticNodeProcess::new_commandmsg(const icarus_rover_v2::command::ConstPtr& t_msg)
+std::vector<eros::diagnostic> DiagnosticNodeProcess::new_commandmsg(const eros::command::ConstPtr& t_msg)
 {
-	std::vector<icarus_rover_v2::diagnostic> diaglist;
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	std::vector<eros::diagnostic> diaglist;
+	eros::diagnostic diag = diagnostic;
 	if (t_msg->Command == ROVERCOMMAND_RUNDIAGNOSTIC)
 	{
 		RCControl = true;
@@ -150,10 +150,10 @@ std::vector<icarus_rover_v2::diagnostic> DiagnosticNodeProcess::new_commandmsg(c
 
 	return diaglist;
 }
-std::vector<icarus_rover_v2::diagnostic> DiagnosticNodeProcess::check_programvariables()
+std::vector<eros::diagnostic> DiagnosticNodeProcess::check_programvariables()
 {
-	std::vector<icarus_rover_v2::diagnostic> diaglist;
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	std::vector<eros::diagnostic> diaglist;
+	eros::diagnostic diag = diagnostic;
 	bool status = true;
 
 	if (status == true) {
@@ -173,7 +173,7 @@ std::vector<icarus_rover_v2::diagnostic> DiagnosticNodeProcess::check_programvar
 }
 std::string DiagnosticNodeProcess::build_lcdmessage()
 {
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	eros::diagnostic diag = diagnostic;
 	if(lcd_partnumber == "617003")
 	{
 		char buffer[lcd_width*lcd_height];
@@ -284,7 +284,7 @@ std::string DiagnosticNodeProcess::get_diagstr()
 	{
 		return "NO DIAG RECEIVED    ";
 	}
-	icarus_rover_v2::diagnostic worst_diag;
+	eros::diagnostic worst_diag;
 	for(std::size_t i = diaglevels.size()-1; i >0; i--)
 	{
 		if(diaglevels.at(i).last_time < WORSTDIAG_TIMELIMIT)
@@ -424,7 +424,7 @@ void DiagnosticNodeProcess::new_heartbeatmsg(std::string topicname)
 		}
 	}
 }
-void DiagnosticNodeProcess::new_resourcemsg(std::string topicname,const icarus_rover_v2::resource::ConstPtr& resource)
+void DiagnosticNodeProcess::new_resourcemsg(std::string topicname,const eros::resource::ConstPtr& resource)
 {
 	for(int i = 0; i < TaskList.size();i++)
 	{
@@ -461,7 +461,7 @@ void DiagnosticNodeProcess::new_resourcemsg(std::string topicname,const icarus_r
 		}
 	}
 }
-void DiagnosticNodeProcess::new_diagnosticmsg(std::string topicname,const icarus_rover_v2::diagnostic::ConstPtr& diagnostic)
+void DiagnosticNodeProcess::new_diagnosticmsg(std::string topicname,const eros::diagnostic::ConstPtr& diagnostic)
 {
 	bool add_me = true;
 	for(int i = 0; i < TaskList.size();i++)
@@ -485,10 +485,10 @@ void DiagnosticNodeProcess::new_diagnosticmsg(std::string topicname,const icarus
 	}
 	any_diagnostic_received = true;
 }
-std::vector<icarus_rover_v2::diagnostic> DiagnosticNodeProcess::check_tasks()
+std::vector<eros::diagnostic> DiagnosticNodeProcess::check_tasks()
 {
-	std::vector<icarus_rover_v2::diagnostic> diaglist;
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	std::vector<eros::diagnostic> diaglist;
+	eros::diagnostic diag = diagnostic;
 	int task_ok_counter = 0;
 	for(int i = 0; i < TaskList.size(); i++)
 	{
@@ -542,7 +542,7 @@ std::vector<icarus_rover_v2::diagnostic> DiagnosticNodeProcess::check_tasks()
 			if(ready == true) { ready_to_arm = true; }
 			char tempstr[255];
 			sprintf(tempstr,"%d/%d (All) Tasks Operational.",task_ok_counter,(int)TaskList.size());
-			icarus_rover_v2::diagnostic system_diag;
+			eros::diagnostic system_diag;
 			system_diag.Node_Name = node_name;
 			system_diag.System = ROVER;
 			system_diag.SubSystem = ENTIRE_SUBSYSTEM;
@@ -582,7 +582,7 @@ void DiagnosticNodeProcess::init_diaglevels()
 	{
 		DiagLevel diaglev;
 		diaglev.Level = WARN;
-		icarus_rover_v2::diagnostic diag;
+		eros::diagnostic diag;
 		diag.Level = diaglev.Level;
 		diaglev.diag = diag;
 		diaglev.last_time = WORSTDIAG_TIMELIMIT*2.0;
@@ -591,7 +591,7 @@ void DiagnosticNodeProcess::init_diaglevels()
 	{
 		DiagLevel diaglev;
 		diaglev.Level = ERROR;
-		icarus_rover_v2::diagnostic diag;
+		eros::diagnostic diag;
 		diag.Level = diaglev.Level;
 		diaglev.diag = diag;
 		diaglev.last_time = WORSTDIAG_TIMELIMIT*2.0;
@@ -600,7 +600,7 @@ void DiagnosticNodeProcess::init_diaglevels()
 	{
 		DiagLevel diaglev;
 		diaglev.Level = FATAL;
-		icarus_rover_v2::diagnostic diag;
+		eros::diagnostic diag;
 		diag.Level = diaglev.Level;
 		diaglev.diag = diag;
 		diaglev.last_time = WORSTDIAG_TIMELIMIT*2.0;

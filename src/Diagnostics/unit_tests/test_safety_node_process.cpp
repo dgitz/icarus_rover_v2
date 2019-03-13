@@ -2,9 +2,6 @@
 #include "ros/ros.h"
 #include "ros/time.h"
 #include "std_msgs/Bool.h"
-#include "icarus_rover_v2/device.h"
-#include "icarus_rover_v2/diagnostic.h"
-#include "icarus_rover_v2/command.h"
 #include "../SafetyNodeProcess.h"
 
 std::string Node_Name = "/unittest_safety_node_process";
@@ -15,7 +12,7 @@ std::string ros_DeviceType = "ControlModule";
 
 SafetyNodeProcess* initializeprocess()
 {
-	icarus_rover_v2::diagnostic diagnostic;
+	eros::diagnostic diagnostic;
 	diagnostic.DeviceName = ros_DeviceName;
 	diagnostic.Node_Name = Node_Name;
 	diagnostic.System = ROVER;
@@ -27,7 +24,7 @@ SafetyNodeProcess* initializeprocess()
 	diagnostic.Diagnostic_Message = INITIALIZING;
 	diagnostic.Description = "Node Initializing";
 
-	icarus_rover_v2::device device;
+	eros::device device;
 	device.DeviceName = diagnostic.DeviceName;
 	device.HatCount = 1;
 	device.SensorCount = 0;
@@ -43,7 +40,7 @@ SafetyNodeProcess* initializeprocess()
 	EXPECT_TRUE(process->is_initialized() == true);
 	EXPECT_TRUE(process->get_mydevice().DeviceName == device.DeviceName);
 
-	icarus_rover_v2::device hat1;
+	eros::device hat1;
 	hat1.DeviceName = "TerminalHat1";
 	hat1.DeviceType = "TerminalHat";
 	hat1.DeviceParent = ros_DeviceName;
@@ -52,7 +49,7 @@ SafetyNodeProcess* initializeprocess()
 	hat1.ShieldCount = 0;
 	hat1.SensorCount = 0;
 	hat1.pins.clear();
-	icarus_rover_v2::pin newpin;
+	eros::pin newpin;
 	newpin.Number = 16;
 	newpin.Function = "DigitalInput-Safety";
 	newpin.Name = "ArmSwitch";
@@ -65,7 +62,7 @@ SafetyNodeProcess* initializeprocess()
 	diagnostic = process->update(0.02,0.02);
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 
-    icarus_rover_v2::device::ConstPtr hat_ptr(new icarus_rover_v2::device(hat1));
+    eros::device::ConstPtr hat_ptr(new eros::device(hat1));
 	diagnostic = process->new_devicemsg(hat_ptr);
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 
@@ -107,7 +104,7 @@ SafetyNodeProcess* initializeprocess()
 }
 SafetyNodeProcess* readyprocess(SafetyNodeProcess* process)
 {
-	icarus_rover_v2::diagnostic diag = process->update(0.0,0.0);
+	eros::diagnostic diag = process->update(0.0,0.0);
 	EXPECT_TRUE(diag.Level <= NOTICE);
 	EXPECT_TRUE(process->is_ready() == true);
 	return process;
@@ -130,7 +127,7 @@ TEST(Template,Process_Command)
 
 	while(current_time <= time_to_run)
 	{
-		icarus_rover_v2::diagnostic diag = process->update(dt,current_time);
+		eros::diagnostic diag = process->update(dt,current_time);
 		EXPECT_TRUE(diag.Level <= NOTICE);
 		int current_time_ms = (int)(current_time*1000.0);
 		if((current_time_ms % 100) == 0)
@@ -148,13 +145,13 @@ TEST(Template,Process_Command)
 			slowrate_fire = true;
 		}
 		else { slowrate_fire = false; }
-		icarus_rover_v2::command cmd;
+		eros::command cmd;
 		cmd.Command = ROVERCOMMAND_RUNDIAGNOSTIC;
 		if(fastrate_fire == true)
 		{
 			cmd.Option1 = LEVEL1;
-            icarus_rover_v2::command::ConstPtr cmd_ptr(new icarus_rover_v2::command(cmd));
-			std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
+            eros::command::ConstPtr cmd_ptr(new eros::command(cmd));
+			std::vector<eros::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
 			for(std::size_t i = 0; i < diaglist.size(); i++)
 			{
 				EXPECT_TRUE(diaglist.at(i).Level <= NOTICE);
@@ -165,8 +162,8 @@ TEST(Template,Process_Command)
 		if(mediumrate_fire == true)
 		{
 			cmd.Option1 = LEVEL2;
-            icarus_rover_v2::command::ConstPtr cmd_ptr(new icarus_rover_v2::command(cmd));
-			std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
+            eros::command::ConstPtr cmd_ptr(new eros::command(cmd));
+			std::vector<eros::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
 			for(std::size_t i = 0; i < diaglist.size(); i++)
 			{
 				EXPECT_TRUE(diaglist.at(i).Level <= NOTICE);
@@ -185,7 +182,7 @@ TEST(Template,Process_Command)
 TEST(DeviceOperation,DeviceRunning)
 {
 	SafetyNodeProcess* process = initializeprocess();
-	icarus_rover_v2::diagnostic diagnostic = process->update(0.0,0.0);
+	eros::diagnostic diagnostic = process->update(0.0,0.0);
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 	EXPECT_TRUE(process->update(0.0,0.0).Level <= NOTICE);
 

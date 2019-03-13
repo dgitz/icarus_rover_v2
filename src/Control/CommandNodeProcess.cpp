@@ -1,7 +1,7 @@
 #include "CommandNodeProcess.h"
-icarus_rover_v2::diagnostic  CommandNodeProcess::finish_initialization()
+eros::diagnostic  CommandNodeProcess::finish_initialization()
 {
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	eros::diagnostic diag = diagnostic;
 	diag = init_PeriodicCommands();
 	ms_timer = 0;
 	timeout_value_ms = 0;
@@ -16,14 +16,14 @@ icarus_rover_v2::diagnostic  CommandNodeProcess::finish_initialization()
 	diagnostic = diag;
 	return diagnostic;
 }
-icarus_rover_v2::diagnostic CommandNodeProcess::update(double t_dt,double t_ros_time)
+eros::diagnostic CommandNodeProcess::update(double t_dt,double t_ros_time)
 {
 	if(initialized == true)
 	{
 		ready = true;
 
 	}
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	eros::diagnostic diag = diagnostic;
 	diag = update_baseprocess(t_dt,t_ros_time);
 	if(ready == true)
 		{
@@ -94,15 +94,15 @@ icarus_rover_v2::diagnostic CommandNodeProcess::update(double t_dt,double t_ros_
 	diagnostic = diag;
 	return diag;
 }
-icarus_rover_v2::diagnostic CommandNodeProcess::new_devicemsg(const icarus_rover_v2::device::ConstPtr& device)
+eros::diagnostic CommandNodeProcess::new_devicemsg(const eros::device::ConstPtr& device)
 {
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	eros::diagnostic diag = diagnostic;
 	return diag;
 }
-std::vector<icarus_rover_v2::diagnostic> CommandNodeProcess::new_commandmsg(const icarus_rover_v2::command::ConstPtr& t_msg)
+std::vector<eros::diagnostic> CommandNodeProcess::new_commandmsg(const eros::command::ConstPtr& t_msg)
 {
-	std::vector<icarus_rover_v2::diagnostic> diaglist;
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	std::vector<eros::diagnostic> diaglist;
+	eros::diagnostic diag = diagnostic;
 	if (t_msg->Command == ROVERCOMMAND_RUNDIAGNOSTIC)
 	{
 		if (t_msg->Option1 == LEVEL1)
@@ -125,10 +125,10 @@ std::vector<icarus_rover_v2::diagnostic> CommandNodeProcess::new_commandmsg(cons
 	}
 	return diaglist;
 }
-std::vector<icarus_rover_v2::diagnostic> CommandNodeProcess::check_programvariables()
+std::vector<eros::diagnostic> CommandNodeProcess::check_programvariables()
 {
-	std::vector<icarus_rover_v2::diagnostic> diaglist;
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	std::vector<eros::diagnostic> diaglist;
+	eros::diagnostic diag = diagnostic;
 	bool status = true;
 
 	if (status == true) {
@@ -146,7 +146,7 @@ std::vector<icarus_rover_v2::diagnostic> CommandNodeProcess::check_programvariab
 	}
 	return diaglist;
 }
-icarus_rover_v2::diagnostic CommandNodeProcess::init_readytoarm_list(std::vector<std::string> topics)
+eros::diagnostic CommandNodeProcess::init_readytoarm_list(std::vector<std::string> topics)
 {
 	for(int i = 0; i < topics.size();i++)
 	{
@@ -174,7 +174,7 @@ void CommandNodeProcess::new_readytoarmmsg(std::string topic, bool value)
 		}
 	}
 }
-icarus_rover_v2::diagnostic CommandNodeProcess::new_user_commandmsg(const icarus_rover_v2::command::ConstPtr& msg)
+eros::diagnostic CommandNodeProcess::new_user_commandmsg(const eros::command::ConstPtr& msg)
 {
 	if((msg->Command == ROVERCOMMAND_ARM) || (msg->Command == ROVERCOMMAND_DISARM))
 	{
@@ -221,9 +221,9 @@ icarus_rover_v2::diagnostic CommandNodeProcess::new_user_commandmsg(const icarus
 	}
 }
 
-icarus_rover_v2::diagnostic CommandNodeProcess::get_disarmedreason()
+eros::diagnostic CommandNodeProcess::get_disarmedreason()
 {
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	eros::diagnostic diag = diagnostic;
 	if(armeddisarmed_state == ARMEDSTATUS_DISARMED_CANNOTARM)
 	{
 		diag.Diagnostic_Type = REMOTE_CONTROL;
@@ -233,7 +233,7 @@ icarus_rover_v2::diagnostic CommandNodeProcess::get_disarmedreason()
 	}
 	return diag;
 }
-icarus_rover_v2::diagnostic CommandNodeProcess::new_targetmsg(std::string target)
+eros::diagnostic CommandNodeProcess::new_targetmsg(std::string target)
 {
 	if(target == "outlet")
 	{
@@ -272,9 +272,9 @@ icarus_rover_v2::diagnostic CommandNodeProcess::new_targetmsg(std::string target
 	}
 }
 
-std::vector<icarus_rover_v2::command> CommandNodeProcess::get_PeriodicCommands()
+std::vector<eros::command> CommandNodeProcess::get_PeriodicCommands()
 {
-	std::vector<icarus_rover_v2::command> sendlist;
+	std::vector<eros::command> sendlist;
 	for(std::size_t i = 0; i < periodic_commands.size(); i++)
 	{
 		if(periodic_commands.at(i).send_me == true)
@@ -285,11 +285,11 @@ std::vector<icarus_rover_v2::command> CommandNodeProcess::get_PeriodicCommands()
 	}
 	return sendlist;
 }
-icarus_rover_v2::diagnostic CommandNodeProcess::init_PeriodicCommands()
+eros::diagnostic CommandNodeProcess::init_PeriodicCommands()
 {
 	std::vector<PeriodicCommand> commands;
 	{
-		icarus_rover_v2::command cmd;
+		eros::command cmd;
 		cmd.Command = ROVERCOMMAND_RUNDIAGNOSTIC;
 		cmd.Option1 = LEVEL1;
 		cmd.Description = "Low-Level Diagnostics";
@@ -300,7 +300,7 @@ icarus_rover_v2::diagnostic CommandNodeProcess::init_PeriodicCommands()
 	}
 
 	{
-		icarus_rover_v2::command cmd;
+		eros::command cmd;
 		cmd.Command = ROVERCOMMAND_RUNDIAGNOSTIC;
 		cmd.Option1 = LEVEL2;
 		cmd.Description = "Medium-Level Diagnostics";

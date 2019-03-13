@@ -1,13 +1,13 @@
 #include "SafetyNodeProcess.h"
-icarus_rover_v2::diagnostic  SafetyNodeProcess::finish_initialization()
+eros::diagnostic  SafetyNodeProcess::finish_initialization()
 {
-    icarus_rover_v2::diagnostic diag = diagnostic;
+    eros::diagnostic diag = diagnostic;
     arm_switch = false;
     return diagnostic;
 }
-icarus_rover_v2::diagnostic SafetyNodeProcess::update(double t_dt,double t_ros_time)
+eros::diagnostic SafetyNodeProcess::update(double t_dt,double t_ros_time)
 {
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	eros::diagnostic diag = diagnostic;
 	diag = update_baseprocess(t_dt,t_ros_time);
     if(ready == true)
     {
@@ -31,9 +31,9 @@ icarus_rover_v2::diagnostic SafetyNodeProcess::update(double t_dt,double t_ros_t
 	diagnostic = diag;
 	return diag;
 }
-icarus_rover_v2::diagnostic SafetyNodeProcess::new_devicemsg(const icarus_rover_v2::device::ConstPtr& t_device)
+eros::diagnostic SafetyNodeProcess::new_devicemsg(const eros::device::ConstPtr& t_device)
 {
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	eros::diagnostic diag = diagnostic;
     if(initialized == false)
 	{
 	}
@@ -90,7 +90,7 @@ icarus_rover_v2::diagnostic SafetyNodeProcess::new_devicemsg(const icarus_rover_
 						diag.Description = std::string(tempstr);
 						return diag;
 					}
-                    icarus_rover_v2::device device = convert_fromptr(t_device);
+                    eros::device device = convert_fromptr(t_device);
 					hats.push_back(device);
 					hats_running.push_back(false);
 				}
@@ -108,10 +108,10 @@ icarus_rover_v2::diagnostic SafetyNodeProcess::new_devicemsg(const icarus_rover_
 	diag.Description = std::string(tempstr);
 	return diag;
 }
-std::vector<icarus_rover_v2::diagnostic> SafetyNodeProcess::new_commandmsg(const icarus_rover_v2::command::ConstPtr& t_msg)
+std::vector<eros::diagnostic> SafetyNodeProcess::new_commandmsg(const eros::command::ConstPtr& t_msg)
 {
-	std::vector<icarus_rover_v2::diagnostic> diaglist;
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	std::vector<eros::diagnostic> diaglist;
+	eros::diagnostic diag = diagnostic;
 	if (t_msg->Command == ROVERCOMMAND_RUNDIAGNOSTIC)
 	{
 		if (t_msg->Option1 == LEVEL1)
@@ -134,10 +134,10 @@ std::vector<icarus_rover_v2::diagnostic> SafetyNodeProcess::new_commandmsg(const
 	}
 	return diaglist;
 }
-std::vector<icarus_rover_v2::diagnostic> SafetyNodeProcess::check_programvariables()
+std::vector<eros::diagnostic> SafetyNodeProcess::check_programvariables()
 {
-	std::vector<icarus_rover_v2::diagnostic> diaglist;
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	std::vector<eros::diagnostic> diaglist;
+	eros::diagnostic diag = diagnostic;
 	bool status = true;
 
 	if (status == true) {
@@ -155,9 +155,9 @@ std::vector<icarus_rover_v2::diagnostic> SafetyNodeProcess::check_programvariabl
 	}
 	return diaglist;
 }
-icarus_rover_v2::diagnostic SafetyNodeProcess::set_terminalhat_initialized()
+eros::diagnostic SafetyNodeProcess::set_terminalhat_initialized()
 {
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	eros::diagnostic diag = diagnostic;
 	bool found = false;
 	for(std::size_t i = 0; i < hats.size(); i++)
 	{
@@ -211,7 +211,7 @@ int SafetyNodeProcess::get_pinnumber(std::string name)
 }
 bool SafetyNodeProcess::set_pinvalue(std::string name,int v)
 {
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	eros::diagnostic diag = diagnostic;
 	for(std::size_t i = 0; i < hats.size(); i++)
 	{
 		if((hats.at(i).DeviceType == "TerminalHat"))
@@ -244,9 +244,9 @@ bool SafetyNodeProcess::set_pinvalue(std::string name,int v)
 	}
 	return false;
 }
-std::vector<icarus_rover_v2::pin> SafetyNodeProcess::get_terminalhatpins(std::string Function)
+std::vector<eros::pin> SafetyNodeProcess::get_terminalhatpins(std::string Function)
 {
-	std::vector<icarus_rover_v2::pin> pins;
+	std::vector<eros::pin> pins;
 	pins.clear();
 	for(std::size_t i = 0; i < hats.size(); i++)
 	{
@@ -254,7 +254,7 @@ std::vector<icarus_rover_v2::pin> SafetyNodeProcess::get_terminalhatpins(std::st
 		{
 			for(std::size_t j = 0; j < hats.at(i).pins.size(); j++)
 			{
-				icarus_rover_v2::pin pin;
+				eros::pin pin;
 				if((hats.at(i).pins.at(j).Function == Function) or (Function == ""))
 				{
 					pin = hats.at(i).pins.at(j);
@@ -265,9 +265,9 @@ std::vector<icarus_rover_v2::pin> SafetyNodeProcess::get_terminalhatpins(std::st
 	}
 	return pins;
 }
-icarus_rover_v2::diagnostic SafetyNodeProcess::new_armswitchmsg(std_msgs::Bool v)
+eros::diagnostic SafetyNodeProcess::new_armswitchmsg(std_msgs::Bool v)
 {
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	eros::diagnostic diag = diagnostic;
 	arm_switch = v.data;
 
 	diag.Diagnostic_Type = NOERROR;
@@ -277,7 +277,7 @@ icarus_rover_v2::diagnostic SafetyNodeProcess::new_armswitchmsg(std_msgs::Bool v
 	return diag;
 
 }
-bool SafetyNodeProcess::hat_present(const icarus_rover_v2::device::ConstPtr& t_device)
+bool SafetyNodeProcess::hat_present(const eros::device::ConstPtr& t_device)
 {
 	for(std::size_t i = 0; i < hats.size(); i++)
 	{
@@ -308,10 +308,10 @@ bool SafetyNodeProcess::is_hat_running(std::string devicetype,uint16_t id)
 	}
 	return false;
 }
-icarus_rover_v2::diagnostic SafetyNodeProcess::set_hat_running(std::string devicetype,uint16_t id)
+eros::diagnostic SafetyNodeProcess::set_hat_running(std::string devicetype,uint16_t id)
 {
-	icarus_rover_v2::diagnostic diag = diagnostic;
-	icarus_rover_v2::device hat;
+	eros::diagnostic diag = diagnostic;
+	eros::device hat;
 	bool found = false;
 	for(std::size_t i = 0; i < hats.size(); i++)
 	{

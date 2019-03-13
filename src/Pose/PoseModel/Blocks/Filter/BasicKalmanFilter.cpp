@@ -15,7 +15,7 @@ BasicKalmanFilter::BasicKalmanFilter() {
 BasicKalmanFilter::~BasicKalmanFilter() {
 	// TODO Auto-generated destructor stub
 }
-icarus_rover_v2::diagnostic BasicKalmanFilter::initialize(icarus_rover_v2::diagnostic _diagnostic,
+eros::diagnostic BasicKalmanFilter::initialize(eros::diagnostic _diagnostic,
 											uint8_t _input_count,
 											uint8_t _output_count,
 											double _initial_state,
@@ -23,7 +23,7 @@ icarus_rover_v2::diagnostic BasicKalmanFilter::initialize(icarus_rover_v2::diagn
 											VectorXf _InputSignal_Correlation_Vector,
 											double _Q)
 {
-	icarus_rover_v2::diagnostic diag = _diagnostic;
+	eros::diagnostic diag = _diagnostic;
 	input_count = _input_count;
 	output_count = _output_count;
 	VectorXf initial_state;

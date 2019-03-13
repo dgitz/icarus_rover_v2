@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <iostream>
 #include "Definitions.h"
-#include <icarus_rover_v2/signal.h>
+#include <eros/signal.h>
 class TimeCompensate
 {
 
@@ -28,8 +28,8 @@ public:
 		method = method_;
 	}
 	//Message Functions
-	icarus_rover_v2::signal new_signal(ros::Time current_time,icarus_rover_v2::signal input);
-	icarus_rover_v2::signal get_output()
+	eros::signal new_signal(ros::Time current_time,eros::signal input);
+	eros::signal get_output()
 	{
 		output.status = SIGNALSTATE_HOLD;
 		return output;
@@ -48,7 +48,7 @@ private:
 	};
 	double compute_timesum(std::vector<StorageBufferElement> buf,uint32_t start_index,uint32_t stop_index);
 	double compute_valuesum(std::vector<StorageBufferElement> buf,uint32_t start_index,uint32_t stop_index);
-	icarus_rover_v2::signal output;
+	eros::signal output;
 	std::vector<StorageBufferElement> buffer;
 	SamplingMethod method;
 	int buffer_limit;

@@ -1,9 +1,6 @@
 #include <gtest/gtest.h>
 #include "ros/ros.h"
 #include "ros/time.h"
-#include "icarus_rover_v2/command.h"
-#include "icarus_rover_v2/device.h"
-#include "icarus_rover_v2/diagnostic.h"
 #include "../DiagnosticNodeProcess.h"
 
 std::string Node_Name = "/unittest_diagnostic_node_process";
@@ -13,7 +10,7 @@ std::string ros_DeviceName = Host_Name;
 
 DiagnosticNodeProcess* initializeprocess()
 {
-	icarus_rover_v2::diagnostic diagnostic;
+	eros::diagnostic diagnostic;
 	diagnostic.DeviceName = ros_DeviceName;
 	diagnostic.Node_Name = Node_Name;
 	diagnostic.System = ROVER;
@@ -25,7 +22,7 @@ DiagnosticNodeProcess* initializeprocess()
 	diagnostic.Diagnostic_Message = INITIALIZING;
 	diagnostic.Description = "Node Initializing";
 
-	icarus_rover_v2::device device;
+	eros::device device;
 	device.DeviceName = diagnostic.DeviceName;
 	device.BoardCount = 0;
 	device.SensorCount = 0;
@@ -45,7 +42,7 @@ DiagnosticNodeProcess* initializeprocess()
 }
 DiagnosticNodeProcess* readyprocess(DiagnosticNodeProcess* process)
 {
-	icarus_rover_v2::diagnostic diag = process->update(0.0,0.0);
+	eros::diagnostic diag = process->update(0.0,0.0);
 	EXPECT_TRUE(diag.Level <= NOTICE);
 	EXPECT_TRUE(process->is_ready() == true);
 	std::vector<std::string> topics_to_add;
@@ -94,7 +91,7 @@ TEST(Template,Process_Command)
 	bool slowrate_fire = false; //0.1 Hz
 	while(current_time <= time_to_run)
 	{
-		icarus_rover_v2::diagnostic diag = process->update(dt,current_time);
+		eros::diagnostic diag = process->update(dt,current_time);
 		EXPECT_TRUE(diag.Level <= NOTICE);
 		int current_time_ms = (int)(current_time*1000.0);
 		if((current_time_ms % 100) == 0)
@@ -112,7 +109,7 @@ TEST(Template,Process_Command)
 			slowrate_fire = true;
 		}
 		else { slowrate_fire = false; }
-		icarus_rover_v2::command cmd;
+		eros::command cmd;
 		cmd.Command = ROVERCOMMAND_RUNDIAGNOSTIC;
 		if(fastrate_fire == true)
 		{
@@ -122,8 +119,8 @@ TEST(Template,Process_Command)
 				process->new_heartbeatmsg(tasklist.at(i).heartbeat_topic);
 			}
 			cmd.Option1 = LEVEL1;
-			icarus_rover_v2::command::ConstPtr cmd_ptr(new icarus_rover_v2::command(cmd));
-			std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
+			eros::command::ConstPtr cmd_ptr(new eros::command(cmd));
+			std::vector<eros::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
 			for(std::size_t i = 0; i < diaglist.size(); i++)
 			{
 				EXPECT_TRUE(diaglist.at(i).Level <= NOTICE);
@@ -134,8 +131,8 @@ TEST(Template,Process_Command)
 		if(mediumrate_fire == true)
 		{
 			cmd.Option1 = LEVEL2;
-			icarus_rover_v2::command::ConstPtr cmd_ptr(new icarus_rover_v2::command(cmd));
-			std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
+			eros::command::ConstPtr cmd_ptr(new eros::command(cmd));
+			std::vector<eros::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
 			for(std::size_t i = 0; i < diaglist.size(); i++)
 			{
 				EXPECT_TRUE(diaglist.at(i).Level <= NOTICE);
@@ -153,13 +150,13 @@ TEST(Template,Process_Command)
 TEST(Template,LCDMessage)
 {
 	DiagnosticNodeProcess* process = initializeprocess();
-	icarus_rover_v2::device lcd;
+	eros::device lcd;
 	lcd.DeviceName = "LCD1";
 	lcd.DeviceType = "LCD";
 	lcd.PartNumber = "617003";
 	lcd.DeviceParent = process->get_mydevice().DeviceName;
-	icarus_rover_v2::device::ConstPtr lcd_ptr(new icarus_rover_v2::device(lcd));
-	icarus_rover_v2::diagnostic diag = process->new_devicemsg(lcd_ptr);
+	eros::device::ConstPtr lcd_ptr(new eros::device(lcd));
+	eros::diagnostic diag = process->new_devicemsg(lcd_ptr);
 	EXPECT_TRUE(diag.Level <= NOTICE);
 
 	process = readyprocess(process);
@@ -175,22 +172,22 @@ TEST(Template,LCDMessage)
 	{
 		if(current_time < process->get_worstdiag_timelimit())
 		{
-			icarus_rover_v2::diagnostic bad_diag = process->get_diagnostic();
+			eros::diagnostic bad_diag = process->get_diagnostic();
 			bad_diag.Level = ERROR;
 			bad_diag.DeviceName = "BigDeviceName";
 			bad_diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
 			bad_diag.Description = "1234567890123456789012345678901234567890";
-			icarus_rover_v2::diagnostic::ConstPtr diag_ptr(new icarus_rover_v2::diagnostic(bad_diag));
+			eros::diagnostic::ConstPtr diag_ptr(new eros::diagnostic(bad_diag));
 			process->new_diagnosticmsg("test1",diag_ptr);
 		}
 		else if(current_time < 2.0*process->get_worstdiag_timelimit())
 		{
-			icarus_rover_v2::diagnostic bad_diag = process->get_diagnostic();
+			eros::diagnostic bad_diag = process->get_diagnostic();
 			bad_diag.Level = ERROR;
 			bad_diag.DeviceName = "SmDe";
 			bad_diag.Diagnostic_Message = MISSING_HEARTBEATS;
 			bad_diag.Description = "1234";
-			icarus_rover_v2::diagnostic::ConstPtr diag_ptr(new icarus_rover_v2::diagnostic(bad_diag));
+			eros::diagnostic::ConstPtr diag_ptr(new eros::diagnostic(bad_diag));
 			process->new_diagnosticmsg("test1",diag_ptr);
 		}
 		diag = process->update(dt,current_time);
@@ -216,7 +213,7 @@ TEST(Template,LCDMessage)
 			slowrate_fire = true;
 		}
 		else { slowrate_fire = false; }
-		icarus_rover_v2::command cmd;
+		eros::command cmd;
 		cmd.Command = ROVERCOMMAND_RUNDIAGNOSTIC;
 		if(fastrate_fire == true)
 		{
@@ -228,8 +225,8 @@ TEST(Template,LCDMessage)
 				process->new_heartbeatmsg(tasklist.at(i).heartbeat_topic);
 			}
 			cmd.Option1 = LEVEL1;
-			icarus_rover_v2::command::ConstPtr cmd_ptr(new icarus_rover_v2::command(cmd));
-			std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
+			eros::command::ConstPtr cmd_ptr(new eros::command(cmd));
+			std::vector<eros::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
 			for(std::size_t i = 0; i < diaglist.size(); i++)
 			{
 				EXPECT_TRUE(diaglist.at(i).Level <= NOTICE);
@@ -240,8 +237,8 @@ TEST(Template,LCDMessage)
 		if(mediumrate_fire == true)
 		{
 			cmd.Option1 = LEVEL2;
-			icarus_rover_v2::command::ConstPtr cmd_ptr(new icarus_rover_v2::command(cmd));
-			std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
+			eros::command::ConstPtr cmd_ptr(new eros::command(cmd));
+			std::vector<eros::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
 			for(std::size_t i = 0; i < diaglist.size(); i++)
 			{
 				EXPECT_TRUE(diaglist.at(i).Level <= NOTICE);

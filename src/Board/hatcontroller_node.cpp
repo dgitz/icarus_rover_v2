@@ -38,15 +38,15 @@ bool HatControllerNode::start(int argc,char **argv)
 	return status;
 }
 
-icarus_rover_v2::diagnostic HatControllerNode::read_launchparameters()
+eros::diagnostic HatControllerNode::read_launchparameters()
 {
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	eros::diagnostic diag = diagnostic;
 	get_logger()->log_notice("Configuration Files Loaded.");
 	return diagnostic;
 }
-icarus_rover_v2::diagnostic HatControllerNode::finish_initialization()
+eros::diagnostic HatControllerNode::finish_initialization()
 {
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	eros::diagnostic diag = diagnostic;
 	std::string param_analyze_timing = node_name + "/analyze_timing";
 	bool analyze_timing;
 	if(n->getParam(param_analyze_timing,analyze_timing) == false)
@@ -62,9 +62,9 @@ icarus_rover_v2::diagnostic HatControllerNode::finish_initialization()
 		process->set_analyzetiming(analyze_timing);
 	}
 	pps1_sub = n->subscribe<std_msgs::Bool>("/1PPS",1,&HatControllerNode::PPS1_Callback,this);
-	command_sub = n->subscribe<icarus_rover_v2::command>("/command",1,&HatControllerNode::Command_Callback,this);
+	command_sub = n->subscribe<eros::command>("/command",1,&HatControllerNode::Command_Callback,this);
 	std::string device_topic = "/" + std::string(host_name) + "_master_node/srv_device";
-	srv_device = n->serviceClient<icarus_rover_v2::srv_device>(device_topic);
+	srv_device = n->serviceClient<eros::srv_device>(device_topic);
 	std::string sensor_spec_path;
 	std::string armed_state_topic = "/armed_state";
 	armed_state_sub = n->subscribe<std_msgs::UInt8>(armed_state_topic,1,&HatControllerNode::ArmedState_Callback,this);
@@ -82,7 +82,7 @@ bool HatControllerNode::run_001hz()
 }
 bool HatControllerNode::run_01hz()
 {
-	icarus_rover_v2::diagnostic diag=process->get_diagnostic();
+	eros::diagnostic diag=process->get_diagnostic();
 	if(process->is_ready())
 	{
 		std::vector<uint16_t> ServoHats_ids = process->get_servohataddresses();
@@ -151,7 +151,7 @@ bool HatControllerNode::run_01hz()
 			TerminalHat.init();
 			{
 				bool any_error = false;
-				std::vector<icarus_rover_v2::pin> pins = process->get_terminalhatpins("",true);
+				std::vector<eros::pin> pins = process->get_terminalhatpins("",true);
 				for(std::size_t i = 0; i < pins.size(); i++)
 				{
 					if(TerminalHat.configure_pin(pins.at(i).Number,pins.at(i).Function) == false)
@@ -193,7 +193,7 @@ bool HatControllerNode::run_1hz()
 	else if(process->is_initialized() == false)
 	{
 		{
-			icarus_rover_v2::srv_device srv;
+			eros::srv_device srv;
 			srv.request.query = "SELF";
 			if(srv_device.call(srv) == true)
 			{
@@ -215,7 +215,7 @@ bool HatControllerNode::run_1hz()
 	else if((process->is_ready() == false) and (process->is_initialized() == true))
 	{
 		{
-			icarus_rover_v2::srv_device srv;
+			eros::srv_device srv;
 			srv.request.query = "DeviceType=ServoHat";
 			if(srv_device.call(srv) == true)
 			{
@@ -249,7 +249,7 @@ bool HatControllerNode::run_1hz()
 
 		}
 	}
-	icarus_rover_v2::diagnostic diag = process->get_diagnostic();
+	eros::diagnostic diag = process->get_diagnostic();
 	if(diag.Level >= NOTICE)
 	{
 		get_logger()->log_diagnostic(diag);
@@ -261,7 +261,7 @@ bool HatControllerNode::run_1hz()
 bool HatControllerNode::run_10hz()
 {
 	ready_to_arm = process->get_ready_to_arm();
-	icarus_rover_v2::diagnostic diag = process->update(0.1,ros::Time::now().toSec());
+	eros::diagnostic diag = process->update(0.1,ros::Time::now().toSec());
 	if(diag.Level > WARN)
 	{
 		get_logger()->log_diagnostic(diag);
@@ -276,7 +276,7 @@ bool HatControllerNode::run_10hz()
 			{
 				if(ServoHats_ids.at(i) == ServoHats.at(i).get_address())
 				{
-					std::vector<icarus_rover_v2::pin> pins = process->get_servohatpins(ServoHats_ids.at(i));
+					std::vector<eros::pin> pins = process->get_servohatpins(ServoHats_ids.at(i));
 					for(std::size_t j = 0; j < pins.size(); j++)
 					{
 						ServoHats.at(i).setServoValue(pins.at(j).Number, pins.at(j).Value);
@@ -302,7 +302,7 @@ bool HatControllerNode::run_10hz()
 			{
 				if(GPIOHats_ids.at(i) == GPIOHats.at(i).get_address())
 				{
-					std::vector<icarus_rover_v2::pin> pins = process->get_gpiohatpins(GPIOHats_ids.at(i));
+					std::vector<eros::pin> pins = process->get_gpiohatpins(GPIOHats_ids.at(i));
 
 				}
 				else
@@ -321,7 +321,7 @@ bool HatControllerNode::run_10hz()
 		if(process->is_hat_running("TerminalHat",0) == true)
 		{
 			bool any_error = false;
-			std::vector<icarus_rover_v2::pin> pins = process->get_terminalhatpins("DigitalInput",true);
+			std::vector<eros::pin> pins = process->get_terminalhatpins("DigitalInput",true);
 			for(std::size_t i = 0; i < pins.size(); i++)
 			{
 				if(TerminalHat.configure_pin(pins.at(i).Number,pins.at(i).Function) == false)
@@ -344,7 +344,7 @@ bool HatControllerNode::run_10hz()
 }
 bool HatControllerNode::run_loop1()
 {
-	icarus_rover_v2::diagnostic diag = process->get_diagnostic();
+	eros::diagnostic diag = process->get_diagnostic();
 	for(std::size_t i = 0; i < GPIOHats.size(); i++)
 	{
 		unsigned char inputbuffer[12];
@@ -377,7 +377,7 @@ bool HatControllerNode::run_loop1()
 		{
 			bool any_error = false;
 			{
-				std::vector<icarus_rover_v2::pin> pins = process->get_terminalhatpins("DigitalInput",true);
+				std::vector<eros::pin> pins = process->get_terminalhatpins("DigitalInput",true);
 				for(std::size_t i = 0; i < pins.size(); i++)
 				{
 					if(process->set_terminalhatpinvalue(pins.at(i).Name,TerminalHat.read_pin(pins.at(i).Number)) == false)
@@ -396,7 +396,7 @@ bool HatControllerNode::run_loop1()
 				}
 			}
 			{
-				std::vector<icarus_rover_v2::pin> pins = process->get_terminalhatpins("DigitalOutput",false);
+				std::vector<eros::pin> pins = process->get_terminalhatpins("DigitalOutput",false);
 
 				for(std::size_t i = 0; i < pins.size(); i++)
 				{
@@ -419,7 +419,7 @@ bool HatControllerNode::run_loop1()
 
 		}
 		{
-			std::vector<icarus_rover_v2::pin> pins = process->get_terminalhatpins("DigitalInput",true);
+			std::vector<eros::pin> pins = process->get_terminalhatpins("DigitalInput",true);
 			for(std::size_t i = 0; i < pins.size(); ++i)
 			{
 				std_msgs::Bool v;
@@ -444,12 +444,12 @@ void HatControllerNode::PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 	new_ppsmsg(msg);
 }
 
-void HatControllerNode::Command_Callback(const icarus_rover_v2::command::ConstPtr& t_msg)
+void HatControllerNode::Command_Callback(const eros::command::ConstPtr& t_msg)
 {
-	std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(t_msg);
+	std::vector<eros::diagnostic> diaglist = process->new_commandmsg(t_msg);
 	new_commandmsg_result(t_msg,diaglist);
 }
-bool HatControllerNode::new_devicemsg(std::string query,icarus_rover_v2::device t_device)
+bool HatControllerNode::new_devicemsg(std::string query,eros::device t_device)
 {
 	if(query == "SELF")
 	{
@@ -464,8 +464,8 @@ bool HatControllerNode::new_devicemsg(std::string query,icarus_rover_v2::device 
 		if(process->is_ready() == false)
 		{
 			get_logger()->log_notice("Device not initialized yet.");
-			icarus_rover_v2::device::ConstPtr device_ptr(new icarus_rover_v2::device(t_device));
-			icarus_rover_v2::diagnostic diag = process->new_devicemsg(device_ptr);
+			eros::device::ConstPtr device_ptr(new eros::device(t_device));
+			eros::diagnostic diag = process->new_devicemsg(device_ptr);
 
 			if(diag.Level > INFO)
 			{
@@ -480,13 +480,13 @@ bool HatControllerNode::new_devicemsg(std::string query,icarus_rover_v2::device 
 					if(sensors.at(i).output_datatype == "signal")
 					{
 						std::string topic = "/" + sensors.at(i).name;
-						ros::Publisher pub = n->advertise<icarus_rover_v2::signal>(topic,10);
+						ros::Publisher pub = n->advertise<eros::signal>(topic,10);
 						signal_sensor_pubs.push_back(pub);
 					}
 				}
 				{
 					{//Terminal Hat
-						std::vector<icarus_rover_v2::pin> pins = process->get_terminalhatpins("",true);
+						std::vector<eros::pin> pins = process->get_terminalhatpins("",true);
 						for(std::size_t i = 0; i < pins.size(); i++)
 						{
 							if(pins.at(i).Function == "DigitalInput")
@@ -499,12 +499,12 @@ bool HatControllerNode::new_devicemsg(std::string query,icarus_rover_v2::device 
 							else if(pins.at(i).Function == "DigitalOutput")
 							{
 								std::string topic = "/" + pins.at(i).Name;
-								ros::Subscriber sub = n->subscribe<icarus_rover_v2::pin>(topic,5,&HatControllerNode::DigitalOutput_Callback,this);
+								ros::Subscriber sub = n->subscribe<eros::pin>(topic,5,&HatControllerNode::DigitalOutput_Callback,this);
 								digitaloutput_subs.push_back(sub);
 							}
 							else
 							{
-								icarus_rover_v2::diagnostic diagnostic;
+								eros::diagnostic diagnostic;
 								diagnostic.Diagnostic_Type = SOFTWARE;
 								diagnostic.Level = ERROR;
 								diagnostic.Diagnostic_Message = INITIALIZING_ERROR;
@@ -521,13 +521,13 @@ bool HatControllerNode::new_devicemsg(std::string query,icarus_rover_v2::device 
 						std::vector<uint16_t> addresses = process->get_servohataddresses();
 						for(std::size_t i = 0; i < addresses.size(); ++i)
 						{
-							std::vector<icarus_rover_v2::pin> pins = process->get_servohatpins(addresses.at(i));
+							std::vector<eros::pin> pins = process->get_servohatpins(addresses.at(i));
 							for(std::size_t j = 0; j < pins.size(); j++)
 							{
 								if((pins.at(i).Function == "PWMOutput") or (pins.at(i).Function == "PWMOutput-NonActuator"))
 								{
 									std::string topic = "/" + pins.at(j).Name;
-									ros::Subscriber sub = n->subscribe<icarus_rover_v2::pin>(topic,5,&HatControllerNode::PwmOutput_Callback,this);
+									ros::Subscriber sub = n->subscribe<eros::pin>(topic,5,&HatControllerNode::PwmOutput_Callback,this);
 									pwmoutput_subs.push_back(sub);
 								}
 							}
@@ -537,13 +537,13 @@ bool HatControllerNode::new_devicemsg(std::string query,icarus_rover_v2::device 
 						std::vector<uint16_t> addresses = process->get_gpiohataddresses();
 						for(std::size_t i = 0; i < addresses.size(); ++i)
 						{
-							std::vector<icarus_rover_v2::pin> pins = process->get_gpiohatpins(addresses.at(i));
+							std::vector<eros::pin> pins = process->get_gpiohatpins(addresses.at(i));
 							for(std::size_t j = 0; j < pins.size(); j++)
 							{
 								if(pins.at(i).Function == "DigitalOutput")
 								{
 									std::string topic = "/" + pins.at(i).Name;
-									ros::Subscriber sub = n->subscribe<icarus_rover_v2::pin>(topic,5,&HatControllerNode::DigitalOutput_Callback,this);
+									ros::Subscriber sub = n->subscribe<eros::pin>(topic,5,&HatControllerNode::DigitalOutput_Callback,this);
 									digitaloutput_subs.push_back(sub);
 								}
 							}
@@ -564,7 +564,7 @@ bool HatControllerNode::new_devicemsg(std::string query,icarus_rover_v2::device 
 }
 void HatControllerNode::ArmedState_Callback(const std_msgs::UInt8::ConstPtr& msg)
 {
-	icarus_rover_v2::diagnostic diag = process->new_armedstatemsg((uint8_t)msg->data);
+	eros::diagnostic diag = process->new_armedstatemsg((uint8_t)msg->data);
 	if(diag.Level > NOTICE)
 	{
 		diagnostic_pub.publish(diag);
@@ -572,12 +572,12 @@ void HatControllerNode::ArmedState_Callback(const std_msgs::UInt8::ConstPtr& msg
 
 	}
 }
-void HatControllerNode::DigitalOutput_Callback(const icarus_rover_v2::pin::ConstPtr& msg)
+void HatControllerNode::DigitalOutput_Callback(const eros::pin::ConstPtr& msg)
 {
 	double dt = ros::Time::now().toSec()-last_digitaloutput_time.toSec();
 	//if(dt < .05) { return; } //Only update at 20 Hz
 	last_digitaloutput_time = ros::Time::now();
-	icarus_rover_v2::diagnostic diagnostic = process->new_pinmsg(msg);
+	eros::diagnostic diagnostic = process->new_pinmsg(msg);
 	if(diagnostic.Level > NOTICE)
 	{
 		get_logger()->log_diagnostic(diagnostic);
@@ -585,9 +585,9 @@ void HatControllerNode::DigitalOutput_Callback(const icarus_rover_v2::pin::Const
 	}
 
 }
-void HatControllerNode::PwmOutput_Callback(const icarus_rover_v2::pin::ConstPtr& msg)
+void HatControllerNode::PwmOutput_Callback(const eros::pin::ConstPtr& msg)
 {
-	icarus_rover_v2::diagnostic diagnostic = process->new_pinmsg(msg);
+	eros::diagnostic diagnostic = process->new_pinmsg(msg);
 	if(diagnostic.Level > NOTICE)
 	{
 		get_logger()->log_diagnostic(diagnostic);

@@ -1,19 +1,19 @@
 #include "MasterNodeProcess.h"
-icarus_rover_v2::diagnostic MasterNodeProcess::set_filepaths(std::string t_system_filepath,std::string t_device_filepath)
+eros::diagnostic MasterNodeProcess::set_filepaths(std::string t_system_filepath,std::string t_device_filepath)
 {
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	eros::diagnostic diag = diagnostic;
 	device_filepath = t_device_filepath;
 	system_filepath = t_system_filepath;
 	return diagnostic;
 }
-icarus_rover_v2::diagnostic MasterNodeProcess::new_devicemsg(const icarus_rover_v2::device::ConstPtr& device)
+eros::diagnostic MasterNodeProcess::new_devicemsg(const eros::device::ConstPtr& device)
 {
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	eros::diagnostic diag = diagnostic;
 	return diag;
 }
-icarus_rover_v2::diagnostic MasterNodeProcess::finish_initialization()
+eros::diagnostic MasterNodeProcess::finish_initialization()
 {
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	eros::diagnostic diag = diagnostic;
 	SerialMessageHandler *serialmessagehandler = new SerialMessageHandler;
 	device_temperature = -100.0;
 	diagnostic = load_devicefile(device_filepath);
@@ -28,9 +28,9 @@ icarus_rover_v2::diagnostic MasterNodeProcess::finish_initialization()
 	}
 	return diagnostic;
 }
-icarus_rover_v2::diagnostic MasterNodeProcess::update(double t_dt,double t_ros_time)
+eros::diagnostic MasterNodeProcess::update(double t_dt,double t_ros_time)
 {
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	eros::diagnostic diag = diagnostic;
 	diag = update_baseprocess(t_dt,t_ros_time);
 	if(diag.Level <= NOTICE)
 	{
@@ -43,10 +43,10 @@ icarus_rover_v2::diagnostic MasterNodeProcess::update(double t_dt,double t_ros_t
 
 	return diag;
 }
-std::vector<icarus_rover_v2::diagnostic> MasterNodeProcess::new_commandmsg(const icarus_rover_v2::command::ConstPtr& t_msg)
+std::vector<eros::diagnostic> MasterNodeProcess::new_commandmsg(const eros::command::ConstPtr& t_msg)
 {
-	std::vector<icarus_rover_v2::diagnostic> diaglist;
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	std::vector<eros::diagnostic> diaglist;
+	eros::diagnostic diag = diagnostic;
 	if (t_msg->Command == ROVERCOMMAND_RUNDIAGNOSTIC)
 	{
 		if (t_msg->Option1 == LEVEL1)
@@ -69,10 +69,10 @@ std::vector<icarus_rover_v2::diagnostic> MasterNodeProcess::new_commandmsg(const
 	}
 	return diaglist;
 }
-std::vector<icarus_rover_v2::diagnostic> MasterNodeProcess::check_programvariables()
+std::vector<eros::diagnostic> MasterNodeProcess::check_programvariables()
 {
-	std::vector<icarus_rover_v2::diagnostic> diaglist;
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	std::vector<eros::diagnostic> diaglist;
+	eros::diagnostic diag = diagnostic;
 	bool status = true;
 
 	if (status == true) {
@@ -134,9 +134,9 @@ bool MasterNodeProcess::new_serialmessage(std::string serialport,std::string bau
 	}
 	return false;
 }
-icarus_rover_v2::diagnostic MasterNodeProcess::set_serialportlist(std::vector<std::string> list)
+eros::diagnostic MasterNodeProcess::set_serialportlist(std::vector<std::string> list)
 {
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	eros::diagnostic diag = diagnostic;
 	std::string serial_usb = "ttyUSB";
 	std::string serial_acm = "ttyACM";
 	//std::string serial = "ttyS"; //Get rid of this one
@@ -238,10 +238,10 @@ bool MasterNodeProcess::create_nodelist(std::string nodelist_path,std::string ac
 	process_file.close();
 	return true;
 }
-icarus_rover_v2::diagnostic MasterNodeProcess::load_systemfile(std::string path)
+eros::diagnostic MasterNodeProcess::load_systemfile(std::string path)
 {
-	icarus_rover_v2::diagnostic diag = diagnostic;
-	icarus_rover_v2::diagnostic diag_error = diag;
+	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag_error = diag;
 	diag_error.Diagnostic_Type = SOFTWARE;
 	diag_error.Level = FATAL;
 	diag_error.Diagnostic_Message = INITIALIZING_ERROR;
@@ -266,7 +266,7 @@ icarus_rover_v2::diagnostic MasterNodeProcess::load_systemfile(std::string path)
 
 			while( l_pLeverArm )
 			{
-				icarus_rover_v2::leverarm la;
+				eros::leverarm la;
 				TiXmlElement *l_pName = l_pLeverArm->FirstChildElement( "Name" );
 				if ( NULL != l_pName )
 				{
@@ -347,9 +347,9 @@ icarus_rover_v2::diagnostic MasterNodeProcess::load_systemfile(std::string path)
 	diag.Description = std::string(tempstr2);
 	return diag;
 }
-icarus_rover_v2::diagnostic MasterNodeProcess::load_devicefile(std::string path)
+eros::diagnostic MasterNodeProcess::load_devicefile(std::string path)
 {
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	eros::diagnostic diag = diagnostic;
 	TiXmlDocument doc(path);
 	bool devicefile_loaded = doc.LoadFile();
 	bool mydevice_assigned = false;
@@ -375,8 +375,8 @@ icarus_rover_v2::diagnostic MasterNodeProcess::load_devicefile(std::string path)
 
 			while( l_pDevice )
 			{
-				icarus_rover_v2::device newDevice;
-				std::vector<icarus_rover_v2::pin> pins;
+				eros::device newDevice;
+				std::vector<eros::pin> pins;
 				pins.clear();
 				std::vector<std::string> input_topics;
 				input_topics.clear();
@@ -470,7 +470,7 @@ icarus_rover_v2::diagnostic MasterNodeProcess::load_devicefile(std::string path)
 				TiXmlElement *l_pPin = l_pDevice->FirstChildElement( "Pin" );
 				while( l_pPin )
 				{
-					icarus_rover_v2::pin newpin;
+					eros::pin newpin;
 					newpin.ParentDevice = newDevice.DeviceName;
 
 					TiXmlElement *l_pPinName = l_pPin->FirstChildElement( "Name" );
@@ -605,7 +605,7 @@ icarus_rover_v2::diagnostic MasterNodeProcess::load_devicefile(std::string path)
 	}
 }
 
-void MasterNodeProcess::print_device(std::vector<icarus_rover_v2::device> devices)
+void MasterNodeProcess::print_device(std::vector<eros::device> devices)
 {
 	for(std::size_t i = 0; i < devices.size(); i++)
 	{
@@ -613,18 +613,18 @@ void MasterNodeProcess::print_device(std::vector<icarus_rover_v2::device> device
 	}
 
 }
-void MasterNodeProcess::print_device(icarus_rover_v2::device device)
+void MasterNodeProcess::print_device(eros::device device)
 {
 	printf("Device: %s\n",device.DeviceName.c_str());
 }
-void MasterNodeProcess::print_leverarm(std::vector<icarus_rover_v2::leverarm> leverarms)
+void MasterNodeProcess::print_leverarm(std::vector<eros::leverarm> leverarms)
 {
 	for(std::size_t i = 0; i < leverarms.size(); i++)
 	{
 		print_leverarm(leverarms.at(i));
 	}
 }
-void MasterNodeProcess::print_leverarm(icarus_rover_v2::leverarm la)
+void MasterNodeProcess::print_leverarm(eros::leverarm la)
 {
 	printf("LeverArm %s Reference: %s X: %f Y: %f Z: %f Roll: %f Pitch: %f Yaw: %f\n",
 			la.name.c_str(),
@@ -632,7 +632,7 @@ void MasterNodeProcess::print_leverarm(icarus_rover_v2::leverarm la)
 			la.x.value,la.y.value,la.z.value,
 			la.roll.value,la.pitch.value,la.yaw.value);
 }
-void MasterNodeProcess::print_leverarm(std::string name,std::string reference,icarus_rover_v2::leverarm leverarm)
+void MasterNodeProcess::print_leverarm(std::string name,std::string reference,eros::leverarm leverarm)
 {
 	printf("LeverArm %s Reference: %s X: %f Y: %f Z: %f Roll: %f Pitch: %f Yaw: %f\n",
 			name.c_str(),
@@ -640,7 +640,7 @@ void MasterNodeProcess::print_leverarm(std::string name,std::string reference,ic
 			leverarm.x.value,leverarm.y.value,leverarm.z.value,
 			leverarm.roll.value,leverarm.pitch.value,leverarm.yaw.value);
 }
-bool MasterNodeProcess::get_leverarm(icarus_rover_v2::leverarm *leverarm,std::string name)
+bool MasterNodeProcess::get_leverarm(eros::leverarm *leverarm,std::string name)
 {
 	for(std::size_t i = 0; i < leverarms.size(); i++)
 	{

@@ -1,9 +1,9 @@
-#include "timemaster_node.h"
+#include "calibration_node.h"
 bool kill_node = false;
-bool TimeMasterNode::start(int argc,char **argv)
+bool CalibrationNode::start(int argc,char **argv)
 {
 	bool status = false;
-	process = new TimeMasterNodeProcess();
+	process = new CalibrationNodeProcess();
 	set_basenodename(BASE_NODE_NAME);
 	initialize_firmware(MAJOR_RELEASE_VERSION,MINOR_RELEASE_VERSION,BUILD_NUMBER,FIRMWARE_DESCRIPTION);
 	initialize_diagnostic(DIAGNOSTIC_SYSTEM,DIAGNOSTIC_SUBSYSTEM,DIAGNOSTIC_COMPONENT);
@@ -38,47 +38,43 @@ bool TimeMasterNode::start(int argc,char **argv)
 	return status;
 }
 
-eros::diagnostic TimeMasterNode::read_launchparameters()
+eros::diagnostic CalibrationNode::read_launchparameters()
 {
 	eros::diagnostic diag = diagnostic;
-	std::string pps_source;
-	std::string param_pps_source = node_name +"/pps_source";
-	if(n->getParam(param_pps_source,pps_source) == false)
-	{
-		logger->log_warn("Missing Parameter: pps_source.  Using default: self");
-		pps_source = "self";
-	}
-	if(process->set_ppssource(pps_source) == false)
-	{
-		char tempstr[512];
-		sprintf(tempstr,"PPS Source: %s Not Supported",pps_source.c_str());
-		logger->log_error(std::string(tempstr));
-	}
-	if(pps_source == "self")
-	{
-		publish_1pps = true;
-		std::string pps1_topic = "/1PPS";
-		pps1_pub =  n->advertise<std_msgs::Bool>(pps1_topic,10);
-	}
-
 	get_logger()->log_notice("Configuration Files Loaded.");
 	return diagnostic;
 }
-eros::diagnostic TimeMasterNode::finish_initialization()
+eros::diagnostic CalibrationNode::finish_initialization()
 {
 	eros::diagnostic diag = diagnostic;
-	pps1_sub = n->subscribe<std_msgs::Bool>("/1PPS",1,&TimeMasterNode::PPS1_Callback,this);
-	command_sub = n->subscribe<eros::command>("/command",1,&TimeMasterNode::Command_Callback,this);
+	pps1_sub = n->subscribe<std_msgs::Bool>("/1PPS",1,&CalibrationNode::PPS1_Callback,this);
+	command_sub = n->subscribe<eros::command>("/command",1,&CalibrationNode::Command_Callback,this);
 	std::string device_topic = "/" + std::string(host_name) + "_master_node/srv_device";
 	srv_device = n->serviceClient<eros::srv_device>(device_topic);
-	last_pps1_timer = ros::Time::now();
+	imu_sub = n->subscribe<eros::imu>("/RightIMU",1,&CalibrationNode::IMU_Callback,this);
+	std::string marker_topic = "/RightIMU_mag_marker";
+	imu_mag_marker_pub = n->advertise<visualization_msgs::Marker>(marker_topic, 1);
+
 	return diagnostic;
 }
-bool TimeMasterNode::run_001hz()
+void CalibrationNode::IMU_Callback(const eros::imu::ConstPtr& t_msg)
+{
+	if(point_list.size() > 1000000)
+	{
+		point_list.erase (point_list.begin());
+	}
+	geometry_msgs::Point p;
+	p.x = t_msg->xmag.value;
+	p.y = t_msg->ymag.value;
+	p.z = t_msg->zmag.value;
+	point_list.push_back(p);
+
+}
+bool CalibrationNode::run_001hz()
 {
 	return true;
 }
-bool TimeMasterNode::run_01hz()
+bool CalibrationNode::run_01hz()
 {
 	eros::diagnostic diag = process->get_diagnostic();
 	{
@@ -87,8 +83,29 @@ bool TimeMasterNode::run_01hz()
 	}
 	return true;
 }
-bool TimeMasterNode::run_1hz()
+bool CalibrationNode::run_1hz()
 {
+	printf("sz: %d\n",point_list.size());
+	visualization_msgs::Marker points;
+	points.header.frame_id = "world";
+	points.header.stamp = ros::Time();
+	points.ns = "IMU";
+	points.id = 0;
+	points.type = visualization_msgs::Marker::POINTS;
+	points.action = visualization_msgs::Marker::ADD;
+	points.points = point_list;
+	points.pose.orientation.x = 0.0;
+	points.pose.orientation.y = 0.0;
+	points.pose.orientation.z = 0.0;
+	points.pose.orientation.w = 1.0;
+	points.scale.x = .1;
+	points.scale.y = .1;
+	points.scale.z = 0.1;
+	points.color.a = 1.0; // Don't forget to set the alpha!
+	points.color.r = 0.0;
+	points.color.g = 1.0;
+	points.color.b = 0.0;
+	imu_mag_marker_pub.publish( points );
 	if((process->is_initialized() == true) and (process->is_ready() == true))
 	{
 	}
@@ -126,25 +143,10 @@ bool TimeMasterNode::run_1hz()
 
 	return true;
 }
-bool TimeMasterNode::run_10hz()
+bool CalibrationNode::run_10hz()
 {
 	ready_to_arm = process->get_ready_to_arm();
-
-	return true;
-}
-bool TimeMasterNode::run_loop1()
-{
-	if(process->publish_1pps())
-	{
-		std_msgs::Bool msg;
-		msg.data = true;
-		pps1_pub.publish(msg);
-	}
-	return true;
-}
-bool TimeMasterNode::run_loop2()
-{
-	eros::diagnostic diag = process->update(measure_time_diff(ros::Time::now(),last_loop2_timer),ros::Time::now().toSec());
+	eros::diagnostic diag = process->update(0.1,ros::Time::now().toSec());
 	if(diag.Level > WARN)
 	{
 		get_logger()->log_diagnostic(diag);
@@ -152,22 +154,30 @@ bool TimeMasterNode::run_loop2()
 	}
 	return true;
 }
-bool TimeMasterNode::run_loop3()
+bool CalibrationNode::run_loop1()
+{
+	return true;
+}
+bool CalibrationNode::run_loop2()
+{
+	return true;
+}
+bool CalibrationNode::run_loop3()
 {
 	return true;
 }
 
-void TimeMasterNode::PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
+void CalibrationNode::PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
 	new_ppsmsg(msg);
 }
 
-void TimeMasterNode::Command_Callback(const eros::command::ConstPtr& t_msg)
+void CalibrationNode::Command_Callback(const eros::command::ConstPtr& t_msg)
 {
 	std::vector<eros::diagnostic> diaglist = process->new_commandmsg(t_msg);
 	new_commandmsg_result(t_msg,diaglist);
 }
-bool TimeMasterNode::new_devicemsg(std::string query,eros::device t_device)
+bool CalibrationNode::new_devicemsg(std::string query,eros::device t_device)
 {
 	if(query == "SELF")
 	{
@@ -185,15 +195,14 @@ bool TimeMasterNode::new_devicemsg(std::string query,eros::device t_device)
 	}
 	return true;
 }
-
-void TimeMasterNode::thread_loop()
+void CalibrationNode::thread_loop()
 {
 	while(kill_node == false)
 	{
 		ros::Duration(1.0).sleep();
 	}
 }
-void TimeMasterNode::cleanup()
+void CalibrationNode::cleanup()
 {
 }
 /*! \brief Attempts to kill a node when an interrupt is received.
@@ -207,9 +216,9 @@ void signalinterrupt_handler(int sig)
 int main(int argc, char **argv) {
 	signal(SIGINT, signalinterrupt_handler);
 	signal(SIGTERM, signalinterrupt_handler);
-	TimeMasterNode *node = new TimeMasterNode();
+	CalibrationNode *node = new CalibrationNode();
 	bool status = node->start(argc,argv);
-	std::thread thread(&TimeMasterNode::thread_loop, node);
+	std::thread thread(&CalibrationNode::thread_loop, node);
 	while((status == true) and (kill_node == false))
 	{
 		status = node->update();

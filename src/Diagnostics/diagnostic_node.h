@@ -41,11 +41,11 @@ private:
 	/*! \brief Read Node Specific Launch Parameters
 	 *
 	 */
-	icarus_rover_v2::diagnostic read_launchparameters();
+	eros::diagnostic read_launchparameters();
 	/*! \brief Setup other pubs/subs, other node specific init stuff
 	 *
 	 */
-	icarus_rover_v2::diagnostic finish_initialization();
+	eros::diagnostic finish_initialization();
 	//Update Functions
 	bool run_001hz();
 	bool run_01hz();
@@ -57,12 +57,12 @@ private:
 	//Attribute Functions
 	//Message Functions
 	void PPS1_Callback(const std_msgs::Bool::ConstPtr& t_msg);
-	void Command_Callback(const icarus_rover_v2::command::ConstPtr& t_msg);
-	bool new_devicemsg(std::string query,icarus_rover_v2::device t_device);
-	icarus_rover_v2::diagnostic rescan_topics(icarus_rover_v2::diagnostic diag);
-	void heartbeat_Callback(const icarus_rover_v2::heartbeat::ConstPtr& msg,const std::string &topicname);
-	void resource_Callback(const icarus_rover_v2::resource::ConstPtr& msg,const std::string &topicname);
-	void diagnostic_Callback(const icarus_rover_v2::diagnostic::ConstPtr& msg,const std::string &topicname);
+	void Command_Callback(const eros::command::ConstPtr& t_msg);
+	bool new_devicemsg(std::string query,eros::device t_device);
+	eros::diagnostic rescan_topics(eros::diagnostic diag);
+	void heartbeat_Callback(const eros::heartbeat::ConstPtr& msg,const std::string &topicname);
+	void resource_Callback(const eros::resource::ConstPtr& msg,const std::string &topicname);
+	void diagnostic_Callback(const eros::diagnostic::ConstPtr& msg,const std::string &topicname);
 	void ArmedState_Callback(const std_msgs::UInt8::ConstPtr& msg);
 	//Support Functions
     /*! \brief  Log RAM and CPU Usage */

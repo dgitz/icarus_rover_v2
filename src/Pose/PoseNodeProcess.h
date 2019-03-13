@@ -27,22 +27,22 @@ public:
 		bool running;
 		std::string topicname;
         tf::Transform transform;
-		icarus_rover_v2::device device;
-		icarus_rover_v2::imu imu_data;
-		icarus_rover_v2::signal orientation_pitch;
-		icarus_rover_v2::signal orientation_roll;
-		icarus_rover_v2::signal orientation_yaw;
+		eros::device device;
+		eros::imu imu_data;
+		eros::signal orientation_pitch;
+		eros::signal orientation_roll;
+		eros::signal orientation_yaw;
 	};
 	///Initialization Functions
 	/*! \brief NodeProcess specific Initialization
 	 *
 	 */
-	icarus_rover_v2::diagnostic finish_initialization();
+	eros::diagnostic finish_initialization();
 	//Update Functions
 	/*! \brief Implementation of the update function
 	 *
 	 */
-	icarus_rover_v2::diagnostic update(double t_dt,double t_ros_time);
+	eros::diagnostic update(double t_dt,double t_ros_time);
 
 	//Attribute Functions
 	bool set_imucount(uint8_t v);
@@ -53,9 +53,9 @@ public:
 	/*! \brief  Process Command Message.  All implementation should use at least the code in this Sample Function.
 	 *
 	 */
-	std::vector<icarus_rover_v2::diagnostic> new_commandmsg(const icarus_rover_v2::command::ConstPtr& t_msg);
-	icarus_rover_v2::diagnostic new_devicemsg(const icarus_rover_v2::device::ConstPtr& device);
-	icarus_rover_v2::diagnostic new_imumsg(std::string topic, const icarus_rover_v2::imu::ConstPtr& data);
+	std::vector<eros::diagnostic> new_commandmsg(const eros::command::ConstPtr& t_msg);
+	eros::diagnostic new_devicemsg(const eros::device::ConstPtr& device);
+	eros::diagnostic new_imumsg(std::string topic, const eros::imu::ConstPtr& data);
 
 	//Support Functions
     std::string map_posemode_tostring(PoseNodeProcess::PoseMode t_posemode);
@@ -70,7 +70,7 @@ private:
 	 *
 	 */
     PoseAcceleration pose_acc;
-	std::vector<icarus_rover_v2::diagnostic> check_programvariables();
+	std::vector<eros::diagnostic> check_programvariables();
     PoseMode current_mode;
 	std::vector<IMUSensor> imus;
 	uint8_t imu_count;

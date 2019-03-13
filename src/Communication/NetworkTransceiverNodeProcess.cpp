@@ -1,7 +1,7 @@
 #include "NetworkTransceiverNodeProcess.h"
-icarus_rover_v2::diagnostic  NetworkTransceiverNodeProcess::finish_initialization()
+eros::diagnostic  NetworkTransceiverNodeProcess::finish_initialization()
 {
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	eros::diagnostic diag = diagnostic;
 	init_messages();
 	return diagnostic;
 }
@@ -11,14 +11,14 @@ void NetworkTransceiverNodeProcess::set_networkconfiguration(std::string t_multi
 		send_multicast_port = t_send_multicast_port;
 		recv_unicast_port = t_recv_unicast_port;
 	}
-icarus_rover_v2::diagnostic NetworkTransceiverNodeProcess::update(double t_dt,double t_ros_time)
+eros::diagnostic NetworkTransceiverNodeProcess::update(double t_dt,double t_ros_time)
 {
 	if(initialized == true)
 	{
 		ready = true;
 
 	}
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	eros::diagnostic diag = diagnostic;
 	diag = update_baseprocess(t_dt,t_ros_time);
 	for(std::size_t i = 0; i < messages.size(); i++)
 	{
@@ -43,9 +43,9 @@ icarus_rover_v2::diagnostic NetworkTransceiverNodeProcess::update(double t_dt,do
 
 	return diag;
 }
-icarus_rover_v2::diagnostic NetworkTransceiverNodeProcess::check_remoteHeartbeats()
+eros::diagnostic NetworkTransceiverNodeProcess::check_remoteHeartbeats()
 {
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	eros::diagnostic diag = diagnostic;
 	bool heartbeat_pass = true;
 	double now = ros_time;
 	for(int i = 0; i < remote_devices.size();++i)
@@ -83,15 +83,15 @@ icarus_rover_v2::diagnostic NetworkTransceiverNodeProcess::check_remoteHeartbeat
 	remote_heartbeat_pass = heartbeat_pass;
 	return diag;
 }
-icarus_rover_v2::diagnostic NetworkTransceiverNodeProcess::new_devicemsg(const icarus_rover_v2::device::ConstPtr& device)
+eros::diagnostic NetworkTransceiverNodeProcess::new_devicemsg(const eros::device::ConstPtr& device)
 {
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	eros::diagnostic diag = diagnostic;
 	return diag;
 }
-std::vector<icarus_rover_v2::diagnostic> NetworkTransceiverNodeProcess::new_commandmsg(const icarus_rover_v2::command::ConstPtr& t_msg)
+std::vector<eros::diagnostic> NetworkTransceiverNodeProcess::new_commandmsg(const eros::command::ConstPtr& t_msg)
 {
-	std::vector<icarus_rover_v2::diagnostic> diaglist;
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	std::vector<eros::diagnostic> diaglist;
+	eros::diagnostic diag = diagnostic;
 	if (t_msg->Command == ROVERCOMMAND_RUNDIAGNOSTIC)
 	{
 		if (t_msg->Option1 == LEVEL1)
@@ -114,10 +114,10 @@ std::vector<icarus_rover_v2::diagnostic> NetworkTransceiverNodeProcess::new_comm
 	}
 	return diaglist;
 }
-std::vector<icarus_rover_v2::diagnostic> NetworkTransceiverNodeProcess::check_programvariables()
+std::vector<eros::diagnostic> NetworkTransceiverNodeProcess::check_programvariables()
 {
-	std::vector<icarus_rover_v2::diagnostic> diaglist;
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	std::vector<eros::diagnostic> diaglist;
+	eros::diagnostic diag = diagnostic;
 	bool status = true;
 	bool any_message_sent = false;
 	for(std::size_t i = 0; i < messages.size(); i++)
@@ -136,7 +136,7 @@ std::vector<icarus_rover_v2::diagnostic> NetworkTransceiverNodeProcess::check_pr
 		diag.Description = "Have not sent any UDP Packets Yet.";
 		diaglist.push_back(diag);
 	}
-	icarus_rover_v2::diagnostic diag_heartbeat = check_remoteHeartbeats();
+	eros::diagnostic diag_heartbeat = check_remoteHeartbeats();
 	if(diag_heartbeat.Level > NOTICE)
 	{
 		status = false;
@@ -161,10 +161,10 @@ std::vector<icarus_rover_v2::diagnostic> NetworkTransceiverNodeProcess::check_pr
 	}
 	return diaglist;
 }
-icarus_rover_v2::diagnostic NetworkTransceiverNodeProcess::new_remoteheartbeatmsg(double timestamp,std::string name,double current_beat,double expected_beat)
+eros::diagnostic NetworkTransceiverNodeProcess::new_remoteheartbeatmsg(double timestamp,std::string name,double current_beat,double expected_beat)
 {
-	icarus_rover_v2::diagnostic diag = diagnostic;
-	std::vector<icarus_rover_v2::diagnostic> diag_list;
+	eros::diagnostic diag = diagnostic;
+	std::vector<eros::diagnostic> diag_list;
 	bool add_new_entry = true;
 	for(int i = 0; i < remote_devices.size(); i++)
 	{
@@ -206,9 +206,9 @@ icarus_rover_v2::diagnostic NetworkTransceiverNodeProcess::new_remoteheartbeatms
 
 
 }
-icarus_rover_v2::diagnostic NetworkTransceiverNodeProcess::new_message_sent(uint16_t id)
+eros::diagnostic NetworkTransceiverNodeProcess::new_message_sent(uint16_t id)
 {
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	eros::diagnostic diag = diagnostic;
 	for(std::size_t i = 0; i < messages.size(); i++)
 	{
 		if(messages.at(i).id == id)
@@ -218,9 +218,9 @@ icarus_rover_v2::diagnostic NetworkTransceiverNodeProcess::new_message_sent(uint
 	}
 	return diag;
 }
-icarus_rover_v2::diagnostic NetworkTransceiverNodeProcess::new_message_recv(uint16_t id)
+eros::diagnostic NetworkTransceiverNodeProcess::new_message_recv(uint16_t id)
 {
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	eros::diagnostic diag = diagnostic;
 	for(std::size_t i = 0; i < messages.size(); i++)
 	{
 		if(messages.at(i).id == id)

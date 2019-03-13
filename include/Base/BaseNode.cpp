@@ -19,7 +19,7 @@ void BaseNode::initialize_diagnostic(uint8_t t_system,uint8_t t_subsystem,uint8_
 	diagnostic.Component = t_component;
 
 }
-icarus_rover_v2::diagnostic BaseNode::preinitialize_basenode(int argc,char **argv)
+eros::diagnostic BaseNode::preinitialize_basenode(int argc,char **argv)
 {
 	resourcemonitor_initialized = false;
 	logger_initialized = false;
@@ -43,13 +43,13 @@ icarus_rover_v2::diagnostic BaseNode::preinitialize_basenode(int argc,char **arg
 
 	diagnostic = read_baselaunchparameters();
 	std::string firmware_topic = "/" + node_name + "/firmware";
-	firmware_pub =  n->advertise<icarus_rover_v2::firmware>(firmware_topic,1);
+	firmware_pub =  n->advertise<eros::firmware>(firmware_topic,1);
 	std::string resource_topic = "/" + node_name + "/resource";
-	resource_pub = n->advertise<icarus_rover_v2::resource>(resource_topic,1);
+	resource_pub = n->advertise<eros::resource>(resource_topic,1);
 	std::string heartbeat_topic = "/" + node_name + "/heartbeat";
-	heartbeat_pub = n->advertise<icarus_rover_v2::heartbeat>(heartbeat_topic,1);
+	heartbeat_pub = n->advertise<eros::heartbeat>(heartbeat_topic,1);
 	std::string diagnostic_topic = "/" + node_name + "/diagnostic";
-	diagnostic_pub = n->advertise<icarus_rover_v2::diagnostic>(diagnostic_topic,1);
+	diagnostic_pub = n->advertise<eros::diagnostic>(diagnostic_topic,1);
 	std::string readytoarm_topic = "/" + node_name + "/readytoarm";
 	readytoarm_pub = n->advertise<std_msgs::Bool>(readytoarm_topic,1);
 	if(diagnostic.Level > WARN)
@@ -65,17 +65,17 @@ icarus_rover_v2::diagnostic BaseNode::preinitialize_basenode(int argc,char **arg
 	}
 	return diagnostic;
 }
-icarus_rover_v2::diagnostic BaseNode::set_mydevice(icarus_rover_v2::device t_device)
+eros::diagnostic BaseNode::set_mydevice(eros::device t_device)
 {
-	icarus_rover_v2::diagnostic diag=diagnostic;
+	eros::diagnostic diag=diagnostic;
 	resourcemonitor = new ResourceMonitor(diag,t_device.Architecture,std::string(host_name),node_name);
 	resourcemonitor_initialized = true;
 	return diag;
 }
 
-icarus_rover_v2::diagnostic BaseNode::read_baselaunchparameters()
+eros::diagnostic BaseNode::read_baselaunchparameters()
 {
-	icarus_rover_v2::diagnostic diag=diagnostic;
+	eros::diagnostic diag=diagnostic;
 	loop1_enabled = false;
 	loop2_enabled = false;
 	loop3_enabled = false;
@@ -277,7 +277,7 @@ void BaseNode::new_ppsmsg(const std_msgs::Bool::ConstPtr& t_msg)
 	pps_received = true;
 }
 
-void BaseNode::new_commandmsg_result(const icarus_rover_v2::command::ConstPtr& t_msg,std::vector<icarus_rover_v2::diagnostic> t_diaglist)
+void BaseNode::new_commandmsg_result(const eros::command::ConstPtr& t_msg,std::vector<eros::diagnostic> t_diaglist)
 {
 	if((t_msg->Option1 >= LEVEL3) and (t_diaglist.size() == 1) and (t_diaglist.at(0).Diagnostic_Message == DIAGNOSTIC_PASSED))
 	{

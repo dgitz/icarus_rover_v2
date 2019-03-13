@@ -1,6 +1,6 @@
 // Derived class
 #include "MasterNodeProcess.cpp"
-#include "../include/Base/BaseNode.cpp"
+#include "../../include/Base/BaseNode.cpp"
 //C System Files
 #include <stdlib.h>
 #include <dirent.h>
@@ -40,9 +40,9 @@ public:
 private:
 	//Initialization Functions
 	/*! \brief Read Node Specific Launch Parameters */
-	icarus_rover_v2::diagnostic read_launchparameters();
+	eros::diagnostic read_launchparameters();
 	/*! \brief Setup other pubs/subs, other node specific init stuff */
-	icarus_rover_v2::diagnostic finish_initialization();
+	eros::diagnostic finish_initialization();
 	//Update Functions
 	bool run_001hz();
 	bool run_01hz();
@@ -54,18 +54,18 @@ private:
 	//Attribute Functions
 	//Message Functions
 	void PPS1_Callback(const std_msgs::Bool::ConstPtr& t_msg);
-	void Command_Callback(const icarus_rover_v2::command::ConstPtr& t_msg);
-	bool new_devicemsg(std::string query,icarus_rover_v2::device t_device);
+	void Command_Callback(const eros::command::ConstPtr& t_msg);
+	bool new_devicemsg(std::string query,eros::device t_device);
 	//Support Functions
 	/*! \brief Request Information in the DeviceFile */
-	bool device_service(icarus_rover_v2::srv_device::Request &req,
-					icarus_rover_v2::srv_device::Response &res);
+	bool device_service(eros::srv_device::Request &req,
+					eros::srv_device::Response &res);
 	/*! \brief Request a connection over a limited bus, such as a Serial Port. */
-	bool connection_service(icarus_rover_v2::srv_connection::Request &req,
-					icarus_rover_v2::srv_connection::Response &res);
+	bool connection_service(eros::srv_connection::Request &req,
+					eros::srv_connection::Response &res);
 	/*! \brief Request a Lever Arm */
-	bool leverarm_service(icarus_rover_v2::srv_leverarm::Request &req,
-					icarus_rover_v2::srv_leverarm::Response &res);
+	bool leverarm_service(eros::srv_leverarm::Request &req,
+					eros::srv_leverarm::Response &res);
 	double read_device_temperature();
 	std::vector<std::string> find_serialports();
 	bool check_serialports();

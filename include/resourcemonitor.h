@@ -9,8 +9,8 @@
 #include <ctime>
 #include <fstream>
 #include <boost/algorithm/string.hpp>
-#include <icarus_rover_v2/resource.h>
-#include <icarus_rover_v2/diagnostic.h>
+#include <eros/resource.h>
+#include <eros/diagnostic.h>
 #include <numeric>
 #include <boost/algorithm/string/replace.hpp>
 
@@ -23,19 +23,19 @@ class ResourceMonitor
 {
 public:
     ResourceMonitor();
-    ResourceMonitor(icarus_rover_v2::diagnostic diag,std::string DeviceArchitecture,std::string HostName,std::string TaskName);
-    void init(icarus_rover_v2::diagnostic diag,std::string DeviceArchitecture,std::string HostName,std::string TaskName);
-    icarus_rover_v2::diagnostic update();
+    ResourceMonitor(eros::diagnostic diag,std::string DeviceArchitecture,std::string HostName,std::string TaskName);
+    void init(eros::diagnostic diag,std::string DeviceArchitecture,std::string HostName,std::string TaskName);
+    eros::diagnostic update();
     int get_CPUUsed_perc();  //Helper function, not needed in application.
     int get_RAMUsed_kB(); //Helper function, not needed in application.
     int get_TaskPID(); //Helper function, not needed in application.
     int get_CPUFree_perc();
     int get_RAMFree_kB();
-    icarus_rover_v2::resource get_resourceused();
+    eros::resource get_resourceused();
     ~ResourceMonitor();
     std::string get_DeviceArchitecture() { return Device_Architecture; }
 private:
-    icarus_rover_v2::diagnostic diagnostic;
+    eros::diagnostic diagnostic;
     std::string Device_Architecture;
     std::string Task_Name;
     std::string Host_Name;

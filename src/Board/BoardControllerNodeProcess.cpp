@@ -1,16 +1,16 @@
 #include "BoardControllerNodeProcess.h"
-icarus_rover_v2::diagnostic  BoardControllerNodeProcess::finish_initialization()
+eros::diagnostic  BoardControllerNodeProcess::finish_initialization()
 {
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	eros::diagnostic diag = diagnostic;
 	init_messages();
 	current_command.Command = ROVERCOMMAND_NONE;
 	LEDPixelMode = LEDPIXELMODE_ERROR;
 	encoder_count = 0;
 	return diagnostic;
 }
-icarus_rover_v2::diagnostic BoardControllerNodeProcess::update(double t_dt,double t_ros_time)
+eros::diagnostic BoardControllerNodeProcess::update(double t_dt,double t_ros_time)
 {
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	eros::diagnostic diag = diagnostic;
 	LEDPixelMode = LEDPIXELMODE_NORMAL;
 	diag = update_baseprocess(t_dt,t_ros_time);
 	bool boards_ready = true;
@@ -85,9 +85,9 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::update(double t_dt,doubl
 	diagnostic = diag;
 	return diag;
 }
-icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_devicemsg(const icarus_rover_v2::device::ConstPtr& t_newdevice)
+eros::diagnostic BoardControllerNodeProcess::new_devicemsg(const eros::device::ConstPtr& t_newdevice)
 {
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	eros::diagnostic diag = diagnostic;
 	if(initialized == true)
 	{
 		if(ready == false)
@@ -108,7 +108,7 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_devicemsg(const icar
 				std::size_t board_message = t_newdevice->DeviceType.find("Board");
 				if((board_message != std::string::npos))
 				{
-					icarus_rover_v2::device board_device = convert_fromptr(t_newdevice);
+					eros::device board_device = convert_fromptr(t_newdevice);
 					if(t_newdevice->DeviceType == "ArduinoBoard")
 					{
 						for(std::size_t i = 0; i < t_newdevice->pins.size(); i++)
@@ -195,10 +195,10 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_devicemsg(const icar
 	diag.Description = std::string(tempstr);
 	return diag;
 }
-std::vector<icarus_rover_v2::diagnostic> BoardControllerNodeProcess::new_commandmsg(const icarus_rover_v2::command::ConstPtr& t_msg)
+std::vector<eros::diagnostic> BoardControllerNodeProcess::new_commandmsg(const eros::command::ConstPtr& t_msg)
 {
-	std::vector<icarus_rover_v2::diagnostic> diaglist;
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	std::vector<eros::diagnostic> diaglist;
+	eros::diagnostic diag = diagnostic;
 	current_command = convert_fromptr(t_msg);
 	if (t_msg->Command == ROVERCOMMAND_RUNDIAGNOSTIC)
 	{
@@ -226,10 +226,10 @@ void BoardControllerNodeProcess::new_armedstatemsg(uint8_t t_armed_state)
 {
 	armed_state = t_armed_state;
 }
-std::vector<icarus_rover_v2::diagnostic> BoardControllerNodeProcess::check_programvariables()
+std::vector<eros::diagnostic> BoardControllerNodeProcess::check_programvariables()
 {
-	std::vector<icarus_rover_v2::diagnostic> diaglist;
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	std::vector<eros::diagnostic> diaglist;
+	eros::diagnostic diag = diagnostic;
 	bool status = true;
 
 	if (status == true) {
@@ -271,9 +271,9 @@ std::vector<BoardControllerNodeProcess::BoardControllerNodeProcess::Message> Boa
 	}
 	return commandmessages;
 }
-icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_message_sent(unsigned char id)
+eros::diagnostic BoardControllerNodeProcess::new_message_sent(unsigned char id)
 {
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	eros::diagnostic diag = diagnostic;
 	for(std::size_t i = 0; i < messages.size(); i++)
 	{
 		if(messages.at(i).id == id)
@@ -284,9 +284,9 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_message_sent(unsigne
 	}
 	return diag;
 }
-icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_message_recv(unsigned char id)
+eros::diagnostic BoardControllerNodeProcess::new_message_recv(unsigned char id)
 {
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	eros::diagnostic diag = diagnostic;
 	for(std::size_t i = 0; i < messages.size(); i++)
 	{
 		if(messages.at(i).id == id)
@@ -365,18 +365,18 @@ void BoardControllerNodeProcess::init_messages()
 		messages.at(i).recv_rate = 0.0;
 	}
 }
-icarus_rover_v2::diagnostic BoardControllerNodeProcess::get_LEDStripControlParameters
+eros::diagnostic BoardControllerNodeProcess::get_LEDStripControlParameters
 (unsigned char& Mode,unsigned char& Param1,unsigned char& Param2)
 {
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	eros::diagnostic diag = diagnostic;
 	Mode = LEDPixelMode;
 	Param1 = 0;
 	Param2 = 0;
 	return diag;
 }
-icarus_rover_v2::diagnostic BoardControllerNodeProcess::send_commandmessage(unsigned char id)
+eros::diagnostic BoardControllerNodeProcess::send_commandmessage(unsigned char id)
 {
-	icarus_rover_v2::diagnostic diag;
+	eros::diagnostic diag;
 	diag = diagnostic;
 	for(std::size_t i = 0; i <messages.size(); i++)
 	{
@@ -398,9 +398,9 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::send_commandmessage(unsi
 	return diag;
 }
 
-icarus_rover_v2::diagnostic BoardControllerNodeProcess::send_querymessage(unsigned char id)
+eros::diagnostic BoardControllerNodeProcess::send_querymessage(unsigned char id)
 {
-	icarus_rover_v2::diagnostic diag;
+	eros::diagnostic diag;
 	diag = diagnostic;
 	for(std::size_t i = 0; i <messages.size(); i++)
 	{
@@ -441,11 +441,11 @@ std::string BoardControllerNodeProcess::get_messageinfo(bool v)
 	}
 	return std::string(tempstr);
 }
-icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_message_TestMessageCounter(uint8_t boardid,unsigned char v1,unsigned char v2,unsigned char v3,unsigned char v4,
+eros::diagnostic BoardControllerNodeProcess::new_message_TestMessageCounter(uint8_t boardid,unsigned char v1,unsigned char v2,unsigned char v3,unsigned char v4,
 		unsigned char v5,unsigned char v6,unsigned char v7,unsigned char v8,
 		unsigned char v9,unsigned char v10,unsigned char v11,unsigned char v12)
 {
-	icarus_rover_v2::diagnostic diag;
+	eros::diagnostic diag;
 	diag = diagnostic;
 	char tempstr[255];
 	diag.Diagnostic_Type = COMMUNICATIONS;
@@ -455,13 +455,13 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_message_TestMessageC
 	diag.Description = std::string(tempstr);
 	return diag;
 }
-icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_message_GetDIOPort1(uint8_t boardid,double tov,
+eros::diagnostic BoardControllerNodeProcess::new_message_GetDIOPort1(uint8_t boardid,double tov,
 		int16_t v1,int16_t v2)
 {
 	int16_t v[6] = {v1,v2};
-	icarus_rover_v2::diagnostic diag = diagnostic;
-	icarus_rover_v2::device board = find_board(boardid);
-	icarus_rover_v2::device::ConstPtr board_ptr(new icarus_rover_v2::device(board));
+	eros::diagnostic diag = diagnostic;
+	eros::device board = find_board(boardid);
+	eros::device::ConstPtr board_ptr(new eros::device(board));
 	if(board.DeviceName == "")
 	{
 		char tempstr[255];
@@ -474,8 +474,8 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_message_GetDIOPort1(
 	}
 	for(uint8_t i = 0; i < 2; i++)
 	{
-		icarus_rover_v2::pin pin = find_pin(board_ptr,"QuadratureEncoderInput",i);
-		icarus_rover_v2::pin::ConstPtr pin_ptr(new icarus_rover_v2::pin(pin));
+		eros::pin pin = find_pin(board_ptr,"QuadratureEncoderInput",i);
+		eros::pin::ConstPtr pin_ptr(new eros::pin(pin));
 		if(pin.Name != "")
 		{
 			if(update_sensor(board_ptr,pin_ptr,tov,(double)v[i]) == false)
@@ -491,15 +491,15 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_message_GetDIOPort1(
 	diag.Description = std::string(tempstr);
 	return diag;
 }
-icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_message_Diagnostic(uint8_t boardid,
+eros::diagnostic BoardControllerNodeProcess::new_message_Diagnostic(uint8_t boardid,
 		unsigned char System,unsigned char SubSystem,
 		unsigned char Component,unsigned char Diagnostic_Type,
 		unsigned char Level,unsigned char Message)
 {
-	icarus_rover_v2::diagnostic diag = diagnostic;
-	icarus_rover_v2::diagnostic worst_diagnostic;
+	eros::diagnostic diag = diagnostic;
+	eros::diagnostic worst_diagnostic;
 	worst_diagnostic.Level = DEBUG;
-	icarus_rover_v2::device board = find_board(boardid);
+	eros::device board = find_board(boardid);
 	if(board.DeviceName == "")
 	{
 		char tempstr[255];
@@ -567,13 +567,13 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_message_Diagnostic(u
 		return diag;
 	}
 }
-icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_message_GetANAPort1(uint8_t boardid,double tov,uint16_t v1,uint16_t v2,uint16_t v3,
+eros::diagnostic BoardControllerNodeProcess::new_message_GetANAPort1(uint8_t boardid,double tov,uint16_t v1,uint16_t v2,uint16_t v3,
 		uint16_t v4,uint16_t v5,uint16_t v6)
 {
 	uint16_t v[6] = {v1,v2,v3,v4,v5,v6};
-	icarus_rover_v2::diagnostic diag = diagnostic;
-	icarus_rover_v2::device board = find_board(boardid);
-	icarus_rover_v2::device::ConstPtr board_ptr(new icarus_rover_v2::device(board));
+	eros::diagnostic diag = diagnostic;
+	eros::device board = find_board(boardid);
+	eros::device::ConstPtr board_ptr(new eros::device(board));
 	if(board.DeviceName == "")
 	{
 		char tempstr[255];
@@ -586,8 +586,8 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_message_GetANAPort1(
 	}
 	for(uint8_t i = 0; i < 6; i++)
 	{
-		icarus_rover_v2::pin pin = find_pin(board_ptr,"AnalogInput",i);
-		icarus_rover_v2::pin::ConstPtr pin_ptr(new icarus_rover_v2::pin(pin));
+		eros::pin pin = find_pin(board_ptr,"AnalogInput",i);
+		eros::pin::ConstPtr pin_ptr(new eros::pin(pin));
 		if(pin.Name != "")
 		{
 			if(update_sensor(board_ptr,pin_ptr,tov,(double)v[i]) == false)
@@ -606,7 +606,7 @@ icarus_rover_v2::diagnostic BoardControllerNodeProcess::new_message_GetANAPort1(
 
 
 }
-bool BoardControllerNodeProcess::board_present(const icarus_rover_v2::device::ConstPtr& device)
+bool BoardControllerNodeProcess::board_present(const eros::device::ConstPtr& device)
 {
 	for(std::size_t i = 0; i < boards.size(); i++)
 	{
@@ -698,7 +698,7 @@ bool BoardControllerNodeProcess::sensors_initialized()
 	}
 	return sensors_init;
 }
-bool BoardControllerNodeProcess::update_sensor(const icarus_rover_v2::device::ConstPtr& board,const icarus_rover_v2::pin::ConstPtr& pin,double tov,double value)
+bool BoardControllerNodeProcess::update_sensor(const eros::device::ConstPtr& board,const eros::pin::ConstPtr& pin,double tov,double value)
 {
 	for(std::size_t i = 0; i < sensors.size(); i++)
 	{
@@ -723,7 +723,7 @@ bool BoardControllerNodeProcess::update_sensor(const icarus_rover_v2::device::Co
 	}
 	return false;
 }
-icarus_rover_v2::device BoardControllerNodeProcess::find_board(uint8_t boardid)
+eros::device BoardControllerNodeProcess::find_board(uint8_t boardid)
 {
 	for(std::size_t i = 0; i < boards.size(); i++)
 	{
@@ -732,12 +732,12 @@ icarus_rover_v2::device BoardControllerNodeProcess::find_board(uint8_t boardid)
 			return boards.at(i);
 		}
 	}
-	icarus_rover_v2::device empty_device;
+	eros::device empty_device;
 	empty_device.DeviceName = "";
 	empty_device.DeviceType = "";
 	return empty_device;
 }
-icarus_rover_v2::pin BoardControllerNodeProcess::find_pin(const icarus_rover_v2::device::ConstPtr& board,std::string pinfunction,uint8_t pinnumber)
+eros::pin BoardControllerNodeProcess::find_pin(const eros::device::ConstPtr& board,std::string pinfunction,uint8_t pinnumber)
 {
 	for(std::size_t i = 0; i < board->pins.size(); i++)
 	{
@@ -746,12 +746,12 @@ icarus_rover_v2::pin BoardControllerNodeProcess::find_pin(const icarus_rover_v2:
 			return board->pins.at(i);
 		}
 	}
-	icarus_rover_v2::pin empty_pin;
+	eros::pin empty_pin;
 	empty_pin.Name = "";
 	empty_pin.Function = "";
 	return empty_pin;
 }
-icarus_rover_v2::pin find_pin(const icarus_rover_v2::device::ConstPtr& board,std::string pinname)
+eros::pin find_pin(const eros::device::ConstPtr& board,std::string pinname)
 {
 	for(std::size_t i = 0; i < board->pins.size(); i++)
 	{
@@ -760,7 +760,7 @@ icarus_rover_v2::pin find_pin(const icarus_rover_v2::device::ConstPtr& board,std
 			return board->pins.at(i);
 		}
 	}
-	icarus_rover_v2::pin empty_pin;
+	eros::pin empty_pin;
 	empty_pin.Name = "";
 	empty_pin.Function = "";
 	return empty_pin;

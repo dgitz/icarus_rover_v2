@@ -57,12 +57,12 @@ public:
 	/*! \brief NodeProcess specific Initialization
 	 *
 	 */
-	icarus_rover_v2::diagnostic finish_initialization();
+	eros::diagnostic finish_initialization();
 	//Update Functions
 	/*! \brief Implementation of the update function
 	 *
 	 */
-	icarus_rover_v2::diagnostic update(double t_dt,double t_ros_time);
+	eros::diagnostic update(double t_dt,double t_ros_time);
 
 	//Attribute Functions
 	std::vector<TopicMap> get_topicmaps() { return TopicMaps; }
@@ -70,13 +70,13 @@ public:
 	/*! \brief  Process Command Message.  All implementation should use at least the code in this Sample Function.
 	 *
 	 */
-	std::vector<icarus_rover_v2::diagnostic> new_commandmsg(const icarus_rover_v2::command::ConstPtr& t_msg);
-	icarus_rover_v2::diagnostic new_devicemsg(const icarus_rover_v2::device::ConstPtr& device);
-	 icarus_rover_v2::diagnostic new_joymsg(sensor_msgs::Joy joy,std::string topic);
+	std::vector<eros::diagnostic> new_commandmsg(const eros::command::ConstPtr& t_msg);
+	eros::diagnostic new_devicemsg(const eros::device::ConstPtr& device);
+	 eros::diagnostic new_joymsg(sensor_msgs::Joy joy,std::string topic);
 
 	//Support Functions
-	icarus_rover_v2::diagnostic load(std::string topicmapfilepath);
-	std::vector<icarus_rover_v2::pin> get_outputs_pins();
+	eros::diagnostic load(std::string topicmapfilepath);
+	std::vector<eros::pin> get_outputs_pins();
 	std::vector<std_msgs::Float32> get_outputs_float32();
     //Printing Functions
 	std::string print_topicmaps();
@@ -85,7 +85,7 @@ private:
 	/*! \brief Process Specific Implementation
 	 *
 	 */
-	std::vector<icarus_rover_v2::diagnostic> check_programvariables();
+	std::vector<eros::diagnostic> check_programvariables();
 	int parse_topicmapfile(TiXmlDocument doc);
 	    double scale_value(double in_value,double neutral_value,double in_min,double in_max,double out_min,double out_max, double deadband);
 

@@ -18,12 +18,12 @@ public:
 	/*! \brief NodeProcess specific Initialization
 	 *
 	 */
-	icarus_rover_v2::diagnostic finish_initialization();
+	eros::diagnostic finish_initialization();
 	//Update Functions
 	/*! \brief Implementation of the update function
 	 *
 	 */
-	icarus_rover_v2::diagnostic update(double t_dt,double t_ros_time);
+	eros::diagnostic update(double t_dt,double t_ros_time);
 
 	//Attribute Functions
 
@@ -31,22 +31,22 @@ public:
 	/*! \brief  Process Command Message.  All implementation should use at least the code in this Sample Function.
 	 *
 	 */
-	std::vector<icarus_rover_v2::diagnostic> new_commandmsg(const icarus_rover_v2::command::ConstPtr& t_msg);
-	icarus_rover_v2::diagnostic new_devicemsg(const icarus_rover_v2::device::ConstPtr& t_device);
-    icarus_rover_v2::diagnostic new_armswitchmsg(std_msgs::Bool v);
+	std::vector<eros::diagnostic> new_commandmsg(const eros::command::ConstPtr& t_msg);
+	eros::diagnostic new_devicemsg(const eros::device::ConstPtr& t_device);
+    eros::diagnostic new_armswitchmsg(std_msgs::Bool v);
 
 	//Support Functions
 
     //Printing Functions
 	
 	//Generic Hat Functions
-	bool hat_present(const icarus_rover_v2::device::ConstPtr& t_device);
-    icarus_rover_v2::diagnostic set_hat_running(std::string devicetype,uint16_t id);
+	bool hat_present(const eros::device::ConstPtr& t_device);
+    eros::diagnostic set_hat_running(std::string devicetype,uint16_t id);
 	bool is_hat_running(std::string devicetype,uint16_t id);
 
 	//Terminal Hat Functions
-	icarus_rover_v2::diagnostic set_terminalhat_initialized();
-	std::vector<icarus_rover_v2::pin> get_terminalhatpins(std::string Function);
+	eros::diagnostic set_terminalhat_initialized();
+	std::vector<eros::pin> get_terminalhatpins(std::string Function);
 	int get_pinnumber(std::string name);
 	bool set_pinvalue(std::string name,int v);
 protected:
@@ -54,8 +54,8 @@ private:
 	/*! \brief Process Specific Implementation
 	 *
 	 */
-	std::vector<icarus_rover_v2::diagnostic> check_programvariables();
+	std::vector<eros::diagnostic> check_programvariables();
     bool arm_switch;
-    std::vector<icarus_rover_v2::device> hats;
+    std::vector<eros::device> hats;
 	std::vector<bool> hats_running;
 };

@@ -1,9 +1,6 @@
 #include <gtest/gtest.h>
 #include "ros/ros.h"
 #include "ros/time.h"
-#include "icarus_rover_v2/command.h"
-#include "icarus_rover_v2/device.h"
-#include "icarus_rover_v2/diagnostic.h"
 #include "../PoseNodeProcess.h"
 
 std::string Node_Name = "/unittest_pose_node_process";
@@ -13,7 +10,7 @@ std::string ros_DeviceName = Host_Name;
 
 PoseNodeProcess* initializeprocess(uint8_t imucount)
 {
-	icarus_rover_v2::diagnostic diagnostic;
+	eros::diagnostic diagnostic;
 	diagnostic.DeviceName = ros_DeviceName;
 	diagnostic.Node_Name = Node_Name;
 	diagnostic.System = ROVER;
@@ -25,16 +22,16 @@ PoseNodeProcess* initializeprocess(uint8_t imucount)
 	diagnostic.Diagnostic_Message = INITIALIZING;
 	diagnostic.Description = "Node Initializing";
 
-	icarus_rover_v2::device device;
+	eros::device device;
 	device.DeviceName = diagnostic.DeviceName;
 	device.BoardCount = 0;
 	device.SensorCount = 0;
 	device.DeviceParent = "None";
 	device.Architecture = "x86_64";
-	std::vector<icarus_rover_v2::device> imu_list;
+	std::vector<eros::device> imu_list;
 	if(imucount == 1)
 	{
-		icarus_rover_v2::device imu;
+		eros::device imu;
 		imu.DeviceName = "IMU1";;
 		imu.DeviceParent = ros_DeviceName;
 		imu.DeviceType = "IMU";
@@ -54,7 +51,7 @@ PoseNodeProcess* initializeprocess(uint8_t imucount)
 	EXPECT_TRUE(process->set_imucount(imucount));
 	for(std::size_t i = 0; i < imu_list.size(); ++i)
 	{
-		icarus_rover_v2::device::ConstPtr imu_ptr(new icarus_rover_v2::device(imu_list.at(i)));
+		eros::device::ConstPtr imu_ptr(new eros::device(imu_list.at(i)));
 		diagnostic = process->new_devicemsg(imu_ptr);
 		EXPECT_TRUE(diagnostic.Level <= NOTICE);
 	}
@@ -63,7 +60,7 @@ PoseNodeProcess* initializeprocess(uint8_t imucount)
 }
 PoseNodeProcess* readyprocess(PoseNodeProcess* process)
 {
-	icarus_rover_v2::diagnostic diag = process->update(0.0,0.0);
+	eros::diagnostic diag = process->update(0.0,0.0);
 	EXPECT_TRUE(diag.Level <= NOTICE);
 	EXPECT_TRUE(process->is_ready() == true);
 	return process;
@@ -141,7 +138,7 @@ TEST(Template,Process_Command)
 	bool slowrate_fire = false; //0.1 Hz
 	while(current_time <= time_to_run)
 	{
-		icarus_rover_v2::diagnostic diag = process->update(dt,current_time);
+		eros::diagnostic diag = process->update(dt,current_time);
 		EXPECT_TRUE(diag.Level <= NOTICE);
 		int current_time_ms = (int)(current_time*1000.0);
 		if((current_time_ms % 100) == 0)
@@ -160,14 +157,14 @@ TEST(Template,Process_Command)
 		}
 		else { slowrate_fire = false; }
 
-		icarus_rover_v2::command cmd;
+		eros::command cmd;
 		cmd.Command = ROVERCOMMAND_RUNDIAGNOSTIC;
 
 		if(fastrate_fire == true) //Nothing to do here
 		{
 			cmd.Option1 = LEVEL1;
-			icarus_rover_v2::command::ConstPtr cmd_ptr(new icarus_rover_v2::command(cmd));
-			std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
+			eros::command::ConstPtr cmd_ptr(new eros::command(cmd));
+			std::vector<eros::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
 			for(std::size_t i = 0; i < diaglist.size(); i++)
 			{
 				EXPECT_TRUE(diaglist.at(i).Level <= NOTICE);
@@ -179,8 +176,8 @@ TEST(Template,Process_Command)
 		if(mediumrate_fire == true)
 		{
 			cmd.Option1 = LEVEL2;
-			icarus_rover_v2::command::ConstPtr cmd_ptr(new icarus_rover_v2::command(cmd));
-			std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
+			eros::command::ConstPtr cmd_ptr(new eros::command(cmd));
+			std::vector<eros::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
 			for(std::size_t i = 0; i < diaglist.size(); i++)
 			{
 				EXPECT_TRUE(diaglist.at(i).Level <= NOTICE);
@@ -207,7 +204,7 @@ TEST(Template,Process_IMUMsg)
 	bool slowrate_fire = false; //0.1 Hz
 	while(current_time <= time_to_run)
 	{
-		icarus_rover_v2::diagnostic diag = process->update(dt,current_time);
+		eros::diagnostic diag = process->update(dt,current_time);
 		EXPECT_TRUE(diag.Level <= NOTICE);
 		int current_time_ms = (int)(current_time*1000.0);
 		if((current_time_ms % 100) == 0)
@@ -229,11 +226,11 @@ TEST(Template,Process_IMUMsg)
 
 		if(fastrate_fire == true)
 		{
-			icarus_rover_v2::imu imu_msg;
+			eros::imu imu_msg;
 			imu_msg.xacc.value = 0.0;
 			imu_msg.yacc.value = 0.0;
 			imu_msg.zacc.value = 9.81;
-			icarus_rover_v2::imu::ConstPtr imudata_ptr(new icarus_rover_v2::imu(imu_msg));
+			eros::imu::ConstPtr imudata_ptr(new eros::imu(imu_msg));
 			diag = process->new_imumsg("/IMU1", imudata_ptr);
 			PoseNodeProcess::IMUSensor imu = process->get_imudata("IMU1");
 			EXPECT_TRUE(imu.orientation_pitch.status == SIGNALSTATE_UPDATED);

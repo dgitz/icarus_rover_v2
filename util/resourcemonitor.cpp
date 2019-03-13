@@ -1,9 +1,9 @@
-#include "resourcemonitor.h"
+#include "../include/resourcemonitor.h"
 
 ResourceMonitor::ResourceMonitor()
 {
 }
-ResourceMonitor::ResourceMonitor(icarus_rover_v2::diagnostic diag,std::string device_architecture,std::string host_name,std::string task_name)
+ResourceMonitor::ResourceMonitor(eros::diagnostic diag,std::string device_architecture,std::string host_name,std::string task_name)
 {  
 	CPU_Used_Column = -1;
 	RAM_Used_Column = -1;
@@ -33,7 +33,7 @@ ResourceMonitor::ResourceMonitor(icarus_rover_v2::diagnostic diag,std::string de
 	shortterm_buffer_index = 0;
 	diagnostic = diag;
 }
-void ResourceMonitor::init(icarus_rover_v2::diagnostic diag,std::string device_architecture,std::string host_name,std::string task_name)
+void ResourceMonitor::init(eros::diagnostic diag,std::string device_architecture,std::string host_name,std::string task_name)
 {
 	CPU_Used_Column = -1;
 	RAM_Used_Column = -1;
@@ -161,16 +161,16 @@ int ResourceMonitor::get_TaskPID()
 {
 	return PID;
 }
-icarus_rover_v2::resource ResourceMonitor::get_resourceused()
+eros::resource ResourceMonitor::get_resourceused()
 {
-	icarus_rover_v2::resource newresource;
+	eros::resource newresource;
 	newresource.Node_Name = Task_Name;
 	newresource.PID = PID;
 	newresource.CPU_Perc = CPUUsed_perc;
 	newresource.RAM_MB = (double)(RAMUsed_kB/1000.0);
 	return newresource;
 }
-icarus_rover_v2::diagnostic ResourceMonitor::update()
+eros::diagnostic ResourceMonitor::update()
 {
 	if((CPU_Used_Column == -1) || (RAM_Used_Column == -1))
 	{

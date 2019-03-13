@@ -9,7 +9,7 @@
 #include <eigen3/Eigen/Dense>
 //ROS Base Functionality
 //ROS Messages
-#include <icarus_rover_v2/diagnostic.h>
+#include <eros/diagnostic.h>
 //Project
 #include "Definitions.h"
 

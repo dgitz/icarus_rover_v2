@@ -1,8 +1,6 @@
 #include <gtest/gtest.h>
 #include "ros/ros.h"
 #include "ros/time.h"
-#include "icarus_rover_v2/device.h"
-#include "icarus_rover_v2/diagnostic.h"
 #include "../CommandNodeProcess.h"
 
 std::string Node_Name = "/unittest_command_node_process";
@@ -18,7 +16,7 @@ int DeviceID = 123;
 
 CommandNodeProcess* initializeprocess()
 {
-	icarus_rover_v2::diagnostic diagnostic;
+	eros::diagnostic diagnostic;
 	diagnostic.DeviceName = ros_DeviceName;
 	diagnostic.Node_Name = Node_Name;
 	diagnostic.System = ROVER;
@@ -30,7 +28,7 @@ CommandNodeProcess* initializeprocess()
 	diagnostic.Diagnostic_Message = INITIALIZING;
 	diagnostic.Description = "Node Initializing";
 
-	icarus_rover_v2::device device;
+	eros::device device;
 	device.DeviceName = diagnostic.DeviceName;
 	device.BoardCount = 0;
 	device.SensorCount = 0;
@@ -55,7 +53,7 @@ CommandNodeProcess* initializeprocess()
 }
 CommandNodeProcess* readyprocess(CommandNodeProcess* process)
 {
-	icarus_rover_v2::diagnostic diag = process->update(0.0,0.0);
+	eros::diagnostic diag = process->update(0.0,0.0);
 	EXPECT_TRUE(diag.Level <= NOTICE);
 	EXPECT_TRUE(process->is_ready() == true);
 	EXPECT_EQ(process->get_currentstate(),NODESTATE_RUNNING);
@@ -73,7 +71,7 @@ TEST(PeriodicCommands,TestA)
 	 DIAGNOSTIC LEVEL2 @ MEDIUM RATE
 	 DIAGNOSTIC LEVEL3 @ SLOW RATE
 	 */
-	icarus_rover_v2::diagnostic diagnostic;
+	eros::diagnostic diagnostic;
 	CommandNodeProcess* process = initializeprocess();
 	process = readyprocess(process);
 
@@ -85,9 +83,9 @@ TEST(PeriodicCommands,TestA)
 	int level3_counter = 0;
 	while(current_time <= time_to_run)
 	{
-		icarus_rover_v2::diagnostic diag = process->update(dt,current_time);
+		eros::diagnostic diag = process->update(dt,current_time);
 		EXPECT_TRUE(diag.Level <= NOTICE);
-		std::vector<icarus_rover_v2::command> p_commands = process->get_PeriodicCommands();
+		std::vector<eros::command> p_commands = process->get_PeriodicCommands();
 		for(std::size_t i = 0; i < p_commands.size(); i++)
 		{
 			EXPECT_TRUE(p_commands.at(i).Command == ROVERCOMMAND_RUNDIAGNOSTIC);
@@ -105,7 +103,7 @@ TEST(PeriodicCommands,TestA)
 TEST(ArmDisarm,TestA)
 {
 
-	icarus_rover_v2::diagnostic diagnostic;
+	eros::diagnostic diagnostic;
 	CommandNodeProcess* process = initializeprocess();
 	process = readyprocess(process);
 
@@ -157,9 +155,9 @@ TEST(ArmDisarm,TestA)
 	diagnostic = process->update(1.0/(FAST_RATE*1000.0),(double)(0)*1.0/(FAST_RATE*1000.0));
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 	EXPECT_EQ(process->get_armeddisarmed_state(),ARMEDSTATUS_DISARMED);
-	icarus_rover_v2::command arm_command;
+	eros::command arm_command;
 	arm_command.Command = ROVERCOMMAND_ARM;
-	icarus_rover_v2::command::ConstPtr cmd_ptr(new icarus_rover_v2::command(arm_command));
+	eros::command::ConstPtr cmd_ptr(new eros::command(arm_command));
 	diagnostic = process->new_user_commandmsg(cmd_ptr);
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 	EXPECT_EQ(process->get_currentcommand().Command,ROVERCOMMAND_ARM);
@@ -174,7 +172,7 @@ TEST(ArmDisarm,TestA)
 /*
 TEST(AutoRecharge,TestA)
 {
-	icarus_rover_v2::diagnostic diagnostic;
+	eros::diagnostic diagnostic;
 	CommandNodeProcess* process = initializeprocess();
 	process = readyprocess(process);
 

@@ -43,12 +43,12 @@ public:
 	/*! \brief NodeProcess specific Initialization
 	 *
 	 */
-	icarus_rover_v2::diagnostic finish_initialization();
+	eros::diagnostic finish_initialization();
 	//Update Functions
 	/*! \brief Implementation of the update function
 	 *
 	 */
-	icarus_rover_v2::diagnostic update(double t_dt,double t_ros_time);
+	eros::diagnostic update(double t_dt,double t_ros_time);
 
 	//Attribute Functions
 	bool set_camerastream(std::string portname);
@@ -61,8 +61,8 @@ public:
 	/*! \brief  Process Command Message.  All implementation should use at least the code in this Sample Function.
 	 *
 	 */
-	std::vector<icarus_rover_v2::diagnostic> new_commandmsg(const icarus_rover_v2::command::ConstPtr& t_msg);
-	icarus_rover_v2::diagnostic new_devicemsg(const icarus_rover_v2::device::ConstPtr& device);
+	std::vector<eros::diagnostic> new_commandmsg(const eros::command::ConstPtr& t_msg);
+	eros::diagnostic new_devicemsg(const eros::device::ConstPtr& device);
 	//Support Functions
 	std::string lookup_deviceIP(std::string hostname); //Returns "" on failure
 	uint32_t lookup_port(std::string portname); //Returns 0 on failure
@@ -78,7 +78,7 @@ private:
 	/*! \brief Process Specific Implementation
 	 *
 	 */
-	std::vector<icarus_rover_v2::diagnostic> check_programvariables();
+	std::vector<eros::diagnostic> check_programvariables();
 	void init_processlist();
 	bool load_configfiles();
 	std::vector<ProcessCommand> processlist;

@@ -1,4 +1,4 @@
-#include "logger.h"
+#include "../include/logger.h"
 
 Logger::Logger()
 {
@@ -69,7 +69,7 @@ void Logger::log_fatal(std::string tempstr)
 {
 	print_log(FATAL,tempstr);
 }
-void Logger::log_diagnostic(icarus_rover_v2::diagnostic diagnostic)
+void Logger::log_diagnostic(eros::diagnostic diagnostic)
 {
 
 	char tempstr[2048];

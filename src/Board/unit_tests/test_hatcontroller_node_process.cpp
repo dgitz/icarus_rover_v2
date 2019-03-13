@@ -2,9 +2,6 @@
 #include "ros/ros.h"
 #include "ros/time.h"
 #include "std_msgs/Bool.h"
-#include "icarus_rover_v2/device.h"
-#include "icarus_rover_v2/diagnostic.h"
-#include "icarus_rover_v2/command.h"
 #include "../HatControllerNodeProcess.h"
 
 std::string Node_Name = "/unittest_hatcontroller_node_process";
@@ -15,7 +12,7 @@ std::string ros_DeviceType = "ControlModule";
 
 HatControllerNodeProcess* initializeprocess()
 {
-	icarus_rover_v2::diagnostic diagnostic;
+	eros::diagnostic diagnostic;
 	diagnostic.DeviceName = ros_DeviceName;
 	diagnostic.Node_Name = Node_Name;
 	diagnostic.System = ROVER;
@@ -27,7 +24,7 @@ HatControllerNodeProcess* initializeprocess()
 	diagnostic.Diagnostic_Message = INITIALIZING;
 	diagnostic.Description = "Node Initializing";
 
-	icarus_rover_v2::device device;
+	eros::device device;
 	device.DeviceName = diagnostic.DeviceName;
 	device.BoardCount = 0;
 	device.SensorCount = 0;
@@ -47,9 +44,9 @@ HatControllerNodeProcess* initializeprocess()
 	EXPECT_TRUE(process->get_mydevice().DeviceName == device.DeviceName);
 	return process;
 }
-HatControllerNodeProcess* initializeprocess(icarus_rover_v2::device device)
+HatControllerNodeProcess* initializeprocess(eros::device device)
 {
-	icarus_rover_v2::diagnostic diagnostic;
+	eros::diagnostic diagnostic;
 	diagnostic.DeviceName = ros_DeviceName;
 	diagnostic.Node_Name = Node_Name;
 	diagnostic.System = ROVER;
@@ -75,7 +72,7 @@ HatControllerNodeProcess* initializeprocess(icarus_rover_v2::device device)
 }
 HatControllerNodeProcess* readyprocess(HatControllerNodeProcess* process)
 {
-	icarus_rover_v2::diagnostic diag = process->update(0.0,0.0);
+	eros::diagnostic diag = process->update(0.0,0.0);
 	EXPECT_TRUE(diag.Level <= NOTICE);
 	EXPECT_TRUE(process->is_ready() == true);
 	return process;
@@ -83,7 +80,7 @@ HatControllerNodeProcess* readyprocess(HatControllerNodeProcess* process)
 TEST(Template,Process_Initialization_ServoHat)
 {
 	HatControllerNodeProcess* process = initializeprocess();
-	icarus_rover_v2::diagnostic diagnostic;
+	eros::diagnostic diagnostic;
 	diagnostic.DeviceName = ros_DeviceName;
 	diagnostic.Node_Name = Node_Name;
 	diagnostic.System = ROVER;
@@ -95,7 +92,7 @@ TEST(Template,Process_Initialization_ServoHat)
 	diagnostic.Diagnostic_Message = INITIALIZING;
 	diagnostic.Description = "Node Initializing";
 
-	icarus_rover_v2::device ros_device;
+	eros::device ros_device;
 	ros_device.DeviceName = ros_DeviceName;
 	ros_device.DeviceParent = "";
 	ros_device.DeviceType = ros_DeviceType;
@@ -103,7 +100,7 @@ TEST(Template,Process_Initialization_ServoHat)
 	ros_device.SensorCount = 0;
 	ros_device.ID = 17;
 
-	icarus_rover_v2::device servohat1_device;
+	eros::device servohat1_device;
 	servohat1_device.DeviceName = "ServoHat1";
 	servohat1_device.DeviceParent = ros_DeviceName;
 	servohat1_device.DeviceType = "ServoHat";
@@ -111,7 +108,7 @@ TEST(Template,Process_Initialization_ServoHat)
 	servohat1_device.ID = 64;
 
 	{
-		icarus_rover_v2::pin newpin;
+		eros::pin newpin;
 		newpin.ConnectedDevice = "PWM1";
 		newpin.Number = 0;
 		newpin.Function = "PWMOutput-NonActuator";
@@ -119,7 +116,7 @@ TEST(Template,Process_Initialization_ServoHat)
 	}
 
 	{
-		icarus_rover_v2::pin newpin;
+		eros::pin newpin;
 		newpin.ConnectedDevice = "PWM2";
 		newpin.Number = 1;
 		newpin.Function = "PWMOutput-NonActuator";
@@ -127,7 +124,7 @@ TEST(Template,Process_Initialization_ServoHat)
 	}
 
 	{
-		icarus_rover_v2::pin newpin;
+		eros::pin newpin;
 		newpin.ConnectedDevice = "PWM3";
 		newpin.Number = 0;
 		newpin.Function = "PWMOutput-NonActuator";
@@ -135,7 +132,7 @@ TEST(Template,Process_Initialization_ServoHat)
 	}
 
 	{
-		icarus_rover_v2::pin newpin;
+		eros::pin newpin;
 		newpin.ConnectedDevice = "PWM4";
 		newpin.Number = 1;
 		newpin.Function = "PWMOutput-NonActuator";
@@ -146,7 +143,7 @@ TEST(Template,Process_Initialization_ServoHat)
 	EXPECT_TRUE(process->is_initialized() == true);
 	EXPECT_TRUE(process->is_ready() == false);
 
-	icarus_rover_v2::device::ConstPtr dev_ptr(new icarus_rover_v2::device(servohat1_device));
+	eros::device::ConstPtr dev_ptr(new eros::device(servohat1_device));
 	diagnostic = process->new_devicemsg(dev_ptr);
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 
@@ -155,7 +152,7 @@ TEST(Template,Process_Initialization_ServoHat)
 TEST(Template,Process_Initialization_GPIOHat)
 {
 	HatControllerNodeProcess* process = initializeprocess();
-	icarus_rover_v2::diagnostic diagnostic;
+	eros::diagnostic diagnostic;
 	diagnostic.DeviceName = ros_DeviceName;
 	diagnostic.Node_Name = Node_Name;
 	diagnostic.System = ROVER;
@@ -167,7 +164,7 @@ TEST(Template,Process_Initialization_GPIOHat)
 	diagnostic.Diagnostic_Message = INITIALIZING;
 	diagnostic.Description = "Node Initializing";
 
-	icarus_rover_v2::device ros_device;
+	eros::device ros_device;
 	ros_device.DeviceName = ros_DeviceName;
 	ros_device.DeviceParent = "";
 	ros_device.DeviceType = ros_DeviceType;
@@ -175,7 +172,7 @@ TEST(Template,Process_Initialization_GPIOHat)
 	ros_device.SensorCount = 0;
 	ros_device.ID = 17;
 
-	icarus_rover_v2::device gpiohat1_device;
+	eros::device gpiohat1_device;
 	gpiohat1_device.DeviceName = "GPIOHat1";
 	gpiohat1_device.DeviceParent = ros_DeviceName;
 	gpiohat1_device.DeviceType = "GPIOHat";
@@ -184,7 +181,7 @@ TEST(Template,Process_Initialization_GPIOHat)
 	gpiohat1_device.SensorCount = 4;
 
 	{
-		icarus_rover_v2::pin newpin;
+		eros::pin newpin;
 		newpin.ConnectedSensor = "FLSonar";
 		newpin.Number = 8;
 		newpin.Name = "UltraSonicSensor";
@@ -193,7 +190,7 @@ TEST(Template,Process_Initialization_GPIOHat)
 	}
 
 	{
-		icarus_rover_v2::pin newpin;
+		eros::pin newpin;
 		newpin.ConnectedSensor = "FRSonar";
 		newpin.Number = 9;
 		newpin.Name = "UltraSonicSensor";
@@ -201,7 +198,7 @@ TEST(Template,Process_Initialization_GPIOHat)
 		gpiohat1_device.pins.push_back(newpin);
 	}
 	{
-		icarus_rover_v2::pin newpin;
+		eros::pin newpin;
 		newpin.ConnectedSensor = "BLSonar";
 		newpin.Number = 10;
 		newpin.Name = "UltraSonicSensor";
@@ -209,7 +206,7 @@ TEST(Template,Process_Initialization_GPIOHat)
 		gpiohat1_device.pins.push_back(newpin);
 	}
 	{
-		icarus_rover_v2::pin newpin;
+		eros::pin newpin;
 		newpin.ConnectedSensor = "BRSonar";
 		newpin.Number = 11;
 		newpin.Name = "UltraSonicSensor";
@@ -222,7 +219,7 @@ TEST(Template,Process_Initialization_GPIOHat)
 	EXPECT_TRUE(process->is_initialized() == true);
 	EXPECT_TRUE(process->is_ready() == false);
 
-	icarus_rover_v2::device::ConstPtr dev_ptr(new icarus_rover_v2::device(gpiohat1_device));
+	eros::device::ConstPtr dev_ptr(new eros::device(gpiohat1_device));
 	diagnostic = process->new_devicemsg(dev_ptr);
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 
@@ -241,7 +238,7 @@ TEST(Template,Process_Command)
 	bool slowrate_fire = false; //0.1 Hz
 	while(current_time <= time_to_run)
 	{
-		icarus_rover_v2::diagnostic diag = process->update(dt,current_time);
+		eros::diagnostic diag = process->update(dt,current_time);
 		EXPECT_TRUE(diag.Level <= NOTICE);
 		int current_time_ms = (int)(current_time*1000.0);
 		if((current_time_ms % 100) == 0)
@@ -259,13 +256,13 @@ TEST(Template,Process_Command)
 			slowrate_fire = true;
 		}
 		else { slowrate_fire = false; }
-		icarus_rover_v2::command cmd;
+		eros::command cmd;
 		cmd.Command = ROVERCOMMAND_RUNDIAGNOSTIC;
 		if(fastrate_fire == true)
 		{
 			cmd.Option1 = LEVEL1;
-			icarus_rover_v2::command::ConstPtr cmd_ptr(new icarus_rover_v2::command(cmd));
-			std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
+			eros::command::ConstPtr cmd_ptr(new eros::command(cmd));
+			std::vector<eros::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
 			for(std::size_t i = 0; i < diaglist.size(); i++)
 			{
 				EXPECT_TRUE(diaglist.at(i).Level <= NOTICE);
@@ -277,8 +274,8 @@ TEST(Template,Process_Command)
 		{
 			EXPECT_TRUE(diag.Level <= NOTICE);
 			cmd.Option1 = LEVEL2;
-			icarus_rover_v2::command::ConstPtr cmd_ptr(new icarus_rover_v2::command(cmd));
-			std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
+			eros::command::ConstPtr cmd_ptr(new eros::command(cmd));
+			std::vector<eros::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
 			for(std::size_t i = 0; i < diaglist.size(); i++)
 			{
 				EXPECT_TRUE(diaglist.at(i).Level <= NOTICE);
@@ -296,7 +293,7 @@ TEST(Template,Process_Command)
 TEST(DeviceInitialization,DeviceInitialization_TerminalHat)
 {
 
-	icarus_rover_v2::device ros_device;
+	eros::device ros_device;
 	ros_device.DeviceName = ros_DeviceName;
 	ros_device.DeviceParent = ros_ParentDevice;
 	ros_device.DeviceType = ros_DeviceType;
@@ -306,7 +303,7 @@ TEST(DeviceInitialization,DeviceInitialization_TerminalHat)
 	HatControllerNodeProcess* process = initializeprocess(ros_device);
 
 
-	icarus_rover_v2::device hat1;
+	eros::device hat1;
 	hat1.DeviceName = "TerminalHat1";
 	hat1.DeviceType = "TerminalHat";
 	hat1.DeviceParent = ros_DeviceName;
@@ -315,12 +312,12 @@ TEST(DeviceInitialization,DeviceInitialization_TerminalHat)
 	hat1.ShieldCount = 0;
 	hat1.SensorCount = 0;
 	hat1.pins.clear();
-	std::vector<icarus_rover_v2::pin> gpio_input_pins;
-	std::vector<icarus_rover_v2::pin> gpio_output_actuator_pins;
-	std::vector<icarus_rover_v2::pin> gpio_output_nonactuator_pins;
+	std::vector<eros::pin> gpio_input_pins;
+	std::vector<eros::pin> gpio_output_actuator_pins;
+	std::vector<eros::pin> gpio_output_nonactuator_pins;
 	for(int i = 0; i < 24;i++)
 	{
-		icarus_rover_v2::pin newpin;
+		eros::pin newpin;
 		newpin.Number = i;
 		if(i < 8) {  newpin.Function = "DigitalOutput"; }
 		else if(i < 16) { newpin.Function = "DigitalInput"; }
@@ -334,10 +331,10 @@ TEST(DeviceInitialization,DeviceInitialization_TerminalHat)
 		hat1.pins.push_back(newpin);
 	}
 
-	icarus_rover_v2::diagnostic diagnostic = process->update(0.02,0.02);
+	eros::diagnostic diagnostic = process->update(0.02,0.02);
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 
-	icarus_rover_v2::device::ConstPtr hat1_ptr(new icarus_rover_v2::device(hat1));
+	eros::device::ConstPtr hat1_ptr(new eros::device(hat1));
 	diagnostic = process->new_devicemsg(hat1_ptr);
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 
@@ -351,10 +348,10 @@ TEST(DeviceInitialization,DeviceInitialization_TerminalHat)
 	EXPECT_EQ(process->get_ready_to_arm(),true);
 	EXPECT_TRUE(process->get_armedstate() == ARMEDSTATUS_DISARMED_CANNOTARM);
 
-	std::vector<icarus_rover_v2::pin> input_pins = process->get_terminalhatpins("DigitalInput",true);
-	std::vector<icarus_rover_v2::pin> output_nonactuator_pins = process->get_terminalhatpins("DigitalOutput-NonActuator",true);
-	std::vector<icarus_rover_v2::pin> output_actuator_pins = process->get_terminalhatpins("DigitalOutput",true);
-	std::vector<icarus_rover_v2::pin> p = process->get_terminalhatpins("DigitalOutput",false);
+	std::vector<eros::pin> input_pins = process->get_terminalhatpins("DigitalInput",true);
+	std::vector<eros::pin> output_nonactuator_pins = process->get_terminalhatpins("DigitalOutput-NonActuator",true);
+	std::vector<eros::pin> output_actuator_pins = process->get_terminalhatpins("DigitalOutput",true);
+	std::vector<eros::pin> p = process->get_terminalhatpins("DigitalOutput",false);
 	EXPECT_TRUE(input_pins.size() > 0);
 	EXPECT_TRUE(output_nonactuator_pins.size() > 0);
 	EXPECT_TRUE(output_actuator_pins.size() > 0);
@@ -398,10 +395,10 @@ TEST(DeviceInitialization,DeviceInitialization_TerminalHat)
 
 
 	int value = 0;
-	//icarus_rover_v2::iopins p;
+	//eros::iopins p;
 	for(std::size_t i = 0; i < input_pins.size(); i++)
 	{
-		icarus_rover_v2::pin pin = input_pins.at(i);
+		eros::pin pin = input_pins.at(i);
 		pin.Value = value;
 		value = !value;
 		gpio_input_pins.at(i) = pin;
@@ -409,7 +406,7 @@ TEST(DeviceInitialization,DeviceInitialization_TerminalHat)
 		gettimeofday(&now,NULL);
 		pin.stamp = process->convert_time(now);
 		usleep(10000);
-		icarus_rover_v2::pin::ConstPtr pin_ptr(new icarus_rover_v2::pin(pin));
+		eros::pin::ConstPtr pin_ptr(new eros::pin(pin));
 		diagnostic = process->new_pinmsg(pin_ptr);
 		EXPECT_TRUE(diagnostic.Level <= NOTICE);
 		//p.pins.push_back(pin);
@@ -428,7 +425,7 @@ TEST(DeviceInitialization,DeviceInitialization_TerminalHat)
 TEST(DeviceInitialization,DeviceInitialization_ServoHat_GPIOHat_TerminalHat)
 {
 
-	icarus_rover_v2::device ros_device;
+	eros::device ros_device;
 	ros_device.DeviceName = ros_DeviceName;
 	ros_device.DeviceParent = ros_ParentDevice;
 	ros_device.DeviceType = ros_DeviceType;
@@ -436,7 +433,7 @@ TEST(DeviceInitialization,DeviceInitialization_ServoHat_GPIOHat_TerminalHat)
 	ros_device.ID = 123;
 
 
-	icarus_rover_v2::diagnostic diagnostic;
+	eros::diagnostic diagnostic;
 	diagnostic.DeviceName = ros_DeviceName;
 	diagnostic.Node_Name = Node_Name;
 	diagnostic.System = ROVER;
@@ -457,7 +454,7 @@ TEST(DeviceInitialization,DeviceInitialization_ServoHat_GPIOHat_TerminalHat)
 
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 
-	icarus_rover_v2::device hat1;
+	eros::device hat1;
 	hat1.DeviceName = "ServoHat1";
 	hat1.DeviceType = "ServoHat";
 	hat1.DeviceParent = ros_DeviceName;
@@ -468,7 +465,7 @@ TEST(DeviceInitialization,DeviceInitialization_ServoHat_GPIOHat_TerminalHat)
 	hat1.pins.clear();
 	for(int i = 0; i < 16;i++)
 	{
-		icarus_rover_v2::pin newpin;
+		eros::pin newpin;
 		newpin.Number = i;
 		if(i < 8) {  newpin.Function = "PWMOutput"; }
 		else { newpin.Function = "PWMOutput-NonActuator"; }
@@ -478,7 +475,7 @@ TEST(DeviceInitialization,DeviceInitialization_ServoHat_GPIOHat_TerminalHat)
 		hat1.pins.push_back(newpin);
 	}
 
-	icarus_rover_v2::device hat2;
+	eros::device hat2;
 	hat2.DeviceName = "GPIOHat1";
 	hat2.DeviceType = "GPIOHat";
 	hat2.DeviceParent = ros_DeviceName;
@@ -488,7 +485,7 @@ TEST(DeviceInitialization,DeviceInitialization_ServoHat_GPIOHat_TerminalHat)
 	hat2.SensorCount = 4;
 	hat2.pins.clear();
 	{
-		icarus_rover_v2::pin newpin;
+		eros::pin newpin;
 		newpin.ConnectedSensor = "FLSonar";
 		newpin.Number = 0;
 		newpin.Name = "UltraSonicSensor";
@@ -497,7 +494,7 @@ TEST(DeviceInitialization,DeviceInitialization_ServoHat_GPIOHat_TerminalHat)
 	}
 
 	{
-		icarus_rover_v2::pin newpin;
+		eros::pin newpin;
 		newpin.ConnectedSensor = "FRSonar";
 		newpin.Number = 1;
 		newpin.Name = "UltraSonicSensor";
@@ -505,7 +502,7 @@ TEST(DeviceInitialization,DeviceInitialization_ServoHat_GPIOHat_TerminalHat)
 		hat2.pins.push_back(newpin);
 	}
 	{
-		icarus_rover_v2::pin newpin;
+		eros::pin newpin;
 		newpin.ConnectedSensor = "BLSonar";
 		newpin.Number = 2;
 		newpin.Name = "UltraSonicSensor";
@@ -513,7 +510,7 @@ TEST(DeviceInitialization,DeviceInitialization_ServoHat_GPIOHat_TerminalHat)
 		hat2.pins.push_back(newpin);
 	}
 	{
-		icarus_rover_v2::pin newpin;
+		eros::pin newpin;
 		newpin.ConnectedSensor = "BRSonar";
 		newpin.Number = 3;
 		newpin.Name = "UltraSonicSensor";
@@ -521,7 +518,7 @@ TEST(DeviceInitialization,DeviceInitialization_ServoHat_GPIOHat_TerminalHat)
 		hat2.pins.push_back(newpin);
 	}
 
-	icarus_rover_v2::device hat3;
+	eros::device hat3;
 	hat3.DeviceName = "TerminalHat1";
 	hat3.DeviceType = "TerminalHat";
 	hat3.DeviceParent = ros_DeviceName;
@@ -530,12 +527,12 @@ TEST(DeviceInitialization,DeviceInitialization_ServoHat_GPIOHat_TerminalHat)
 	hat3.ShieldCount = 0;
 	hat3.SensorCount = 0;
 	hat3.pins.clear();
-	std::vector<icarus_rover_v2::pin> gpio_input_pins;
-	std::vector<icarus_rover_v2::pin> gpio_output_actuator_pins;
-	std::vector<icarus_rover_v2::pin> gpio_output_nonactuator_pins;
+	std::vector<eros::pin> gpio_input_pins;
+	std::vector<eros::pin> gpio_output_actuator_pins;
+	std::vector<eros::pin> gpio_output_nonactuator_pins;
 	for(int i = 0; i < 24;i++)
 	{
-		icarus_rover_v2::pin newpin;
+		eros::pin newpin;
 		newpin.Number = i;
 		if(i < 8) {  newpin.Function = "DigitalOutput"; }
 		else if(i < 16) { newpin.Function = "DigitalInput"; }
@@ -551,17 +548,17 @@ TEST(DeviceInitialization,DeviceInitialization_ServoHat_GPIOHat_TerminalHat)
 	diagnostic = process->update(0.02,.02);
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 
-	icarus_rover_v2::device::ConstPtr hat1_ptr(new icarus_rover_v2::device(hat1));
+	eros::device::ConstPtr hat1_ptr(new eros::device(hat1));
 	diagnostic = process->new_devicemsg(hat1_ptr);
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 	EXPECT_TRUE(process->is_ready() == false);
 
-	icarus_rover_v2::device::ConstPtr hat2_ptr(new icarus_rover_v2::device(hat2));
+	eros::device::ConstPtr hat2_ptr(new eros::device(hat2));
 	diagnostic = process->new_devicemsg(hat2_ptr);
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 	EXPECT_TRUE(process->is_ready() == false);
 
-	icarus_rover_v2::device::ConstPtr hat3_ptr(new icarus_rover_v2::device(hat3));
+	eros::device::ConstPtr hat3_ptr(new eros::device(hat3));
 	diagnostic = process->new_devicemsg(hat3_ptr);
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 	EXPECT_TRUE(process->is_ready() == true);
@@ -587,8 +584,8 @@ TEST(DeviceInitialization,DeviceInitialization_ServoHat_GPIOHat_TerminalHat)
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 	EXPECT_EQ(process->get_ready_to_arm(),true);
 
-	std::vector<icarus_rover_v2::pin> servohat_pins = process->get_servohatpins(hat1.ID);
-	std::vector<icarus_rover_v2::pin> gpiohat_pins = process->get_gpiohatpins(hat2.ID);
+	std::vector<eros::pin> servohat_pins = process->get_servohatpins(hat1.ID);
+	std::vector<eros::pin> gpiohat_pins = process->get_gpiohatpins(hat2.ID);
 	EXPECT_TRUE(servohat_pins.size() == hat1.pins.size());
 	for(std::size_t i = 0; i < hat1.pins.size(); i++)
 	{
@@ -683,17 +680,17 @@ TEST(DeviceInitialization,DeviceInitialization_ServoHat_GPIOHat_TerminalHat)
 			EXPECT_TRUE(1 == 0); //Shouldn't get here
 		}
 	}
-	//icarus_rover_v2::iopins p;
+	//eros::iopins p;
 	for(std::size_t i = 0; i < hat1.pins.size(); i++)
 	{
-		icarus_rover_v2::pin pin = hat1.pins.at(i);
+		eros::pin pin = hat1.pins.at(i);
 		pin.Value = 1000 + i*5;
 		hat1.pins.at(i).Value = pin.Value;
 		struct timeval now;
 		gettimeofday(&now,NULL);
 		pin.stamp = process->convert_time(now);
 		usleep(10000);
-		icarus_rover_v2::pin::ConstPtr pin_ptr(new icarus_rover_v2::pin(pin));
+		eros::pin::ConstPtr pin_ptr(new eros::pin(pin));
 		diagnostic = process->new_pinmsg(pin_ptr);
 		EXPECT_TRUE(diagnostic.Level <= NOTICE);
 

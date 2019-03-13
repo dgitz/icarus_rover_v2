@@ -1,7 +1,7 @@
 #include "HatControllerNodeProcess.h"
-icarus_rover_v2::diagnostic  HatControllerNodeProcess::finish_initialization()
+eros::diagnostic  HatControllerNodeProcess::finish_initialization()
 {
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	eros::diagnostic diag = diagnostic;
 	ready_to_arm = false;
 	armed_state = ARMEDSTATUS_DISARMED_CANNOTARM;
 	hats.clear();
@@ -12,9 +12,9 @@ icarus_rover_v2::diagnostic  HatControllerNodeProcess::finish_initialization()
 	timing_diff.clear();
 	return diagnostic;
 }
-icarus_rover_v2::diagnostic HatControllerNodeProcess::update(double t_dt,double t_ros_time)
+eros::diagnostic HatControllerNodeProcess::update(double t_dt,double t_ros_time)
 {
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	eros::diagnostic diag = diagnostic;
 	diag = update_baseprocess(t_dt,t_ros_time);
 	if((mydevice.HatCount == 0) and (mydevice.SensorCount == 0))
 	{
@@ -56,10 +56,10 @@ icarus_rover_v2::diagnostic HatControllerNodeProcess::update(double t_dt,double 
 	diagnostic = diag;
 	return diag;
 }
-std::vector<icarus_rover_v2::diagnostic> HatControllerNodeProcess::new_commandmsg(const icarus_rover_v2::command::ConstPtr& t_msg)
+std::vector<eros::diagnostic> HatControllerNodeProcess::new_commandmsg(const eros::command::ConstPtr& t_msg)
 {
-	std::vector<icarus_rover_v2::diagnostic> diaglist;
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	std::vector<eros::diagnostic> diaglist;
+	eros::diagnostic diag = diagnostic;
 	if (t_msg->Command == ROVERCOMMAND_RUNDIAGNOSTIC)
 	{
 		if (t_msg->Option1 == LEVEL1)
@@ -82,10 +82,10 @@ std::vector<icarus_rover_v2::diagnostic> HatControllerNodeProcess::new_commandms
 	}
 	return diaglist;
 }
-std::vector<icarus_rover_v2::diagnostic> HatControllerNodeProcess::check_programvariables()
+std::vector<eros::diagnostic> HatControllerNodeProcess::check_programvariables()
 {
-	std::vector<icarus_rover_v2::diagnostic> diaglist;
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	std::vector<eros::diagnostic> diaglist;
+	eros::diagnostic diag = diagnostic;
 	bool status = true;
 
 	if (status == true) {
@@ -146,10 +146,10 @@ int HatControllerNodeProcess::map_PinFunction_ToInt(std::string Function)
 	else if(Function == "DigitalOutput-NonActuator")	{ 	return PINMODE_DIGITAL_OUTPUT_NON_ACTUATOR;	}
 	else 												{ 	return PINMODE_UNDEFINED; 					}
 }
-icarus_rover_v2::diagnostic HatControllerNodeProcess::new_devicemsg(const icarus_rover_v2::device::ConstPtr& t_newdevice)
+eros::diagnostic HatControllerNodeProcess::new_devicemsg(const eros::device::ConstPtr& t_newdevice)
 {
-	icarus_rover_v2::diagnostic diag = diagnostic;
-	icarus_rover_v2::device device = convert_fromptr(t_newdevice);
+	eros::diagnostic diag = diagnostic;
+	eros::device device = convert_fromptr(t_newdevice);
 	if(initialized == false)
 	{
 	}
@@ -292,9 +292,9 @@ icarus_rover_v2::diagnostic HatControllerNodeProcess::new_devicemsg(const icarus
 	return diag;
 }
 
-icarus_rover_v2::diagnostic HatControllerNodeProcess::new_pinmsg(const icarus_rover_v2::pin::ConstPtr& t_msg)
+eros::diagnostic HatControllerNodeProcess::new_pinmsg(const eros::pin::ConstPtr& t_msg)
 {
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	eros::diagnostic diag = diagnostic;
 	int found = -1;
 	for(std::size_t i = 0; i < hats.size(); i++)
 	{
@@ -306,7 +306,7 @@ icarus_rover_v2::diagnostic HatControllerNodeProcess::new_pinmsg(const icarus_ro
 				if(hats.at(i).pins.at(j).Number == t_msg->Number)
 				{
 					found = 1;
-					icarus_rover_v2::pin pin = convert_fromptr(t_msg);
+					eros::pin pin = convert_fromptr(t_msg);
 					hats.at(i).pins.at(j) = pin;
 					found = true;
 					break;
@@ -356,7 +356,7 @@ icarus_rover_v2::diagnostic HatControllerNodeProcess::new_pinmsg(const icarus_ro
 	return diag;
 
 }
-icarus_rover_v2::device HatControllerNodeProcess::find_hat(uint8_t hatid)
+eros::device HatControllerNodeProcess::find_hat(uint8_t hatid)
 {
 	for(std::size_t i = 0; i < hats.size(); i++)
 	{
@@ -365,12 +365,12 @@ icarus_rover_v2::device HatControllerNodeProcess::find_hat(uint8_t hatid)
 			return hats.at(i);
 		}
 	}
-	icarus_rover_v2::device empty_device;
+	eros::device empty_device;
 	empty_device.DeviceName = "";
 	empty_device.DeviceType = "";
 	return empty_device;
 }
-icarus_rover_v2::pin HatControllerNodeProcess::find_pin(const icarus_rover_v2::device::ConstPtr& hat,std::string pinfunction,uint8_t pinnumber)
+eros::pin HatControllerNodeProcess::find_pin(const eros::device::ConstPtr& hat,std::string pinfunction,uint8_t pinnumber)
 {
 	for(std::size_t i = 0; i < hat->pins.size(); i++)
 	{
@@ -379,17 +379,17 @@ icarus_rover_v2::pin HatControllerNodeProcess::find_pin(const icarus_rover_v2::d
 			return hat->pins.at(i);
 		}
 	}
-	icarus_rover_v2::pin empty_pin;
+	eros::pin empty_pin;
 	empty_pin.Name = "";
 	empty_pin.Function = "";
 	return empty_pin;
 }
-icarus_rover_v2::diagnostic HatControllerNodeProcess::new_message_GetDIOPort1(uint8_t hatid,double tov,uint16_t v1,uint16_t v2,uint16_t v3,uint16_t v4)
+eros::diagnostic HatControllerNodeProcess::new_message_GetDIOPort1(uint8_t hatid,double tov,uint16_t v1,uint16_t v2,uint16_t v3,uint16_t v4)
 {
 	bool any_error = false;
 	uint16_t v[6] = {v1,v2,v3,v4};
-	icarus_rover_v2::diagnostic diag = diagnostic;
-	icarus_rover_v2::device hat = find_hat(hatid);
+	eros::diagnostic diag = diagnostic;
+	eros::device hat = find_hat(hatid);
 	if(hat.DeviceName == "")
 	{
 		char tempstr[1024];
@@ -408,9 +408,9 @@ icarus_rover_v2::diagnostic HatControllerNodeProcess::new_message_GetDIOPort1(ui
 	}
 	for(uint8_t i = 0; i < 4; i++)
 	{
-		icarus_rover_v2::device::ConstPtr hat_ptr(new icarus_rover_v2::device(hat));
-		icarus_rover_v2::pin pin = find_pin(hat_ptr,"UltraSonicSensorInput",i);
-		icarus_rover_v2::pin::ConstPtr pin_ptr(new icarus_rover_v2::pin(pin));
+		eros::device::ConstPtr hat_ptr(new eros::device(hat));
+		eros::pin pin = find_pin(hat_ptr,"UltraSonicSensorInput",i);
+		eros::pin::ConstPtr pin_ptr(new eros::pin(pin));
 		if(pin.Name != "")
 		{
 			if(update_sensor(hat_ptr,pin_ptr,tov,(double)v[i]) == false)
@@ -446,7 +446,7 @@ icarus_rover_v2::diagnostic HatControllerNodeProcess::new_message_GetDIOPort1(ui
 	}
 	return diag;
 }
-bool HatControllerNodeProcess::update_sensor(const icarus_rover_v2::device::ConstPtr& t_device,icarus_rover_v2::pin::ConstPtr& t_pin,double tov,double value)
+bool HatControllerNodeProcess::update_sensor(const eros::device::ConstPtr& t_device,eros::pin::ConstPtr& t_pin,double tov,double value)
 {
 	for(std::size_t i = 0; i < sensors.size(); i++)
 	{
@@ -486,9 +486,9 @@ double HatControllerNodeProcess::get_timedelay()
 	}
 	return t/(double)(temp.size());
 }
-icarus_rover_v2::diagnostic HatControllerNodeProcess::new_pinsmsg(const icarus_rover_v2::iopins::ConstPtr& t_msg)
+eros::diagnostic HatControllerNodeProcess::new_pinsmsg(const eros::iopins::ConstPtr& t_msg)
 {
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	eros::diagnostic diag = diagnostic;
 	int found = -1;
 	for(std::size_t k = 0; k < t_msg->pins.size(); k++)
 	{
@@ -550,9 +550,9 @@ icarus_rover_v2::diagnostic HatControllerNodeProcess::new_pinsmsg(const icarus_r
 }
 
 
-icarus_rover_v2::diagnostic HatControllerNodeProcess::new_armedstatemsg(uint8_t msg)
+eros::diagnostic HatControllerNodeProcess::new_armedstatemsg(uint8_t msg)
 {
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	eros::diagnostic diag = diagnostic;
 	armed_state = msg;
 	diag.Level = INFO;
 	diag.Diagnostic_Type = SOFTWARE;
@@ -582,10 +582,10 @@ bool HatControllerNodeProcess::is_hat_running(std::string devicetype,uint16_t id
 	}
 	return false;
 }
-icarus_rover_v2::diagnostic HatControllerNodeProcess::set_hat_running(std::string devicetype,uint16_t id)
+eros::diagnostic HatControllerNodeProcess::set_hat_running(std::string devicetype,uint16_t id)
 {
-	icarus_rover_v2::diagnostic diag = diagnostic;
-	icarus_rover_v2::device hat;
+	eros::diagnostic diag = diagnostic;
+	eros::device hat;
 	bool found = false;
 	for(std::size_t i = 0; i < hats.size(); i++)
 	{
@@ -622,9 +622,9 @@ icarus_rover_v2::diagnostic HatControllerNodeProcess::set_hat_running(std::strin
 	}
 	return diag;
 }
-icarus_rover_v2::diagnostic HatControllerNodeProcess::set_terminalhat_initialized()
+eros::diagnostic HatControllerNodeProcess::set_terminalhat_initialized()
 {
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	eros::diagnostic diag = diagnostic;
 	bool found = false;
 	for(std::size_t i = 0; i < hats.size(); i++)
 	{
@@ -700,9 +700,9 @@ bool HatControllerNodeProcess::set_terminalhatpinvalue(std::string name,int v)
 	}
 	return found;
 }
-std::vector<icarus_rover_v2::pin> HatControllerNodeProcess::get_terminalhatpins(std::string Function,bool match_exact)
+std::vector<eros::pin> HatControllerNodeProcess::get_terminalhatpins(std::string Function,bool match_exact)
 {
-	std::vector<icarus_rover_v2::pin> pins;
+	std::vector<eros::pin> pins;
 	pins.clear();
 	for(std::size_t i = 0; i < hats.size(); i++)
 	{
@@ -710,7 +710,7 @@ std::vector<icarus_rover_v2::pin> HatControllerNodeProcess::get_terminalhatpins(
 		{
 			for(std::size_t j = 0; j < hats.at(i).pins.size(); j++)
 			{
-				icarus_rover_v2::pin pin;
+				eros::pin pin;
 				if(((match_exact == true) and (hats.at(i).pins.at(j).Function == Function)) or
 						((match_exact == false) and (hats.at(i).pins.at(j).Function.find(Function) != std::string::npos)))
 				{
@@ -730,16 +730,16 @@ std::vector<icarus_rover_v2::pin> HatControllerNodeProcess::get_terminalhatpins(
 	}
 	return pins;
 }
-std::vector<icarus_rover_v2::pin> HatControllerNodeProcess::get_gpiohatpins(uint16_t id)
+std::vector<eros::pin> HatControllerNodeProcess::get_gpiohatpins(uint16_t id)
 {
-	std::vector<icarus_rover_v2::pin> pins;
+	std::vector<eros::pin> pins;
 	for(std::size_t i = 0; i < hats.size(); i++)
 	{
 		if((hats.at(i).DeviceType == "GPIOHat") and (hats.at(i).ID == id))
 		{
 			for(std::size_t j = 0; j < hats.at(i).pins.size(); j++)
 			{
-				icarus_rover_v2::pin pin;
+				eros::pin pin;
 				if(hats.at(i).pins.at(j).Function == "UltraSonicSensorInput")
 				{
 					pin = hats.at(i).pins.at(j);
@@ -757,16 +757,16 @@ std::vector<icarus_rover_v2::pin> HatControllerNodeProcess::get_gpiohatpins(uint
 	}
 	return pins;
 }
-std::vector<icarus_rover_v2::pin> HatControllerNodeProcess::get_servohatpins(uint16_t id)
+std::vector<eros::pin> HatControllerNodeProcess::get_servohatpins(uint16_t id)
 {
-	std::vector<icarus_rover_v2::pin> pins;
+	std::vector<eros::pin> pins;
 	for(std::size_t i = 0; i < hats.size(); i++)
 	{
 		if((hats.at(i).DeviceType == "ServoHat") and (hats.at(i).ID == id))
 		{
 			for(std::size_t j = 0; j < hats.at(i).pins.size(); j++)
 			{
-				icarus_rover_v2::pin pin;
+				eros::pin pin;
 				if(hats.at(i).pins.at(j).Function == "PWMOutput-NonActuator")
 				{
 					pin = hats.at(i).pins.at(j);
@@ -798,7 +798,7 @@ std::vector<icarus_rover_v2::pin> HatControllerNodeProcess::get_servohatpins(uin
 	}
 	return pins;
 }
-bool HatControllerNodeProcess::hat_present(const icarus_rover_v2::device::ConstPtr& t_device)
+bool HatControllerNodeProcess::hat_present(const eros::device::ConstPtr& t_device)
 {
 	for(std::size_t i = 0; i < hats.size(); i++)
 	{

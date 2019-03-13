@@ -1,8 +1,6 @@
 #include <gtest/gtest.h>
 #include "ros/ros.h"
 #include "ros/time.h"
-#include "icarus_rover_v2/device.h"
-#include "icarus_rover_v2/diagnostic.h"
 #include "../CommandLauncherNodeProcess.h"
 
 std::string Node_Name = "/unittest_commandlauncher_node_process";
@@ -16,7 +14,7 @@ void print_ipmap(std::vector<CommandLauncherNodeProcess::IPMap> ipmap);
 void print_portmap(std::vector<CommandLauncherNodeProcess::PortMap> ipmap);
 CommandLauncherNodeProcess* initializeprocess()
 {
-	icarus_rover_v2::diagnostic diagnostic;
+	eros::diagnostic diagnostic;
 	diagnostic.DeviceName = ros_DeviceName;
 	diagnostic.Node_Name = Node_Name;
 	diagnostic.System = ROVER;
@@ -28,7 +26,7 @@ CommandLauncherNodeProcess* initializeprocess()
 	diagnostic.Diagnostic_Message = INITIALIZING;
 	diagnostic.Description = "Node Initializing";
 
-	icarus_rover_v2::device device;
+	eros::device device;
 	device.DeviceName = diagnostic.DeviceName;
 	device.BoardCount = 0;
 	device.SensorCount = 0;
@@ -67,7 +65,7 @@ CommandLauncherNodeProcess* initializeprocess()
 }
 CommandLauncherNodeProcess* readyprocess(CommandLauncherNodeProcess* process)
 {
-	icarus_rover_v2::diagnostic diag = process->update(0.0,0.0);
+	eros::diagnostic diag = process->update(0.0,0.0);
 	EXPECT_TRUE(diag.Level <= NOTICE);
 	EXPECT_TRUE(process->is_ready() == true);
 	return process;
@@ -79,7 +77,7 @@ TEST(Template,Process_Initialization)
 	print_ipmap(ipmap);
 	std::vector<CommandLauncherNodeProcess::PortMap> portmap = process->get_portmap();
 	print_portmap(portmap);
-	icarus_rover_v2::diagnostic diagnostic = process->update(0.0,0.0);
+	eros::diagnostic diagnostic = process->update(0.0,0.0);
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 	printf("%s\n",process->get_processinfo().c_str());
 }

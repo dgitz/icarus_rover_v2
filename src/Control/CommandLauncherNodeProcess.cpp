@@ -1,7 +1,7 @@
 #include "CommandLauncherNodeProcess.h"
-icarus_rover_v2::diagnostic  CommandLauncherNodeProcess::finish_initialization()
+eros::diagnostic  CommandLauncherNodeProcess::finish_initialization()
 {
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	eros::diagnostic diag = diagnostic;
 	camerastream_port = "";
 	init_processlist();
 	if(load_configfiles() == false)
@@ -17,14 +17,14 @@ icarus_rover_v2::diagnostic  CommandLauncherNodeProcess::finish_initialization()
 	diagnostic = diag;
 	return diagnostic;
 }
-icarus_rover_v2::diagnostic CommandLauncherNodeProcess::update(double t_dt,double t_ros_time)
+eros::diagnostic CommandLauncherNodeProcess::update(double t_dt,double t_ros_time)
 {
 	if(initialized == true)
 	{
 		ready = true;
 
 	}
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	eros::diagnostic diag = diagnostic;
 	diag = update_baseprocess(t_dt,t_ros_time);
 	bool processes_ok = true;
 	if(initialized == true)
@@ -79,15 +79,15 @@ icarus_rover_v2::diagnostic CommandLauncherNodeProcess::update(double t_dt,doubl
 	diagnostic = diag;
 	return diag;
 }
-icarus_rover_v2::diagnostic CommandLauncherNodeProcess::new_devicemsg(const icarus_rover_v2::device::ConstPtr& device)
+eros::diagnostic CommandLauncherNodeProcess::new_devicemsg(const eros::device::ConstPtr& device)
 {
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	eros::diagnostic diag = diagnostic;
 	return diag;
 }
-std::vector<icarus_rover_v2::diagnostic> CommandLauncherNodeProcess::new_commandmsg(const icarus_rover_v2::command::ConstPtr& t_msg)
+std::vector<eros::diagnostic> CommandLauncherNodeProcess::new_commandmsg(const eros::command::ConstPtr& t_msg)
 {
-	std::vector<icarus_rover_v2::diagnostic> diaglist;
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	std::vector<eros::diagnostic> diaglist;
+	eros::diagnostic diag = diagnostic;
 	if (t_msg->Command == ROVERCOMMAND_RUNDIAGNOSTIC)
 	{
 		if (t_msg->Option1 == LEVEL1)
@@ -110,10 +110,10 @@ std::vector<icarus_rover_v2::diagnostic> CommandLauncherNodeProcess::new_command
 	}
 	return diaglist;
 }
-std::vector<icarus_rover_v2::diagnostic> CommandLauncherNodeProcess::check_programvariables()
+std::vector<eros::diagnostic> CommandLauncherNodeProcess::check_programvariables()
 {
-	std::vector<icarus_rover_v2::diagnostic> diaglist;
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	std::vector<eros::diagnostic> diaglist;
+	eros::diagnostic diag = diagnostic;
 	bool status = true;
 
 	if (status == true) {

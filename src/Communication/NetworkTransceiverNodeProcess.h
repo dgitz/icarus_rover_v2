@@ -48,12 +48,12 @@ public:
 	/*! \brief NodeProcess specific Initialization
 	 *
 	 */
-	icarus_rover_v2::diagnostic finish_initialization();
+	eros::diagnostic finish_initialization();
 	//Update Functions
 	/*! \brief Implementation of the update function
 	 *
 	 */
-	icarus_rover_v2::diagnostic update(double t_dt,double t_ros_time);
+	eros::diagnostic update(double t_dt,double t_ros_time);
 
 	//Attribute Functions
 	void set_networkconfiguration(std::string t_multicast_group,int t_send_multicast_port,int t_recv_unicast_port);
@@ -152,11 +152,11 @@ public:
 	/*! \brief  Process Command Message.  All implementation should use at least the code in this Sample Function.
 	 *
 	 */
-	std::vector<icarus_rover_v2::diagnostic> new_commandmsg(const icarus_rover_v2::command::ConstPtr& t_msg);
-	icarus_rover_v2::diagnostic new_devicemsg(const icarus_rover_v2::device::ConstPtr& device);
-	icarus_rover_v2::diagnostic new_remoteheartbeatmsg(double timestamp,std::string name,double current_beat,double expected_beat);
-	icarus_rover_v2::diagnostic new_message_sent(uint16_t id);
-	icarus_rover_v2::diagnostic new_message_recv(uint16_t id);
+	std::vector<eros::diagnostic> new_commandmsg(const eros::command::ConstPtr& t_msg);
+	eros::diagnostic new_devicemsg(const eros::device::ConstPtr& device);
+	eros::diagnostic new_remoteheartbeatmsg(double timestamp,std::string name,double current_beat,double expected_beat);
+	eros::diagnostic new_message_sent(uint16_t id);
+	eros::diagnostic new_message_recv(uint16_t id);
 
 
 	//Support Functions
@@ -169,8 +169,8 @@ private:
 	/*! \brief Process Specific Implementation
 	 *
 	 */
-	std::vector<icarus_rover_v2::diagnostic> check_programvariables();
-	icarus_rover_v2::diagnostic check_remoteHeartbeats();
+	std::vector<eros::diagnostic> check_programvariables();
+	eros::diagnostic check_remoteHeartbeats();
 	void init_messages();
 	Message get_messagebyid(uint16_t id)
 	{

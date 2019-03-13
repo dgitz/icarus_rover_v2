@@ -30,15 +30,15 @@ public:
 	/*! \brief NodeProcess specific Initialization
 	 *
 	 */
-	icarus_rover_v2::diagnostic finish_initialization();
+	eros::diagnostic finish_initialization();
 	//Update Functions
 	/*! \brief Implementation of the update function
 	 *
 	 */
-	icarus_rover_v2::diagnostic update(double t_dt,double t_ros_time);
+	eros::diagnostic update(double t_dt,double t_ros_time);
 
 	//Attribute Functions
-	icarus_rover_v2::timesyncinfo get_timesyncinfo() { return timesyncinfo; }
+	eros::timesyncinfo get_timesyncinfo() { return timesyncinfo; }
 	void set_ntp_initialized(bool v){ ntp_initialized = v; } //Unit Testing Only
 	void set_unittestingenabled(bool v) { unittesting_enabled = v; } //Unit Testing Only
 	void set_exec_result(std::string v) { exec_result = v;} //Unit Testing Only
@@ -46,11 +46,11 @@ public:
 	/*! \brief  Process Command Message.  All implementation should use at least the code in this Sample Function.
 	 *
 	 */
-	std::vector<icarus_rover_v2::diagnostic> new_commandmsg(const icarus_rover_v2::command::ConstPtr& t_msg);
-	icarus_rover_v2::diagnostic new_devicemsg(const icarus_rover_v2::device::ConstPtr& device);
+	std::vector<eros::diagnostic> new_commandmsg(const eros::command::ConstPtr& t_msg);
+	eros::diagnostic new_devicemsg(const eros::device::ConstPtr& device);
 
 	//Support Functions
-	icarus_rover_v2::diagnostic update_timeservers();
+	eros::diagnostic update_timeservers();
 	TimeServer get_timeserver(std::string name);
 	std::vector<TimeServer> get_timeservers() { return time_servers; }
 	void set_timeserver(TimeServer);
@@ -71,14 +71,14 @@ private:
 	/*! \brief Process Specific Implementation
 	 *
 	 */
-	std::vector<icarus_rover_v2::diagnostic> check_programvariables();
+	std::vector<eros::diagnostic> check_programvariables();
 	void init_timeservers();
-	icarus_rover_v2::diagnostic update_timeserver(std::string name);
+	eros::diagnostic update_timeserver(std::string name);
 	std::string ros_master_uri;
 	std::string primary_time_server;
 	bool ntp_initialized;
 	bool unittesting_enabled;
 	std::string exec_result;
 	std::vector<TimeSlaveNodeProcess::TimeServer> time_servers;
-	icarus_rover_v2::timesyncinfo timesyncinfo;
+	eros::timesyncinfo timesyncinfo;
 };

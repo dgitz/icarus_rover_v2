@@ -1,12 +1,12 @@
 #include "IMUNodeProcess.h"
-icarus_rover_v2::diagnostic  IMUNodeProcess::finish_initialization()
+eros::diagnostic  IMUNodeProcess::finish_initialization()
 {
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	eros::diagnostic diag = diagnostic;
 	imus_initialized = false;
 	imus_running = false;
 	return diagnostic;
 }
-icarus_rover_v2::diagnostic IMUNodeProcess::update(double t_dt,double t_ros_time)
+eros::diagnostic IMUNodeProcess::update(double t_dt,double t_ros_time)
 {
 	if(initialized == true)
 	{
@@ -15,7 +15,7 @@ icarus_rover_v2::diagnostic IMUNodeProcess::update(double t_dt,double t_ros_time
 			ready = true;
 		}
 	}
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	eros::diagnostic diag = diagnostic;
 	diag = update_baseprocess(t_dt,t_ros_time);
 	bool ok = true;
 	for(std::size_t i = 0; i < imus.size(); ++i)
@@ -25,7 +25,7 @@ icarus_rover_v2::diagnostic IMUNodeProcess::update(double t_dt,double t_ros_time
 			double dt = run_time - imus.at(i).lasttime_rx;
 			if(imus.at(i).update_count == 0)
 			{
-				icarus_rover_v2::diagnostic imu_diagnostic = imus.at(i).diagnostic;
+				eros::diagnostic imu_diagnostic = imus.at(i).diagnostic;
 				imu_diagnostic.Diagnostic_Type = SENSORS;
 				imu_diagnostic.Level = ERROR;
 				imu_diagnostic.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
@@ -38,7 +38,7 @@ icarus_rover_v2::diagnostic IMUNodeProcess::update(double t_dt,double t_ros_time
 			}
 			else if(dt >=IMU_INVALID_TIME_THRESHOLD)
 			{
-				icarus_rover_v2::diagnostic imu_diagnostic = imus.at(i).diagnostic;
+				eros::diagnostic imu_diagnostic = imus.at(i).diagnostic;
 				imu_diagnostic.Diagnostic_Type = SENSORS;
 				imu_diagnostic.Level = ERROR;
 				imu_diagnostic.Diagnostic_Message = DROPPING_PACKETS;
@@ -70,9 +70,9 @@ icarus_rover_v2::diagnostic IMUNodeProcess::update(double t_dt,double t_ros_time
 	diagnostic = diag;
 	return diag;
 }
-icarus_rover_v2::diagnostic IMUNodeProcess::new_imumsg(std::string devicename,IMUDriver::RawIMU imu_data,icarus_rover_v2::imu &proc_imu)
+eros::diagnostic IMUNodeProcess::new_imumsg(std::string devicename,IMUDriver::RawIMU imu_data,eros::imu &proc_imu)
 {
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	eros::diagnostic diag = diagnostic;
 	bool found = false;
 	for(std::size_t i = 0; i < imus.size(); ++i)
 	{
@@ -258,9 +258,9 @@ icarus_rover_v2::diagnostic IMUNodeProcess::new_imumsg(std::string devicename,IM
 	}
 	return diag;
 }
-icarus_rover_v2::diagnostic IMUNodeProcess::new_devicemsg(const icarus_rover_v2::device::ConstPtr& device)
+eros::diagnostic IMUNodeProcess::new_devicemsg(const eros::device::ConstPtr& device)
 {
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	eros::diagnostic diag = diagnostic;
 	diag.Diagnostic_Type = DATA_STORAGE;
 	diag.Level = ERROR;
 	diag.Diagnostic_Message = INITIALIZING_ERROR;
@@ -269,9 +269,9 @@ icarus_rover_v2::diagnostic IMUNodeProcess::new_devicemsg(const icarus_rover_v2:
 	diag.Description = std::string(tempstr);
 	return diag;
 }
-icarus_rover_v2::diagnostic IMUNodeProcess::new_devicemsg(const icarus_rover_v2::device::ConstPtr& device,const icarus_rover_v2::leverarm::ConstPtr& leverarm)
+eros::diagnostic IMUNodeProcess::new_devicemsg(const eros::device::ConstPtr& device,const eros::leverarm::ConstPtr& leverarm)
 {
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	eros::diagnostic diag = diagnostic;
 	if(device->DeviceType == "IMU")
 	{
 		if(device->PartNumber == "110012")
@@ -393,10 +393,10 @@ IMUNodeProcess::IMU IMUNodeProcess::get_imu(std::string devicename)
 	imu.devicename = "";
 	return imu;
 }
-std::vector<icarus_rover_v2::diagnostic> IMUNodeProcess::new_commandmsg(const icarus_rover_v2::command::ConstPtr& t_msg)
+std::vector<eros::diagnostic> IMUNodeProcess::new_commandmsg(const eros::command::ConstPtr& t_msg)
 {
-	std::vector<icarus_rover_v2::diagnostic> diaglist;
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	std::vector<eros::diagnostic> diaglist;
+	eros::diagnostic diag = diagnostic;
 	if (t_msg->Command == ROVERCOMMAND_RUNDIAGNOSTIC)
 	{
 		if (t_msg->Option1 == LEVEL1)
@@ -419,10 +419,10 @@ std::vector<icarus_rover_v2::diagnostic> IMUNodeProcess::new_commandmsg(const ic
 	}
 	return diaglist;
 }
-std::vector<icarus_rover_v2::diagnostic> IMUNodeProcess::check_programvariables()
+std::vector<eros::diagnostic> IMUNodeProcess::check_programvariables()
 {
-	std::vector<icarus_rover_v2::diagnostic> diaglist;
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	std::vector<eros::diagnostic> diaglist;
+	eros::diagnostic diag = diagnostic;
 	bool status = true;
 
 	if (status == true) {

@@ -12,15 +12,11 @@
 #include "ros/time.h"
 
 //ROS Messages
-#include <icarus_rover_v2/device.h>
-#include <icarus_rover_v2/srv_device.h>
-#include <icarus_rover_v2/srv_connection.h>
-#include <icarus_rover_v2/leverarm.h>
-#include <icarus_rover_v2/srv_leverarm.h>
+
 
 //Project
-#include "logger.h"
-#include "resourcemonitor.h"
+#include "../logger.h"
+#include "../resourcemonitor.h"
 
 /*! \class BaseNode BaseNode.h "BaseNode.h"
  *  \brief This is a BaseNode class.  All Nodes should be a derived class from this Base Class.*/
@@ -48,7 +44,7 @@ public:
 	}
 	virtual bool start(int argc,char **argv) = 0;
 	/*! \brief Pre-initialization of node.  This section will create the default pub/subs for the node, along with the logger. */
-	icarus_rover_v2::diagnostic preinitialize_basenode(int argc,char **argv);
+	eros::diagnostic preinitialize_basenode(int argc,char **argv);
 	void set_loop1_rate(double t_rate) { loop1_rate = t_rate; loop1_enabled = true; }
 	void set_loop2_rate(double t_rate) { loop2_rate = t_rate; loop2_enabled = true; }
 	void set_loop3_rate(double t_rate) { loop3_rate = t_rate; loop3_enabled = true; }
@@ -76,7 +72,7 @@ public:
 	std::string get_basenodename() { return base_node_name; }
 	std::string get_nodename() { return node_name; }
 	std::string get_verbositylevel() { return verbosity_level; }
-	icarus_rover_v2::diagnostic get_diagnostic() { return diagnostic; }
+	eros::diagnostic get_diagnostic() { return diagnostic; }
 	std::string get_hostname() { return std::string(host_name); }
 
 	//Utility Functions
@@ -94,7 +90,7 @@ public:
 
 	//Message Functions
 	/*! \brief New Device Message Must be Implemented in Derived Node.*/
-	virtual bool new_devicemsg(std::string t_query,icarus_rover_v2::device t_device) = 0;
+	virtual bool new_devicemsg(std::string t_query,eros::device t_device) = 0;
 	/*! \brief Handles receiving the 1 PPS Msg. */
 	void new_ppsmsg(const std_msgs::Bool::ConstPtr& t_msg);
 
@@ -111,24 +107,24 @@ protected:
 	 *  Typically all that is done here is to tell the Node
 	 * what diag data to publish after the Base Node Process has already processed the command.
 	 */
-	void new_commandmsg_result(const icarus_rover_v2::command::ConstPtr& t_msg,std::vector<icarus_rover_v2::diagnostic> t_diaglist);
+	void new_commandmsg_result(const eros::command::ConstPtr& t_msg,std::vector<eros::diagnostic> t_diaglist);
 	/*! \brief Set my device info.
 	 *  This will also initialize the resource monitor.
 	 */
-	icarus_rover_v2::diagnostic set_mydevice(icarus_rover_v2::device t_device);
+	eros::diagnostic set_mydevice(eros::device t_device);
 	/*! \brief Get Base Launch parameters, which includes loop rates, verbosity, etc. */
-	icarus_rover_v2::diagnostic read_baselaunchparameters();
+	eros::diagnostic read_baselaunchparameters();
 
 	boost::shared_ptr<ros::NodeHandle> n;
-	icarus_rover_v2::diagnostic diagnostic;
-	icarus_rover_v2::diagnostic resource_diagnostic;
+	eros::diagnostic diagnostic;
+	eros::diagnostic resource_diagnostic;
 	ros::Publisher diagnostic_pub;
 	char host_name[1024];
 
 
-	icarus_rover_v2::heartbeat heartbeat;
+	eros::heartbeat heartbeat;
 
-	icarus_rover_v2::firmware firmware;
+	eros::firmware firmware;
 	std::string base_node_name;
 	std::string node_name;
 
@@ -160,7 +156,7 @@ protected:
 	ros::Time last_loop3_timer;
 
 	std::string verbosity_level;
-	icarus_rover_v2::resource resources_used;
+	eros::resource resources_used;
 	bool require_pps_to_start,pps_received;
 	bool ready_to_arm;
 	bool publish_readytoarm;

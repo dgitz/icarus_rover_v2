@@ -72,17 +72,17 @@ bool MasterNode::start(int argc,char **argv)
 	return status;
 }
 
-icarus_rover_v2::diagnostic MasterNode::read_launchparameters()
+eros::diagnostic MasterNode::read_launchparameters()
 {
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	eros::diagnostic diag = diagnostic;
 	get_logger()->log_notice("Configuration Files Loaded.");
 	return diagnostic;
 }
-icarus_rover_v2::diagnostic MasterNode::finish_initialization()
+eros::diagnostic MasterNode::finish_initialization()
 {
-	icarus_rover_v2::diagnostic diag = diagnostic;
+	eros::diagnostic diag = diagnostic;
 	pps1_sub = n->subscribe<std_msgs::Bool>("/1PPS",1,&MasterNode::PPS1_Callback,this);
-	command_sub = n->subscribe<icarus_rover_v2::command>("/command",1,&MasterNode::Command_Callback,this);
+	command_sub = n->subscribe<eros::command>("/command",1,&MasterNode::Command_Callback,this);
 	std::string srv_device_topic = "/" + node_name + "/srv_device";
 	device_srv = n->advertiseService(srv_device_topic,&MasterNode::device_service,this);
 	std::string srv_connection_topic = "/" + node_name + "/srv_connection";
@@ -90,7 +90,7 @@ icarus_rover_v2::diagnostic MasterNode::finish_initialization()
 	std::string srv_leverarm_topic = "/" + node_name + "/srv_leverarm";
 	leverarm_srv = n->advertiseService(srv_leverarm_topic,&MasterNode::leverarm_service,this);
 	std::string device_resourceavail_topic = "/" + process->get_mydevice().DeviceName + "/resource_available";
-	device_resourceavail_pub = n->advertise<icarus_rover_v2::resource>(device_resourceavail_topic,1);
+	device_resourceavail_pub = n->advertise<eros::resource>(device_resourceavail_topic,1);
 
 	return diagnostic;
 }
@@ -100,7 +100,7 @@ bool MasterNode::run_001hz()
 }
 bool MasterNode::run_01hz()
 {
-	icarus_rover_v2::diagnostic diag = process->get_diagnostic();
+	eros::diagnostic diag = process->get_diagnostic();
 	{
 		get_logger()->log_diagnostic(diag);
 		diagnostic_pub.publish(diag);
@@ -110,7 +110,7 @@ bool MasterNode::run_01hz()
 bool MasterNode::run_1hz()
 {
 
-	icarus_rover_v2::resource device_resource_available;
+	eros::resource device_resource_available;
 	device_resource_available.Node_Name = process->get_mydevice().DeviceName;
 	device_resource_available.PID = 0;
 	device_resource_available.CPU_Perc = resourcemonitor->get_CPUFree_perc();
@@ -119,7 +119,7 @@ bool MasterNode::run_1hz()
 	if(process->get_mydevice().Architecture == "armv7l")
 	{
 		process->set_devicetemperature(read_device_temperature());
-		icarus_rover_v2::diagnostic diagnostic = process->get_diagnostic();
+		eros::diagnostic diagnostic = process->get_diagnostic();
 		if(process->get_devicetemperature() > 130.0)
 		{
 			diagnostic.Diagnostic_Type = SENSORS;
@@ -152,7 +152,7 @@ bool MasterNode::run_1hz()
 	else if(process->is_initialized() == false)
 	{
 	}
-	icarus_rover_v2::diagnostic diag = process->get_diagnostic();
+	eros::diagnostic diag = process->get_diagnostic();
 	if(diag.Level >= NOTICE)
 	{
 		get_logger()->log_diagnostic(diag);
@@ -164,7 +164,7 @@ bool MasterNode::run_1hz()
 bool MasterNode::run_10hz()
 {
 	ready_to_arm = process->get_ready_to_arm();
-	icarus_rover_v2::diagnostic diag = process->update(0.1,ros::Time::now().toSec());
+	eros::diagnostic diag = process->update(0.1,ros::Time::now().toSec());
 	if(diag.Level > WARN)
 	{
 		get_logger()->log_diagnostic(diag);
@@ -190,12 +190,12 @@ void MasterNode::PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 	new_ppsmsg(msg);
 }
 
-void MasterNode::Command_Callback(const icarus_rover_v2::command::ConstPtr& t_msg)
+void MasterNode::Command_Callback(const eros::command::ConstPtr& t_msg)
 {
-	std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(t_msg);
+	std::vector<eros::diagnostic> diaglist = process->new_commandmsg(t_msg);
 	new_commandmsg_result(t_msg,diaglist);
 }
-bool MasterNode::new_devicemsg(std::string query,icarus_rover_v2::device t_device)
+bool MasterNode::new_devicemsg(std::string query,eros::device t_device)
 {
 	if(query == "SELF")
 	{
@@ -208,8 +208,8 @@ bool MasterNode::new_devicemsg(std::string query,icarus_rover_v2::device t_devic
 
 	if((process->is_initialized() == true))
 	{
-		icarus_rover_v2::device::ConstPtr device_ptr(new icarus_rover_v2::device(t_device));
-		icarus_rover_v2::diagnostic diag = process->new_devicemsg(device_ptr);
+		eros::device::ConstPtr device_ptr(new eros::device(t_device));
+		eros::diagnostic diag = process->new_devicemsg(device_ptr);
 	}
 	return true;
 }
@@ -398,8 +398,8 @@ std::vector<std::string> MasterNode::find_serialports()
 	}
 	return ports;
 }
-bool MasterNode::connection_service(icarus_rover_v2::srv_connection::Request &req,
-		icarus_rover_v2::srv_connection::Response &res)
+bool MasterNode::connection_service(eros::srv_connection::Request &req,
+		eros::srv_connection::Response &res)
 {
 
 	std::vector<MasterNodeProcess::SerialPort> ports = process->get_serialports();
@@ -413,8 +413,8 @@ bool MasterNode::connection_service(icarus_rover_v2::srv_connection::Request &re
 	}
 	return false;
 }
-bool MasterNode::device_service(icarus_rover_v2::srv_device::Request &req,
-		icarus_rover_v2::srv_device::Response &res)
+bool MasterNode::device_service(eros::srv_device::Request &req,
+		eros::srv_device::Response &res)
 {
 	if(req.query == "SELF")
 	{
@@ -448,7 +448,7 @@ bool MasterNode::device_service(icarus_rover_v2::srv_device::Request &req,
 	}
 	else if(req.query == "ALL")
 	{
-		std::vector<icarus_rover_v2::device> alldevices = process->get_alldevices();
+		std::vector<eros::device> alldevices = process->get_alldevices();
 		for(std::size_t i = 0; i < alldevices.size(); i++)
 		{
 			res.data.push_back(alldevices.at(i));
@@ -458,10 +458,10 @@ bool MasterNode::device_service(icarus_rover_v2::srv_device::Request &req,
 	}
 	return false;
 }
-bool MasterNode::leverarm_service(icarus_rover_v2::srv_leverarm::Request &req,
-		icarus_rover_v2::srv_leverarm::Response &res)
+bool MasterNode::leverarm_service(eros::srv_leverarm::Request &req,
+		eros::srv_leverarm::Response &res)
 {
-	icarus_rover_v2::leverarm la;
+	eros::leverarm la;
 	bool status = process->get_leverarm(&la,req.name);
 	if(status == false) { return false; }
 	res.lever = la;
@@ -493,7 +493,7 @@ void MasterNode::print_deviceinfo()
 	for(std::size_t i = 0; i < process->get_childdevices().size(); ++i)
 	{
 		sprintf(tempstr,"%s[%d] Device: %s\n",tempstr,(int)i,process->get_childdevices().at(i).DeviceName.c_str());
-		icarus_rover_v2::leverarm la;
+		eros::leverarm la;
 		if(process->get_leverarm(&la,process->get_childdevices().at(i).DeviceName) == true)
 		{
 			sprintf(tempstr,"%s  LeverArm: Reference: %s X:%4.2f (m) Y:%4.2f (m) Z:%4.2f (m) Roll:%4.2f (deg) Pitch: %4.2f (deg) Yaw: %4.2f (deg)",

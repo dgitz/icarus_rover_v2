@@ -20,7 +20,7 @@ std::string ros_DeviceName = Host_Name;
 
 AudioNodeProcess* initializeprocess(bool stereo)
 {
-	icarus_rover_v2::diagnostic diagnostic;
+	eros::diagnostic diagnostic;
 	diagnostic.DeviceName = ros_DeviceName;
 	diagnostic.Node_Name = Node_Name;
 	diagnostic.System = ROVER;
@@ -32,7 +32,7 @@ AudioNodeProcess* initializeprocess(bool stereo)
 	diagnostic.Diagnostic_Message = INITIALIZING;
 	diagnostic.Description = "Node Initializing";
 
-	icarus_rover_v2::device device;
+	eros::device device;
 	device.DeviceName = diagnostic.DeviceName;
 	device.BoardCount = 0;
 	device.DeviceParent = "None";
@@ -53,43 +53,43 @@ AudioNodeProcess* initializeprocess(bool stereo)
 	if(stereo == true)
 	{
 
-		icarus_rover_v2::device microphone;
+		eros::device microphone;
 		microphone.DeviceName = "MainMicrophone";
 		microphone.DeviceType = "Microphone";
 		microphone.DeviceParent = ros_DeviceName;
 		microphone.Capabilities.push_back("stereo");
-        icarus_rover_v2::device::ConstPtr device_ptr(new icarus_rover_v2::device(microphone));
+        eros::device::ConstPtr device_ptr(new eros::device(microphone));
 		diagnostic = process->new_devicemsg(device_ptr);
 		EXPECT_TRUE(diagnostic.Level <= NOTICE);
 
 	}
 	else
 	{
-		icarus_rover_v2::device left_microphone;
+		eros::device left_microphone;
 		left_microphone.DeviceName = "LeftMicrophone";
 		left_microphone.DeviceType = "Microphone";
 		left_microphone.DeviceParent = ros_DeviceName;
 		left_microphone.Capabilities.push_back("mono");
-		icarus_rover_v2::device::ConstPtr microphoneleft_ptr(new icarus_rover_v2::device(left_microphone));
+		eros::device::ConstPtr microphoneleft_ptr(new eros::device(left_microphone));
 		diagnostic = process->new_devicemsg(microphoneleft_ptr);
 		EXPECT_TRUE(diagnostic.Level <= NOTICE);
 
-		icarus_rover_v2::device right_microphone;
+		eros::device right_microphone;
 		right_microphone.DeviceName = "RightMicrophone";
 		right_microphone.DeviceType = "Microphone";
 		right_microphone.DeviceParent = ros_DeviceName;
 		right_microphone.Capabilities.push_back("mono");
-		icarus_rover_v2::device::ConstPtr microphoneright_ptr(new icarus_rover_v2::device(right_microphone));
+		eros::device::ConstPtr microphoneright_ptr(new eros::device(right_microphone));
 		diagnostic = process->new_devicemsg(microphoneright_ptr);
 		EXPECT_TRUE(diagnostic.Level <= NOTICE);
 	}
 
 	{
-		icarus_rover_v2::device amplifier;
+		eros::device amplifier;
 		amplifier.DeviceName = "AudioAmplifier1";
 		amplifier.DeviceType = "AudioAmplifier";
 		amplifier.DeviceParent = ros_DeviceName;
-		icarus_rover_v2::device::ConstPtr device_ptr(new icarus_rover_v2::device(amplifier));
+		eros::device::ConstPtr device_ptr(new eros::device(amplifier));
 		diagnostic = process->new_devicemsg(device_ptr);
 		EXPECT_TRUE(diagnostic.Level <= NOTICE);
 	}
@@ -102,7 +102,7 @@ AudioNodeProcess* initializeprocess(bool stereo)
 }
 AudioNodeProcess* readyprocess(AudioNodeProcess* process)
 {
-	icarus_rover_v2::diagnostic diag = process->update(0.0,0);
+	eros::diagnostic diag = process->update(0.0,0);
 	EXPECT_TRUE(diag.Level <= NOTICE);
 	EXPECT_TRUE(process->is_ready() == true);
 	return process;
@@ -134,14 +134,14 @@ TEST(Template,AudioStorage_Play)
 	EXPECT_TRUE(process->add_audioplayfile(storage_directory+"output/ALongFile.mp3",trigger_event1,1));
 	EXPECT_TRUE(process->new_audioplaytrigger("UnitTest:Start",false));
 	usleep(2000000);
-	icarus_rover_v2::diagnostic diag = process->update(current_time,2.0);
+	eros::diagnostic diag = process->update(current_time,2.0);
 	current_time += 2.0;
 	EXPECT_FALSE(process->new_audioplaytrigger("A Trigger that will never exist",false));
 	EXPECT_TRUE(process->new_audioplaytrigger(trigger_event1,false));
 
 	while(current_time <= time_to_run)
 	{
-		icarus_rover_v2::diagnostic diag = process->update(current_time,dt);
+		eros::diagnostic diag = process->update(current_time,dt);
 		if((current_time > 5.5) and (fired_once == false))
 		{
 			EXPECT_TRUE(process->new_audioplaytrigger("ArmedState:Armed",false));
@@ -166,13 +166,13 @@ TEST(Template,AudioStorage_Play)
 			slowrate_fire = true;
 		}
 		else { slowrate_fire = false; }
-		icarus_rover_v2::command cmd;
+		eros::command cmd;
 		cmd.Command = ROVERCOMMAND_RUNDIAGNOSTIC;
 		if(fastrate_fire == true)
 		{
 			cmd.Option1 = LEVEL1;
-			icarus_rover_v2::command::ConstPtr cmd_ptr(new icarus_rover_v2::command(cmd));
-			std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
+			eros::command::ConstPtr cmd_ptr(new eros::command(cmd));
+			std::vector<eros::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
 			for(std::size_t i = 0; i < diaglist.size(); i++)
 			{
 				EXPECT_TRUE(diaglist.at(i).Level <= NOTICE);
@@ -183,8 +183,8 @@ TEST(Template,AudioStorage_Play)
 		if(mediumrate_fire == true)
 		{
 			cmd.Option1 = LEVEL2;
-			icarus_rover_v2::command::ConstPtr cmd_ptr(new icarus_rover_v2::command(cmd));
-			std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
+			eros::command::ConstPtr cmd_ptr(new eros::command(cmd));
+			std::vector<eros::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
 			for(std::size_t i = 0; i < diaglist.size(); i++)
 			{
 				EXPECT_TRUE(diaglist.at(i).Level <= NOTICE);
@@ -227,7 +227,7 @@ TEST(Template,AudioStorage_Delete)
 	int audiotrigger_count = 0;
 	while(current_time <= time_to_run)
 	{
-		icarus_rover_v2::diagnostic diag = process->update(current_time,dt);
+		eros::diagnostic diag = process->update(current_time,dt);
 		EXPECT_TRUE(diag.Level <= NOTICE);
 		std::string command,filepath;
 		if(process->get_audiorecordtrigger(command,filepath))
@@ -256,13 +256,13 @@ TEST(Template,AudioStorage_Delete)
 			slowrate_fire = true;
 		}
 		else { slowrate_fire = false; }
-		icarus_rover_v2::command cmd;
+		eros::command cmd;
 		cmd.Command = ROVERCOMMAND_RUNDIAGNOSTIC;
 		if(fastrate_fire == true)
 		{
 			cmd.Option1 = LEVEL1;
-			icarus_rover_v2::command::ConstPtr cmd_ptr(new icarus_rover_v2::command(cmd));
-			std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
+			eros::command::ConstPtr cmd_ptr(new eros::command(cmd));
+			std::vector<eros::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
 			for(std::size_t i = 0; i < diaglist.size(); i++)
 			{
 				EXPECT_TRUE(diaglist.at(i).Level <= NOTICE);
@@ -273,8 +273,8 @@ TEST(Template,AudioStorage_Delete)
 		if(mediumrate_fire == true)
 		{
 			cmd.Option1 = LEVEL2;
-			icarus_rover_v2::command::ConstPtr cmd_ptr(new icarus_rover_v2::command(cmd));
-			std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
+			eros::command::ConstPtr cmd_ptr(new eros::command(cmd));
+			std::vector<eros::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
 			for(std::size_t i = 0; i < diaglist.size(); i++)
 			{
 				EXPECT_TRUE(diaglist.at(i).Level <= NOTICE);
@@ -342,7 +342,7 @@ TEST(Template,AudioStorage_Archive)
 	int audiotrigger_count = 0;
 	while(current_time <= time_to_run)
 	{
-		icarus_rover_v2::diagnostic diag = process->update(current_time,dt);
+		eros::diagnostic diag = process->update(current_time,dt);
 		EXPECT_TRUE(diag.Level <= NOTICE);
 		std::string command,filepath;
 		if(process->get_audiorecordtrigger(command,filepath))
@@ -371,13 +371,13 @@ TEST(Template,AudioStorage_Archive)
 			slowrate_fire = true;
 		}
 		else { slowrate_fire = false; }
-		icarus_rover_v2::command cmd;
+		eros::command cmd;
 		cmd.Command = ROVERCOMMAND_RUNDIAGNOSTIC;
 		if(fastrate_fire == true)
 		{
 			cmd.Option1 = LEVEL1;
-			icarus_rover_v2::command::ConstPtr cmd_ptr(new icarus_rover_v2::command(cmd));
-			std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
+			eros::command::ConstPtr cmd_ptr(new eros::command(cmd));
+			std::vector<eros::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
 			for(std::size_t i = 0; i < diaglist.size(); i++)
 			{
 				EXPECT_TRUE(diaglist.at(i).Level <= NOTICE);
@@ -388,8 +388,8 @@ TEST(Template,AudioStorage_Archive)
 		if(mediumrate_fire == true)
 		{
 			cmd.Option1 = LEVEL2;
-			icarus_rover_v2::command::ConstPtr cmd_ptr(new icarus_rover_v2::command(cmd));
-			std::vector<icarus_rover_v2::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
+			eros::command::ConstPtr cmd_ptr(new eros::command(cmd));
+			std::vector<eros::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
 			for(std::size_t i = 0; i < diaglist.size(); i++)
 			{
 				EXPECT_TRUE(diaglist.at(i).Level <= NOTICE);
