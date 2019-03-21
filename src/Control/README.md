@@ -40,6 +40,11 @@ Unit Tests:
     cd ~/catkin_ws
     catkin_test_results build/icarus_rover_v2
 
+D: Navigation Node
+Usage: This node should be run on one device
+Purpose: Perform navigation tasks and publish the /state topic
+
+
 Test Results stored at:  ~/catkin_ws/build/test_results/icarus_rover_v2/gtest-test_commandlauncher_node_process.xml
 
 Documentation History:

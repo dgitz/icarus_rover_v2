@@ -206,21 +206,7 @@ target_link_libraries(sample_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyX
 catkin_add_gtest(test_sample_node_process src_templates/unit_tests/test_sample_node_process.cpp)
 target_link_libraries(test_sample_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} sample_node_process)
 
-#Master Node
-file(MAKE_DIRECTORY /home/robot/catkin_ws/build/test_results/icarus_rover_v2/master_node)
-add_library(master_node_process src/Control/MasterNodeProcess.cpp)
-add_executable(master_node src/Control/master_node.cpp)
-target_link_libraries(master_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor serialmessage master_node_process)
-catkin_add_gtest(test_master_node_process src/Control/unit_tests/test_master_node_process.cpp)
-target_link_libraries(test_master_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} master_node_process logger serialmessage)
 
-#Command Node
-file(MAKE_DIRECTORY /home/robot/catkin_ws/build/test_results/icarus_rover_v2/command_node)
-add_library(command_node_process src/Control/CommandNodeProcess.cpp)
-add_executable(command_node src/Control/command_node.cpp)
-target_link_libraries(command_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor command_node_process)
-catkin_add_gtest(test_command_node_process src/Control/unit_tests/test_command_node_process.cpp)
-target_link_libraries(test_command_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} command_node_process logger serialmessage)
 
 #TimeMaster Node
 file(MAKE_DIRECTORY /home/robot/catkin_ws/build/test_results/icarus_rover_v2/timemaster_node)
@@ -254,13 +240,7 @@ target_link_libraries(networktransceiver_node ${catkin_LIBRARIES} ${Boost_LIBRAR
 catkin_add_gtest(test_networktransceiver_node_process src/Communication/unit_tests/test_networktransceiver_node_process.cpp)
 target_link_libraries(test_networktransceiver_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} networktransceiver_node_process logger serialmessage)
 
-#CommandLauncher Node
-file(MAKE_DIRECTORY /home/robot/catkin_ws/build/test_results/icarus_rover_v2/commandlauncher_node)
-add_library(commandlauncher_node_process src/Control/CommandLauncherNodeProcess.cpp)
-add_executable(commandlauncher_node src/Control/commandlauncher_node.cpp)
-target_link_libraries(commandlauncher_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor commandlauncher_node_process)
-catkin_add_gtest(test_commandlauncher_node_process src/Control/unit_tests/test_commandlauncher_node_process.cpp)
-target_link_libraries(test_commandlauncher_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} commandlauncher_node_process)
+
 
 #Safety Node
 file(MAKE_DIRECTORY /home/robot/catkin_ws/build/test_results/icarus_rover_v2/safety_node)
@@ -312,4 +292,7 @@ target_link_libraries(test_imu_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIE
 
 #Add CMakeLists for Pose
 add_subdirectory(src/Pose)
+
+#Add CMakeLists for Control
+add_subdirectory(src/Control)
 
