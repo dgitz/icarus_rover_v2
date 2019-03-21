@@ -86,6 +86,13 @@ eros::diagnostic CommandNode::finish_initialization()
 		ros::Subscriber sub = n->subscribe<std_msgs::Bool>(ready_to_arm_topics.at(i),10,boost::bind(&CommandNode::ReadyToArm_Callback,this,_1,ready_to_arm_topics.at(i)));
 		ready_to_arm_subs.push_back(sub);
 	}
+	diag = process->load_loadscriptingfiles("/home/robot/config/scriptfiles/");
+	if(diag.Level >= WARN)
+	{
+		logger->log_diagnostic(diagnostic);
+		return diag;
+	}
+	process->print_scriptcommand_list();
 	diag = process->init_readytoarm_list(ready_to_arm_topics);
 	if(diag.Level >= WARN)
 	{
@@ -180,9 +187,14 @@ bool CommandNode::run_10hz()
 		diagnostic_pub.publish(diag);
 	}
 	std::vector<eros::command> periodiccommands = process->get_PeriodicCommands();
-	for(std::size_t i = 0; i < periodiccommands.size(); i++)
+	for(std::size_t i = 0; i < periodiccommands.size(); ++i)
 	{
-		command_pub.publish(periodiccommands.at(i));
+		//command_pub.publish(periodiccommands.at(i));
+	}
+	std::vector<eros::command> command_buffer = process->get_command_buffer();
+	for(std::size_t i = 0; i < command_buffer.size(); ++i)
+	{
+		command_pub.publish(command_buffer.at(i));
 	}
 	return true;
 }

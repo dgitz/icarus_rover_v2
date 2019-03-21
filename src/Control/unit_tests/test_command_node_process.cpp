@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include "ros/ros.h"
 #include "ros/time.h"
+#include <math.h>
 #include "../CommandNodeProcess.h"
 
 std::string Node_Name = "/unittest_command_node_process";
@@ -63,6 +64,14 @@ CommandNodeProcess* readyprocess(CommandNodeProcess* process)
 TEST(Template,Process_Initialization)
 {
 	CommandNodeProcess* process = initializeprocess();
+	//Check a few Command Maps
+	{
+		EXPECT_TRUE(process->map_RoverCommand_ToString(ROVERCOMMAND_BOOT) == "BOOT") ;
+		EXPECT_TRUE(process->map_RoverCommand_ToInt("BOOT") == ROVERCOMMAND_BOOT);
+		EXPECT_TRUE(process->map_RoverCommand_ToInt("ARM ROBOT") == ROVERCOMMAND_ARM);
+		EXPECT_TRUE(process->map_RoverCommand_ToInt("STOP MOVEMENT") == ROVERCOMMAND_STOPMOVEMENT);
+		EXPECT_TRUE(process->map_RoverCommand_ToInt("A Command that will never exist.") == ROVERCOMMAND_UNDEFINED);
+	}
 }
 TEST(PeriodicCommands,TestA)
 {
@@ -170,7 +179,7 @@ TEST(ArmDisarm,TestA)
 
 }
 /*
-TEST(AutoRecharge,TestA)
+TEST(AutoRecharge,TestA) NOT SUPPORTED
 {
 	eros::diagnostic diagnostic;
 	CommandNodeProcess* process = initializeprocess();
@@ -202,6 +211,127 @@ TEST(AutoRecharge,TestA)
 	EXPECT_EQ(process->get_currentstate(),NODESTATE_ACQUIRING_TARGET);
 }
  */
+TEST(Scripting,ScriptExecutor)
+{
+	{
+		CommandNodeProcess* process = initializeprocess();
+		eros::diagnostic diagnostic = process->get_diagnostic();
+		//This file should always have exactly 1 command being published
+		diagnostic = process->load_loadscriptingfiles("/home/robot/catkin_ws/src/icarus_rover_v2/src/Control/unit_tests/scriptfiles/Test1/");
+
+		process->print_scriptcommand_list();
+		EXPECT_TRUE(diagnostic.Level <= NOTICE);
+		EXPECT_TRUE(process->get_scriptexecutiontime() > 0.0);
+		double script_execution_time = process->get_scriptexecutiontime();
+		double dt = 0.01;
+		double current_time = 0.0;
+		while(current_time < (process->get_scriptexecutiontime()-dt))
+		{
+			std::vector<eros::command> prev_buffer = process->get_command_buffer();
+			diagnostic = process->update(dt,current_time);
+			EXPECT_TRUE(diagnostic.Level <= NOTICE);
+			std::vector<eros::command> command_buffer = process->get_command_buffer();
+			EXPECT_TRUE(command_buffer.size() == 1);
+			if(process->get_runtime() < (3.0-dt/1000.0))
+			{
+				EXPECT_TRUE(command_buffer.at(0).Command == ROVERCOMMAND_STOPMOVEMENT);
+			}
+			else if(process->get_runtime() < (4.5-dt/1000.0))
+			{
+				EXPECT_TRUE(command_buffer.at(0).Command == ROVERCOMMAND_DRIVECOMMAND);
+			}
+			else if(process->get_runtime() < (6.0-dt/1000.0))
+			{
+				EXPECT_TRUE(command_buffer.at(0).Command == ROVERCOMMAND_DRIVECOMMAND);
+			}
+			else if(process->get_runtime() < (6.5-dt/1000.0))
+			{
+				EXPECT_TRUE(command_buffer.at(0).Command == ROVERCOMMAND_DRIVECOMMAND);
+			}
+			else if(process->get_runtime() < (7.0-dt/1000.0))
+			{
+				EXPECT_TRUE(command_buffer.at(0).Command == ROVERCOMMAND_DRIVECOMMAND);
+			}
+			else if(process->get_runtime() < (15.0-dt/1000.0))
+			{
+				EXPECT_TRUE(command_buffer.at(0).Command == ROVERCOMMAND_STOPMOVEMENT);
+			}
+
+			current_time += dt;
+		}
+		//Should not be anything left in the script queue now
+		while(process->get_runtime() < (2.0*script_execution_time))
+		{
+			diagnostic = process->update(dt,current_time);
+			EXPECT_TRUE(diagnostic.Level <= NOTICE);
+			std::vector<eros::command> command_buffer = process->get_command_buffer();
+			EXPECT_TRUE(command_buffer.size() == 0);
+			current_time += dt;
+		}
+
+	}
+	{
+		CommandNodeProcess* process = initializeprocess();
+		eros::diagnostic diagnostic = process->get_diagnostic();
+		//This file will have multiple commands being published at times
+		diagnostic = process->load_loadscriptingfiles("/home/robot/catkin_ws/src/icarus_rover_v2/src/Control/unit_tests/scriptfiles/Test2/");
+
+		process->print_scriptcommand_list();
+		EXPECT_TRUE(diagnostic.Level <= NOTICE);
+		EXPECT_TRUE(process->get_scriptexecutiontime() > 0.0);
+		double script_execution_time = process->get_scriptexecutiontime();
+		double dt = 0.01;
+		double current_time = 0.0;
+		uint8_t arm_count = 0;
+		while(process->get_runtime() < (process->get_scriptexecutiontime()-dt))
+		{
+			diagnostic = process->update(dt,current_time);
+			EXPECT_TRUE(diagnostic.Level <= NOTICE);
+			std::vector<eros::command> command_buffer = process->get_command_buffer();
+			if(process->get_runtime() < (1.0-dt/1000.0))
+			{
+				EXPECT_TRUE(command_buffer.size() == 1);
+				EXPECT_TRUE(command_buffer.at(0).Command == ROVERCOMMAND_STOPMOVEMENT);
+			}
+			else if(process->get_runtime() < (2.0-dt/1000.0))
+			{
+				EXPECT_TRUE(command_buffer.size() <= 1);
+				if(command_buffer.size() > 0)
+				{
+					if(command_buffer.at(0).Command == ROVERCOMMAND_ARM)
+					{
+						arm_count++;
+					}
+				}
+			}
+			else if(process->get_runtime() < (7.0-dt/1000.0))
+			{
+				EXPECT_TRUE(command_buffer.at(0).Command == ROVERCOMMAND_DRIVECOMMAND);
+			}
+			else if(process->get_runtime() < (15.0-dt/1000.0))
+			{
+				EXPECT_TRUE(command_buffer.at(0).Command == ROVERCOMMAND_STOPMOVEMENT);
+			}
+
+			current_time += dt;
+		}
+		EXPECT_TRUE(arm_count == 5);
+		//Should not be anything left in the script queue now
+
+		while(process->get_runtime() < (2.0*script_execution_time))
+		{
+			diagnostic = process->update(dt,current_time);
+			EXPECT_TRUE(diagnostic.Level <= NOTICE);
+			std::vector<eros::command> command_buffer = process->get_command_buffer();
+			EXPECT_TRUE(command_buffer.size() == 0);
+			current_time += dt;
+		}
+
+
+	}
+
+
+}
 int main(int argc, char **argv){
 	testing::InitGoogleTest(&argc, argv);
 	return RUN_ALL_TESTS();

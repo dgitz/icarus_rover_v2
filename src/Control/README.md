@@ -17,6 +17,7 @@ Purpose:
 1. Generates commands and publishes to icarus_rover_v2::command topic
 2. Reads */ready_to_arm topics
 3. Reads /user_armcommand
+4. Reads script files and executes commands
 
 C: Command Launcher
 Usage: This node should be run on any device that requires external commands to be launched.

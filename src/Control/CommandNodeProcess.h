@@ -1,10 +1,15 @@
 #include "../include/Base/BaseNodeProcess.cpp"
 //C System Files
+#include <dirent.h>
 //C++ System Files
+#include <fstream>
+#include <string>
+#include <boost/algorithm/string/split.hpp>
+#include <boost/algorithm/string.hpp>
+#include <map>
 //ROS Base Functionality
 //ROS Messages
 //Project
-
 /*! \class CommandNodeProcess CommandNodeProcess.h "CommandNodeProcess.h"
  *  \brief This is a CommandNodeProcess class.  Used for the command_node node.
  *
@@ -14,7 +19,15 @@ public:
 	//Constants
 	const double BATTERYLEVEL_TO_RECHARGE = 30.0f;
 	const double BATTERYLEVEL_RECHARGED = 95.0f;
+
+	//const double
 	//Enums
+	enum ScriptCommandMode
+	{
+		EXECUTION_COUNT=0,
+		DURATION=1,
+		UNTIL_NEXT=2
+	};
 	//Structs
 	struct ReadyToArm
 	{
@@ -30,12 +43,23 @@ public:
 		double lasttime_ran;
 		bool send_me;
 	};
+	struct ScriptCommand
+	{
+		eros::command command;
+		double command_starttime;
+		double command_stoptime;
+		ScriptCommandMode execution_mode;
+		uint16_t execution_count;
+		uint16_t counter;
+		double duration;
+	};
 	///Initialization Functions
 	/*! \brief NodeProcess specific Initialization
 	 *
 	 */
 	eros::diagnostic finish_initialization();
 	eros::diagnostic init_readytoarm_list(std::vector<std::string> topics);
+	eros::diagnostic load_loadscriptingfiles(std::string directory); //Use "" for default path, otherwise use specified directory
 	//Update Functions
 	/*! \brief Implementation of the update function
 	 *
@@ -67,20 +91,26 @@ public:
 	void new_readytoarmmsg(std::string topic, bool value);
 	//Support Functions
 	bool reset_timer() { ms_timer = 0; timer_timeout = false; return true;}
-	std::string map_RoverCommand_ToString(int v);
+	std::string map_RoverCommand_ToString(uint16_t v);
+	uint16_t map_RoverCommand_ToInt(std::string command);
 	std::vector<CommandNodeProcess::ReadyToArm> get_ReadyToArmList() { return ReadyToArmList; }
 	std::vector<eros::command> get_PeriodicCommands();
 	eros::diagnostic get_disarmedreason();
+	std::vector<eros::command> get_command_buffer();
+	double get_scriptexecutiontime() { return script_execution_time; }
 	//Printing Functions
+	void print_scriptcommand_list();
 protected:
 private:
 	/*! \brief Process Specific Implementation
 	 *
 	 */
+
 	std::vector<eros::diagnostic> check_programvariables();
 
 	eros::diagnostic init_PeriodicCommands();
 
+	std::map<uint16_t,std::string> command_map;
 	long ms_timer;
 	long timeout_value_ms;
 	struct timeval init_time;
@@ -95,4 +125,7 @@ private:
 	double batterylevel_perc;
 	std::vector<PeriodicCommand> periodic_commands;
 	std::string disarmed_reason;
+	double script_execution_time;
+	std::vector<ScriptCommand> script_commands;
+	std::vector<eros::command> command_buffer;
 };

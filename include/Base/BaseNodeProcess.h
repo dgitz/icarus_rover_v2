@@ -30,7 +30,9 @@
 #include <eros/srv_leverarm.h>
 //Project
 #include "../Definitions.h"
+#include <nlohmann/json.hpp> //See: https://github.com/nlohmann/json#projects-using-json-for-modern-c
 
+using json = nlohmann::json;
 /*! \class BaseNodeProcess BaseNodeProcess.h "BaseNodeProcess.h"
  *  \brief This is a BaseNodeProcess class.  All NodeProcess should be a derived class from this BaseNodeProcess Class. */
 class BaseNodeProcess {
