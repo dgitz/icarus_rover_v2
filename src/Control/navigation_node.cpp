@@ -73,6 +73,26 @@ bool NavigationNode::run_1hz()
 	}
 	else if((process->is_ready() == false) and (process->is_initialized() == true))
 	{
+		{
+			eros::srv_device srv;
+			srv.request.query = "ALL";
+			if(srv_device.call(srv) == true)
+			{
+				for(std::size_t i = 0; i < srv.response.data.size(); i++)
+				{
+					bool status = new_devicemsg(srv.request.query,srv.response.data.at(i));
+
+				}
+			}
+			eros::diagnostic diag = process->load_controlgroupfile();
+			process->fetch_complete();
+					if(diag.Level <= NOTICE)
+					{
+						get_logger()->log_diagnostic(diag);
+						diagnostic_pub.publish(diag);
+					}
+
+		}
 	}
 	else if(process->is_initialized() == false)
 	{
@@ -95,6 +115,7 @@ bool NavigationNode::run_1hz()
 			{
 			}
 		}
+
 	}
 	eros::diagnostic diag = process->get_diagnostic();
 	//if(diag.Level >= NOTICE)

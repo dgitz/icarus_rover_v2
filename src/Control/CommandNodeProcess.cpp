@@ -493,6 +493,8 @@ eros::diagnostic CommandNodeProcess::load_loadscriptingfiles(std::string directo
 				{
 					cmd.command_starttime = std::atof(items.at(1).c_str());
 					json obj;
+					obj["ControlType"] = "OpenLoop";
+					obj["ControlGroup"] = "ArcadeDrive";
 					obj["ForwardVelocityPerc"] = std::atof(items.at(3).c_str());
 					obj["RotateZAxisPerc"] = std::atof(items.at(4).c_str());
 					cmd.command.CommandText = obj.dump();

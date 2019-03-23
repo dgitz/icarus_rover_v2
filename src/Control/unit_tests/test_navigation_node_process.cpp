@@ -3,12 +3,23 @@
 #include "ros/time.h"
 #include "../NavigationNodeProcess.h"
 
-std::string Node_Name = "/unittest_sample_node_process";
+std::string Node_Name = "/unittest_navigation_node_process";
 std::string Host_Name = "unittest";
 std::string ros_DeviceName = Host_Name;
 
-
-NavigationNodeProcess* initializeprocess()
+bool isequal(double a,double b)
+{
+	double v = a-b;
+	if(fabs(v) < .0000001)
+	{
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+NavigationNodeProcess* initializeprocess(std::string controlgroup_filepath)
 {
 	eros::diagnostic diagnostic;
 	diagnostic.DeviceName = ros_DeviceName;
@@ -31,13 +42,58 @@ NavigationNodeProcess* initializeprocess()
 
 	NavigationNodeProcess *process;
 	process = new NavigationNodeProcess;
-	process->initialize("sample_node",Node_Name,Host_Name);
+	process->initialize("navigation_node",Node_Name,Host_Name);
 	process->set_diagnostic(diagnostic);
 	process->finish_initialization();
+	process->set_filepaths(controlgroup_filepath);
 	EXPECT_TRUE(process->is_initialized() == false);
 	process->set_mydevice(device);
+
 	EXPECT_TRUE(process->is_initialized() == true);
 	EXPECT_TRUE(process->get_mydevice().DeviceName == device.DeviceName);
+
+	eros::device servohat1_device;
+	servohat1_device.DeviceName = "ServoHat1";
+	servohat1_device.DeviceParent = ros_DeviceName;
+	servohat1_device.DeviceType = "ServoHat";
+	servohat1_device.BoardCount = 0;
+	servohat1_device.ID = 64;
+
+	{	//PIN1
+		eros::pin newpin;
+		newpin.ConnectedDevice = "LeftMotorController";
+		newpin.Number = 0;
+		newpin.DefaultValue=1500;
+		newpin.MaxValue=2000;
+		newpin.MinValue=1000;
+		newpin.Function = "PWMOutput";
+		servohat1_device.pins.push_back(newpin);
+	}
+
+	{	//PIN2
+		eros::pin newpin;
+		newpin.ConnectedDevice = "RightMotorController";
+		newpin.Number = 1;
+		newpin.DefaultValue=1550;
+		newpin.MaxValue=1100;
+		newpin.MinValue=1900;
+		newpin.Function = "PWMOutput-NonActuator";
+		servohat1_device.pins.push_back(newpin);
+	}
+
+	EXPECT_TRUE(process->is_initialized() == true);
+
+	EXPECT_TRUE(process->is_ready() == false);
+
+	eros::device::ConstPtr dev_ptr(new eros::device(servohat1_device));
+	diagnostic = process->new_devicemsg(dev_ptr);
+	EXPECT_TRUE(diagnostic.Level <= NOTICE);
+	diagnostic = process->fetch_complete();
+	diagnostic = process->load_controlgroupfile();
+	printf("Diag: %s\n",diagnostic.Description.c_str());
+	EXPECT_TRUE(diagnostic.Level <= NOTICE);
+	EXPECT_TRUE(diagnostic.Level <= NOTICE);
+
 	return process;
 }
 NavigationNodeProcess* readyprocess(NavigationNodeProcess* process)
@@ -45,16 +101,20 @@ NavigationNodeProcess* readyprocess(NavigationNodeProcess* process)
 	eros::diagnostic diag = process->update(0.0,0.0);
 	EXPECT_TRUE(diag.Level <= NOTICE);
 	EXPECT_TRUE(process->is_ready() == true);
+	process->print_controlgroups();
+	std::vector<NavigationNodeProcess::ControlGroup> controlgroups = process->get_controlgroups();
+	EXPECT_TRUE(controlgroups.size() > 0);
+	EXPECT_TRUE(controlgroups.at(0).outputs.at(0).pin.Number == 0); //PIN1
+	EXPECT_TRUE(controlgroups.at(0).outputs.at(1).pin.Number == 1); //PIN2
 	return process;
 }
 TEST(Template,Process_Initialization)
 {
-	NavigationNodeProcess* process = initializeprocess();
+	NavigationNodeProcess* process = initializeprocess("/home/robot/catkin_ws/src/icarus_rover_v2/src/Control/unit_tests/UnitTestControlGroup.xml");
 }
-
 TEST(Template,Process_Command)
 {
-	NavigationNodeProcess* process = initializeprocess();
+	NavigationNodeProcess* process = initializeprocess("/home/robot/catkin_ws/src/icarus_rover_v2/src/Control/unit_tests/UnitTestControlGroup.xml");
 	process = readyprocess(process);
 	double time_to_run = 20.0;
 	double dt = 0.001;
@@ -101,33 +161,68 @@ TEST(Template,Process_Command)
 		}
 		if(mediumrate_fire == true)
 		{
-			cmd.Option1 = LEVEL2;
-			eros::command::ConstPtr cmd_ptr(new eros::command(cmd));
-			std::vector<eros::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
-			for(std::size_t i = 0; i < diaglist.size(); i++)
 			{
-				EXPECT_TRUE(diaglist.at(i).Level <= NOTICE);
+				cmd.Option1 = LEVEL2;
+				eros::command::ConstPtr cmd_ptr(new eros::command(cmd));
+				std::vector<eros::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
+				for(std::size_t i = 0; i < diaglist.size(); i++)
+				{
+					EXPECT_TRUE(diaglist.at(i).Level <= NOTICE);
+				}
+				EXPECT_TRUE(diaglist.size() > 0);
 			}
-			EXPECT_TRUE(diaglist.size() > 0);
+			{
+				eros::command drive_cmd;
+				drive_cmd.Command = ROVERCOMMAND_DRIVECOMMAND;
+				json obj;
+				obj["ControlType"] = "OpenLoop";
+				obj["ControlGroup"] = "ArcadeDrive";
+				obj["ForwardVelocityPerc"] = 100.0;
+				obj["RotateZAxisPerc"] = 0.0;
+				drive_cmd.CommandText = obj.dump();
+				drive_cmd.Description = "Drive Forwards";
+				eros::command::ConstPtr cmd_ptr(new eros::command(drive_cmd));
+				std::vector<eros::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
+				for(std::size_t i = 0; i < diaglist.size(); i++)
+				{
+					EXPECT_TRUE(diaglist.at(i).Level <= NOTICE);
+					EXPECT_TRUE(diaglist.at(i).Diagnostic_Message != DEVICE_NOT_AVAILABLE);
+				}
+				EXPECT_TRUE(diaglist.size() > 0);
+				SHOULD CHECK PUBLISH PINS NOW
+			}
+
 
 		}
 		if(slowrate_fire == true)
 		{
+
 			//Don't run LEVEL3 Test, as this will be called circularly and is only responsible for running this test anyways.
-			/*
-            cmd.Option1 = LEVEL3;
-            std::vector<eros::diagnostic> diaglist = process->new_commandmsg(cmd);
-            for(std::size_t i = 0; i < diaglist.size(); i++)
-            {
-                EXPECT_TRUE(diaglist.at(i).Level <= NOTICE);
-            }
-             EXPECT_TRUE(diaglist.size() > 0);
-			 */
 		}
 		current_time += dt;
-		EXPECT_TRUE(robotstate is published);
 	}
 	EXPECT_TRUE(process->get_runtime() >= time_to_run);
+}
+
+TEST(SupportFunctions,TestSupportFunctions)
+{
+	NavigationNodeProcess* process = initializeprocess("/home/robot/catkin_ws/src/icarus_rover_v2/src/Control/unit_tests/UnitTestControlGroup.xml");
+	process = readyprocess(process);
+	{
+		NavigationNodeProcess::DrivePerc d = process->arcade_mix(0.0,0.0);
+		EXPECT_TRUE(isequal(d.left,0.0));
+		EXPECT_TRUE(isequal(d.right,0.0));
+	}
+	{
+			NavigationNodeProcess::DrivePerc d = process->arcade_mix(100.0,0.0);
+			EXPECT_TRUE(isequal(d.left,100.0));
+			EXPECT_TRUE(isequal(d.right,100.0));
+		}
+	{
+			NavigationNodeProcess::DrivePerc d = process->arcade_mix(-100.0,0.0);
+			EXPECT_TRUE(isequal(d.left,-100.0));
+			EXPECT_TRUE(isequal(d.right,-100.0));
+		}
 }
 int main(int argc, char **argv){
 	testing::InitGoogleTest(&argc, argv);
