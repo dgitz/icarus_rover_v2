@@ -1,0 +1,25 @@
+<?xml version="1.0" ?>
+<ControlGroupFile>
+  <ControlGroupList>
+        <ControlGroup>
+            <Name>ArcadeDrive</Name>
+            <Mode>Arcade</Mode>
+            <Input>
+                <Type>Throttle</Type>
+                <Name>ForwardVelocityPerc</Name>
+            </Input>
+            <Input>
+                <Type>Steer</Type>
+                <Name>RotateZAxisPerc</Name>
+            </Input>
+            <Output>
+                <Type>LeftDrive</Type>
+                <Name>LeftMotorController</Name>
+            </Output>
+            <Output>
+                <Type>RightDrive</Type>
+                <Name>RightMotorController</Name>
+            </Output>
+        </ControlGroup>
+  </ControlGroupList>
+</ControlGroupFile>

@@ -17,6 +17,7 @@ Purpose:
 1. Generates commands and publishes to icarus_rover_v2::command topic
 2. Reads */ready_to_arm topics
 3. Reads /user_armcommand
+4. Reads script files and executes commands
 
 C: Command Launcher
 Usage: This node should be run on any device that requires external commands to be launched.
@@ -38,6 +39,11 @@ Unit Tests:
 2. To View:
     cd ~/catkin_ws
     catkin_test_results build/icarus_rover_v2
+
+D: Navigation Node
+Usage: This node should be run on one device
+Purpose: Perform navigation tasks and publish the /state topic
+
 
 Test Results stored at:  ~/catkin_ws/build/test_results/icarus_rover_v2/gtest-test_commandlauncher_node_process.xml
 
