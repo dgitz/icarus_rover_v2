@@ -28,6 +28,10 @@ eros::diagnostic NavigationNodeProcess::update(double t_dt,double t_ros_time)
 		diag.Description = "Node Running.";
 
 	}
+	for(std::size_t i = 0; i < control_groups.size(); ++i)
+	{
+		control_groups.at(i).time_since_lastupdate+=t_dt;
+	}
 	diagnostic = diag;
 	return diag;
 }
@@ -99,12 +103,35 @@ eros::diagnostic NavigationNodeProcess::update_controlgroups(json cmd)
 		if(control_groups.at(i).name == controlgroup)
 		{
 			found = true;
+			if(control_groups.at(i).mode == ControlGroupMode::ARCADE)
+			{
+				DrivePerc drive = arcade_mix(throttle,steer);
+				for(std::size_t j = 0; j < control_groups.at(i).outputs.size(); ++j)
+				{
+					if(control_groups.at(i).outputs.at(j).type == ControlGroupOutputType::LEFTDRIVE)
+					{
+						double out = scale_value(drive.left,(double)control_groups.at(i).outputs.at(j).pin.MinValue,
+								(double)control_groups.at(i).outputs.at(j).pin.DefaultValue,
+								(double)control_groups.at(i).outputs.at(j).pin.MaxValue);
+						control_groups.at(i).outputs.at(j).pin.Value = (int32_t)out;
+					}
+					if(control_groups.at(i).outputs.at(j).type == ControlGroupOutputType::RIGHTDRIVE)
+					{
+						double out = scale_value(drive.right,(double)control_groups.at(i).outputs.at(j).pin.MinValue,
+								(double)control_groups.at(i).outputs.at(j).pin.DefaultValue,
+								(double)control_groups.at(i).outputs.at(j).pin.MaxValue);
+						control_groups.at(i).outputs.at(j).pin.Value = (int32_t)out;
+					}
+				}
+			}
+			control_groups.at(i).time_since_lastupdate = 0.0;
+
 		}
 	}
 	if(found == false)
 	{
 		diag.Diagnostic_Type = SOFTWARE;
-		diag.Level = NOTICE;
+		diag.Level = INFO;
 		diag.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
 		char tempstr[512];
 		sprintf(tempstr,"ControlGroup: %s Not Updated.",controlgroup.c_str());
@@ -112,9 +139,9 @@ eros::diagnostic NavigationNodeProcess::update_controlgroups(json cmd)
 	}
 
 	diag.Diagnostic_Type = SOFTWARE;
-	diag.Level = WARN;
-	diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
-	diag.Description = "Working on implementation.";
+	diag.Level = INFO;
+	diag.Diagnostic_Message = NOERROR;
+	diag.Description = "Control Groups Updated.";
 	return diag;
 }
 std::vector<eros::diagnostic> NavigationNodeProcess::check_programvariables()
@@ -231,7 +258,7 @@ eros::diagnostic NavigationNodeProcess::load_controlgroupfile()
 								diag.Description = std::string(tempstr);
 								return diag;
 							}
-
+							output.pin.Value = output.pin.DefaultValue;
 							cg.outputs.push_back(output);
 							l_pControlGroupOutput = l_pControlGroupOutput->NextSiblingElement( "Output" );
 						}
@@ -244,7 +271,14 @@ eros::diagnostic NavigationNodeProcess::load_controlgroupfile()
 			}
 		}
 	}
-
+	if(control_groups.size() == 0)
+	{
+		diag.Diagnostic_Type = DATA_STORAGE;
+		diag.Level = WARN;
+		diag.Diagnostic_Message = INITIALIZING_ERROR;
+		diag.Description = "No Control Groups Loaded.";
+		return diag;
+	}
 	diag.Diagnostic_Type = NOERROR;
 	diag.Level = NOTICE;
 	diag.Diagnostic_Message = INITIALIZING;
@@ -366,5 +400,27 @@ NavigationNodeProcess::DrivePerc NavigationNodeProcess::arcade_mix(double thrott
 	double w= (100.0-fabs(throttle_perc)) * (steer_perc/100.0) + steer_perc;
 	d.left = (v+w)/2.0;
 	d.right = (v-w)/2.0;
+	if(d.left > 100.0) { d.left = 100.0; }
+	if(d.left < -100.0) { d.right = -100.0; }
+	if(d.right > 100.0) { d.right = 100.0; }
+	if(d.right < -100.0) { d.right = -100.0; }
 	return d;
+}
+double NavigationNodeProcess::scale_value(double input_perc,double y1,double neutral,double y2)
+{
+	//Formula for line: y-y1=m(x-x1), m=(y2-y1)/(x2-x1)
+	double out = 0.0;
+	if(input_perc > 0.0)
+	{
+		double m = (y2-neutral)/100.0;
+		out = (m*input_perc)+neutral;
+	}
+	else
+	{
+		double m = (y1-neutral)/100.0;
+		out = (m*input_perc)+neutral;
+	}
+
+	return out;
+
 }

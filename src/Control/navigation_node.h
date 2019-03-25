@@ -59,7 +59,7 @@ private:
 	void Command_Callback(const eros::command::ConstPtr& t_msg);
 	bool new_devicemsg(std::string query,eros::device t_device);
 	//Support Functions
-
+	void print_controlgroups();
 
 
 	std::string base_node_name;
@@ -67,5 +67,7 @@ private:
 	ros::Subscriber command_sub;
 	ros::ServiceClient srv_device;
 	NavigationNodeProcess *process;
+
+	std::vector<ros::Publisher> pin_pubs;
 
 };

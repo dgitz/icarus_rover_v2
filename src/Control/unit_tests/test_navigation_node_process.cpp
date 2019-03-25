@@ -7,6 +7,13 @@ std::string Node_Name = "/unittest_navigation_node_process";
 std::string Host_Name = "unittest";
 std::string ros_DeviceName = Host_Name;
 
+#define LEFTDRIVE_MAX 1900
+#define LEFTDRIVE_DEFAULT 1450
+#define LEFTDRIVE_MIN 1100
+#define RIGHTDRIVE_MAX 1050
+#define RIGHTDRIVE_DEFAULT 1525
+#define RIGHTDRIVE_MIN 1950
+
 bool isequal(double a,double b)
 {
 	double v = a-b;
@@ -63,9 +70,9 @@ NavigationNodeProcess* initializeprocess(std::string controlgroup_filepath)
 		eros::pin newpin;
 		newpin.ConnectedDevice = "LeftMotorController";
 		newpin.Number = 0;
-		newpin.DefaultValue=1500;
-		newpin.MaxValue=2000;
-		newpin.MinValue=1000;
+		newpin.DefaultValue=LEFTDRIVE_DEFAULT;
+		newpin.MaxValue=LEFTDRIVE_MAX;
+		newpin.MinValue=LEFTDRIVE_MIN;
 		newpin.Function = "PWMOutput";
 		servohat1_device.pins.push_back(newpin);
 	}
@@ -74,9 +81,9 @@ NavigationNodeProcess* initializeprocess(std::string controlgroup_filepath)
 		eros::pin newpin;
 		newpin.ConnectedDevice = "RightMotorController";
 		newpin.Number = 1;
-		newpin.DefaultValue=1550;
-		newpin.MaxValue=1100;
-		newpin.MinValue=1900;
+		newpin.DefaultValue=RIGHTDRIVE_DEFAULT;
+		newpin.MaxValue=RIGHTDRIVE_MAX;
+		newpin.MinValue=RIGHTDRIVE_MIN;
 		newpin.Function = "PWMOutput-NonActuator";
 		servohat1_device.pins.push_back(newpin);
 	}
@@ -116,6 +123,32 @@ TEST(Template,Process_Command)
 {
 	NavigationNodeProcess* process = initializeprocess("/home/robot/catkin_ws/src/icarus_rover_v2/src/Control/unit_tests/UnitTestControlGroup.xml");
 	process = readyprocess(process);
+	{
+		std::vector<eros::pin> pins = process->get_pins();
+		bool found1 = false;
+		bool found2 = false;
+		for(std::size_t i = 0; i < pins.size(); ++i)
+		{
+			if(pins.at(i).ConnectedDevice=="LeftMotorController")
+			{
+				found1 = true;
+				EXPECT_TRUE(pins.at(i).Value == pins.at(i).DefaultValue);
+				EXPECT_TRUE(pins.at(i).MinValue == LEFTDRIVE_MIN);
+				EXPECT_TRUE(pins.at(i).Value == LEFTDRIVE_DEFAULT);
+				EXPECT_TRUE(pins.at(i).MaxValue == LEFTDRIVE_MAX);
+			}
+			if(pins.at(i).ConnectedDevice=="RightMotorController")
+			{
+				found2 = true;
+				EXPECT_TRUE(pins.at(i).Value == pins.at(i).DefaultValue);
+				EXPECT_TRUE(pins.at(i).MinValue == RIGHTDRIVE_MIN);
+				EXPECT_TRUE(pins.at(i).Value == RIGHTDRIVE_DEFAULT);
+				EXPECT_TRUE(pins.at(i).MaxValue == RIGHTDRIVE_MAX);
+			}
+		}
+		EXPECT_TRUE(found1);
+		EXPECT_TRUE(found2);
+	}
 	double time_to_run = 20.0;
 	double dt = 0.001;
 	double current_time = 0.0;
@@ -171,7 +204,8 @@ TEST(Template,Process_Command)
 				}
 				EXPECT_TRUE(diaglist.size() > 0);
 			}
-			{
+
+			{	//Drive Full Forwards
 				eros::command drive_cmd;
 				drive_cmd.Command = ROVERCOMMAND_DRIVECOMMAND;
 				json obj;
@@ -189,10 +223,173 @@ TEST(Template,Process_Command)
 					EXPECT_TRUE(diaglist.at(i).Diagnostic_Message != DEVICE_NOT_AVAILABLE);
 				}
 				EXPECT_TRUE(diaglist.size() > 0);
-				SHOULD CHECK PUBLISH PINS NOW
+				std::vector<eros::pin> pins = process->get_pins();
+				bool found1 = false;
+				bool found2 = false;
+				for(std::size_t i = 0; i < pins.size(); ++i)
+				{
+					if(pins.at(i).ConnectedDevice=="LeftMotorController")
+					{
+						found1 = true;
+						EXPECT_TRUE(pins.at(i).Value == LEFTDRIVE_MAX);
+					}
+					if(pins.at(i).ConnectedDevice=="RightMotorController")
+					{
+						found2 = true;
+						EXPECT_TRUE(pins.at(i).Value == RIGHTDRIVE_MAX);
+					}
+				}
+				EXPECT_TRUE(found1);
+				EXPECT_TRUE(found2);
 			}
-
-
+			{	//Drive Full Reverse
+				eros::command drive_cmd;
+				drive_cmd.Command = ROVERCOMMAND_DRIVECOMMAND;
+				json obj;
+				obj["ControlType"] = "OpenLoop";
+				obj["ControlGroup"] = "ArcadeDrive";
+				obj["ForwardVelocityPerc"] = -100.0;
+				obj["RotateZAxisPerc"] = 0.0;
+				drive_cmd.CommandText = obj.dump();
+				drive_cmd.Description = "Drive Backwards";
+				eros::command::ConstPtr cmd_ptr(new eros::command(drive_cmd));
+				std::vector<eros::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
+				for(std::size_t i = 0; i < diaglist.size(); i++)
+				{
+					EXPECT_TRUE(diaglist.at(i).Level <= NOTICE);
+					EXPECT_TRUE(diaglist.at(i).Diagnostic_Message != DEVICE_NOT_AVAILABLE);
+				}
+				EXPECT_TRUE(diaglist.size() > 0);
+				std::vector<eros::pin> pins = process->get_pins();
+				bool found1 = false;
+				bool found2 = false;
+				for(std::size_t i = 0; i < pins.size(); ++i)
+				{
+					if(pins.at(i).ConnectedDevice=="LeftMotorController")
+					{
+						found1 = true;
+						EXPECT_TRUE(pins.at(i).Value == LEFTDRIVE_MIN);
+					}
+					if(pins.at(i).ConnectedDevice=="RightMotorController")
+					{
+						found2 = true;
+						EXPECT_TRUE(pins.at(i).Value == RIGHTDRIVE_MIN);
+					}
+				}
+				EXPECT_TRUE(found1);
+				EXPECT_TRUE(found2);
+			}
+			{	//Drive Full Left
+				eros::command drive_cmd;
+				drive_cmd.Command = ROVERCOMMAND_DRIVECOMMAND;
+				json obj;
+				obj["ControlType"] = "OpenLoop";
+				obj["ControlGroup"] = "ArcadeDrive";
+				obj["ForwardVelocityPerc"] = 0.0;
+				obj["RotateZAxisPerc"] = -100.0;
+				drive_cmd.CommandText = obj.dump();
+				drive_cmd.Description = "Drive Turn Left";
+				eros::command::ConstPtr cmd_ptr(new eros::command(drive_cmd));
+				std::vector<eros::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
+				for(std::size_t i = 0; i < diaglist.size(); i++)
+				{
+					EXPECT_TRUE(diaglist.at(i).Level <= NOTICE);
+					EXPECT_TRUE(diaglist.at(i).Diagnostic_Message != DEVICE_NOT_AVAILABLE);
+				}
+				EXPECT_TRUE(diaglist.size() > 0);
+				std::vector<eros::pin> pins = process->get_pins();
+				bool found1 = false;
+				bool found2 = false;
+				for(std::size_t i = 0; i < pins.size(); ++i)
+				{
+					if(pins.at(i).ConnectedDevice=="LeftMotorController")
+					{
+						found1 = true;
+						EXPECT_TRUE(pins.at(i).Value == LEFTDRIVE_MIN);
+					}
+					if(pins.at(i).ConnectedDevice=="RightMotorController")
+					{
+						found2 = true;
+						EXPECT_TRUE(pins.at(i).Value == RIGHTDRIVE_MAX);
+					}
+				}
+				EXPECT_TRUE(found1);
+				EXPECT_TRUE(found2);
+			}
+			{	//Drive Full Right
+				eros::command drive_cmd;
+				drive_cmd.Command = ROVERCOMMAND_DRIVECOMMAND;
+				json obj;
+				obj["ControlType"] = "OpenLoop";
+				obj["ControlGroup"] = "ArcadeDrive";
+				obj["ForwardVelocityPerc"] = 0.0;
+				obj["RotateZAxisPerc"] = 100.0;
+				drive_cmd.CommandText = obj.dump();
+				drive_cmd.Description = "Drive Turn Right";
+				eros::command::ConstPtr cmd_ptr(new eros::command(drive_cmd));
+				std::vector<eros::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
+				for(std::size_t i = 0; i < diaglist.size(); i++)
+				{
+					EXPECT_TRUE(diaglist.at(i).Level <= NOTICE);
+					EXPECT_TRUE(diaglist.at(i).Diagnostic_Message != DEVICE_NOT_AVAILABLE);
+				}
+				EXPECT_TRUE(diaglist.size() > 0);
+				std::vector<eros::pin> pins = process->get_pins();
+				bool found1 = false;
+				bool found2 = false;
+				for(std::size_t i = 0; i < pins.size(); ++i)
+				{
+					if(pins.at(i).ConnectedDevice=="LeftMotorController")
+					{
+						found1 = true;
+						EXPECT_TRUE(pins.at(i).Value == LEFTDRIVE_MAX);
+					}
+					if(pins.at(i).ConnectedDevice=="RightMotorController")
+					{
+						found2 = true;
+						EXPECT_TRUE(pins.at(i).Value == RIGHTDRIVE_MIN);
+					}
+				}
+				EXPECT_TRUE(found1);
+				EXPECT_TRUE(found2);
+			}
+			{	//Drive half throttle half right
+				eros::command drive_cmd;
+				drive_cmd.Command = ROVERCOMMAND_DRIVECOMMAND;
+				json obj;
+				obj["ControlType"] = "OpenLoop";
+				obj["ControlGroup"] = "ArcadeDrive";
+				obj["ForwardVelocityPerc"] = 75.0;
+				obj["RotateZAxisPerc"] = 75.0;
+				drive_cmd.CommandText = obj.dump();
+				drive_cmd.Description = "Drive Turn Right slow";
+				eros::command::ConstPtr cmd_ptr(new eros::command(drive_cmd));
+				std::vector<eros::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
+				for(std::size_t i = 0; i < diaglist.size(); i++)
+				{
+					EXPECT_TRUE(diaglist.at(i).Level <= NOTICE);
+					EXPECT_TRUE(diaglist.at(i).Diagnostic_Message != DEVICE_NOT_AVAILABLE);
+				}
+				EXPECT_TRUE(diaglist.size() > 0);
+				std::vector<eros::pin> pins = process->get_pins();
+				bool found1 = false;
+				bool found2 = false;
+				for(std::size_t i = 0; i < pins.size(); ++i)
+				{
+					if(pins.at(i).ConnectedDevice=="LeftMotorController")
+					{
+						found1 = true;
+						//EXPECT_TRUE(pins.at(i).Value == LEFTDRIVE_MAX);
+					}
+					if(pins.at(i).ConnectedDevice=="RightMotorController")
+					{
+						found2 = true;
+						//EXPECT_TRUE(pins.at(i).Value == RIGHTDRIVE_MIN);
+					}
+				}
+				EXPECT_TRUE(found1);
+				EXPECT_TRUE(found2);
+			}
 		}
 		if(slowrate_fire == true)
 		{
@@ -214,15 +411,15 @@ TEST(SupportFunctions,TestSupportFunctions)
 		EXPECT_TRUE(isequal(d.right,0.0));
 	}
 	{
-			NavigationNodeProcess::DrivePerc d = process->arcade_mix(100.0,0.0);
-			EXPECT_TRUE(isequal(d.left,100.0));
-			EXPECT_TRUE(isequal(d.right,100.0));
-		}
+		NavigationNodeProcess::DrivePerc d = process->arcade_mix(100.0,0.0);
+		EXPECT_TRUE(isequal(d.left,100.0));
+		EXPECT_TRUE(isequal(d.right,100.0));
+	}
 	{
-			NavigationNodeProcess::DrivePerc d = process->arcade_mix(-100.0,0.0);
-			EXPECT_TRUE(isequal(d.left,-100.0));
-			EXPECT_TRUE(isequal(d.right,-100.0));
-		}
+		NavigationNodeProcess::DrivePerc d = process->arcade_mix(-100.0,0.0);
+		EXPECT_TRUE(isequal(d.left,-100.0));
+		EXPECT_TRUE(isequal(d.right,-100.0));
+	}
 }
 int main(int argc, char **argv){
 	testing::InitGoogleTest(&argc, argv);

@@ -16,19 +16,19 @@ public:
 	enum class ControlGroupMode
 	{
 		UNKNOWN=0,
-		ARCADE=1,
+				ARCADE=1,
 	};
 	enum class ControlGroupInputType
 	{
 		UNKNOWN=0,
-		THROTTLE=1,
-		STEER=2,
+				THROTTLE=1,
+				STEER=2,
 	};
 	enum class ControlGroupOutputType
 	{
 		UNKNOWN=0,
-		LEFTDRIVE=1,
-		RIGHTDRIVE=2,
+				LEFTDRIVE=1,
+				RIGHTDRIVE=2,
 	};
 	//Structs
 	struct ControlGroupInput
@@ -48,6 +48,7 @@ public:
 		ControlGroupMode mode;
 		std::vector<ControlGroupInput> inputs;
 		std::vector<ControlGroupOutput> outputs;
+		double time_since_lastupdate;
 	};
 	struct DrivePerc
 	{
@@ -87,7 +88,18 @@ public:
 	 */
 	std::vector<eros::diagnostic> new_commandmsg(const eros::command::ConstPtr& t_msg);
 	eros::diagnostic new_devicemsg(const eros::device::ConstPtr& device);
-	std::vector<eros::pin> get_pins() { return pins; }
+	std::vector<eros::pin> get_pins()
+	{
+		std::vector<eros::pin> pins;
+		for(std::size_t i = 0; i < control_groups.size(); ++i)
+		{
+			for(std::size_t j=0; j < control_groups.at(i).outputs.size(); ++j)
+			{
+				pins.push_back(control_groups.at(i).outputs.at(j).pin);
+			}
+		}
+		return pins;
+	}
 
 	//Support Functions
 	DrivePerc arcade_mix(double throttle_perc,double steer_perc);
@@ -97,6 +109,7 @@ public:
 	ControlGroupInputType map_ControlGroupInputType_ToEnum(std::string v);
 	std::string map_ControlGroupOutputType_ToString(ControlGroupOutputType v);
 	ControlGroupOutputType map_ControlGroupOutputType_ToEnum(std::string v);
+	double scale_value(double input_perc,double y1,double neutral,double y2);
 	//Printing Functions
 	void print_controlgroups();
 protected:
@@ -111,7 +124,6 @@ private:
 	std::map<ControlGroupOutputType,std::string> controlgroup_outputtype_map;
 	std::string controlgroup_filepath;
 	std::vector<eros::diagnostic> check_programvariables();
-	std::vector<eros::pin> pins;
 	std::vector<ControlGroup> control_groups;
 	std::vector<eros::pin> all_pins;
 

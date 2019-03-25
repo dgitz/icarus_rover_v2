@@ -52,7 +52,7 @@ eros::diagnostic CommandNode::finish_initialization()
 	std::string device_topic = "/" + std::string(host_name) + "_master_node/srv_device";
 	srv_device = n->serviceClient<eros::srv_device>(device_topic);
 	std::string command_topic = "/command";
-	command_pub =  n->advertise<eros::command>(command_topic,1000);
+	command_pub =  n->advertise<eros::command>(command_topic,10);
 
 	std::vector<std::string> ready_to_arm_topics;
 
