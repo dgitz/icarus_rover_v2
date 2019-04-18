@@ -18,6 +18,7 @@ find_package(catkin REQUIRED COMPONENTS
   roslib
   tf
   eros
+  rosbag
 )
 
 ## System dependencies are found with CMake's conventions
@@ -224,14 +225,6 @@ target_link_libraries(timeslave_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${Ti
 catkin_add_gtest(test_timeslave_node_process src/Timing/unit_tests/test_timeslave_node_process.cpp)
 target_link_libraries(test_timeslave_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} timeslave_node_process logger serialmessage)
 
-#Diagnostic Node
-file(MAKE_DIRECTORY /home/robot/catkin_ws/build/test_results/icarus_rover_v2/diagnostic_node)
-add_library(diagnostic_node_process src/Diagnostics/DiagnosticNodeProcess.cpp)
-add_executable(diagnostic_node src/Diagnostics/diagnostic_node.cpp)
-target_link_libraries(diagnostic_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} logger resourcemonitor diagnostic_node_process lcddriver)
-catkin_add_gtest(test_diagnostic_node_process src/Diagnostics/unit_tests/test_diagnostic_node_process.cpp)
-target_link_libraries(test_diagnostic_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} diagnostic_node_process logger serialmessage)
-
 #Network Transceiver Node
 file(MAKE_DIRECTORY /home/robot/catkin_ws/build/test_results/icarus_rover_v2/networktransceiver_node)
 add_library(networktransceiver_node_process src/Communication/NetworkTransceiverNodeProcess.cpp)
@@ -239,16 +232,6 @@ add_executable(networktransceiver_node src/Communication/networktransceiver_node
 target_link_libraries(networktransceiver_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} logger udpmessage resourcemonitor networktransceiver_node_process)
 catkin_add_gtest(test_networktransceiver_node_process src/Communication/unit_tests/test_networktransceiver_node_process.cpp)
 target_link_libraries(test_networktransceiver_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} networktransceiver_node_process logger serialmessage)
-
-
-
-#Safety Node
-file(MAKE_DIRECTORY /home/robot/catkin_ws/build/test_results/icarus_rover_v2/safety_node)
-add_library(safety_node_process src/Diagnostics/SafetyNodeProcess.cpp)
-#add_executable(safety_node src/Diagnostics/safety_node.cpp) #Only compatible for armv7l
-#target_link_libraries(safety_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor safety_node_process terminalhatdriver)
-catkin_add_gtest(test_safety_node_process src/Diagnostics/unit_tests/test_safety_node_process.cpp)
-target_link_libraries(test_safety_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} safety_node_process)
 
 #HatController Node
 file(MAKE_DIRECTORY /home/robot/catkin_ws/build/test_results/icarus_rover_v2/hatcontroller_node)
@@ -296,3 +279,5 @@ add_subdirectory(src/Pose)
 #Add CMakeLists for Control
 add_subdirectory(src/Control)
 
+#Add CMakeLists for Diagnostics
+add_subdirectory(src/Diagnostics)
