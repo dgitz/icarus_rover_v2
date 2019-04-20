@@ -27,9 +27,20 @@ public:
 	eros::diagnostic update(double t_dt,double t_ros_time);
 
 	//Attribute Functions
-	void set_logdirectory(std::string v) { log_directory = v; }
+    void set_logfileduration(double v) {logfile_duration = v; }
+    double get_logfile_duration() { return logfile_duration; }
+	bool set_logdirectory(std::string v) 
+    { 
+        log_directory = v; 
+        log_directory_available = false;
+        struct stat status;
+        if(stat(log_directory.c_str(),&status) == 0)
+        {
+            log_directory_available = true;
+        }
+        return log_directory_available;
+    }
 	std::string get_logdirectory() { return log_directory; }
-	bool is_log_directory_available() { return log_directory_available; }
 
 	//Message Functions
 	/*! \brief  Process Command Message.  All implementation should use at least the code in this Sample Function.
@@ -49,6 +60,7 @@ private:
 	std::vector<eros::diagnostic> check_programvariables();
 	std::string log_directory;
 	bool log_directory_available;
+    double logfile_duration;
 
 
 };

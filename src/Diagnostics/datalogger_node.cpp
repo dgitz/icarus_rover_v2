@@ -41,7 +41,41 @@ bool DataLoggerNode::start(int argc,char **argv)
 eros::diagnostic DataLoggerNode::read_launchparameters()
 {
 	eros::diagnostic diag = diagnostic;
-
+    std::string param_logfile_duration = node_name +"/LogFile_Duration";
+    double logfile_duration;
+	if(n->getParam(param_logfile_duration,logfile_duration) == false)
+	{
+		diag.Diagnostic_Type = DATA_STORAGE;
+		diag.Level = ERROR;
+		diag.Diagnostic_Message = INITIALIZING_ERROR;
+		diag.Description = "Missing Parameter: LogFile_Duration.  Exiting.";
+		logger->log_diagnostic(diag);
+		return diag;
+	}
+    std::string param_logfile_directory = node_name +"/LogFile_Directory";
+    std::string logfile_directory;
+	if(n->getParam(param_logfile_directory,logfile_directory) == false)
+	{
+		diag.Diagnostic_Type = DATA_STORAGE;
+		diag.Level = ERROR;
+		diag.Diagnostic_Message = INITIALIZING_ERROR;
+		diag.Description = "Missing Parameter: LogFile_Directory.  Exiting.";
+		logger->log_diagnostic(diag);
+		return diag;
+	}
+    process->set_logfileduration(logfile_duration);
+    bool available = process->set_logdirectory(logfile_directory);
+    if(available == false)
+    {
+        diag.Diagnostic_Type = DATA_STORAGE;
+		diag.Level = WARN;
+		diag.Diagnostic_Message = INITIALIZING_ERROR;
+        char tempstr[512];  
+        sprintf(tempstr,"LogFile_Directory: %s Does Not Exist. Exiting.",logfile_directory.c_str());
+		diag.Description = std::string(tempstr);
+		logger->log_diagnostic(diag);
+		return diag;
+    }
 	get_logger()->log_notice("Configuration Files Loaded.");
 	return diagnostic;
 }
@@ -179,23 +213,17 @@ void signalinterrupt_handler(int sig)
 void DataLoggerNode::run_logger(DataLoggerNode *node)
 {
 	rosbag::RecorderOptions opts;
-	if(node->get_process()->is_log_directory_available() == true)
-	{
-		opts.record_all = true;
-		opts.quiet = true;
-		opts.verbose=false;
-		opts.prefix = node->get_process()->get_logdirectory() + "BAG";
-		opts.append_date = true;
-        opts.max_duration = ros::Duration(30.0*60.0); //30 minutes
-        opts.split = true;
-		rosbag::Recorder recorder(opts);
-		int result = recorder.run();
-		node->get_logger()->log_info("Logger Finished.");
-	}
-	else
-	{
-		node->get_logger()->log_notice("Logging Directory Not Present.  Not Logging anything.");
-	}
+    opts.record_all = true;
+    opts.quiet = true;
+    opts.verbose=false;
+    opts.prefix = node->get_process()->get_logdirectory() + "BAG";
+    opts.append_date = true;
+    opts.max_duration = ros::Duration(node->get_process()->get_logfile_duration()); //30 minutes
+    opts.split = true;
+    rosbag::Recorder recorder(opts);
+    int result = recorder.run();
+    node->get_logger()->log_info("Logger Finished.");
+
 	return;
 
 }
@@ -204,14 +232,17 @@ int main(int argc, char **argv) {
 	signal(SIGTERM, signalinterrupt_handler);
 	DataLoggerNode *node = new DataLoggerNode();
 	bool status = node->start(argc,argv);
-	std::thread thread(&DataLoggerNode::thread_loop, node);
-	std::thread thread2(&DataLoggerNode::run_logger,node,node);
-	while((status == true) and (kill_node == false))
-	{
-		status = node->update();
-	}
-	node->cleanup();
-	thread2.join();
+    if(status == true)
+    {
+        std::thread thread(&DataLoggerNode::thread_loop, node);
+        std::thread thread2(&DataLoggerNode::run_logger,node,node);
+        while((status == true) and (kill_node == false))
+        {
+            status = node->update();
+        }
+        node->cleanup();
+        thread2.join();
+    }
 	node->get_logger()->log_info("Node Finished Safely.");
 	return 0;
 }

@@ -2,13 +2,7 @@
 eros::diagnostic  DataLoggerNodeProcess::finish_initialization()
 {
 	log_directory_available = false;
-    eros::diagnostic diag = diagnostic;
-    log_directory = "/media/robot/ICARUS/dataLogs/";
-    struct stat status;
-	if(stat(log_directory.c_str(),&status) == 0)
-    {
-    	log_directory_available = true;
-    }
+    eros::diagnostic diag = diagnostic;  
     return diagnostic;
 }
 eros::diagnostic DataLoggerNodeProcess::update(double t_dt,double t_ros_time)
