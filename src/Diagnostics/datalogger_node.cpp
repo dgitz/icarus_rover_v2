@@ -1,0 +1,249 @@
+#include "datalogger_node.h"
+bool kill_node = false;
+bool DataLoggerNode::start(int argc,char **argv)
+{
+	bool status = false;
+	process = new DataLoggerNodeProcess();
+	set_basenodename(BASE_NODE_NAME);
+	initialize_firmware(MAJOR_RELEASE_VERSION,MINOR_RELEASE_VERSION,BUILD_NUMBER,FIRMWARE_DESCRIPTION);
+	initialize_diagnostic(DIAGNOSTIC_SYSTEM,DIAGNOSTIC_SUBSYSTEM,DIAGNOSTIC_COMPONENT);
+	diagnostic = preinitialize_basenode(argc,argv);
+	if(diagnostic.Level > WARN)
+	{
+		return false;
+	}
+	diagnostic = read_launchparameters();
+	if(diagnostic.Level > WARN)
+	{
+		return false;
+	}
+
+	process->initialize(get_basenodename(),get_nodename(),get_hostname());
+	process->set_diagnostic(diagnostic);
+	process->finish_initialization();
+	diagnostic = finish_initialization();
+	if(diagnostic.Level > WARN)
+	{
+		return false;
+	}
+	if(diagnostic.Level < WARN)
+	{
+		diagnostic.Diagnostic_Type = NOERROR;
+		diagnostic.Level = INFO;
+		diagnostic.Diagnostic_Message = NOERROR;
+		diagnostic.Description = "Node Configured.  Initializing.";
+		get_logger()->log_diagnostic(diagnostic);
+	}
+	status = true;
+	return status;
+}
+
+eros::diagnostic DataLoggerNode::read_launchparameters()
+{
+	eros::diagnostic diag = diagnostic;
+    std::string param_logfile_duration = node_name +"/LogFile_Duration";
+    double logfile_duration;
+	if(n->getParam(param_logfile_duration,logfile_duration) == false)
+	{
+		diag.Diagnostic_Type = DATA_STORAGE;
+		diag.Level = ERROR;
+		diag.Diagnostic_Message = INITIALIZING_ERROR;
+		diag.Description = "Missing Parameter: LogFile_Duration.  Exiting.";
+		logger->log_diagnostic(diag);
+		return diag;
+	}
+    std::string param_logfile_directory = node_name +"/LogFile_Directory";
+    std::string logfile_directory;
+	if(n->getParam(param_logfile_directory,logfile_directory) == false)
+	{
+		diag.Diagnostic_Type = DATA_STORAGE;
+		diag.Level = ERROR;
+		diag.Diagnostic_Message = INITIALIZING_ERROR;
+		diag.Description = "Missing Parameter: LogFile_Directory.  Exiting.";
+		logger->log_diagnostic(diag);
+		return diag;
+	}
+    process->set_logfileduration(logfile_duration);
+    bool available = process->set_logdirectory(logfile_directory);
+    if(available == false)
+    {
+        diag.Diagnostic_Type = DATA_STORAGE;
+		diag.Level = WARN;
+		diag.Diagnostic_Message = INITIALIZING_ERROR;
+        char tempstr[512];  
+        sprintf(tempstr,"LogFile_Directory: %s Does Not Exist. Exiting.",logfile_directory.c_str());
+		diag.Description = std::string(tempstr);
+		logger->log_diagnostic(diag);
+		return diag;
+    }
+	get_logger()->log_notice("Configuration Files Loaded.");
+	return diagnostic;
+}
+eros::diagnostic DataLoggerNode::finish_initialization()
+{
+	eros::diagnostic diag = diagnostic;
+	pps1_sub = n->subscribe<std_msgs::Bool>("/1PPS",1,&DataLoggerNode::PPS1_Callback,this);
+	command_sub = n->subscribe<eros::command>("/command",1,&DataLoggerNode::Command_Callback,this);
+	std::string device_topic = "/" + std::string(host_name) + "_master_node/srv_device";
+	srv_device = n->serviceClient<eros::srv_device>(device_topic);
+	return diagnostic;
+}
+bool DataLoggerNode::run_001hz()
+{
+	return true;
+}
+bool DataLoggerNode::run_01hz()
+{
+	eros::diagnostic diag = process->get_diagnostic();
+	{
+		get_logger()->log_diagnostic(diag);
+		diagnostic_pub.publish(diag);
+	}
+	return true;
+}
+bool DataLoggerNode::run_1hz()
+{
+	if((process->is_initialized() == true) and (process->is_ready() == true))
+	{
+	}
+	else if((process->is_ready() == false) and (process->is_initialized() == true))
+	{
+	}
+	else if(process->is_initialized() == false)
+	{
+		{
+			eros::srv_device srv;
+			srv.request.query = "SELF";
+			if(srv_device.call(srv) == true)
+			{
+				if(srv.response.data.size() != 1)
+				{
+
+					get_logger()->log_error("Got unexpected device message.");
+				}
+				else
+				{
+					bool status = new_devicemsg(srv.request.query,srv.response.data.at(0));
+				}
+			}
+			else
+			{
+			}
+		}
+	}
+	eros::diagnostic diag = process->get_diagnostic();
+	if(diag.Level >= NOTICE)
+	{
+		get_logger()->log_diagnostic(diag);
+		diagnostic_pub.publish(diag);
+	}
+
+	return true;
+}
+bool DataLoggerNode::run_10hz()
+{
+	ready_to_arm = process->get_ready_to_arm();
+	eros::diagnostic diag = process->update(0.1,ros::Time::now().toSec());
+	if(diag.Level > WARN)
+	{
+		get_logger()->log_diagnostic(diag);
+		diagnostic_pub.publish(diag);
+	}
+	return true;
+}
+bool DataLoggerNode::run_loop1()
+{
+	return true;
+}
+bool DataLoggerNode::run_loop2()
+{
+	return true;
+}
+bool DataLoggerNode::run_loop3()
+{
+	return true;
+}
+
+void DataLoggerNode::PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
+{
+	new_ppsmsg(msg);
+}
+
+void DataLoggerNode::Command_Callback(const eros::command::ConstPtr& t_msg)
+{
+	std::vector<eros::diagnostic> diaglist = process->new_commandmsg(t_msg);
+	new_commandmsg_result(t_msg,diaglist);
+}
+bool DataLoggerNode::new_devicemsg(std::string query,eros::device t_device)
+{
+	if(query == "SELF")
+	{
+		if(t_device.DeviceName == std::string(host_name))
+		{
+			set_mydevice(t_device);
+			process->set_mydevice(t_device);
+		}
+	}
+
+	if((process->is_initialized() == true))
+	{
+		eros::device::ConstPtr device_ptr(new eros::device(t_device));
+		eros::diagnostic diag = process->new_devicemsg(device_ptr);
+	}
+	return true;
+}
+void DataLoggerNode::thread_loop()
+{
+	while(kill_node == false)
+	{
+		ros::Duration(1.0).sleep();
+	}
+}
+void DataLoggerNode::cleanup()
+{
+}
+/*! \brief Attempts to kill a node when an interrupt is received.
+ *
+ */
+void signalinterrupt_handler(int sig)
+{
+	kill_node = true;
+	exit(0);
+}
+void DataLoggerNode::run_logger(DataLoggerNode *node)
+{
+	rosbag::RecorderOptions opts;
+    opts.record_all = true;
+    opts.quiet = true;
+    opts.verbose=false;
+    opts.prefix = node->get_process()->get_logdirectory() + "BAG";
+    opts.append_date = true;
+    opts.max_duration = ros::Duration(node->get_process()->get_logfile_duration()); //30 minutes
+    opts.split = true;
+    rosbag::Recorder recorder(opts);
+    int result = recorder.run();
+    node->get_logger()->log_info("Logger Finished.");
+
+	return;
+
+}
+int main(int argc, char **argv) {
+	signal(SIGINT, signalinterrupt_handler);
+	signal(SIGTERM, signalinterrupt_handler);
+	DataLoggerNode *node = new DataLoggerNode();
+	bool status = node->start(argc,argv);
+    if(status == true)
+    {
+        std::thread thread(&DataLoggerNode::thread_loop, node);
+        std::thread thread2(&DataLoggerNode::run_logger,node,node);
+        while((status == true) and (kill_node == false))
+        {
+            status = node->update();
+        }
+        node->cleanup();
+        thread2.join();
+    }
+	node->get_logger()->log_info("Node Finished Safely.");
+	return 0;
+}
+
