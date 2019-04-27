@@ -146,7 +146,6 @@ int main(int argc, char* argv[])
 	}
 	IMUDriver imu;
 	int status = imu.init(partnumber,port);
-	printf("status: %d\n",status);
 	imu.set_debugmode(verbosity);
 	if(status <= 0)
 	{
@@ -159,7 +158,7 @@ int main(int argc, char* argv[])
 		{
 			gettimeofday(&now,NULL);
 			imu_data = imu.update();
-			//print_imudata(report,imu,imu_data);
+			print_imudata(report,imu,imu_data);
 
 
 

@@ -17,5 +17,6 @@ Unit Tests:
 2.  IMU Unit Tests:
   Compile: 
   >>cd ~/catkin_ws/src/icarus_rover_v2/src/Pose/unit_tests/
-  >>g++ ../Driver/IMUDriver.cpp test_imu.cpp -o test_imu
+  >>cmake .
+  >>make
 

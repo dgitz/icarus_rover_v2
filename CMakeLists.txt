@@ -6,6 +6,8 @@ set(CMAKE_BUILD_TYPE Debug)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 SET(CMAKE_CXX_FLAGS "-std=c++0x")
+add_definitions(-std=c++11 -Wall -Wextra -Wno-switch)
+FIND_PACKAGE (Threads REQUIRED)
 find_package(catkin REQUIRED COMPONENTS
   cmake_modules
   roscpp
@@ -195,7 +197,7 @@ add_library(lcddriver src/Diagnostics/Driver/LCDDriver.cpp)
 #add_library(terminalhatdriver src/Board/Driver/TerminalHatDriver.cpp) #Only compatible for armv7l
 #add_library(gpiohatdriver src/Board/Driver/GPIOHatDriver.cpp) #Only compatible for armv7l
 #add_library(servohatdriver src/Board/Driver/ServoHatDriver.cpp) #Only compatible for armv7l
-add_library(imudriver src/Sensor/Driver/IMUDriver.cpp)
+
 
 
 
@@ -265,13 +267,8 @@ target_link_libraries(boardcontroller_node ${catkin_LIBRARIES} ${Boost_LIBRARIES
 catkin_add_gtest(test_boardcontroller_node_process src/Board/unit_tests/test_boardcontroller_node_process.cpp)
 target_link_libraries(test_boardcontroller_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES}  ${TinyXML_LIBRARIES} spimessage boardcontroller_node_process logger)
 
-#IMU Node
-file(MAKE_DIRECTORY /home/robot/catkin_ws/build/test_results/icarus_rover_v2/imu_node)
-add_library(imu_node_process src/Sensor/IMUNodeProcess.cpp)
-add_executable(imu_node src/Sensor/imu_node.cpp)
-target_link_libraries(imu_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} imu_node_process imudriver logger resourcemonitor)
-catkin_add_gtest(test_imu_node_process src/Sensor/unit_tests/test_imu_node_process.cpp)
-target_link_libraries(test_imu_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES}  ${TinyXML_LIBRARIES} imu_node_process logger)
+#Add CMakeLists for Sensors
+add_subdirectory(src/Sensor)
 
 #Add CMakeLists for Pose
 add_subdirectory(src/Pose)

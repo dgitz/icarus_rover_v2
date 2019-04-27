@@ -37,6 +37,7 @@ public:
 	};
 	struct IMU
 	{
+		std::string partnumber;
 		std::string devicename;
         std::string sensor_info_path;
 		bool initialized;
