@@ -1,14 +1,14 @@
 #include <gtest/gtest.h>
 #include "ros/ros.h"
 #include "ros/time.h"
-#include "../DataLoggerNode.h"
+#include "../DataLoggerNodeProcess.h"
 
 std::string Node_Name = "/unittest_datalogger_node_process";
 std::string Host_Name = "unittest";
 std::string ros_DeviceName = Host_Name;
 
 
-DataLoggerNode* initializeprocess()
+DataLoggerNodeProcess* initializeprocess()
 {
 	eros::diagnostic diagnostic;
 	diagnostic.DeviceName = ros_DeviceName;
@@ -29,8 +29,8 @@ DataLoggerNode* initializeprocess()
 	device.DeviceParent = "None";
 	device.Architecture = "x86_64";
 
-	DataLoggerNode *process;
-	process = new DataLoggerNode;
+	DataLoggerNodeProcess *process;
+	process = new DataLoggerNodeProcess;
 	process->initialize("datalogger_node",Node_Name,Host_Name);
 	process->set_diagnostic(diagnostic);
 	process->finish_initialization();
@@ -40,7 +40,7 @@ DataLoggerNode* initializeprocess()
 	EXPECT_TRUE(process->get_mydevice().DeviceName == device.DeviceName);
 	return process;
 }
-DataLoggerNode* readyprocess(DataLoggerNode* process)
+DataLoggerNodeProcess* readyprocess(DataLoggerNodeProcess* process)
 {
 	eros::diagnostic diag = process->update(0.0,0.0);
 	EXPECT_TRUE(diag.Level <= NOTICE);
@@ -49,12 +49,12 @@ DataLoggerNode* readyprocess(DataLoggerNode* process)
 }
 TEST(Template,Process_Initialization)
 {
-	DataLoggerNode* process = initializeprocess();
+	DataLoggerNodeProcess* process = initializeprocess();
 }
 
 TEST(Template,Process_Command)
 {
-	DataLoggerNode* process = initializeprocess();
+	DataLoggerNodeProcess* process = initializeprocess();
 	process = readyprocess(process);
 	double time_to_run = 20.0;
 	double dt = 0.001;

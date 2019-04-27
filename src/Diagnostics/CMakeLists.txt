@@ -19,10 +19,13 @@ target_link_libraries(test_safety_node_process ${catkin_LIBRARIES} ${Boost_LIBRA
 #DataLogger_Node
 file(MAKE_DIRECTORY /home/robot/catkin_ws/build/test_results/icarus_rover_v2/datalogger_node)
 add_library(datalogger_node_process DataLoggerNodeProcess.cpp)
-add_executable(datalogger_node datalogger_node.cpp)
-target_link_libraries(datalogger_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} logger resourcemonitor datalogger_node_process)
+if (${CMAKE_HOST_SYSTEM_PROCESSOR} STREQUAL x86_64)
+    add_executable(datalogger_node datalogger_node.cpp)
+    target_link_libraries(datalogger_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} logger resourcemonitor datalogger_node_process)
+endif ()
+
 catkin_add_gtest(test_datalogger_node_process unit_tests/test_datalogger_node_process.cpp)
-target_link_libraries(test_diagnostic_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} datalogger_node_process logger)
+target_link_libraries(test_datalogger_node_process  ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} datalogger_node_process logger)
 
 
 
