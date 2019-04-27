@@ -17,10 +17,9 @@ static void show_usage(std::string name)
 			<< "\t-d,--delay Delay (uS)\t\t Delay in micro Seconds.  Default is 100000.\n"
 			<< "\t-m,--mode\tMode: monitor. Default=monitor.\n"
 			<< "\t-r,--report\tReport: stat,acc,gyro,mag,all. Default=all.\n"
-			<< "\t-r,--rate\tRate: Update Rate of IMU.  Default=50.\n"
 			<< "\t-v,--verbose\tVerbosity: Default=0.\n"
+			<< "\t-pn,--partno\tPart Number: 110013,110015.\n"
 			<< "\t-p,--port\tSerial Port. Default=/dev/ttyAMA0.\n"
-			<< "\t-b,--baudrate\tBaud Rate. Default=115200.\n"
 			<< std::endl;
 }
 void print_imudata(std::string report,IMUDriver driver,IMUDriver::RawIMU imu_data);
@@ -30,7 +29,7 @@ int main(int argc, char* argv[])
 	int delay = 100000;
 	double rate = 50.0;
 	std::string port = "/dev/ttyAMA0";
-	std::string baudrate = "115200";
+	std::string partnumber = "";
 	std::string report = "all";
 	int verbosity = 0;
 	struct timeval start_time,now,last;
@@ -109,14 +108,46 @@ int main(int argc, char* argv[])
 				return 1;
 			}
 		}
+		else if ((arg == "-pn") || (arg == "--partno"))
+		{
+
+			if (i + 1 < argc)
+			{
+				// Make sure we aren't at the end of argv!
+				partnumber = argv[i+1]; // Increment 'i' so we don't get the argument as the next argv[i
+				i++;
+			}
+			else
+			{
+				// Uh-oh, there was no argument to the destination option.
+				std::cerr << "--partnumber option requires one argument." << std::endl;
+				return 1;
+			}
+		}
+		else if ((arg == "-p") || (arg == "--port"))
+		{
+
+			if (i + 1 < argc)
+			{
+				// Make sure we aren't at the end of argv!
+				port = argv[i+1]; // Increment 'i' so we don't get the argument as the next argv[i
+				i++;
+			}
+			else
+			{
+				// Uh-oh, there was no argument to the destination option.
+				std::cerr << "--port option requires one argument." << std::endl;
+				return 1;
+			}
+		}
 		else
 		{
 		}
 	}
 	IMUDriver imu;
-	int status = imu.init("serial",port,baudrate);
+	int status = imu.init(partnumber,port);
 	imu.set_debugmode(verbosity);
-	if(status < 0)
+	if(status <= 0)
 	{
 		printf("[IMU]: Unable to Initialize. Exiting.\n");
 		return 0;
@@ -174,13 +205,13 @@ void print_imudata(std::string report,IMUDriver driver,IMUDriver::RawIMU imu_dat
 	if((report == "stat") or (report == "all"))
 	{
 		sprintf(tempstr,"%s Delay=%4.2f Seq=%d T=%4.2f U=%ld R=%4.2f State: %s",
-					tempstr,
-					driver.get_timedelay(),
-					imu_data.sequence_number,
-					imu_data.tov,
-					imu_data.update_count,
-					imu_data.update_rate,
-					driver.map_signalstate_tostring(imu_data.signal_state).c_str());
+				tempstr,
+				driver.get_timedelay(),
+				imu_data.sequence_number,
+				imu_data.tov,
+				imu_data.update_count,
+				imu_data.update_rate,
+				driver.map_signalstate_tostring(imu_data.signal_state).c_str());
 	}
 	if((report == "acc") or (report == "all"))
 	{

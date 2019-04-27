@@ -97,7 +97,7 @@ bool SampleNode::run_1hz()
 		}
 	}
 	eros::diagnostic diag = process->get_diagnostic();
-	//if(diag.Level >= NOTICE)
+	if(diag.Level >= NOTICE)
 	{
 		get_logger()->log_diagnostic(diag);
 		diagnostic_pub.publish(diag);

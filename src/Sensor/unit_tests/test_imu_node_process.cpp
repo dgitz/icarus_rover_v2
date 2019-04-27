@@ -23,7 +23,7 @@ void print_3x3matrix(std::string name,Eigen::Matrix3f mat)
 			mat(2,2));
 
 }
-IMUNodeProcess* initializeprocess(std::string imuname)
+IMUNodeProcess* initializeprocess(std::string imuname,std::string imu_partnumber)
 {
 	eros::diagnostic diagnostic;
 	diagnostic.DeviceName = ros_DeviceName;
@@ -49,7 +49,7 @@ IMUNodeProcess* initializeprocess(std::string imuname)
 	imu.DeviceParent = ros_DeviceName;
 	imu.DeviceType = "IMU";
 	imu.ID = 0;
-	imu.PartNumber = "110012";
+	imu.PartNumber = imu_partnumber;
 
 
 	IMUNodeProcess *process;
@@ -98,11 +98,11 @@ IMUNodeProcess* initializeprocess(std::string imuname)
 }
 TEST(Template,Process_Initialization)
 {
-	IMUNodeProcess* process = initializeprocess("IMU1");
+	IMUNodeProcess* process = initializeprocess("IMU1","110012");
 }
 TEST(Template,Process_Msg)
 {
-	IMUNodeProcess* process = initializeprocess("IMU1");
+	IMUNodeProcess* process = initializeprocess("IMU1","110012");
 	EXPECT_TRUE(process->set_imu_info_path("IMU1","/home/robot/catkin_ws/src/icarus_rover_v2/src/Pose/unit_tests/IMU1.xml"));
 	double time_to_run = 20.0;
 	double dt = 0.001;
@@ -186,7 +186,7 @@ TEST(Template,Process_Msg)
 
 TEST(Template,Process_BadMsg)
 {
-	IMUNodeProcess* process = initializeprocess("IMU1");
+	IMUNodeProcess* process = initializeprocess("IMU1","110012");
 	EXPECT_TRUE(process->set_imu_info_path("IMU1","/home/robot/catkin_ws/src/icarus_rover_v2/src/Pose/unit_tests/IMU1.xml"));
 	double time_to_run = 20.0;
 	double dt = 0.001;
@@ -267,7 +267,7 @@ TEST(Template,Process_BadMsg)
 
 TEST(Template,Process_Command)
 {
-	IMUNodeProcess* process = initializeprocess("IMU1");
+	IMUNodeProcess* process = initializeprocess("IMU1","110012");
 	EXPECT_TRUE(process->set_imu_info_path("IMU1","/home/robot/catkin_ws/src/icarus_rover_v2/src/Pose/unit_tests/IMU1.xml"));
 	double time_to_run = 20.0;
 	double dt = 0.001;
@@ -407,7 +407,7 @@ TEST(Template,Process_Command)
 TEST(Template,Rotation_Computation)
 {
 	//Test Identity Matrix
-	IMUNodeProcess* process = initializeprocess("IMU2");
+	IMUNodeProcess* process = initializeprocess("IMU2","110015");
 	EXPECT_TRUE(process->set_imu_info_path("IMU2","/home/robot/catkin_ws/src/icarus_rover_v2/src/Pose/unit_tests/IMU2.xml"));
 	IMUNodeProcess::IMU imu2 = process->get_imu("IMU2");
 
@@ -574,7 +574,7 @@ TEST(Template,RMS_Computation)
 
 
 	//Test Identity Matrix
-	IMUNodeProcess* process = initializeprocess("IMU1");
+	IMUNodeProcess* process = initializeprocess("IMU1","110012");
 	EXPECT_TRUE(process->set_imu_info_path("IMU1","/home/robot/catkin_ws/src/icarus_rover_v2/src/Pose/unit_tests/IMU1.xml"));
 	IMUNodeProcess::IMU imu1 = process->get_imu("IMU1");
 

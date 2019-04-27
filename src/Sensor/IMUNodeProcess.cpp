@@ -17,6 +17,10 @@ eros::diagnostic IMUNodeProcess::update(double t_dt,double t_ros_time)
 	}
 	eros::diagnostic diag = diagnostic;
 	diag = update_baseprocess(t_dt,t_ros_time);
+	if(diag.Level > NOTICE)
+	{
+		return diag;
+	}
 	bool ok = true;
 	for(std::size_t i = 0; i < imus.size(); ++i)
 	{
@@ -222,15 +226,15 @@ eros::diagnostic IMUNodeProcess::new_imumsg(std::string devicename,IMUDriver::Ra
 			}
 
 
-			proc_imu.xacc.status = SIGNALSTATE_UPDATED;
-			proc_imu.yacc.status = SIGNALSTATE_UPDATED;
-			proc_imu.zacc.status = SIGNALSTATE_UPDATED;
-			proc_imu.xgyro.status = SIGNALSTATE_UPDATED;
-			proc_imu.ygyro.status = SIGNALSTATE_UPDATED;
-			proc_imu.zgyro.status = SIGNALSTATE_UPDATED;
-			proc_imu.xmag.status = SIGNALSTATE_UPDATED;
-			proc_imu.ymag.status = SIGNALSTATE_UPDATED;
-			proc_imu.zmag.status = SIGNALSTATE_UPDATED;
+			proc_imu.xacc.status = imu_data.signal_state;
+			proc_imu.yacc.status = imu_data.signal_state;
+			proc_imu.zacc.status = imu_data.signal_state;
+			proc_imu.xgyro.status = imu_data.signal_state;
+			proc_imu.ygyro.status = imu_data.signal_state;
+			proc_imu.zgyro.status = imu_data.signal_state;
+			proc_imu.xmag.status = imu_data.signal_state;
+			proc_imu.ymag.status = imu_data.signal_state;
+			proc_imu.zmag.status = imu_data.signal_state;
 			imus.at(i).lasttime_rx = run_time;
 			imus.at(i).update_count++;
 			imus.at(i).update_rate = (double)(imus.at(i).update_count)/run_time;
@@ -282,9 +286,56 @@ eros::diagnostic IMUNodeProcess::new_devicemsg(const eros::device::ConstPtr& dev
 			newimu.connection_method = "serial";
 			newimu.device_path = "/dev/ttyAMA0";
 			newimu.comm_rate = "115200";
+			newimu.partnumber = "110012";
 			newimu.acc_scale_factor = 2000.0;
 			newimu.gyro_scale_factor = 2000.0;
 			newimu.mag_scale_factor = 6.665;
+
+			newimu.update_count = 0;
+			newimu.update_rate = 0.0;
+			newimu.lasttime_rx = 0.0;
+			newimu.sensor_info_path = "/home/robot/config/sensors/" + device->DeviceName + "/" + device->DeviceName + ".xml";
+			newimu.diagnostic.DeviceName = device->DeviceName;
+			newimu.diagnostic.Node_Name = diag.Node_Name;
+			newimu.diagnostic.System = diag.System;
+			newimu.diagnostic.SubSystem = diag.SubSystem;
+			newimu.diagnostic.Component = diag.Component;
+			newimu.diagnostic.Diagnostic_Type = SENSORS;
+			newimu.diagnostic.Level = NOTICE;
+			newimu.diagnostic.Diagnostic_Message = INITIALIZING;
+			newimu.diagnostic.Description = "IMU Initialized.";
+			newimu.imu_data.xacc.rms = 0.0;
+			newimu.xacc_rms_mean1 = 0.0;
+			newimu.mounting_angle_offset_pitch_deg = leverarm->pitch.value;
+			newimu.mounting_angle_offset_roll_deg = leverarm->roll.value;
+			newimu.mounting_angle_offset_yaw_deg = leverarm->yaw.value;
+			newimu.rotate_matrix = generate_rotation_matrix(newimu.mounting_angle_offset_roll_deg,newimu.mounting_angle_offset_pitch_deg,newimu.mounting_angle_offset_yaw_deg);
+			newimu.imu_data.xacc.units = "m/s^2";
+			newimu.imu_data.yacc.units = "m/s^2";
+			newimu.imu_data.zacc.units = "m/s^2";
+			newimu.imu_data.xgyro.units = "deg/s";
+			newimu.imu_data.ygyro.units = "deg/s";
+			newimu.imu_data.zgyro.units = "deg/s";
+			newimu.imu_data.xmag.units = "uT";
+			newimu.imu_data.ymag.units = "uT";
+			newimu.imu_data.zmag.units = "uT";
+			newimu.initialized = true;
+			imus.push_back(newimu);
+			ready = true;
+			imus_initialized = true;
+		}
+		else if(device->PartNumber == "110015")
+		{
+			IMUNodeProcess::IMU newimu;
+			newimu.initialized = false;
+			newimu.devicename = device->DeviceName;
+			newimu.connection_method = "serial";
+			newimu.device_path = "/dev/ttyACM0";
+			newimu.comm_rate = "115200";
+			newimu.partnumber = "110015";
+			newimu.acc_scale_factor = 1.0;
+			newimu.gyro_scale_factor = 1.0;
+			newimu.mag_scale_factor = 1.0;
 
 			newimu.update_count = 0;
 			newimu.update_rate = 0.0;
@@ -328,6 +379,7 @@ eros::diagnostic IMUNodeProcess::new_devicemsg(const eros::device::ConstPtr& dev
 			sprintf(tempstr,"PartNumber: %s Not Supported.",device->PartNumber.c_str());
 			diag.Description = std::string(tempstr);
 		}
+
 	}
 	else
 	{

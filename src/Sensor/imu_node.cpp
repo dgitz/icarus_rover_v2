@@ -82,7 +82,7 @@ bool IMUNode::run_1hz()
 			for(std::size_t i = 0; i < imus.size(); ++i)
 			{
 				IMUDriver imu_driver;
-				int status = imu_driver.init(imus.at(i).connection_method,imus.at(i).device_path,imus.at(i).comm_rate);
+				int status = imu_driver.init(imus.at(i).partnumber,imus.at(i).device_path);
 				if(status <= 0)
 				{
 					diagnostic.Diagnostic_Type = SENSORS;
@@ -169,7 +169,7 @@ bool IMUNode::run_1hz()
 		}
 	}
 	eros::diagnostic diag = process->get_diagnostic();
-	//if(diag.Level >= NOTICE)
+	if(diag.Level >= NOTICE)
 	{
 		get_logger()->log_diagnostic(diag);
 		diagnostic_pub.publish(diag);
@@ -186,6 +186,11 @@ bool IMUNode::run_10hz()
 	{
 		get_logger()->log_diagnostic(diag);
 		diagnostic_pub.publish(diag);
+	}
+	if(diag.Level >= FATAL)
+	{
+		kill_node = true;
+		return false;
 	}
 	return true;
 }

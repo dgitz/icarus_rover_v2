@@ -248,7 +248,6 @@ eros::diagnostic MasterNodeProcess::load_systemfile(std::string path)
 	char tempstr[512];
 	sprintf(tempstr,"Unable to load: %s",path.c_str());
 	diag_error.Description = std::string(tempstr);
-
 	TiXmlDocument doc(path);
 	bool systemfile_loaded = doc.LoadFile();
 	if(systemfile_loaded == false)
