@@ -57,6 +57,8 @@ public:
     void ZeroDisplacement();
     void Run();
     void Stop();
+    bool IsResetting() { return reset_in_progress; }
+    void ResetConnection();
 private:
 
     SerialPort *ResetSerialPort();
@@ -64,6 +66,8 @@ private:
     void EnqueueIntegrationControlMessage(uint8_t action);
     void DispatchStreamResponse(IMUProtocol::StreamResponse& response);
     int DecodePacketHandler(char * received_data, int bytes_remaining);
+    bool reset_in_progress;
+    bool stream_request_in_progress;
 };
 
 #endif /* SRC_SERIALIO_H_ */

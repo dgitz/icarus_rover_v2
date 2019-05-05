@@ -1,4 +1,11 @@
-#Pose Node
+find_package(TinyXML REQUIRED)
+include_directories(
+  ${catkin_INCLUDE_DIRS}
+  ${Boost_INCLUDE_DIRS}
+  ${TinyXML_INCLUDE_DIRS}
+  ${OpenCV_INCLUDE_DIRS}
+)
+
 #CommandLauncher Node
 file(MAKE_DIRECTORY /home/robot/catkin_ws/build/test_results/icarus_rover_v2/commandlauncher_node)
 add_library(commandlauncher_node_process CommandLauncherNodeProcess.cpp)

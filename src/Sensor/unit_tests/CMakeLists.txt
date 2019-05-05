@@ -1,4 +1,5 @@
 cmake_minimum_required (VERSION 2.8)
+set(CMAKE_BUILD_TYPE Debug)
 project (IMUUnitTest)
 add_definitions(-std=c++11 -Wall -Wextra -Wno-switch)
 FIND_PACKAGE (Threads REQUIRED)

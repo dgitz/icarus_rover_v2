@@ -94,6 +94,7 @@ private:
 	RawIMU imu_data;
 	std::string raw_data;
 	AHRS *device;
+	double conn_timeout;
 
 };
 

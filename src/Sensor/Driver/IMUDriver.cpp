@@ -1,6 +1,7 @@
 #include "IMUDriver.h"
 IMUDriver::IMUDriver()
 {
+	conn_timeout = 0.0;
 	debug_mode = 0;
 	time_delay = 0.0;
 	last_sequence_number = 0;
@@ -156,7 +157,6 @@ IMUDriver::RawIMU IMUDriver::update()
 	t_imu.updated = false;
 	gettimeofday(&now,NULL);
 	bool status = true;
-
 	if(partnumber == PN_110013)
 	{
 		if((measure_time_diff(now,last_timeupdate) > 100.0) or (timesync_tx_count == 0))
@@ -229,25 +229,23 @@ IMUDriver::RawIMU IMUDriver::update()
 	{
 		status = false;
 
-		t_imu.tov = convert_time(now);
-		last_sequence_number = imu_data.sequence_number;
-		t_imu.sequence_number=device->GetUpdateCount();
 
-		t_imu.acc_x = G*device->GetRawAccelX();
-		t_imu.acc_y = G*device->GetRawAccelY();
-		t_imu.acc_z = G*device->GetRawAccelZ();
-		t_imu.gyro_x = device->GetRawGyroX();
-		t_imu.gyro_y = device->GetRawGyroY();
-		t_imu.gyro_z = device->GetRawGyroZ();
-		t_imu.mag_x = device->GetRawMagX();
-		t_imu.mag_y = device->GetRawMagY();
-		t_imu.mag_z = device->GetRawMagZ();
-		status = true;
-
-
-
-
-
+		if(device->IsConnected() == true)
+		{
+			t_imu.tov = convert_time(now);
+			last_sequence_number = imu_data.sequence_number;
+			t_imu.sequence_number=device->GetUpdateCount();
+			t_imu.acc_x = G*device->GetRawAccelX();
+			t_imu.acc_y = G*device->GetRawAccelY();
+			t_imu.acc_z = G*device->GetRawAccelZ();
+			t_imu.gyro_x = device->GetRawGyroX();
+			t_imu.gyro_y = device->GetRawGyroY();
+			t_imu.gyro_z = device->GetRawGyroZ();
+			t_imu.mag_x = device->GetRawMagX();
+			t_imu.mag_y = device->GetRawMagY();
+			t_imu.mag_z = device->GetRawMagZ();
+			status = true;
+		}
 	}
 
 	if(status == true) //parsing is ok
@@ -264,6 +262,7 @@ IMUDriver::RawIMU IMUDriver::update()
 		}
 		else
 		{
+			gettimeofday(&last_timeupdate,NULL);
 			t_imu.signal_state = SIGNALSTATE_UPDATED;
 		}
 		t_imu.update_count++;
@@ -276,6 +275,12 @@ IMUDriver::RawIMU IMUDriver::update()
 	if(measure_time_diff(now,last) > COMM_LOSS_THRESHOLD)
 	{
 		t_imu.signal_state = SIGNALSTATE_INVALID;
+	}
+	if(measure_time_diff(now,last_timeupdate) > COMM_LOSS_THRESHOLD)
+	{
+		t_imu.signal_state = SIGNALSTATE_INVALID;
+		gettimeofday(&last_timeupdate,NULL);
+		device->ResetConnection();
 	}
 	t_imu.updated = true;
 	imu_data = t_imu;

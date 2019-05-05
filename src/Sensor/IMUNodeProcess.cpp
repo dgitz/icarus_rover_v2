@@ -83,16 +83,7 @@ eros::diagnostic IMUNodeProcess::new_imumsg(std::string devicename,IMUDriver::Ra
 		if(imus.at(i).devicename == devicename)
 		{
 
-			if(imu_data.signal_state != SIGNALSTATE_UPDATED)
-			{
-				diag.Diagnostic_Type = SENSORS;
-				diag.Level = WARN;
-				diag.Diagnostic_Message = DROPPING_PACKETS;
-				char tempstr[512];
-				sprintf(tempstr,"IMU State: %s",map_signalstate_tostring(imu_data.signal_state).c_str());
-				diag.Description = std::string(tempstr);
-				return diag;
-			}
+
 			proc_imu = imus.at(i).imu_data;
 			imus.at(i).sequence_number = imu_data.sequence_number;
 			imus.at(i).imu_data.tov = imu_data.tov;
@@ -239,6 +230,16 @@ eros::diagnostic IMUNodeProcess::new_imumsg(std::string devicename,IMUDriver::Ra
 			imus.at(i).update_count++;
 			imus.at(i).update_rate = (double)(imus.at(i).update_count)/run_time;
 			imus.at(i).imu_data = proc_imu;
+			if(imu_data.signal_state != SIGNALSTATE_UPDATED)
+			{
+				diag.Diagnostic_Type = SENSORS;
+				diag.Level = WARN;
+				diag.Diagnostic_Message = DROPPING_PACKETS;
+				char tempstr[512];
+				sprintf(tempstr,"IMU State: %s",map_signalstate_tostring(imu_data.signal_state).c_str());
+				diag.Description = std::string(tempstr);
+				return diag;
+			}
 			found = true;
 		}
 	}

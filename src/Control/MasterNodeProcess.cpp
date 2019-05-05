@@ -154,6 +154,7 @@ eros::diagnostic MasterNodeProcess::set_serialportlist(std::vector<std::string> 
 
 			serialports.push_back(port);
 		}
+		/*
 		else if(found_acm != std::string::npos)
 		{
 			SerialPort port;
@@ -161,6 +162,7 @@ eros::diagnostic MasterNodeProcess::set_serialportlist(std::vector<std::string> 
 			port.file =  "/dev/" + name;
 			serialports.push_back(port);
 		}
+		*/
 		/*
         else if(found_serial != std::string::npos)
         {

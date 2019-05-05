@@ -160,6 +160,7 @@ public:
     double GetAngle();
     double GetRate();
     void   Reset();
+    void   ResetConnection();
     float  GetRawGyroX();
     float  GetRawGyroY();
     float  GetRawGyroZ();

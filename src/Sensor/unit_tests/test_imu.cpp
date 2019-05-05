@@ -156,7 +156,6 @@ int main(int argc, char* argv[])
 	{
 		if(mode == "monitor")
 		{
-			gettimeofday(&now,NULL);
 			imu_data = imu.update();
 			print_imudata(report,imu,imu_data);
 

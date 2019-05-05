@@ -65,11 +65,11 @@ bool IMUNode::run_001hz()
 bool IMUNode::run_01hz()
 {
 
-	eros::diagnostic diag = process->get_diagnostic();
-	{
-		get_logger()->log_diagnostic(diag);
-		diagnostic_pub.publish(diag);
-	}
+	//eros::diagnostic diag = process->get_diagnostic();
+	//{
+		//get_logger()->log_diagnostic(diag);
+		//diagnostic_pub.publish(diag);
+	//}
 	return true;
 }
 bool IMUNode::run_1hz()
@@ -208,9 +208,10 @@ bool IMUNode::run_loop1()
 				eros::imu proc_imu;
 				diag = process->new_imumsg(imus.at(i).devicename,imu_drivers.at(i).update(),proc_imu);
 				proc_imu.timestamp = ros::Time::now().toSec();
+				imu_pubs.at(i).publish(proc_imu);
 				if(diag.Level <= NOTICE)
 				{
-					imu_pubs.at(i).publish(proc_imu);
+
 				}
 				else
 				{
