@@ -274,7 +274,10 @@ bool BaseNode::update()
 }
 void BaseNode::new_ppsmsg(const std_msgs::Bool::ConstPtr& t_msg)
 {
-	pps_received = true;
+	if(t_msg->data == true)
+	{
+		pps_received = true;
+	}
 }
 
 void BaseNode::new_commandmsg_result(const eros::command::ConstPtr& t_msg,std::vector<eros::diagnostic> t_diaglist)

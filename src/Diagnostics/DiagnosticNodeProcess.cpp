@@ -17,6 +17,7 @@ eros::diagnostic  DiagnosticNodeProcess::finish_initialization()
 	lcdclock_timer = 0.0;
 	RCControl = true;
 	init_diaglevels();
+	init_subsystemdiagnostics();
 	return diagnostic;
 }
 eros::diagnostic DiagnosticNodeProcess::update(double t_dt,double t_ros_time)
@@ -57,9 +58,28 @@ eros::diagnostic DiagnosticNodeProcess::update(double t_dt,double t_ros_time)
 		sprintf(tempstr,"Have not received CMD:DIAGNOSTIC in: %f Seconds",last_cmddiagnostic_timer);
 		diag.Description = std::string(tempstr);
 	}
+	for(std::size_t i = 0; i < subsystem_diagnostics.size(); ++i)
+	{
+		if(subsystem_diagnostics.at(i).diagnostics.size() > 0)
+		{
+			uint8_t highest_level = 0;
+			for(std::size_t j = 0; j < subsystem_diagnostics.at(i).diagnostics.size(); ++j)
+			{
+				if(subsystem_diagnostics.at(i).diagnostics.at(j).Level > highest_level)
+				{
+					highest_level = subsystem_diagnostics.at(i).diagnostics.at(j).Level;
+				}
+			}
+			subsystem_diagnostics.at(i).Level = highest_level;
+		}
+		else
+		{
+			subsystem_diagnostics.at(i).Level = LEVEL_UNKNOWN;
+		}
+	}
 	if(status == true)
 	{
-		diag.Diagnostic_Type = NOERROR;
+		diag.Diagnostic_Type = SOFTWARE;
 		diag.Level = INFO;
 		diag.Diagnostic_Message = NOERROR;
 		diag.Description = "Node Running";
@@ -416,7 +436,7 @@ void DiagnosticNodeProcess::add_Task(Task v)
 }
 void DiagnosticNodeProcess::new_heartbeatmsg(std::string topicname)
 {
-	for(int i = 0; i < TaskList.size(); i++)
+	for(std::size_t i = 0; i < TaskList.size(); i++)
 	{
 		if(	TaskList.at(i).heartbeat_topic == topicname)
 		{
@@ -426,7 +446,7 @@ void DiagnosticNodeProcess::new_heartbeatmsg(std::string topicname)
 }
 void DiagnosticNodeProcess::new_resourcemsg(std::string topicname,const eros::resource::ConstPtr& resource)
 {
-	for(int i = 0; i < TaskList.size();i++)
+	for(std::size_t i = 0; i < TaskList.size();i++)
 	{
 		if(	TaskList.at(i).resource_topic == topicname)
 		{
@@ -463,8 +483,7 @@ void DiagnosticNodeProcess::new_resourcemsg(std::string topicname,const eros::re
 }
 void DiagnosticNodeProcess::new_diagnosticmsg(std::string topicname,const eros::diagnostic::ConstPtr& diagnostic)
 {
-	bool add_me = true;
-	for(int i = 0; i < TaskList.size();i++)
+	for(std::size_t i = 0; i < TaskList.size();i++)
 	{
 		if(	TaskList.at(i).diagnostic_topic == topicname)
 		{
@@ -483,14 +502,42 @@ void DiagnosticNodeProcess::new_diagnosticmsg(std::string topicname,const eros::
 			}
 		}
 	}
+	for(std::size_t i = 0; i < subsystem_diagnostics.size(); ++i)
+	{
+		if(diagnostic->Diagnostic_Type == subsystem_diagnostics.at(i).Diagnostic_Type)
+		{
+			bool add_me = true;
+			for(std::size_t j = 0; j < subsystem_diagnostics.at(i).diagnostics.size(); ++j)
+			{
+				if((subsystem_diagnostics.at(i).diagnostics.at(j).DeviceName == diagnostic->DeviceName) and 
+				   (subsystem_diagnostics.at(i).diagnostics.at(j).Node_Name == diagnostic->Node_Name))
+				{
+					add_me = false;
+					subsystem_diagnostics.at(i).diagnostics.at(j) = convert_fromptr(diagnostic);
+					if(diagnostic->Level <= FATAL)
+					{
+						subsystem_diagnostics.at(i).level_counters.at(diagnostic->Level)++;
+					}
+				}
+			}
+			if(add_me == true)
+			{
+				subsystem_diagnostics.at(i).diagnostics.push_back(convert_fromptr(diagnostic));
+				if(diagnostic->Level <= FATAL)
+					{
+						subsystem_diagnostics.at(i).level_counters.at(diagnostic->Level)++;
+					}
+			}
+		}
+	}
 	any_diagnostic_received = true;
 }
 std::vector<eros::diagnostic> DiagnosticNodeProcess::check_tasks()
 {
 	std::vector<eros::diagnostic> diaglist;
 	eros::diagnostic diag = diagnostic;
-	int task_ok_counter = 0;
-	for(int i = 0; i < TaskList.size(); i++)
+	std::size_t task_ok_counter = 0;
+	for(std::size_t i = 0; i < TaskList.size(); i++)
 	{
 		bool task_ok = true;
 		DiagnosticNodeProcess::Task Task = TaskList.at(i);
@@ -500,7 +547,7 @@ std::vector<eros::diagnostic> DiagnosticNodeProcess::check_tasks()
 			char tempstr[512];
 			sprintf(tempstr,"Task: %s is using high CPU resource: %d/%d %%",
 					Task.Task_Name.c_str(),Task.CPU_Perc,CPU_usage_threshold_percent);
-			diag.Diagnostic_Type = SOFTWARE;
+			diag.Diagnostic_Type = SYSTEM_RESOURCE;
 			diag.Diagnostic_Message = HIGH_RESOURCE_USAGE;
 			diag.Level = WARN;
 			diag.Description = tempstr;
@@ -512,7 +559,7 @@ std::vector<eros::diagnostic> DiagnosticNodeProcess::check_tasks()
 			char tempstr[512];
 			sprintf(tempstr,"Task: %s is using high RAM resource: %ld/%d (MB)",
 					Task.Task_Name.c_str(),Task.RAM_MB,RAM_usage_threshold_MB);
-			diag.Diagnostic_Type = SOFTWARE;
+			diag.Diagnostic_Type = SYSTEM_RESOURCE;
 			diag.Diagnostic_Message = HIGH_RESOURCE_USAGE;
 			diag.Level = WARN;
 			diag.Description = tempstr;
@@ -541,14 +588,14 @@ std::vector<eros::diagnostic> DiagnosticNodeProcess::check_tasks()
 		{
 			if(ready == true) { ready_to_arm = true; }
 			char tempstr[255];
-			sprintf(tempstr,"%d/%d (All) Tasks Operational.",task_ok_counter,(int)TaskList.size());
+			sprintf(tempstr,"%d/%d (All) Tasks Operational.",(int)task_ok_counter,(int)TaskList.size());
 			eros::diagnostic system_diag;
 			system_diag.Node_Name = node_name;
 			system_diag.System = ROVER;
 			system_diag.SubSystem = ENTIRE_SUBSYSTEM;
 			system_diag.Component = DIAGNOSTIC_NODE;
 			system_diag.Diagnostic_Message = NOERROR;
-			system_diag.Diagnostic_Type = NOERROR;
+			system_diag.Diagnostic_Type = SOFTWARE;
 			system_diag.Level = NOTICE;
 			system_diag.Description = std::string(tempstr);
 			diaglist.push_back(system_diag);
@@ -568,7 +615,7 @@ std::vector<eros::diagnostic> DiagnosticNodeProcess::check_tasks()
 	{
 		ready_to_arm = false;
 		char tempstr[255];
-		sprintf(tempstr,"%d/%d Tasks are in WARN state or Higher!",(int)TaskList.size()-task_ok_counter,(int)TaskList.size());
+		sprintf(tempstr,"%d/%d Tasks are in WARN state or Higher!",(int)TaskList.size()-(int)task_ok_counter,(int)TaskList.size());
 		diag.Diagnostic_Type = SOFTWARE;
 		diag.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
 		diag.Level = WARN;
@@ -606,4 +653,128 @@ void DiagnosticNodeProcess::init_diaglevels()
 		diaglev.last_time = WORSTDIAG_TIMELIMIT*2.0;
 		diaglevels.push_back(diaglev);
 	}
+}
+void DiagnosticNodeProcess::init_subsystemdiagnostics()
+{
+	{
+		SubSystemDiagnostic diag;
+		diag.Diagnostic_Type = ELECTRICAL;
+		subsystem_diagnostics.push_back(diag);		
+	}
+	{
+		SubSystemDiagnostic diag;
+		diag.Diagnostic_Type = SOFTWARE;
+		subsystem_diagnostics.push_back(diag);		
+	}
+	{
+		SubSystemDiagnostic diag;
+		diag.Diagnostic_Type = COMMUNICATIONS;
+		subsystem_diagnostics.push_back(diag);		
+	}
+	{
+		SubSystemDiagnostic diag;
+		diag.Diagnostic_Type = SENSORS;
+		subsystem_diagnostics.push_back(diag);		
+	}
+	{
+		SubSystemDiagnostic diag;
+		diag.Diagnostic_Type = ACTUATORS;
+		subsystem_diagnostics.push_back(diag);		
+	}
+	{
+		SubSystemDiagnostic diag;
+		diag.Diagnostic_Type = DATA_STORAGE;
+		subsystem_diagnostics.push_back(diag);		
+	}
+	{
+		SubSystemDiagnostic diag;
+		diag.Diagnostic_Type = REMOTE_CONTROL;
+		subsystem_diagnostics.push_back(diag);		
+	}
+	{
+		SubSystemDiagnostic diag;
+		diag.Diagnostic_Type = TARGET_ACQUISITION;
+		subsystem_diagnostics.push_back(diag);		
+	}
+	{
+		SubSystemDiagnostic diag;
+		diag.Diagnostic_Type = POSE;
+		subsystem_diagnostics.push_back(diag);		
+	}
+	{
+		SubSystemDiagnostic diag;
+		diag.Diagnostic_Type = TIMING;
+		subsystem_diagnostics.push_back(diag);		
+	}
+	{
+		SubSystemDiagnostic diag;
+		diag.Diagnostic_Type = SYSTEM_RESOURCE;
+		subsystem_diagnostics.push_back(diag);		
+	}
+
+	
+	for(std::size_t i = 0; i < subsystem_diagnostics.size(); ++i)
+	{
+		subsystem_diagnostics.at(i).Level = LEVEL_UNKNOWN;
+		for(int j = 0; j <= FATAL; ++j)
+		{
+			subsystem_diagnostics.at(i).level_counters.push_back(0);
+		}
+		eros_subsystem_diagnostic.Diagnostic_Type.push_back(subsystem_diagnostics.at(i).Diagnostic_Type);
+		eros_subsystem_diagnostic.Level.push_back(LEVEL_UNKNOWN);
+	}
+}
+DiagnosticNodeProcess::SubSystemDiagnostic DiagnosticNodeProcess::get_subsystem_diagnostic(uint8_t Diagnostic_Type)
+{
+	for(std::size_t i = 0; i < subsystem_diagnostics.size(); ++i)
+	{
+		if(subsystem_diagnostics.at(i).Diagnostic_Type == Diagnostic_Type)
+		{
+			return subsystem_diagnostics.at(i);
+		}
+	}
+	SubSystemDiagnostic diag;
+	diag.Diagnostic_Type = GENERAL_ERROR;
+	return diag;
+}
+std::string DiagnosticNodeProcess::print_subsystem_diagnostics()
+{
+	std::string tempstr = "\n--- SUBSYSTEM DIAGNOSTICS ---\n";
+	for(std::size_t i = 0; i < subsystem_diagnostics.size(); ++i)
+	{
+		tempstr += "[" + std::to_string(i) + "] Type: ";
+		tempstr += diagnostic_helper.get_DiagTypeString(subsystem_diagnostics.at(i).Diagnostic_Type);
+		tempstr += " Level: ";
+		tempstr += diagnostic_helper.get_DiagLevelString(subsystem_diagnostics.at(i).Level);
+		tempstr += " ";
+		for(uint8_t j = 0; j <= FATAL; ++j)
+		{
+			tempstr += "L";
+			tempstr += std::to_string(j);
+			tempstr += ":";
+			tempstr += std::to_string(subsystem_diagnostics.at(i).level_counters.at(j));
+			tempstr += " ";
+		}
+		tempstr += "\n";
+		for(std::size_t j = 0; j < subsystem_diagnostics.at(i).diagnostics.size(); ++j)
+		{
+			tempstr += "\tNode: ";
+			tempstr += subsystem_diagnostics.at(i).diagnostics.at(j).Node_Name;
+			tempstr += " Device: ";
+			tempstr += subsystem_diagnostics.at(i).diagnostics.at(j).DeviceName;
+			tempstr += " Level: ";
+			tempstr += diagnostic_helper.get_DiagLevelString(subsystem_diagnostics.at(i).diagnostics.at(j).Level);
+			tempstr += "\n";
+		}
+	}
+	return tempstr;
+}
+eros::subsystem_diagnostic DiagnosticNodeProcess::get_eros_subsystem_diagnostic()
+{
+	for(std::size_t i = 0; i < eros_subsystem_diagnostic.Diagnostic_Type.size(); ++i)
+	{
+		eros_subsystem_diagnostic.Level.at(i) = subsystem_diagnostics.at(i).Level;
+	}
+	return eros_subsystem_diagnostic;
+
 }

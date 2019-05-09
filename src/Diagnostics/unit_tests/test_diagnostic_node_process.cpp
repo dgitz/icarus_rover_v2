@@ -2,6 +2,7 @@
 #include "ros/ros.h"
 #include "ros/time.h"
 #include "../DiagnosticNodeProcess.h"
+#define DIAGNOSTICTYPE_COUNT 11
 
 std::string Node_Name = "/unittest_diagnostic_node_process";
 std::string Host_Name = "unittest";
@@ -77,6 +78,7 @@ void print_lcdmessage(DiagnosticNodeProcess* process)
 	printf("\n\n");
 
 }
+
 TEST(Template,Process_Command)
 {
 
@@ -147,6 +149,7 @@ TEST(Template,Process_Command)
 	}
 	EXPECT_TRUE(process->get_runtime() >= time_to_run);
 }
+
 TEST(Template,LCDMessage)
 {
 	DiagnosticNodeProcess* process = initializeprocess();
@@ -258,6 +261,119 @@ TEST(Template,LCDMessage)
 		usleep((int)(dt*10000.0));
 	}
 	EXPECT_TRUE(process->get_runtime() >= time_to_run);
+}
+TEST(Template,SubsystemDiagnostics)
+{
+	DiagnosticNodeProcess* process = initializeprocess();
+	eros::device lcd;
+	lcd.DeviceName = "LCD1";
+	lcd.DeviceType = "LCD";
+	lcd.PartNumber = "617003";
+	lcd.DeviceParent = process->get_mydevice().DeviceName;
+	eros::device::ConstPtr lcd_ptr(new eros::device(lcd));
+	eros::diagnostic diag = process->new_devicemsg(lcd_ptr);
+	EXPECT_TRUE(diag.Level <= NOTICE);
+	process = readyprocess(process);
+	{
+		std::vector<DiagnosticNodeProcess::SubSystemDiagnostic> subsystem_diagnostics = process->get_subsystem_diagnostics();
+		EXPECT_TRUE(subsystem_diagnostics.size() == DIAGNOSTICTYPE_COUNT);
+		for(std::size_t i = 0; i < subsystem_diagnostics.size(); ++i)
+		{
+			EXPECT_TRUE(subsystem_diagnostics.at(i).Level == LEVEL_UNKNOWN);
+			EXPECT_TRUE(subsystem_diagnostics.at(i).diagnostics.size() == 0);
+		}
+	}
+	//Create a few different diagnostics for different devices
+	eros::diagnostic diag_device1A = process->get_diagnostic();
+	std::string diag_device1A_topic = "Device1_Electrical";
+	diag_device1A.Level = ERROR;
+	diag_device1A.DeviceName = "Device1";
+	diag_device1A.Diagnostic_Type = ELECTRICAL;
+
+	eros::diagnostic diag_device2A = process->get_diagnostic();
+	std::string diag_device2A_topic = "Device2_Sensors";
+	diag_device2A.Level = ERROR;
+	diag_device2A.DeviceName = "Device2";
+	diag_device2A.Diagnostic_Type = SENSORS;
+
+	eros::diagnostic diag_device2B = process->get_diagnostic();
+	std::string diag_device2B_topic = "Device2_Actuators";
+	diag_device2B.Level = ERROR;
+	diag_device2B.DeviceName = "Device2";
+	diag_device2B.Diagnostic_Type = ACTUATORS;
+
+	eros::diagnostic diag_device2C = process->get_diagnostic();
+	std::string diag_device2C_topic = "Device2_Elec";
+	diag_device2C.Level = ERROR;
+	diag_device2C.DeviceName = "Device2";
+	diag_device2C.Diagnostic_Type = ELECTRICAL;
+
+	{
+		eros::diagnostic::ConstPtr diag_ptr(new eros::diagnostic(diag_device1A));
+		process->new_diagnosticmsg(diag_device1A_topic,diag_ptr);
+	}
+	process->update(0.01,0.0);
+	{
+		DiagnosticNodeProcess::SubSystemDiagnostic diag = process->get_subsystem_diagnostic(ELECTRICAL);
+		EXPECT_TRUE(diag.Level == ERROR);
+		EXPECT_TRUE(diag.diagnostics.size() == 1); //Only 1 so far
+	}
+
+	{
+		eros::diagnostic::ConstPtr diag_ptr(new eros::diagnostic(diag_device2A));
+		process->new_diagnosticmsg(diag_device1A_topic,diag_ptr);
+		process->update(0.01,0.02);
+	}
+	{
+		eros::diagnostic::ConstPtr diag_ptr(new eros::diagnostic(diag_device2B));
+		process->new_diagnosticmsg(diag_device2B_topic,diag_ptr);
+		process->update(0.01,0.03);
+	}
+	{
+		eros::diagnostic::ConstPtr diag_ptr(new eros::diagnostic(diag_device2C));
+		process->new_diagnosticmsg(diag_device2C_topic,diag_ptr);
+		process->update(0.01,0.04);
+	}
+	{
+		DiagnosticNodeProcess::SubSystemDiagnostic diag = process->get_subsystem_diagnostic(SENSORS);
+		EXPECT_TRUE(diag.Level == ERROR);
+		EXPECT_TRUE(diag.diagnostics.size() == 1); //Only 1 so far
+	}
+	{
+		DiagnosticNodeProcess::SubSystemDiagnostic diag = process->get_subsystem_diagnostic(ACTUATORS);
+		EXPECT_TRUE(diag.Level == ERROR);
+		EXPECT_TRUE(diag.diagnostics.size() == 1); //Only 1 so far
+	}
+	{
+		DiagnosticNodeProcess::SubSystemDiagnostic diag = process->get_subsystem_diagnostic(ELECTRICAL);
+		EXPECT_TRUE(diag.Level == ERROR);
+		EXPECT_TRUE(diag.diagnostics.size() == 2); //2 Now
+	}
+	{
+		diag_device1A.Level = WARN;
+		eros::diagnostic::ConstPtr diag_ptr(new eros::diagnostic(diag_device1A));
+		process->new_diagnosticmsg(diag_device1A_topic,diag_ptr);
+		process->update(0.01,0.05);
+	}
+	{
+		DiagnosticNodeProcess::SubSystemDiagnostic diag = process->get_subsystem_diagnostic(ELECTRICAL);
+		EXPECT_TRUE(diag.Level == ERROR);
+		EXPECT_TRUE(diag.diagnostics.size() == 2); //2 Now
+	}
+	{
+		diag_device2C.Level = WARN;
+		eros::diagnostic::ConstPtr diag_ptr(new eros::diagnostic(diag_device2C));
+		process->new_diagnosticmsg(diag_device2C_topic,diag_ptr);
+		process->update(0.01,0.06);
+	}
+	printf("---SUBSYSTEM DIAGNOSTICS ---\n%s",process->print_subsystem_diagnostics().c_str());
+	{
+		DiagnosticNodeProcess::SubSystemDiagnostic diag = process->get_subsystem_diagnostic(ELECTRICAL);
+		EXPECT_TRUE(diag.Level == WARN);
+		EXPECT_TRUE(diag.diagnostics.size() == 2); //2 Now
+	}
+
+
 }
 int main(int argc, char **argv){
 	testing::InitGoogleTest(&argc, argv);

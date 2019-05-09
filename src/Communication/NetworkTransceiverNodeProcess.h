@@ -62,7 +62,6 @@ public:
 	int get_recv_unicast_port() { return recv_unicast_port; }
 	void set_UIMode(std::string t_UIMode) { UIMode = t_UIMode; }
 	std::string get_UIMode() { return UIMode; }
-	std::string get_messageinfo(bool v);
 	std::vector<Message> get_messages() { return messages; };
 	bool get_remoteheartbeatresult() { return remote_heartbeat_pass; }
 	//Update Functions
@@ -71,7 +70,7 @@ public:
 	 */
 	int push_topiclist(std::string type,std::string name)
 	{
-		if(type == "icarus_rover_v2/resource")
+		if(type == "eros/resource")
 		{
 			bool found = true;
 			for(int i = 0; i < resource_topics.size();i++)
@@ -84,7 +83,7 @@ public:
 			resource_topics.push_back(name);
 			return 1;
 		}
-		else if(type == "icarus_rover_v2/diagnostic")
+		else if(type == "eros/diagnostic")
 		{
 			bool found = true;
 			for(int i = 0; i < diagnostic_topics.size();i++)
@@ -97,7 +96,7 @@ public:
 			diagnostic_topics.push_back(name);
 			return 1;
 		}
-		else if(type == "icarus_rover_v2/device")
+		else if(type == "eros/device")
 		{
 			bool found = true;
 			for(int i = 0; i < device_topics.size();i++)
@@ -110,7 +109,7 @@ public:
 			device_topics.push_back(name);
 			return 1;
 		}
-		else if(type == "icarus_rover_v2/firmware")
+		else if(type == "eros/firmware")
 		{
 			bool found = true;
 			for(int i = 0; i < firmware_topics.size();i++)
@@ -128,19 +127,19 @@ public:
 	}
 	std::vector<std::string> get_topiclist(std::string type)
 							{
-		if(type == "icarus_rover_v2/resource")
+		if(type == "eros/resource")
 		{
 			return resource_topics;
 		}
-		else if(type == "icarus_rover_v2/diagnostic")
+		else if(type == "eros/diagnostic")
 		{
 			return diagnostic_topics;
 		}
-		else if(type == "icarus_rover_v2/device")
+		else if(type == "eros/device")
 		{
 			return device_topics;
 		}
-		else if(type == "icarus_rover_v2/firmware")
+		else if(type == "eros/firmware")
 		{
 			return firmware_topics;
 		}
@@ -164,6 +163,7 @@ public:
 	std::vector<QueueElement> get_sendqueue(uint8_t level);
 
 	//Printing Functions
+	std::string get_messageinfo(bool v);
 protected:
 private:
 	/*! \brief Process Specific Implementation

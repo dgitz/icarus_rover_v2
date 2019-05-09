@@ -70,7 +70,7 @@ eros::diagnostic CommandLauncherNodeProcess::update(double t_dt,double t_ros_tim
 		}
 		if(processes_ok == true)
 		{
-			diag.Diagnostic_Type = NOERROR;
+			diag.Diagnostic_Type = SOFTWARE;
 			diag.Level = INFO;
 			diag.Diagnostic_Message = NOERROR;
 			diag.Description = "Node Running";

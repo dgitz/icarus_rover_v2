@@ -22,7 +22,7 @@ eros::diagnostic SafetyNodeProcess::update(double t_dt,double t_ros_time)
     }
 	if(diag.Level <= NOTICE)
 	{
-		diag.Diagnostic_Type = NOERROR;
+		diag.Diagnostic_Type = SOFTWARE;
 		diag.Level = INFO;
 		diag.Diagnostic_Message = NOERROR;
 		diag.Description = "Node Running.";
@@ -270,7 +270,7 @@ eros::diagnostic SafetyNodeProcess::new_armswitchmsg(std_msgs::Bool v)
 	eros::diagnostic diag = diagnostic;
 	arm_switch = v.data;
 
-	diag.Diagnostic_Type = NOERROR;
+	diag.Diagnostic_Type = SOFTWARE;
 	diag.Level = INFO;
 	diag.Diagnostic_Message = NOERROR;
 	diag.Description = "ArmSwitch Updated";

@@ -4,7 +4,7 @@
 //ROS Base Functionality
 //ROS Messages
 //Project
-
+#include "../../../eROS/include/DiagnosticClass.h"
 /*! \class DiagnosticNodeProcess DiagnosticNodeProcess.h "DiagnosticNodeProcess.h"
  *  \brief This is a DiagnosticNodeProcess class.  Used for the diagnostic_node node.
  *
@@ -16,6 +16,13 @@ public:
 	const double WAITNODE_BRINGUP_TIME = 20.0f;
 	//Enums
 
+	struct SubSystemDiagnostic
+	{
+		uint8_t Diagnostic_Type;
+		uint8_t Level;
+		std::vector<eros::diagnostic> diagnostics;
+		std::vector<unsigned long> level_counters;
+	};
 	//Structs
 	struct Task
 	{
@@ -64,6 +71,10 @@ public:
 	uint8_t get_lcdheight() { return lcd_height; }
 	void set_batterylevel(double v) { battery_level = v;}
 	void set_batteryvoltage(double v) { voltage_received = true; battery_voltage = v;}
+	std::vector<SubSystemDiagnostic> get_subsystem_diagnostics() { return subsystem_diagnostics; }
+	SubSystemDiagnostic get_subsystem_diagnostic(uint8_t Diagnostic_Type);
+	/*! \brief Get Subsystem Diagnostic Message to Publish .*/
+	eros::subsystem_diagnostic get_eros_subsystem_diagnostic();
     /*! \brief Disable LCD */
 	void no_connectedlcd()
 	{
@@ -93,9 +104,12 @@ public:
 	void new_diagnosticmsg(std::string topicname,const eros::diagnostic::ConstPtr& diagnostic);
     /*! \brief  Process Armed State Message. */
 	void new_armedstatemsg(uint8_t v) { armed_state = v; }
+	
 	//Support Functions
 	std::string build_lcdmessage();
+	DiagnosticClass diagnostic_helper;
 	//Printing Functions
+	std::string print_subsystem_diagnostics();
 protected:
 private:
 	/*! \brief Process Specific Implementation
@@ -109,10 +123,13 @@ private:
 	std::string get_diagstr();
 	std::string get_lcdcommandstr();
 	void init_diaglevels();
+	void init_subsystemdiagnostics();
 
 
 	std::vector<Task> TaskList;
 	std::vector<DeviceResourceAvailable> DeviceResourceAvailableList;
+	std::vector<SubSystemDiagnostic> subsystem_diagnostics;
+	eros::subsystem_diagnostic eros_subsystem_diagnostic;
 	int RAM_usage_threshold_MB;
 	int CPU_usage_threshold_percent;
 

@@ -27,7 +27,7 @@ bool NetworkTransceiverNode::start(int argc,char **argv)
 	}
 	if(diagnostic.Level < WARN)
 	{
-		diagnostic.Diagnostic_Type = NOERROR;
+		diagnostic.Diagnostic_Type = DATA_STORAGE;
 		diagnostic.Level = INFO;
 		diagnostic.Diagnostic_Message = NOERROR;
 		diagnostic.Description = "Node Configured.  Initializing.";
@@ -45,7 +45,7 @@ eros::diagnostic NetworkTransceiverNode::read_launchparameters()
 	std::string param_send_multicast_group = node_name +"/Send_Multicast_Group";
 	if(n->getParam(param_send_multicast_group,send_multicast_group) == false)
 	{
-		diag.Diagnostic_Type = NOERROR;
+		diag.Diagnostic_Type = DATA_STORAGE;
 		diag.Level = ERROR;
 		diag.Diagnostic_Message = INITIALIZING_ERROR;
 		diag.Description = "Missing Parameter: Send_Multicast_Group. Exiting.";
@@ -56,7 +56,7 @@ eros::diagnostic NetworkTransceiverNode::read_launchparameters()
 	std::string param_send_multicast_port = node_name +"/Send_Multicast_Port";
 	if(n->getParam(param_send_multicast_port,send_multicast_port) == false)
 	{
-		diag.Diagnostic_Type = NOERROR;
+		diag.Diagnostic_Type = DATA_STORAGE;
 		diag.Level = ERROR;
 		diag.Diagnostic_Message = INITIALIZING_ERROR;
 		diag.Description = "Missing Parameter: Send_Multicast_Port. Exiting.";
@@ -66,7 +66,7 @@ eros::diagnostic NetworkTransceiverNode::read_launchparameters()
 	std::string param_recv_unicast_port = node_name +"/Recv_Unicast_Port";
 	if(n->getParam(param_recv_unicast_port,recv_unicast_port) == false)
 	{
-		diag.Diagnostic_Type = NOERROR;
+		diag.Diagnostic_Type = DATA_STORAGE;
 		diag.Level = ERROR;
 		diag.Diagnostic_Message = INITIALIZING_ERROR;
 		diag.Description = "Missing Parameter: Recv_Unicast_Port. Exiting.";
@@ -78,7 +78,7 @@ eros::diagnostic NetworkTransceiverNode::read_launchparameters()
 	std::string param_Mode = node_name +"/Mode";
 	if(n->getParam(param_Mode,UIMode) == false)
 	{
-		diag.Diagnostic_Type = NOERROR;
+		diag.Diagnostic_Type = DATA_STORAGE;
 		diag.Level = ERROR;
 		diag.Diagnostic_Message = INITIALIZING_ERROR;
 		diag.Description = "Missing Parameter: Mode. Exiting.";
@@ -98,6 +98,8 @@ eros::diagnostic NetworkTransceiverNode::finish_initialization()
 	armed_disarmed_state_sub = n->subscribe<std_msgs::UInt8>(armed_disarmed_state_topic,10,&NetworkTransceiverNode::ArmedState_Callback,this);
 	std::string device_topic = "/" + std::string(host_name) + "_master_node/srv_device";
 	srv_device = n->serviceClient<eros::srv_device>(device_topic);
+	std::string subsystem_diagnostic_topic = "/System/Diagnostic/State";
+	subsystem_diagnostic_sub = n->subscribe<eros::subsystem_diagnostic>(subsystem_diagnostic_topic,1,&NetworkTransceiverNode::subsystem_diagnostic_Callback,this);
 	if(process->get_UIMode()=="Diagnostics_GUI")
 	{
 		std::string joystick_topic = "/" + process->get_UIMode() + "/joystick";
@@ -131,7 +133,7 @@ eros::diagnostic NetworkTransceiverNode::finish_initialization()
 	udpmessagehandler = new UDPMessageHandler();
 	if(initialize_sendsocket() == false)
 	{
-		diag.Diagnostic_Type = NOERROR;
+		diag.Diagnostic_Type = COMMUNICATIONS;
 		diag.Level = ERROR;
 		diag.Diagnostic_Message = INITIALIZING_ERROR;
 		diag.Description = "Couldn't initialize send socket.  Exiting.";
@@ -140,7 +142,7 @@ eros::diagnostic NetworkTransceiverNode::finish_initialization()
 	}
 	if(initialize_recvsocket() == false)
 	{
-		diag.Diagnostic_Type = NOERROR;
+		diag.Diagnostic_Type = COMMUNICATIONS;
 		diag.Level = ERROR;
 		diag.Diagnostic_Message = INITIALIZING_ERROR;
 		diag.Description = "Couldn't initialize recv socket.  Exiting.";
@@ -339,7 +341,7 @@ eros::diagnostic NetworkTransceiverNode::rescan_topics(eros::diagnostic diag)
 	for (ros::master::V_TopicInfo::iterator it = master_topics.begin() ; it != master_topics.end(); it++)
 	{
 		const ros::master::TopicInfo& info = *it;
-		if(info.datatype == "icarus_rover_v2/resource")
+		if(info.datatype == "eros/resource")
 		{
 			int v = process->push_topiclist(info.datatype,info.name);
 			if(v == 1)
@@ -352,7 +354,7 @@ eros::diagnostic NetworkTransceiverNode::rescan_topics(eros::diagnostic diag)
 				resource_subs.push_back(sub);
 			}
 		}
-		else if(info.datatype == "icarus_rover_v2/diagnostic")
+		else if(info.datatype == "eros/diagnostic")
 		{
 			int v = process->push_topiclist(info.datatype,info.name);
 			if(v == 1)
@@ -365,7 +367,7 @@ eros::diagnostic NetworkTransceiverNode::rescan_topics(eros::diagnostic diag)
 				diagnostic_subs.push_back(sub);
 			}
 		}
-		else if(info.datatype == "icarus_rover_v2/firmware")
+		else if(info.datatype == "eros/firmware")
 		{
 			int v = process->push_topiclist(info.datatype,info.name);
 			if(v == 1)
@@ -428,6 +430,22 @@ void NetworkTransceiverNode::firmware_Callback(const eros::firmware::ConstPtr& m
 			(uint8_t)msg->Build_Number);
 
 	process->push_sendqueue(FIRMWARE_ID,send_string);
+}
+void NetworkTransceiverNode::subsystem_diagnostic_Callback(const eros::subsystem_diagnostic::ConstPtr& msg)
+{
+	std::string send_string = udpmessagehandler->encode_SubsystemDiagnosticUDP(
+		msg->Level[0],
+		msg->Level[1],
+		msg->Level[2],
+		msg->Level[3],
+		msg->Level[4],
+		msg->Level[5],
+		msg->Level[6],
+		msg->Level[7],
+		msg->Level[8],
+		msg->Level[9],
+		msg->Level[10]);
+		process->push_sendqueue(SUBSYSTEMDIAGNOSTIC_ID,send_string);
 }
 void NetworkTransceiverNode::resource_Callback(const eros::resource::ConstPtr& msg)
 {

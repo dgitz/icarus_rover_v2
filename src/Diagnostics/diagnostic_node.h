@@ -85,5 +85,6 @@ private:
 	ros::Subscriber armed_state_sub;
 	bool logging_initialized;
 	uint8_t last_armedstate;
+	ros::Publisher subsystem_diagnostic_pub;
 
 };

@@ -99,21 +99,21 @@ eros::diagnostic AudioNodeProcess::update(double t_dt,double t_ros_time)
 	if(initialized == false)
 	{
 
-		diag.Diagnostic_Type = NOERROR;
+		diag.Diagnostic_Type = SOFTWARE;
 		diag.Level = NOTICE;
 		diag.Diagnostic_Message = INITIALIZING;
 		diag.Description = "Node Not Initialized Yet.";
 	}
 	else if((initialized == true) and (ready == false))
 	{
-		diag.Diagnostic_Type = NOERROR;
+		diag.Diagnostic_Type = SOFTWARE;
 		diag.Level = INFO;
 		diag.Diagnostic_Message = INITIALIZING;
 		diag.Description = "Node Initialized but not Running";
 	}
 	else if(ready == true)
 	{
-		diag.Diagnostic_Type = NOERROR;
+		diag.Diagnostic_Type = SOFTWARE;
 		diag.Level = INFO;
 		diag.Diagnostic_Message = NOERROR;
 		diag.Description = "Node Running";
