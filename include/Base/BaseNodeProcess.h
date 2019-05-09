@@ -28,6 +28,7 @@
 #include <eros/srv_device.h>
 #include <eros/srv_connection.h>
 #include <eros/srv_leverarm.h>
+#include <eros/subsystem_diagnostic.h>
 //Project
 #include "../Definitions.h"
 #include <nlohmann/json.hpp> //See: https://github.com/nlohmann/json#projects-using-json-for-modern-c

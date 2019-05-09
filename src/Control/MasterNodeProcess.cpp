@@ -34,7 +34,7 @@ eros::diagnostic MasterNodeProcess::update(double t_dt,double t_ros_time)
 	diag = update_baseprocess(t_dt,t_ros_time);
 	if(diag.Level <= NOTICE)
 	{
-		diag.Diagnostic_Type = NOERROR;
+		diag.Diagnostic_Type = SOFTWARE;
 		diag.Level = INFO;
 		diag.Diagnostic_Message = NOERROR;
 		diag.Description = "Node Running.";
@@ -189,7 +189,7 @@ eros::diagnostic MasterNodeProcess::set_serialportlist(std::vector<std::string> 
 		serialports.at(i).available = false;
 		serialports.at(i).checked = false;
 	}
-	diag.Diagnostic_Type = NOERROR;
+	diag.Diagnostic_Type = COMMUNICATIONS;
 	diag.Level = NOTICE;
 	diag.Diagnostic_Message = INITIALIZING;
 	diag.Description = "Created SerialPort List.";
@@ -338,7 +338,7 @@ eros::diagnostic MasterNodeProcess::load_systemfile(std::string path)
 	}
 	else { return diag_error; }
 
-	diag.Diagnostic_Type = NOERROR;
+	diag.Diagnostic_Type = DATA_STORAGE;
 	diag.Level = NOTICE;
 	diag.Diagnostic_Message = INITIALIZING;
 	char tempstr2[512];
@@ -596,7 +596,7 @@ eros::diagnostic MasterNodeProcess::load_devicefile(std::string path)
 	}
 	else
 	{
-		diag.Diagnostic_Type = NOERROR;
+		diag.Diagnostic_Type = DATA_STORAGE;
 		diag.Level = NOTICE;
 		diag.Diagnostic_Message = INITIALIZING;
 		diag.Description = "Processed DeviceFile.xml";

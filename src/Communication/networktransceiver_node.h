@@ -74,6 +74,7 @@ private:
 	void firmware_Callback(const eros::firmware::ConstPtr& msg);
 	void ArmedState_Callback(const std_msgs::UInt8::ConstPtr& msg);
 	void device_callback(std::vector<eros::device> devicelist);
+	void subsystem_diagnostic_Callback(const eros::subsystem_diagnostic::ConstPtr& msg);
 	//Support Functions
 	eros::diagnostic rescan_topics(eros::diagnostic diag);
 
@@ -103,6 +104,7 @@ private:
 	std::vector<ros::Subscriber> firmware_subs;
 	ros::Subscriber armed_disarmed_state_sub;
 	ros::Subscriber estop_sub;
+	ros::Subscriber subsystem_diagnostic_sub;
 	ros::Publisher estop_pub;
 	ros::Publisher user_command_pub;
 	ros::Publisher ready_to_arm_pub;

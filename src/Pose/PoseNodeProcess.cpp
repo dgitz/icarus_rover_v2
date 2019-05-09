@@ -28,7 +28,7 @@ eros::diagnostic PoseNodeProcess::update(double t_dt,double t_ros_time)
 	diag = update_baseprocess(t_dt,t_ros_time);
 	if(diag.Level <= NOTICE)
 	{
-		diag.Diagnostic_Type = NOERROR;
+		diag.Diagnostic_Type = SOFTWARE;
 		diag.Level = INFO;
 		diag.Diagnostic_Message = NOERROR;
 		diag.Description = "Node Running.";
@@ -169,7 +169,7 @@ eros::diagnostic PoseNodeProcess::new_imumsg(std::string topic, const eros::imu:
 	}
 	else
 	{
-		diag.Diagnostic_Type = NOERROR;
+		diag.Diagnostic_Type = COMMUNICATIONS;
 		diag.Level = INFO;
 		diag.Diagnostic_Message = NOERROR;
 		char tempstr[512];

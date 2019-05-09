@@ -4,23 +4,11 @@ eros::diagnostic BaseNodeProcess::update_baseprocess(double t_dt,double t_ros_ti
 	eros::diagnostic diag = diagnostic;
 	run_time+=t_dt;
 	ros_time = t_ros_time;
-	double init_timeout = 10.0;
-	if((run_time > init_timeout) and (is_initialized() == false))
-	{
-		diag.Diagnostic_Type = DATA_STORAGE;
-		diag.Level = FATAL;
-		diag.Diagnostic_Message = INITIALIZING_ERROR;
-		char tempstr[128];
-		sprintf(tempstr,"Node not initialized after %4.2f seconds, Exiting.",init_timeout);
-		diag.Description = std::string(tempstr);
-	}
-	else
-	{
-		diag.Diagnostic_Type = NOERROR;
-		diag.Level = INFO;
-		diag.Diagnostic_Message = NOERROR;
-		diag.Description = "Base Process Updated.";
-	}
+	diag.Diagnostic_Type = SOFTWARE;
+	diag.Level = INFO;
+	diag.Diagnostic_Message = NOERROR;
+	diag.Description = "Base Process Updated.";
+
 	diagnostic = diag;
 
 	return diag;

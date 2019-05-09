@@ -172,6 +172,7 @@ void SampleNode::cleanup()
  */
 void signalinterrupt_handler(int sig)
 {
+	printf("Killing Node with Signal: %d",sig);
 	kill_node = true;
 	exit(0);
 }

@@ -57,7 +57,7 @@ eros::diagnostic IMUNodeProcess::update(double t_dt,double t_ros_time)
 	}
 	if(diag.Level <= NOTICE)
 	{
-		diag.Diagnostic_Type = NOERROR;
+		diag.Diagnostic_Type = SOFTWARE;
 		diag.Level = INFO;
 		diag.Diagnostic_Message = NOERROR;
 		diag.Description = "Node Running.";

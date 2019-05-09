@@ -34,7 +34,7 @@ eros::diagnostic NetworkTransceiverNodeProcess::update(double t_dt,double t_ros_
 	}
 	if(diag.Level <= NOTICE)
 	{
-		diag.Diagnostic_Type = NOERROR;
+		diag.Diagnostic_Type = SOFTWARE;
 		diag.Level = INFO;
 		diag.Diagnostic_Message = NOERROR;
 		diag.Description = "Node Running.";
@@ -468,6 +468,14 @@ void NetworkTransceiverNodeProcess::init_messages()
 		newmessage.name = "Tune ControlGroup";
 		newmessage.priority_level = PriorityLevel::MEDIUM;
 		newmessage.target_sendrate = 10.0;
+		messages.push_back(newmessage);
+	}
+	{
+		Message newmessage;
+		newmessage.id = SUBSYSTEMDIAGNOSTIC_ID;
+		newmessage.name = "Subsystem Diagnostic";
+		newmessage.priority_level = PriorityLevel::MEDIUM;
+		newmessage.target_sendrate = 5.0;
 		messages.push_back(newmessage);
 	}
 	for(std::size_t i = 0; i < messages.size(); i++)

@@ -20,6 +20,9 @@ bool DiagnosticNode::start(int argc,char **argv)
 
 	process->initialize(get_basenodename(),get_nodename(),get_hostname());
 	process->set_diagnostic(diagnostic);
+	std::string subsystem_diagnostic_topic = "/System/Diagnostic/State";
+	subsystem_diagnostic_pub =  n->advertise<eros::subsystem_diagnostic>(subsystem_diagnostic_topic,1);
+
 	process->finish_initialization();
 	diagnostic = finish_initialization();
 	if(diagnostic.Level > WARN)
@@ -108,6 +111,7 @@ bool DiagnosticNode::run_01hz()
 		diagnostic_pub.publish(diagnostic);
 		logger->log_diagnostic(diagnostic);
 	}
+	logger->log_info(process->print_subsystem_diagnostics());
 	if(measure_time_diff(ros::Time::now(),boot_time) > process->get_waitnode_bringup_time()) //Wait 20 seconds for all Nodes to start.
 	{
 		if(process->get_log_resources_used())
@@ -156,7 +160,7 @@ bool DiagnosticNode::run_1hz()
 			{
 				for(std::size_t i = 0; i < srv.response.data.size(); i++)
 				{
-					bool status = new_devicemsg(srv.request.query,srv.response.data.at(i));
+					new_devicemsg(srv.request.query,srv.response.data.at(i));
 				}
 			}
 		}
@@ -178,7 +182,7 @@ bool DiagnosticNode::run_1hz()
 				}
 				else
 				{
-					bool status = new_devicemsg(srv.request.query,srv.response.data.at(0));
+					new_devicemsg(srv.request.query,srv.response.data.at(0));
 				}
 			}
 			else
@@ -208,6 +212,7 @@ bool DiagnosticNode::run_10hz()
 }
 bool DiagnosticNode::run_loop1()
 {
+	subsystem_diagnostic_pub.publish(process->get_eros_subsystem_diagnostic());
 	return true;
 }
 bool DiagnosticNode::run_loop2()
@@ -273,7 +278,6 @@ bool DiagnosticNode::new_devicemsg(std::string query,eros::device t_device)
 }
 eros::diagnostic DiagnosticNode::rescan_topics(eros::diagnostic diag)
 {
-	int found_new_topics = 0;
 	ros::master::V_TopicInfo master_topics;
 	ros::master::getTopics(master_topics);
 	std::vector<std::string> topics_to_add;
@@ -281,10 +285,10 @@ eros::diagnostic DiagnosticNode::rescan_topics(eros::diagnostic diag)
 	for (ros::master::V_TopicInfo::iterator it = master_topics.begin() ; it != master_topics.end(); it++)
 	{
 		const ros::master::TopicInfo& info = *it;
-		if(info.datatype == "icarus_rover_v2/diagnostic")
+		if(info.datatype == "eros/diagnostic")
 		{
 			bool add_me = true;
-			for(int i = 0; i < TaskList.size();i++)
+			for(std::size_t i = 0; i < TaskList.size();i++)
 			{
 				if(TaskList.at(i).diagnostic_topic == info.name)
 				{
@@ -298,7 +302,7 @@ eros::diagnostic DiagnosticNode::rescan_topics(eros::diagnostic diag)
 			}
 		}
 	}
-	for(int i = 0; i < topics_to_add.size(); i++)
+	for(std::size_t i = 0; i < topics_to_add.size(); i++)
 	{
 		std::string taskname = topics_to_add.at(i).substr(1,topics_to_add.at(i).find("/diagnostic")-1);;
 		DiagnosticNodeProcess::Task newTask;
@@ -406,7 +410,7 @@ bool DiagnosticNode::log_resources()
 		else
 		{
 			ram_used_file << "Time (s),";
-			for(int i = 0; i < TaskList.size();i++)
+			for(std::size_t i = 0; i < TaskList.size();i++)
 			{
 				ram_used_file << TaskList.at(i).Task_Name << ",";
 			}
@@ -422,7 +426,7 @@ bool DiagnosticNode::log_resources()
 		else
 		{
 			cpu_used_file << "Time (s),";
-			for(int i = 0; i < TaskList.size();i++)
+			for(std::size_t i = 0; i < TaskList.size();i++)
 			{
 				cpu_used_file << TaskList.at(i).Task_Name << ",";
 			}
@@ -438,7 +442,7 @@ bool DiagnosticNode::log_resources()
 		{
 			ram_free_file << "Time (s),";
 
-			for(int i = 0; i < DeviceResourceAvailableList.size();i++)
+			for(std::size_t i = 0; i < DeviceResourceAvailableList.size();i++)
 			{
 				ram_free_file << DeviceResourceAvailableList.at(i).Device_Name << ",";
 			}
@@ -455,7 +459,7 @@ bool DiagnosticNode::log_resources()
 		else
 		{
 			cpu_free_file << "Time (s),";
-			for(int i = 0; i < DeviceResourceAvailableList.size();i++)
+			for(std::size_t i = 0; i < DeviceResourceAvailableList.size();i++)
 			{
 				cpu_free_file << DeviceResourceAvailableList.at(i).Device_Name << ",";
 			}
@@ -477,7 +481,7 @@ bool DiagnosticNode::log_resources()
 		else
 		{
 			ram_used_file << mtime << ",";
-			for(int i = 0; i < TaskList.size();i++)
+			for(std::size_t i = 0; i < TaskList.size();i++)
 			{
 				ram_used_file << TaskList.at(i).RAM_MB << ",";
 			}
@@ -493,7 +497,7 @@ bool DiagnosticNode::log_resources()
 		else
 		{
 			cpu_used_file << mtime << ",";
-			for(int i = 0; i < TaskList.size();i++)
+			for(std::size_t i = 0; i < TaskList.size();i++)
 			{
 				cpu_used_file << TaskList.at(i).CPU_Perc << ",";
 			}
@@ -510,7 +514,7 @@ bool DiagnosticNode::log_resources()
 		else
 		{
 			ram_free_file << mtime << ",";
-			for(int i = 0; i < DeviceResourceAvailableList.size();i++)
+			for(std::size_t i = 0; i < DeviceResourceAvailableList.size();i++)
 			{
 				ram_free_file << DeviceResourceAvailableList.at(i).RAM_Mb_Available << ",";
 			}
@@ -527,7 +531,7 @@ bool DiagnosticNode::log_resources()
 		else
 		{
 			cpu_free_file << mtime << ",";
-			for(int i = 0; i < DeviceResourceAvailableList.size();i++)
+			for(std::size_t i = 0; i < DeviceResourceAvailableList.size();i++)
 			{
 				cpu_free_file << DeviceResourceAvailableList.at(i).CPU_Perc_Available << ",";
 			}
@@ -544,6 +548,17 @@ void DiagnosticNode::resource_Callback(const eros::resource::ConstPtr& msg,const
 }
 void DiagnosticNode::diagnostic_Callback(const eros::diagnostic::ConstPtr& msg,const std::string &topicname)
 {
+	if(msg->Diagnostic_Type == 0)
+	{
+		char tempstr[512];
+		sprintf(tempstr,"Improper Diagnostic Formatting: Diag: topic: %s type: %d dev: %s level: %d",
+		topicname.c_str(),
+		msg->Diagnostic_Type,
+		msg->DeviceName.c_str(),
+		msg->Level);
+		logger->log_error(tempstr);
+	}
+
 	process->new_diagnosticmsg(topicname,msg);
 
 }
@@ -567,6 +582,7 @@ void DiagnosticNode::cleanup()
  */
 void signalinterrupt_handler(int sig)
 {
+	printf("Killing Node with Signal: %d",sig);
 	kill_node = true;
 	exit(0);
 }
