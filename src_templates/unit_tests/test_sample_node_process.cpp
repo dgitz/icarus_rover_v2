@@ -33,6 +33,7 @@ SampleNodeProcess* initializeprocess()
 	process = new SampleNodeProcess;
 	process->initialize("sample_node",Node_Name,Host_Name);
 	process->set_diagnostic(diagnostic);
+	process->set_config_filepaths("/home/robot/catkin_ws/src/icarus_rover_v2/src_templates/unit_tests/SampleConfig.xml");
 	process->finish_initialization();
 	EXPECT_TRUE(process->is_initialized() == false);
 	process->set_mydevice(device);
@@ -50,6 +51,7 @@ SampleNodeProcess* readyprocess(SampleNodeProcess* process)
 TEST(Template,Process_Initialization)
 {
 	SampleNodeProcess* process = initializeprocess();
+	EXPECT_TRUE(process->is_initialized() == true);
 }
 
 TEST(Template,Process_Command)

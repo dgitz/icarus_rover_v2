@@ -4,6 +4,7 @@
 //ROS Base Functionality
 //ROS Messages
 //Project
+#include <tinyxml.h>
 
 /*! \class SampleNodeProcess SampleNodeProcess.h "SampleNodeProcess.h"
  *  \brief This is a SampleNodeProcess class.  Used for the sample_node node.
@@ -18,6 +19,7 @@ public:
 	/*! \brief NodeProcess specific Initialization
 	 *
 	 */
+	eros::diagnostic set_config_filepaths(std::string filepath);
 	eros::diagnostic finish_initialization();
 	//Update Functions
 	/*! \brief Implementation of the update function
@@ -42,5 +44,8 @@ private:
 	/*! \brief Process Specific Implementation
 	 *
 	 */
+	eros::diagnostic load_configfile(std::string path);
 	std::vector<eros::diagnostic> check_programvariables();
+	std::string config_filepath;
+
 };
