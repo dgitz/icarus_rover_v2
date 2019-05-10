@@ -88,7 +88,7 @@ bool SampleNode::run_1hz()
 				}
 				else
 				{
-					bool status = new_devicemsg(srv.request.query,srv.response.data.at(0));
+					new_devicemsg(srv.request.query,srv.response.data.at(0));
 				}
 			}
 			else

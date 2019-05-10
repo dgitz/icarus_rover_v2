@@ -22,10 +22,6 @@ eros::diagnostic MasterNodeProcess::finish_initialization()
 		return diagnostic;
 	}
 	diagnostic = load_systemfile(system_filepath);
-	if(diagnostic.Level > NOTICE)
-	{
-		return diagnostic;
-	}
 	return diagnostic;
 }
 eros::diagnostic MasterNodeProcess::update(double t_dt,double t_ros_time)
@@ -242,7 +238,7 @@ eros::diagnostic MasterNodeProcess::load_systemfile(std::string path)
 {
 	eros::diagnostic diag = diagnostic;
 	eros::diagnostic diag_error = diag;
-	diag_error.Diagnostic_Type = SOFTWARE;
+	diag_error.Diagnostic_Type = DATA_STORAGE;
 	diag_error.Level = FATAL;
 	diag_error.Diagnostic_Message = INITIALIZING_ERROR;
 	char tempstr[512];
@@ -354,7 +350,7 @@ eros::diagnostic MasterNodeProcess::load_devicefile(std::string path)
 	bool mydevice_assigned = false;
 	if(devicefile_loaded == false)
 	{
-		diag.Diagnostic_Type = SOFTWARE;
+		diag.Diagnostic_Type = DATA_STORAGE;
 		diag.Level = FATAL;
 		diag.Diagnostic_Message = INITIALIZING_ERROR;
 		char tempstr[512];
