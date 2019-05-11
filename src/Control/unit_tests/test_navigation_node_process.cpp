@@ -97,7 +97,6 @@ NavigationNodeProcess* initializeprocess(std::string controlgroup_filepath)
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 	diagnostic = process->fetch_complete();
 	diagnostic = process->load_controlgroupfile();
-	printf("Diag: %s\n",diagnostic.Description.c_str());
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 
@@ -268,6 +267,7 @@ TEST(Template,Process_Command)
 					if(pins.at(i).ConnectedDevice=="LeftMotorController")
 					{
 						found1 = true;
+						
 						EXPECT_TRUE(pins.at(i).Value == LEFTDRIVE_MIN);
 					}
 					if(pins.at(i).ConnectedDevice=="RightMotorController")

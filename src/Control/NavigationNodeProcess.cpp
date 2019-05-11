@@ -408,19 +408,20 @@ NavigationNodeProcess::DrivePerc NavigationNodeProcess::arcade_mix(double thrott
 }
 double NavigationNodeProcess::scale_value(double input_perc,double y1,double neutral,double y2)
 {
-	//Formula for line: y-y1=m(x-x1), m=(y2-y1)/(x2-x1)
-	double out = 0.0;
-	if(input_perc > 0.0)
+	double m_upper,m_lower=0.0;
+	double out_upper,out_lower,out=0.0;
+	m_upper = (y2-neutral)/100.0;
+	m_lower = (neutral-y1)/100.0;
+	out_upper = (m_upper*input_perc) + neutral;
+	out_lower = (m_lower*input_perc) + neutral;
+	if(input_perc >= 0.0)
 	{
-		double m = (y2-neutral)/100.0;
-		out = (m*input_perc)+neutral;
+		out = out_upper;
 	}
 	else
 	{
-		double m = (y1-neutral)/100.0;
-		out = (m*input_perc)+neutral;
+		out = out_lower;
 	}
-
 	return out;
 
 }
