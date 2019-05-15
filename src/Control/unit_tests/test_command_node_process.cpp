@@ -7,6 +7,7 @@
 std::string Node_Name = "/unittest_command_node_process";
 std::string Host_Name = "unittest";
 std::string ros_DeviceName = Host_Name;
+#define DIAGNOSTIC_TYPE_COUNT 5
 std::string ros_ParentDevice = "";
 std::string ros_DeviceType = "ComputeModule";
 double SLOW_RATE = 0.1f;
@@ -18,19 +19,8 @@ int DeviceID = 123;
 CommandNodeProcess* initializeprocess()
 {
 	eros::diagnostic diagnostic;
-	diagnostic.DeviceName = ros_DeviceName;
-	diagnostic.Node_Name = Node_Name;
-	diagnostic.System = ROVER;
-	diagnostic.SubSystem = ROBOT_CONTROLLER;
-	diagnostic.Component = CONTROLLER_NODE;
-
-	diagnostic.Diagnostic_Type = NOERROR;
-	diagnostic.Level = INFO;
-	diagnostic.Diagnostic_Message = INITIALIZING;
-	diagnostic.Description = "Node Initializing";
-
 	eros::device device;
-	device.DeviceName = diagnostic.DeviceName;
+	device.DeviceName = ros_DeviceName;
 	device.BoardCount = 0;
 	device.SensorCount = 0;
 	device.DeviceParent = "None";
@@ -38,8 +28,15 @@ CommandNodeProcess* initializeprocess()
 
 	CommandNodeProcess* process;
 	process = new CommandNodeProcess;
-	process->initialize("command_node",Node_Name,Host_Name);
-	process->set_diagnostic(diagnostic);
+	process->initialize("command_node",Node_Name,Host_Name,ROVER,ROBOT_CONTROLLER,CONTROLLER_NODE);
+
+	std::vector<uint8_t> diagnostic_types;
+	diagnostic_types.push_back(SOFTWARE);
+	diagnostic_types.push_back(DATA_STORAGE);
+	diagnostic_types.push_back(SYSTEM_RESOURCE);
+	diagnostic_types.push_back(REMOTE_CONTROL);
+	diagnostic_types.push_back(TARGET_ACQUISITION);
+	process->enable_diagnostics(diagnostic_types);
 	process->finish_initialization();
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 	EXPECT_TRUE(process->is_initialized() == false);
@@ -59,6 +56,17 @@ CommandNodeProcess* readyprocess(CommandNodeProcess* process)
 	EXPECT_TRUE(process->is_ready() == true);
 	EXPECT_EQ(process->get_currentstate(),NODESTATE_RUNNING);
 	EXPECT_EQ(process->get_currentcommand().Command,ROVERCOMMAND_NONE);
+	{
+		process->update_diagnostic(SYSTEM_RESOURCE, INFO, NOERROR, "Not Checking System Resources during Unit Test.");
+		process->update_diagnostic(TARGET_ACQUISITION, INFO, NOERROR, "Not checking Target Acquisition during Unit Test");
+		
+		std::vector<eros::diagnostic> diagnostics = process->get_diagnostics();
+		EXPECT_TRUE(diagnostics.size() == DIAGNOSTIC_TYPE_COUNT);
+		for (std::size_t i = 0; i < diagnostics.size(); ++i)
+		{	
+			EXPECT_TRUE(diagnostics.at(i).Level <= NOTICE);			
+		}
+	}
 	return process;
 }
 TEST(Template,Process_Initialization)
@@ -99,9 +107,21 @@ TEST(PeriodicCommands,TestA)
 		{
 			EXPECT_TRUE(p_commands.at(i).Command == ROVERCOMMAND_RUNDIAGNOSTIC);
 			if(p_commands.at(i).Option1 		== LEVEL1){ level1_counter++;}
-			else if(p_commands.at(i).Option1	== LEVEL2){ level2_counter++;}
+			else if(p_commands.at(i).Option1	== LEVEL2)
+			{ 
+				level2_counter++;
+				{
+					std::vector<eros::diagnostic> diagnostics = process->get_diagnostics();
+					EXPECT_TRUE(diagnostics.size() >= DIAGNOSTIC_TYPE_COUNT);
+					for (std::size_t i = 0; i < diagnostics.size(); ++i)
+					{
+						EXPECT_TRUE(diagnostics.at(i).Level <= NOTICE);
+					}
+				}
+			}
 			else if(p_commands.at(i).Option1 	== LEVEL3){ level3_counter++;}
 		}
+
 		current_time += dt;
 	}
 	EXPECT_TRUE(process->get_runtime() >= time_to_run);
@@ -137,14 +157,14 @@ TEST(ArmDisarm,TestA)
 	EXPECT_EQ(process->get_armeddisarmed_state(),ARMEDSTATUS_DISARMED_CANNOTARM);
 	EXPECT_EQ(process->get_ReadyToArmList().size(),ready_to_arm_topics.size());
 	EXPECT_TRUE(process->get_ReadyToArmList().size() > 0);
-	for(int i = 0; i < ready_to_arm_topics.size(); i++)
+	for(std::size_t i = 0; i < ready_to_arm_topics.size(); i++)
 	{
 		process->new_readytoarmmsg(ready_to_arm_topics.at(i),false);
 		diagnostic = process->update(1.0/(FAST_RATE*1000.0),(double)(i)*1.0/(FAST_RATE*1000.0));
 		EXPECT_TRUE(diagnostic.Level <= NOTICE);
 		EXPECT_EQ(process->get_armeddisarmed_state(),ARMEDSTATUS_DISARMED_CANNOTARM);
 	}
-	for(int i = 0; i < (ready_to_arm_topics.size()-1); i++)
+	for(std::size_t i = 0; i < (ready_to_arm_topics.size()-1); i++)
 	{
 		process->new_readytoarmmsg(ready_to_arm_topics.at(i),true);
 		diagnostic = process->update(1.0/(FAST_RATE*1000.0),(double)(i)*1.0/(FAST_RATE*1000.0));
@@ -178,46 +198,13 @@ TEST(ArmDisarm,TestA)
 	}
 
 }
-/*
-TEST(AutoRecharge,TestA) NOT SUPPORTED
-{
-	eros::diagnostic diagnostic;
-	CommandNodeProcess* process = initializeprocess();
-	process = readyprocess(process);
 
-	diagnostic = process->update(1.0/(FAST_RATE*1000.0));
-	EXPECT_TRUE(diagnostic.Level <= NOTICE);
-	EXPECT_EQ(process->get_currentstate(),NODESTATE_RUNNING);
-	EXPECT_EQ(process->get_currentcommand().Command,ROVERCOMMAND_NONE);
-	diagnostic = process->update(1.0/(FAST_RATE*1000.0));
-	EXPECT_TRUE(diagnostic.Level <= NOTICE);
-	process->set_batterylevel_perc(20.0);
-
-	diagnostic = process->update(1.0/(FAST_RATE*1000.0));
-	EXPECT_TRUE(diagnostic.Level <= NOTICE);
-	EXPECT_EQ(process->get_currentcommand().Command,ROVERCOMMAND_SEARCHFOR_RECHARGE_FACILITY);
-	EXPECT_EQ(process->get_currentstate(),NODESTATE_SEARCHING_FOR_RECHARGE_FACILITY);
-	diagnostic = process->update(1.0/(FAST_RATE*1000.0));
-	EXPECT_TRUE(diagnostic.Level <= NOTICE);
-	diagnostic = process->new_targetmsg("unknownA");  //Should result in a WARN
-	EXPECT_TRUE(diagnostic.Level == WARN);
-	diagnostic = process->new_targetmsg("outlet");
-	EXPECT_TRUE(diagnostic.Level <= NOTICE);
-	EXPECT_EQ(process->get_currentcommand().Command,ROVERCOMMAND_STOPSEARCHFOR_RECHARGE_FACILITY);
-	EXPECT_EQ(process->get_currentstate(),NODESTATE_ACQUIRING_TARGET);
-	diagnostic = process->update(1.0/(FAST_RATE*1000.0));
-	EXPECT_TRUE(diagnostic.Level <= NOTICE);
-	EXPECT_EQ(process->get_currentcommand().Command,ROVERCOMMAND_ACQUIRE_TARGET);
-	EXPECT_EQ(process->get_currentstate(),NODESTATE_ACQUIRING_TARGET);
-}
- */
 TEST(Scripting,ScriptExecutor)
 {
 	{
 		CommandNodeProcess* process = initializeprocess();
-		eros::diagnostic diagnostic = process->get_diagnostic();
 		//This file should always have exactly 1 command being published
-		diagnostic = process->load_loadscriptingfiles("/home/robot/catkin_ws/src/icarus_rover_v2/src/Control/unit_tests/scriptfiles/Test1/");
+		eros::diagnostic diagnostic = process->load_loadscriptingfiles("/home/robot/catkin_ws/src/icarus_rover_v2/src/Control/unit_tests/scriptfiles/Test1/");
 
 		process->print_scriptcommand_list();
 		EXPECT_TRUE(diagnostic.Level <= NOTICE);
@@ -272,9 +259,8 @@ TEST(Scripting,ScriptExecutor)
 	}
 	{
 		CommandNodeProcess* process = initializeprocess();
-		eros::diagnostic diagnostic = process->get_diagnostic();
 		//This file will have multiple commands being published at times
-		diagnostic = process->load_loadscriptingfiles("/home/robot/catkin_ws/src/icarus_rover_v2/src/Control/unit_tests/scriptfiles/Test2/");
+		eros::diagnostic diagnostic = process->load_loadscriptingfiles("/home/robot/catkin_ws/src/icarus_rover_v2/src/Control/unit_tests/scriptfiles/Test2/");
 
 		process->print_scriptcommand_list();
 		EXPECT_TRUE(diagnostic.Level <= NOTICE);
@@ -332,6 +318,7 @@ TEST(Scripting,ScriptExecutor)
 
 
 }
+
 int main(int argc, char **argv){
 	testing::InitGoogleTest(&argc, argv);
 	return RUN_ALL_TESTS();

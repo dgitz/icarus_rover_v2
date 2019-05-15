@@ -6,7 +6,6 @@ bool CommandLauncherNode::start(int argc,char **argv)
 	process = new CommandLauncherNodeProcess();
 	set_basenodename(BASE_NODE_NAME);
 	initialize_firmware(MAJOR_RELEASE_VERSION,MINOR_RELEASE_VERSION,BUILD_NUMBER,FIRMWARE_DESCRIPTION);
-	initialize_diagnostic(DIAGNOSTIC_SYSTEM,DIAGNOSTIC_SUBSYSTEM,DIAGNOSTIC_COMPONENT);
 	diagnostic = preinitialize_basenode(argc,argv);
 	if(diagnostic.Level > WARN)
 	{
@@ -18,8 +17,13 @@ bool CommandLauncherNode::start(int argc,char **argv)
 		return false;
 	}
 
-	process->initialize(get_basenodename(),get_nodename(),get_hostname());
-	process->set_diagnostic(diagnostic);
+	process->initialize(get_basenodename(),get_nodename(),get_hostname(),DIAGNOSTIC_SYSTEM,DIAGNOSTIC_SUBSYSTEM,DIAGNOSTIC_COMPONENT);
+	std::vector<uint8_t> diagnostic_types;
+	diagnostic_types.push_back(SOFTWARE);
+	diagnostic_types.push_back(DATA_STORAGE);
+	diagnostic_types.push_back(SYSTEM_RESOURCE);
+	process->enable_diagnostics(diagnostic_types);
+	
 	process->finish_initialization();
 	diagnostic = finish_initialization();
 	if(diagnostic.Level > WARN)
@@ -78,16 +82,22 @@ bool CommandLauncherNode::run_001hz()
 }
 bool CommandLauncherNode::run_01hz()
 {
-	eros::diagnostic diag = process->get_diagnostic();
+	
+	return true;
+}
+bool CommandLauncherNode::run_01hz_noisy()
+{
+	std::vector<eros::diagnostic> diaglist = process->get_diagnostics();
+	for (std::size_t i = 0; i < diaglist.size(); ++i)
 	{
-		get_logger()->log_diagnostic(diag);
-		diagnostic_pub.publish(diag);
+		get_logger()->log_diagnostic(diaglist.at(i));
+		diagnostic_pub.publish(diaglist.at(i));
 	}
 	return true;
 }
 bool CommandLauncherNode::run_1hz()
 {
-
+	process->update_diagnostic(get_resource_diagnostic());
 	if((process->is_initialized() == true) and (process->is_ready() == true))
 	{
 		std::vector<CommandLauncherNodeProcess::ProcessCommand> processlist = process->get_processlist();
@@ -106,7 +116,7 @@ bool CommandLauncherNode::run_1hz()
 				sprintf(tempstr,"Trying to restart process with command: %s",processlist.at(i).command_text.c_str());
 
 				logger->log_info(std::string(tempstr));
-				int ret = system (processlist.at(i).command_text.c_str());
+				system (processlist.at(i).command_text.c_str());
 				process->set_process_restarted(processlist.at(i).name);
 				check_pid = true;
 			}
@@ -145,7 +155,7 @@ bool CommandLauncherNode::run_1hz()
 				}
 				else
 				{
-					bool status = new_devicemsg(srv.request.query,srv.response.data.at(0));
+					new_devicemsg(srv.request.query,srv.response.data.at(0));
 				}
 			}
 			else
@@ -153,11 +163,14 @@ bool CommandLauncherNode::run_1hz()
 			}
 		}
 	}
-	eros::diagnostic diag = process->get_diagnostic();
-	if(diag.Level >= NOTICE)
+	std::vector<eros::diagnostic> diaglist = process->get_diagnostics();
+	for (std::size_t i = 0; i < diaglist.size(); ++i)
 	{
-		get_logger()->log_diagnostic(diag);
-		diagnostic_pub.publish(diag);
+		if (diaglist.at(i).Level == WARN)
+		{
+			get_logger()->log_diagnostic(diaglist.at(i));
+			diagnostic_pub.publish(diaglist.at(i));
+		}
 	}
 
 	return true;
@@ -170,6 +183,15 @@ bool CommandLauncherNode::run_10hz()
 	{
 		get_logger()->log_diagnostic(diag);
 		diagnostic_pub.publish(diag);
+	}
+	std::vector<eros::diagnostic> diaglist = process->get_diagnostics();
+	for (std::size_t i = 0; i < diaglist.size(); ++i)
+	{
+		if (diaglist.at(i).Level > WARN)
+		{
+			get_logger()->log_diagnostic(diaglist.at(i));
+			diagnostic_pub.publish(diaglist.at(i));
+		}
 	}
 	return true;
 }

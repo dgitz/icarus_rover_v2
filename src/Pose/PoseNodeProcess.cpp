@@ -1,10 +1,10 @@
 #include "PoseNodeProcess.h"
 eros::diagnostic  PoseNodeProcess::finish_initialization()
 {
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	imu_count = -1;
 	current_mode = PoseMode::CALIBRATE;
-	return diagnostic;
+	return diag;
 }
 bool PoseNodeProcess::set_imucount(uint8_t v)
 {
@@ -17,24 +17,30 @@ bool PoseNodeProcess::set_imucount(uint8_t v)
 }
 eros::diagnostic PoseNodeProcess::update(double t_dt,double t_ros_time)
 {
+	eros::diagnostic diag = root_diagnostic;
 	if(initialized == true)
 	{
 		if((imu_count >= 1) and (imu_count == imus.size()))
 		{
 			ready = true;
+
+		}
+		else if(imu_count == 0)
+		{
+			diag = update_diagnostic(SENSORS,NOTICE,DEVICE_NOT_AVAILABLE,"No IMU's Configured.");
 		}
 	}
-	eros::diagnostic diag = diagnostic;
 	diag = update_baseprocess(t_dt,t_ros_time);
+	if((is_initialized() == true) and (is_ready() == true))
+	{
+		diag = update_diagnostic(DATA_STORAGE,INFO,NOERROR,"No Error.");
+	}
 	if(diag.Level <= NOTICE)
 	{
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Level = INFO;
-		diag.Diagnostic_Message = NOERROR;
-		diag.Description = "Node Running.";
+		diag = update_diagnostic(SOFTWARE,INFO,NOERROR,"Node Running.");
+		diag = update_diagnostic(POSE,NOTICE,NOERROR,"Pose Not Implemented Yet.");
 
 	}
-	diagnostic = diag;
 	return diag;
 }
 PoseNodeProcess::IMUSensor PoseNodeProcess::get_imudata(std::string name)
@@ -52,7 +58,7 @@ PoseNodeProcess::IMUSensor PoseNodeProcess::get_imudata(std::string name)
 }
 eros::diagnostic PoseNodeProcess::new_devicemsg(const eros::device::ConstPtr& device)
 {
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	if(device->DeviceType == "IMU")
 	{
 		PoseNodeProcess::IMUSensor newimu;
@@ -70,24 +76,25 @@ eros::diagnostic PoseNodeProcess::new_devicemsg(const eros::device::ConstPtr& de
 		newimu.transform.setRotation(q);
 		newimu.device = convert_fromptr(device);
 		newimu.topicname = "/" + newimu.device.DeviceName;
+		char tempstr[512];
+		sprintf(tempstr,"Device: %s Initializing",newimu.device.DeviceName.c_str());
+		diag = update_diagnostic(newimu.device.DeviceName,SENSORS,NOTICE,INITIALIZING,std::string(tempstr));
+		diag = update_diagnostic(SENSORS,NOTICE,INITIALIZING,"Initializing IMU.");
 		newimu.initialized = true;
 		imus.push_back(newimu);
 	}
 	else
 	{
-		diag.Diagnostic_Type = DATA_STORAGE;
-		diag.Level = ERROR;
-		diag.Diagnostic_Message = INITIALIZING_ERROR;
 		char tempstr[512];
 		sprintf(tempstr,"DeviceType: %s Not Supported.",device->DeviceType.c_str());
-		diag.Description = std::string(tempstr);
+		diag = update_diagnostic(DATA_STORAGE,ERROR,INITIALIZING_ERROR,std::string(tempstr));
 	}
 	return diag;
 }
 std::vector<eros::diagnostic> PoseNodeProcess::new_commandmsg(const eros::command::ConstPtr& t_msg)
 {
 	std::vector<eros::diagnostic> diaglist;
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	if (t_msg->Command == ROVERCOMMAND_RUNDIAGNOSTIC)
 	{
 		if (t_msg->Option1 == LEVEL1)
@@ -113,27 +120,21 @@ std::vector<eros::diagnostic> PoseNodeProcess::new_commandmsg(const eros::comman
 std::vector<eros::diagnostic> PoseNodeProcess::check_programvariables()
 {
 	std::vector<eros::diagnostic> diaglist;
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	bool status = true;
 
 	if (status == true) {
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Level = INFO;
-		diag.Diagnostic_Message = DIAGNOSTIC_PASSED;
-		diag.Description = "Checked Program Variables -> PASSED.";
+		diag = update_diagnostic(SOFTWARE,INFO,DIAGNOSTIC_PASSED,"Checked Program Variables -> PASSED.");
 		diaglist.push_back(diag);
 	} else {
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Level = WARN;
-		diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
-		diag.Description = "Checked Program Variables -> FAILED.";
+		diag = update_diagnostic(SOFTWARE,WARN,DIAGNOSTIC_FAILED,"Checked Program Variables -> FAILED.");
 		diaglist.push_back(diag);
 	}
 	return diaglist;
 }
 eros::diagnostic PoseNodeProcess::new_imumsg(std::string topic, const eros::imu::ConstPtr& data)
 {
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	bool found = false;
 	for(std::size_t i = 0; i < imus.size(); ++i)
 	{
@@ -160,21 +161,15 @@ eros::diagnostic PoseNodeProcess::new_imumsg(std::string topic, const eros::imu:
 	}
 	if(found == false)
 	{
-		diag.Diagnostic_Type = DATA_STORAGE;
-		diag.Level = WARN;
-		diag.Diagnostic_Message = INITIALIZING_ERROR;
 		char tempstr[512];
 		sprintf(tempstr,"Received message for: %s But not in my Definitions.",topic.c_str());
-		diag.Description = std::string(tempstr);
+		diag = update_diagnostic(DATA_STORAGE,WARN,DEVICE_NOT_AVAILABLE,std::string(tempstr));
 	}
 	else
 	{
-		diag.Diagnostic_Type = COMMUNICATIONS;
-		diag.Level = INFO;
-		diag.Diagnostic_Message = NOERROR;
 		char tempstr[512];
 		sprintf(tempstr,"Received message for: %s.",topic.c_str());
-		diag.Description = std::string(tempstr);
+		diag = update_diagnostic(SENSORS,INFO,NOERROR,std::string(tempstr));
 	}
 	return diag;
 

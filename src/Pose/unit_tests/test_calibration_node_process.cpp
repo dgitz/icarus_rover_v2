@@ -1,14 +1,14 @@
 #include <gtest/gtest.h>
 #include "ros/ros.h"
 #include "ros/time.h"
-#include "../TopicRemapperNodeProcess.h"
+#include "../CalibrationNodeProcess.h"
 
-std::string Node_Name = "/unittest_topicremapper_node_process";
+std::string Node_Name = "/unittest_calibration_node_process";
 std::string Host_Name = "unittest";
 std::string ros_DeviceName = Host_Name;
 #define DIAGNOSTIC_TYPE_COUNT 4
 
-TopicRemapperNodeProcess *initializeprocess()
+CalibrationNodeProcess *initializeprocess()
 {
 	eros::device device;
 	device.DeviceName = ros_DeviceName;
@@ -17,14 +17,14 @@ TopicRemapperNodeProcess *initializeprocess()
 	device.DeviceParent = "None";
 	device.Architecture = "x86_64";
 
-	TopicRemapperNodeProcess *process;
-	process = new TopicRemapperNodeProcess;
-	process->initialize("topicremapper_node", Node_Name, Host_Name, ROVER, ROBOT_CONTROLLER, COMMUNICATION_NODE);
+	CalibrationNodeProcess *process;
+	process = new CalibrationNodeProcess;
+	process->initialize("calibration_node", Node_Name, Host_Name, ROVER, ROBOT_CONTROLLER, CONTROLLER_NODE);
 	std::vector<uint8_t> diagnostic_types;
 	diagnostic_types.push_back(SOFTWARE);
 	diagnostic_types.push_back(DATA_STORAGE);
 	diagnostic_types.push_back(SYSTEM_RESOURCE);
-	diagnostic_types.push_back(REMOTE_CONTROL);
+	diagnostic_types.push_back(SENSORS);
 	process->enable_diagnostics(diagnostic_types);
 	process->finish_initialization();
 	EXPECT_TRUE(process->is_initialized() == false);
@@ -33,7 +33,7 @@ TopicRemapperNodeProcess *initializeprocess()
 	EXPECT_TRUE(process->get_mydevice().DeviceName == device.DeviceName);
 	return process;
 }
-TopicRemapperNodeProcess *readyprocess(TopicRemapperNodeProcess *process)
+CalibrationNodeProcess *readyprocess(CalibrationNodeProcess *process)
 {
 	eros::diagnostic diag = process->update(0.0, 0.0);
 	EXPECT_TRUE(diag.Level <= NOTICE);
@@ -50,14 +50,14 @@ TopicRemapperNodeProcess *readyprocess(TopicRemapperNodeProcess *process)
 }
 TEST(Template, Process_Initialization)
 {
-	TopicRemapperNodeProcess *process = initializeprocess();
+	CalibrationNodeProcess *process = initializeprocess();
+	EXPECT_TRUE(process->is_initialized() == true);
 }
 
 TEST(Template, Process_Command)
 {
-	TopicRemapperNodeProcess *process = initializeprocess();
+	CalibrationNodeProcess *process = initializeprocess();
 	process = readyprocess(process);
-	return;
 	double time_to_run = 20.0;
 	double dt = 0.001;
 	double current_time = 0.0;
@@ -68,6 +68,7 @@ TEST(Template, Process_Command)
 	{
 		eros::diagnostic diag = process->update(dt, current_time);
 		EXPECT_TRUE(diag.Level <= NOTICE);
+
 		int current_time_ms = (int)(current_time * 1000.0);
 		if ((current_time_ms % 100) == 0)
 		{
@@ -93,9 +94,11 @@ TEST(Template, Process_Command)
 		{
 			slowrate_fire = false;
 		}
+
 		eros::command cmd;
 		cmd.Command = ROVERCOMMAND_RUNDIAGNOSTIC;
-		if (fastrate_fire == true)
+
+		if (fastrate_fire == true) //Nothing to do here
 		{
 			cmd.Option1 = LEVEL1;
 			eros::command::ConstPtr cmd_ptr(new eros::command(cmd));
@@ -119,13 +122,11 @@ TEST(Template, Process_Command)
 		}
 		if (slowrate_fire == true)
 		{
+			std::vector<eros::diagnostic> diagnostics = process->get_diagnostics();
+			EXPECT_TRUE(diagnostics.size() >= DIAGNOSTIC_TYPE_COUNT);
+			for (std::size_t i = 0; i < diagnostics.size(); ++i)
 			{
-				std::vector<eros::diagnostic> diagnostics = process->get_diagnostics();
-				EXPECT_TRUE(diagnostics.size() == DIAGNOSTIC_TYPE_COUNT);
-				for (std::size_t i = 0; i < diagnostics.size(); ++i)
-				{
-					EXPECT_TRUE(diagnostics.at(i).Level <= NOTICE);
-				}
+				EXPECT_TRUE(diagnostics.at(i).Level <= NOTICE);
 			}
 		}
 		current_time += dt;

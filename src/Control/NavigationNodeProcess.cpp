@@ -1,7 +1,7 @@
 #include "NavigationNodeProcess.h"
 eros::diagnostic  NavigationNodeProcess::finish_initialization()
 {
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	controlgroup_filepath = "";
 
 	controlgroup_mode_map[ControlGroupMode::UNKNOWN] = "UNKNOWN";
@@ -14,30 +14,30 @@ eros::diagnostic  NavigationNodeProcess::finish_initialization()
 	controlgroup_outputtype_map[ControlGroupOutputType::UNKNOWN] = "UNKNOWN";
 	controlgroup_outputtype_map[ControlGroupOutputType::LEFTDRIVE] = "LeftDrive";
 	controlgroup_outputtype_map[ControlGroupOutputType::RIGHTDRIVE] = "RightDrive";
-	return diagnostic;
+	return diag;
 }
 eros::diagnostic NavigationNodeProcess::update(double t_dt,double t_ros_time)
 {
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	diag = update_baseprocess(t_dt,t_ros_time);
 	if(diag.Level <= NOTICE)
 	{
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Level = INFO;
-		diag.Diagnostic_Message = NOERROR;
-		diag.Description = "Node Running.";
+		diag = update_diagnostic(SOFTWARE,INFO,NOERROR,"Node Running.");
 
+	}
+	if((is_initialized() == true) and (is_ready() == true))
+	{
+		diag = update_diagnostic(DATA_STORAGE,INFO,NOERROR,"No Error.");
 	}
 	for(std::size_t i = 0; i < control_groups.size(); ++i)
 	{
 		control_groups.at(i).time_since_lastupdate+=t_dt;
 	}
-	diagnostic = diag;
 	return diag;
 }
 eros::diagnostic NavigationNodeProcess::new_devicemsg(const eros::device::ConstPtr& device)
 {
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	for(std::size_t i = 0; i < device->pins.size(); ++i)
 	{
 		all_pins.push_back(device->pins.at(i));
@@ -47,7 +47,7 @@ eros::diagnostic NavigationNodeProcess::new_devicemsg(const eros::device::ConstP
 std::vector<eros::diagnostic> NavigationNodeProcess::new_commandmsg(const eros::command::ConstPtr& t_msg)
 {
 	std::vector<eros::diagnostic> diaglist;
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	if (t_msg->Command == ROVERCOMMAND_RUNDIAGNOSTIC)
 	{
 		if (t_msg->Option1 == LEVEL1)
@@ -78,7 +78,7 @@ std::vector<eros::diagnostic> NavigationNodeProcess::new_commandmsg(const eros::
 }
 eros::diagnostic NavigationNodeProcess::update_controlgroups(json cmd)
 {
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	double throttle = 0.0;
 	double steer = 0.0;
 	std::string controlgroup = "";
@@ -130,54 +130,39 @@ eros::diagnostic NavigationNodeProcess::update_controlgroups(json cmd)
 	}
 	if(found == false)
 	{
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Level = INFO;
-		diag.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
 		char tempstr[512];
 		sprintf(tempstr,"ControlGroup: %s Not Updated.",controlgroup.c_str());
-		diag.Description = std::string(tempstr);
+		diag = update_diagnostic(REMOTE_CONTROL,INFO,DEVICE_NOT_AVAILABLE,std::string(tempstr));
 	}
 
-	diag.Diagnostic_Type = SOFTWARE;
-	diag.Level = INFO;
-	diag.Diagnostic_Message = NOERROR;
-	diag.Description = "Control Groups Updated.";
+	diag = update_diagnostic(REMOTE_CONTROL,INFO,NOERROR,"Control Groups Updated.");
 	return diag;
 }
 std::vector<eros::diagnostic> NavigationNodeProcess::check_programvariables()
 {
 	std::vector<eros::diagnostic> diaglist;
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	bool status = true;
 
 	if (status == true) {
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Level = INFO;
-		diag.Diagnostic_Message = DIAGNOSTIC_PASSED;
-		diag.Description = "Checked Program Variables -> PASSED.";
+		diag = update_diagnostic(SOFTWARE,INFO,DIAGNOSTIC_PASSED,"Checked Program Variables -> PASSED.");
 		diaglist.push_back(diag);
 	} else {
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Level = WARN;
-		diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
-		diag.Description = "Checked Program Variables -> FAILED.";
+		diag = update_diagnostic(SOFTWARE,WARN,DIAGNOSTIC_FAILED,"Checked Program Variables -> FAILED.");
 		diaglist.push_back(diag);
 	}
 	return diaglist;
 }
 eros::diagnostic NavigationNodeProcess::load_controlgroupfile()
 {
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	TiXmlDocument doc(controlgroup_filepath);
 	bool controlgroupfile_loaded = doc.LoadFile();
 	if(controlgroupfile_loaded == false)
 	{
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Level = FATAL;
-		diag.Diagnostic_Message = INITIALIZING_ERROR;
 		char tempstr[512];
 		sprintf(tempstr,"Unable to load: %s",controlgroup_filepath.c_str());
-		diag.Description = std::string(tempstr);
+		diag = update_diagnostic(DATA_STORAGE,ERROR,INITIALIZING_ERROR,std::string(tempstr));
 		return diag;
 	}
 	TiXmlElement *l_pRootElement = doc.RootElement();
@@ -250,12 +235,9 @@ eros::diagnostic NavigationNodeProcess::load_controlgroupfile()
 							}
 							if(found == false)
 							{
-								diag.Diagnostic_Type = DATA_STORAGE;
-								diag.Level = ERROR;
-								diag.Diagnostic_Message = INITIALIZING_ERROR;
 								char tempstr[512];
 								sprintf(tempstr,"Could not find Pin:%s",output.name.c_str());
-								diag.Description = std::string(tempstr);
+								diag = update_diagnostic(DATA_STORAGE,ERROR,INITIALIZING_ERROR,std::string(tempstr));
 								return diag;
 							}
 							output.pin.Value = output.pin.DefaultValue;
@@ -273,16 +255,10 @@ eros::diagnostic NavigationNodeProcess::load_controlgroupfile()
 	}
 	if(control_groups.size() == 0)
 	{
-		diag.Diagnostic_Type = DATA_STORAGE;
-		diag.Level = WARN;
-		diag.Diagnostic_Message = INITIALIZING_ERROR;
-		diag.Description = "No Control Groups Loaded.";
+		diag = update_diagnostic(DATA_STORAGE,WARN,INITIALIZING_ERROR,"No Control Groups Loaded.");
 		return diag;
 	}
-	diag.Diagnostic_Type = DATA_STORAGE;
-	diag.Level = NOTICE;
-	diag.Diagnostic_Message = INITIALIZING;
-	diag.Description = "Processed ControlGroup.xml";
+	diag = update_diagnostic(DATA_STORAGE,NOTICE,INITIALIZING,"Processed ControlGroup.xml");
 	return diag;
 }
 void NavigationNodeProcess::print_controlgroups()

@@ -9,7 +9,6 @@ bool MasterNode::start(int argc,char **argv)
 	serialmessagehandler = new SerialMessageHandler;
 	set_basenodename(BASE_NODE_NAME);
 	initialize_firmware(MAJOR_RELEASE_VERSION,MINOR_RELEASE_VERSION,BUILD_NUMBER,FIRMWARE_DESCRIPTION);
-	initialize_diagnostic(DIAGNOSTIC_SYSTEM,DIAGNOSTIC_SUBSYSTEM,DIAGNOSTIC_COMPONENT);
 	diagnostic = preinitialize_basenode(argc,argv);
 	if(diagnostic.Level > WARN)
 	{
@@ -21,8 +20,13 @@ bool MasterNode::start(int argc,char **argv)
 		return false;
 	}
 
-	process->initialize(get_basenodename(),get_nodename(),get_hostname());
-	process->set_diagnostic(diagnostic);
+	process->initialize(get_basenodename(),get_nodename(),get_hostname(),DIAGNOSTIC_SYSTEM,DIAGNOSTIC_SUBSYSTEM,DIAGNOSTIC_COMPONENT);
+	std::vector<uint8_t> diagnostic_types;
+	diagnostic_types.push_back(SOFTWARE);
+	diagnostic_types.push_back(DATA_STORAGE);
+	diagnostic_types.push_back(SYSTEM_RESOURCE);
+	diagnostic_types.push_back(COMMUNICATIONS);
+	process->enable_diagnostics(diagnostic_types);
 	process->set_filepaths("/home/robot/config/SystemFile.xml","/home/robot/config/DeviceFile.xml");
 
 	if(diagnostic.Level > WARN)
@@ -61,10 +65,7 @@ bool MasterNode::start(int argc,char **argv)
 	print_deviceinfo();
 	if(diagnostic.Level < WARN)
 	{
-		diagnostic.Diagnostic_Type = NOERROR;
-		diagnostic.Level = INFO;
-		diagnostic.Diagnostic_Message = NOERROR;
-		diagnostic.Description = "Node Configured.  Initializing.";
+		diagnostic = process->update_diagnostic(diagnostic);
 		get_logger()->log_diagnostic(diagnostic);
 	}
 
@@ -100,10 +101,15 @@ bool MasterNode::run_001hz()
 }
 bool MasterNode::run_01hz()
 {
-	eros::diagnostic diag = process->get_diagnostic();
+	return true;
+}
+bool MasterNode::run_01hz_noisy()
+{
+	std::vector<eros::diagnostic> diaglist = process->get_diagnostics();
+	for (std::size_t i = 0; i < diaglist.size(); ++i)
 	{
-		get_logger()->log_diagnostic(diag);
-		diagnostic_pub.publish(diag);
+		get_logger()->log_diagnostic(diaglist.at(i));
+		diagnostic_pub.publish(diaglist.at(i));
 	}
 	return true;
 }
@@ -116,32 +122,11 @@ bool MasterNode::run_1hz()
 	device_resource_available.CPU_Perc = resourcemonitor->get_CPUFree_perc();
 	device_resource_available.RAM_MB = (double)(resourcemonitor->get_RAMFree_kB()/1000.0);
 	device_resourceavail_pub.publish(device_resource_available);
+	process->update_diagnostic(get_resource_diagnostic());
 	if(process->get_mydevice().Architecture == "armv7l")
 	{
 		process->set_devicetemperature(read_device_temperature());
-		eros::diagnostic diagnostic = process->get_diagnostic();
-		if(process->get_devicetemperature() > 130.0)
-		{
-			diagnostic.Diagnostic_Type = SENSORS;
-			diagnostic.Level = WARN;
-			diagnostic.Diagnostic_Message = TEMPERATURE_HIGH;
-			char tempstr[200];
-			sprintf(tempstr,"Device Temperature: %f",process->get_devicetemperature());
-			logger->log_info(tempstr);
-			diagnostic.Description = tempstr;
-			diagnostic_pub.publish(diagnostic);
-		}
-		else if(process->get_devicetemperature() < 50.0)
-		{
-			diagnostic.Diagnostic_Type = SENSORS;
-			diagnostic.Level = WARN;
-			diagnostic.Diagnostic_Message = TEMPERATURE_LOW;
-			char tempstr[200];
-			sprintf(tempstr,"Device Temperature: %f",process->get_devicetemperature());
-			logger->log_info(tempstr);
-			diagnostic.Description = tempstr;
-			diagnostic_pub.publish(diagnostic);
-		}
+		
 	}
 	if((process->is_initialized() == true) and (process->is_ready() == true))
 	{
@@ -152,13 +137,15 @@ bool MasterNode::run_1hz()
 	else if(process->is_initialized() == false)
 	{
 	}
-	eros::diagnostic diag = process->get_diagnostic();
-	if(diag.Level >= NOTICE)
+	std::vector<eros::diagnostic> diaglist = process->get_diagnostics();
+	for (std::size_t i = 0; i < diaglist.size(); ++i)
 	{
-		get_logger()->log_diagnostic(diag);
-		diagnostic_pub.publish(diag);
+		if (diaglist.at(i).Level == WARN)
+		{
+			get_logger()->log_diagnostic(diaglist.at(i));
+			diagnostic_pub.publish(diaglist.at(i));
+		}
 	}
-
 	return true;
 }
 bool MasterNode::run_10hz()
@@ -169,6 +156,15 @@ bool MasterNode::run_10hz()
 	{
 		get_logger()->log_diagnostic(diag);
 		diagnostic_pub.publish(diag);
+	}
+	std::vector<eros::diagnostic> diaglist = process->get_diagnostics();
+	for (std::size_t i = 0; i < diaglist.size(); ++i)
+	{
+		if (diaglist.at(i).Level == WARN)
+		{
+			get_logger()->log_diagnostic(diaglist.at(i));
+			diagnostic_pub.publish(diaglist.at(i));
+		}
 	}
 	return true;
 }
@@ -202,6 +198,7 @@ bool MasterNode::new_devicemsg(std::string query,eros::device t_device)
 		if(t_device.DeviceName == std::string(host_name))
 		{
 			set_mydevice(t_device);
+			
 			process->set_mydevice(t_device);
 		}
 	}
@@ -361,6 +358,10 @@ bool MasterNode::check_serialports()
 			logger->log_warn(std::string(tempstr));
 		}
 	}
+	if(ports.size() == 0)
+	{
+		process->update_diagnostic(COMMUNICATIONS,INFO,NOERROR,"No Serial Ports Found.");
+	}
 	return true;
 }
 std::vector<std::string> MasterNode::find_serialports()
@@ -371,7 +372,6 @@ std::vector<std::string> MasterNode::find_serialports()
 	struct dirent *dirp;
 	if((dp  = opendir("/dev/")) == NULL)
 	{
-		char tempstr[512];
 		logger->log_error(strerror(errno));
 		return ports;
 	}

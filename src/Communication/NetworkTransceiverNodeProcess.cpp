@@ -1,9 +1,10 @@
 #include "NetworkTransceiverNodeProcess.h"
 eros::diagnostic  NetworkTransceiverNodeProcess::finish_initialization()
 {
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	init_messages();
-	return diagnostic;
+	diag = update_diagnostic(DATA_STORAGE,INFO,NOERROR,"Initializing In Progress.");
+	return diag;
 }
 void NetworkTransceiverNodeProcess::set_networkconfiguration(std::string t_multicast_group,int t_send_multicast_port,int t_recv_unicast_port)
 	{
@@ -13,12 +14,19 @@ void NetworkTransceiverNodeProcess::set_networkconfiguration(std::string t_multi
 	}
 eros::diagnostic NetworkTransceiverNodeProcess::update(double t_dt,double t_ros_time)
 {
+	eros::diagnostic diag = root_diagnostic;
+	if(initialized == false)
+	{
+		//Set Remote Control Diagnostics to Notice, give the node a chance to launch without throwing a ton of warnings.
+		diag = update_diagnostic(COMMUNICATIONS,NOTICE,INITIALIZING,"Initializing Comms.");
+		diag = update_diagnostic(REMOTE_CONTROL,NOTICE,INITIALIZING,"Waiting for Remote Control.");
+	}
 	if(initialized == true)
 	{
 		ready = true;
 
 	}
-	eros::diagnostic diag = diagnostic;
+	
 	diag = update_baseprocess(t_dt,t_ros_time);
 	for(std::size_t i = 0; i < messages.size(); i++)
 	{
@@ -32,23 +40,23 @@ eros::diagnostic NetworkTransceiverNodeProcess::update(double t_dt,double t_ros_
 			messages.at(i).recv_rate = (double)(messages.at(i).recv_counter)/run_time;
 		}
 	}
+	
 	if(diag.Level <= NOTICE)
 	{
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Level = INFO;
-		diag.Diagnostic_Message = NOERROR;
-		diag.Description = "Node Running.";
-		diagnostic = diag;
+		diag = update_diagnostic(SOFTWARE,INFO,NOERROR,"Node Running.");
 	}
-
+	if((is_initialized() == true) and (is_ready() == true))
+	{
+		diag = update_diagnostic(DATA_STORAGE,INFO,NOERROR,"No Error.");
+	}
 	return diag;
 }
 eros::diagnostic NetworkTransceiverNodeProcess::check_remoteHeartbeats()
 {
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	bool heartbeat_pass = true;
 	double now = ros_time;
-	for(int i = 0; i < remote_devices.size();++i)
+	for(std::size_t i = 0; i < remote_devices.size();++i)
 	{
 		double time_since_last = now-remote_devices.at(i).current_beatepoch_sec;
 		if(time_since_last > 1.0)
@@ -57,41 +65,31 @@ eros::diagnostic NetworkTransceiverNodeProcess::check_remoteHeartbeats()
 			char tempstr[255];
 			sprintf(tempstr,"Haven't received Heartbeat from: %s in %f Seconds. Disarming.",
 					remote_devices.at(i).Name.c_str(),time_since_last);
-			diag.Diagnostic_Type = COMMUNICATIONS;
-			diag.Level = ERROR;
-			diag.Diagnostic_Message = MISSING_HEARTBEATS;
-			diag.Description = std::string(tempstr);
-
+			diag = update_diagnostic(COMMUNICATIONS,ERROR,MISSING_HEARTBEATS,std::string(tempstr));
 		}
 	}
 	if(remote_devices.size() == 0)
 	{
-		diag.Diagnostic_Type = COMMUNICATIONS;
-		diag.Level = WARN;
-		diag.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
-		diag.Description = "No Remote UI Devices Found Yet.";
+		diag = update_diagnostic(COMMUNICATIONS,WARN,DEVICE_NOT_AVAILABLE,"No Remote UI Devices Found Yet.");
 		heartbeat_pass = false;
 
 	}
 	if(heartbeat_pass == true)
 	{
-		diag.Diagnostic_Type = COMMUNICATIONS;
-		diag.Level = INFO;
-		diag.Diagnostic_Message = NOERROR;
-		diag.Description = "Remote Heartbeat Check Passed.";
+		diag = update_diagnostic(COMMUNICATIONS,INFO,NOERROR,"Remote Heartbeat Check Passed.");
 	}
 	remote_heartbeat_pass = heartbeat_pass;
 	return diag;
 }
 eros::diagnostic NetworkTransceiverNodeProcess::new_devicemsg(const eros::device::ConstPtr& device)
 {
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	return diag;
 }
 std::vector<eros::diagnostic> NetworkTransceiverNodeProcess::new_commandmsg(const eros::command::ConstPtr& t_msg)
 {
 	std::vector<eros::diagnostic> diaglist;
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	if (t_msg->Command == ROVERCOMMAND_RUNDIAGNOSTIC)
 	{
 		if (t_msg->Option1 == LEVEL1)
@@ -117,7 +115,7 @@ std::vector<eros::diagnostic> NetworkTransceiverNodeProcess::new_commandmsg(cons
 std::vector<eros::diagnostic> NetworkTransceiverNodeProcess::check_programvariables()
 {
 	std::vector<eros::diagnostic> diaglist;
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	bool status = true;
 	bool any_message_sent = false;
 	for(std::size_t i = 0; i < messages.size(); i++)
@@ -130,43 +128,35 @@ std::vector<eros::diagnostic> NetworkTransceiverNodeProcess::check_programvariab
 	if(any_message_sent == false)
 	{
 		status = false;
-		diag.Diagnostic_Type = COMMUNICATIONS;
-		diag.Level = WARN;
-		diag.Diagnostic_Message = DROPPING_PACKETS;
-		diag.Description = "Have not sent any UDP Packets Yet.";
+		diag = update_diagnostic(COMMUNICATIONS,WARN,DROPPING_PACKETS,"Have not sent any UDP Packets Yet.");
 		diaglist.push_back(diag);
 	}
-	eros::diagnostic diag_heartbeat = check_remoteHeartbeats();
-	if(diag_heartbeat.Level > NOTICE)
+	diag = check_remoteHeartbeats();
+	diag = update_diagnostic(diag);
+	if(diag.Level > NOTICE)
 	{
 		status = false;
-		diaglist.push_back(diag_heartbeat);
+		diaglist.push_back(diag);
 	}
 	else
 	{
-		diaglist.push_back(diag_heartbeat);
+		diaglist.push_back(diag);
 	}
 	if (status == true) {
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Level = INFO;
-		diag.Diagnostic_Message = DIAGNOSTIC_PASSED;
-		diag.Description = "Checked Program Variables -> PASSED.";
+		diag = update_diagnostic(SOFTWARE,INFO,DIAGNOSTIC_PASSED,"Checked Program Variables -> PASSED.");
 		diaglist.push_back(diag);
 	} else {
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Level = WARN;
-		diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
-		diag.Description = "Checked Program Variables -> FAILED.";
+		diag = update_diagnostic(SOFTWARE,WARN,DIAGNOSTIC_FAILED,"Checked Program Variables -> FAILED.");
 		diaglist.push_back(diag);
 	}
 	return diaglist;
 }
 eros::diagnostic NetworkTransceiverNodeProcess::new_remoteheartbeatmsg(double timestamp,std::string name,double current_beat,double expected_beat)
 {
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	std::vector<eros::diagnostic> diag_list;
 	bool add_new_entry = true;
-	for(int i = 0; i < remote_devices.size(); i++)
+	for(std::size_t i = 0; i < remote_devices.size(); i++)
 	{
 		if(name == remote_devices.at(i).Name)
 		{
@@ -187,19 +177,15 @@ eros::diagnostic NetworkTransceiverNodeProcess::new_remoteheartbeatmsg(double ti
 	}
 	if(add_new_entry == true)
 	{
-		diag.Level = NOTICE;
 		char tempstr[512];
 		sprintf(tempstr,"Remote Heartbeat Device: %s Added.",name.c_str());
-		diag.Description = std::string(tempstr);
-		diag.Diagnostic_Message = INITIALIZING;
+		diag = update_diagnostic(COMMUNICATIONS,NOTICE,INITIALIZING,std::string(tempstr));
 	}
 	else
 	{
-		diag.Level = INFO;
 		char tempstr[512];
 		sprintf(tempstr,"Remote Heartbeat Device: %s Updated.",name.c_str());
-		diag.Description = std::string(tempstr);
-		diag.Diagnostic_Message = NOERROR;
+		diag = update_diagnostic(COMMUNICATIONS,INFO,NOERROR,std::string(tempstr));
 	}
 
 	return diag;
@@ -208,7 +194,7 @@ eros::diagnostic NetworkTransceiverNodeProcess::new_remoteheartbeatmsg(double ti
 }
 eros::diagnostic NetworkTransceiverNodeProcess::new_message_sent(uint16_t id)
 {
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	for(std::size_t i = 0; i < messages.size(); i++)
 	{
 		if(messages.at(i).id == id)
@@ -220,7 +206,7 @@ eros::diagnostic NetworkTransceiverNodeProcess::new_message_sent(uint16_t id)
 }
 eros::diagnostic NetworkTransceiverNodeProcess::new_message_recv(uint16_t id)
 {
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	for(std::size_t i = 0; i < messages.size(); i++)
 	{
 		if(messages.at(i).id == id)

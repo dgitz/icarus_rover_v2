@@ -6,7 +6,6 @@ bool AudioNode::start(int argc,char **argv)
 	process = new AudioNodeProcess();
 	set_basenodename(BASE_NODE_NAME);
 	initialize_firmware(MAJOR_RELEASE_VERSION,MINOR_RELEASE_VERSION,BUILD_NUMBER,FIRMWARE_DESCRIPTION);
-	initialize_diagnostic(DIAGNOSTIC_SYSTEM,DIAGNOSTIC_SUBSYSTEM,DIAGNOSTIC_COMPONENT);
 	diagnostic = preinitialize_basenode(argc,argv);
 	if(diagnostic.Level > WARN)
 	{
@@ -18,8 +17,14 @@ bool AudioNode::start(int argc,char **argv)
 		return false;
 	}
 
-	process->initialize(get_basenodename(),get_nodename(),get_hostname());
-	process->set_diagnostic(diagnostic);
+	process->initialize(get_basenodename(),get_nodename(),get_hostname(),DIAGNOSTIC_SYSTEM,DIAGNOSTIC_SUBSYSTEM,DIAGNOSTIC_COMPONENT);
+	std::vector<uint8_t> diagnostic_types;
+	diagnostic_types.push_back(SOFTWARE);
+	diagnostic_types.push_back(DATA_STORAGE);
+	diagnostic_types.push_back(SYSTEM_RESOURCE);
+	diagnostic_types.push_back(SENSORS);
+	diagnostic_types.push_back(REMOTE_CONTROL);
+	process->enable_diagnostics(diagnostic_types);
 	process->finish_initialization();
 	diagnostic = finish_initialization();
 	if(diagnostic.Level > WARN)
@@ -28,10 +33,7 @@ bool AudioNode::start(int argc,char **argv)
 	}
 	if(diagnostic.Level < WARN)
 	{
-		diagnostic.Diagnostic_Type = NOERROR;
-		diagnostic.Level = INFO;
-		diagnostic.Diagnostic_Message = NOERROR;
-		diagnostic.Description = "Node Configured.  Initializing.";
+		diagnostic = process->update_diagnostic(SOFTWARE,INFO,INITIALIZING,"Node Configured.  Initializing.");
 		get_logger()->log_diagnostic(diagnostic);
 	}
 	status = true;
@@ -45,10 +47,7 @@ eros::diagnostic AudioNode::read_launchparameters()
 	std::string audiostage_dir;
 	if(n->getParam(param_audiostage_dir,audiostage_dir) == false)
 	{
-		diag.Diagnostic_Type = DATA_STORAGE;
-		diag.Level = ERROR;
-		diag.Diagnostic_Message = INITIALIZING_ERROR;
-		diag.Description = "Missing Parameter: audiostage_dir.  Exiting.";
+		diag = process->update_diagnostic(DATA_STORAGE,ERROR,INITIALIZING_ERROR,"Missing Parameter: audiostage_dir.  Exiting.");
 		logger->log_diagnostic(diag);
 		return diag;
 	}
@@ -56,11 +55,8 @@ eros::diagnostic AudioNode::read_launchparameters()
 	{
 		char tempstr[512];
 		sprintf(tempstr,"Can't Set Audio Storage Dir: %s. Exiting.",audiostage_dir.c_str());
-		diag.Diagnostic_Type = DATA_STORAGE;
-		diag.Level = ERROR;
-		diag.Diagnostic_Message = INITIALIZING_ERROR;
 		diag.Description = std::string(tempstr);
-		logger->log_diagnostic(diag);
+		diag = process->update_diagnostic(DATA_STORAGE,ERROR,INITIALIZING_ERROR,std::string(tempstr));
 		return diag;
 	}
 
@@ -68,10 +64,7 @@ eros::diagnostic AudioNode::read_launchparameters()
 	double volume;
 	if(n->getParam(param_volume,volume) == false)
 	{
-		diag.Diagnostic_Type = DATA_STORAGE;
-		diag.Level = ERROR;
-		diag.Diagnostic_Message = INITIALIZING_ERROR;
-		diag.Description = "Missing Parameter: volume_perc.  Exiting.";
+		diag = process->update_diagnostic(DATA_STORAGE,ERROR,INITIALIZING_ERROR, "Missing Parameter: volume_perc.  Exiting.");
 		logger->log_diagnostic(diag);
 		return diag;
 	}
@@ -84,10 +77,7 @@ eros::diagnostic AudioNode::read_launchparameters()
 	double audiofile_length;
 	if(n->getParam(param_audiofile_length,audiofile_length) == false)
 	{
-		diag.Diagnostic_Type = DATA_STORAGE;
-		diag.Level = ERROR;
-		diag.Diagnostic_Message = INITIALIZING_ERROR;
-		diag.Description = "Missing Parameter: audiofile_length.  Exiting.";
+		diag = process->update_diagnostic(DATA_STORAGE,ERROR,INITIALIZING_ERROR,"Missing Parameter: audiofile_length.  Exiting.");
 		logger->log_diagnostic(diag);
 		return diag;
 	}
@@ -97,17 +87,14 @@ eros::diagnostic AudioNode::read_launchparameters()
 	double audiobuffer_length;
 	if(n->getParam(param_audiobuffer_length,audiobuffer_length) == false)
 	{
-		diag.Diagnostic_Type = DATA_STORAGE;
-		diag.Level = ERROR;
-		diag.Diagnostic_Message = INITIALIZING_ERROR;
-		diag.Description = "Missing Parameter: audiobuffer_length.  Exiting.";
+		diag = process->update_diagnostic(DATA_STORAGE,ERROR,INITIALIZING_ERROR,"Missing Parameter: audiobuffer_length.  Exiting.");
 		logger->log_diagnostic(diag);
 		return diag;
 	}
 	process->set_totalaudiofiletimetokeep(audiobuffer_length);
 
-
-	get_logger()->log_notice("Configuration Files Loaded.");
+	diag = process->update_diagnostic(DATA_STORAGE,NOTICE,INITIALIZING,"Configuration Files Loaded.");
+	logger->log_diagnostic(diag);
 	return diagnostic;
 }
 eros::diagnostic AudioNode::finish_initialization()
@@ -127,16 +114,22 @@ bool AudioNode::run_001hz()
 }
 bool AudioNode::run_01hz()
 {
-	eros::diagnostic diag = process->get_diagnostic();
+	return true;
+}
+bool AudioNode::run_01hz_noisy()
+{
+	std::vector<eros::diagnostic> diaglist = process->get_diagnostics();
+	for (std::size_t i = 0; i < diaglist.size(); ++i)
 	{
-		get_logger()->log_diagnostic(diag);
-		diagnostic_pub.publish(diag);
+		get_logger()->log_diagnostic(diaglist.at(i));
+		diagnostic_pub.publish(diaglist.at(i));
 	}
 	return true;
 }
 bool AudioNode::run_1hz()
 {
-	if((process->is_initialized() == true) and (process->is_ready() == true))
+	process->update_diagnostic(get_resource_diagnostic());
+	if ((process->is_initialized() == true) and (process->is_ready() == true))
 	{
 	}
 	else if((process->is_ready() == false) and (process->is_initialized() == true))
@@ -148,7 +141,7 @@ bool AudioNode::run_1hz()
 			{
 				for(std::size_t i = 0; i < srv.response.data.size(); i++)
 				{
-					bool status = new_devicemsg(srv.request.query,srv.response.data.at(i));
+					new_devicemsg(srv.request.query,srv.response.data.at(i));
 				}
 			}
 		}
@@ -159,7 +152,7 @@ bool AudioNode::run_1hz()
 			{
 				for(std::size_t i = 0; i < srv.response.data.size(); i++)
 				{
-					bool status = new_devicemsg(srv.request.query,srv.response.data.at(i));
+					new_devicemsg(srv.request.query,srv.response.data.at(i));
 				}
 			}
 		}
@@ -178,7 +171,7 @@ bool AudioNode::run_1hz()
 				}
 				else
 				{
-					bool status = new_devicemsg(srv.request.query,srv.response.data.at(0));
+					new_devicemsg(srv.request.query,srv.response.data.at(0));
 				}
 			}
 			else
@@ -186,13 +179,15 @@ bool AudioNode::run_1hz()
 			}
 		}
 	}
-	eros::diagnostic diag = process->get_diagnostic();
-	if(diag.Level >= NOTICE)
+	std::vector<eros::diagnostic> diaglist = process->get_diagnostics();
+	for (std::size_t i = 0; i < diaglist.size(); ++i)
 	{
-		get_logger()->log_diagnostic(diag);
-		diagnostic_pub.publish(diag);
+		if (diaglist.at(i).Level == WARN)
+		{
+			get_logger()->log_diagnostic(diaglist.at(i));
+			diagnostic_pub.publish(diaglist.at(i));
+		}
 	}
-
 	return true;
 }
 bool AudioNode::run_10hz()
@@ -203,6 +198,15 @@ bool AudioNode::run_10hz()
 	{
 		get_logger()->log_diagnostic(diag);
 		diagnostic_pub.publish(diag);
+	}
+	std::vector<eros::diagnostic> diaglist = process->get_diagnostics();
+	for (std::size_t i = 0; i < diaglist.size(); ++i)
+	{
+		if (diaglist.at(i).Level > WARN)
+		{
+			get_logger()->log_diagnostic(diaglist.at(i));
+			diagnostic_pub.publish(diaglist.at(i));
+		}
 	}
 	return true;
 }

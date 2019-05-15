@@ -1,7 +1,7 @@
 #include "DiagnosticNodeProcess.h"
 eros::diagnostic  DiagnosticNodeProcess::finish_initialization()
 {
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	current_command.Command = ROVERCOMMAND_NONE;
 	last_cmd_timer = 0.0;
 	last_cmddiagnostic_timer = 0.0;
@@ -18,15 +18,22 @@ eros::diagnostic  DiagnosticNodeProcess::finish_initialization()
 	RCControl = true;
 	init_diaglevels();
 	init_subsystemdiagnostics();
-	return diagnostic;
+	return diag;
 }
 eros::diagnostic DiagnosticNodeProcess::update(double t_dt,double t_ros_time)
 {
 	last_cmddiagnostic_timer += t_dt;
 	lcdclock_timer+=t_dt;
 
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
+		if(initialized == false)
+	{
+		diag = update_diagnostic(REMOTE_CONTROL,NOTICE,NOERROR,"No Remote Control Command Yet.");
+		diag = update_diagnostic(DATA_STORAGE,NOTICE,INITIALIZING,"Initializing.");
+	}
+
 	diag = update_baseprocess(t_dt,t_ros_time);
+	diag = update_diagnostic(diag);
 	if(lcdclock_timer > 0.5)
 	{
 		int v = lcd_clock;
@@ -41,6 +48,7 @@ eros::diagnostic DiagnosticNodeProcess::update(double t_dt,double t_ros_time)
 	if(lcd_available == false)
 	{
 		if(initialized == true){ ready = true; }
+		
 	}
 	bool status = true;
 	for(std::size_t i = 0; i < diaglevels.size(); i++)
@@ -51,12 +59,9 @@ eros::diagnostic DiagnosticNodeProcess::update(double t_dt,double t_ros_time)
 	if(last_cmddiagnostic_timer > 30.0)
 	{
 		status = false;
-		diag.Diagnostic_Type = COMMUNICATIONS;
-		diag.Level = WARN;
-		diag.Diagnostic_Message = DROPPING_PACKETS;
 		char tempstr[512];
 		sprintf(tempstr,"Have not received CMD:DIAGNOSTIC in: %f Seconds",last_cmddiagnostic_timer);
-		diag.Description = std::string(tempstr);
+		diag = update_diagnostic(COMMUNICATIONS,WARN,DROPPING_PACKETS,std::string(tempstr));
 	}
 	for(std::size_t i = 0; i < subsystem_diagnostics.size(); ++i)
 	{
@@ -79,18 +84,17 @@ eros::diagnostic DiagnosticNodeProcess::update(double t_dt,double t_ros_time)
 	}
 	if(status == true)
 	{
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Level = INFO;
-		diag.Diagnostic_Message = NOERROR;
-		diag.Description = "Node Running";
+		diag = update_diagnostic(SOFTWARE,INFO,NOERROR,"Node Running");
+		if((is_initialized() == true) and (is_ready() == true))
+		{
+			update_diagnostic(DATA_STORAGE,INFO,NOERROR,"No Error");
+		}
 	}
-
-	diagnostic = diag;
 	return diag;
 }
 eros::diagnostic DiagnosticNodeProcess::new_devicemsg(const eros::device::ConstPtr& device)
 {
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	if(device->DeviceName == host_name)
 	{
 
@@ -101,33 +105,28 @@ eros::diagnostic DiagnosticNodeProcess::new_devicemsg(const eros::device::ConstP
 		{
 			lcd_height = 4;
 			lcd_width = 20;
+			diag = update_diagnostic(REMOTE_CONTROL,INFO,NOERROR,"LCD Initialized.");
 			ready = true;
 		}
 		else
 		{
-			diag.Level = ERROR;
-			diag.Diagnostic_Type = DATA_STORAGE;
-			diag.Diagnostic_Message = INITIALIZING_ERROR;
 			char tempstr[512];
 			sprintf(tempstr,"Unsupported Device: %s\n",device->PartNumber.c_str());
-			diag.Description = std::string(tempstr);
+			diag = update_diagnostic(DATA_STORAGE,ERROR,INITIALIZING_ERROR,std::string(tempstr));
 		}
 	}
 	else
 	{
-		diag.Level = ERROR;
-		diag.Diagnostic_Type = DATA_STORAGE;
-		diag.Diagnostic_Message = INITIALIZING_ERROR;
 		char tempstr[512];
 		sprintf(tempstr,"Unsupported Device Message: %s\n",device->DeviceName.c_str());
-		diag.Description = std::string(tempstr);
+		diag = update_diagnostic(DATA_STORAGE,ERROR,INITIALIZING_ERROR,std::string(tempstr));
 	}
 	return diag;
 }
 std::vector<eros::diagnostic> DiagnosticNodeProcess::new_commandmsg(const eros::command::ConstPtr& t_msg)
 {
 	std::vector<eros::diagnostic> diaglist;
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	if (t_msg->Command == ROVERCOMMAND_RUNDIAGNOSTIC)
 	{
 		RCControl = true;
@@ -173,27 +172,20 @@ std::vector<eros::diagnostic> DiagnosticNodeProcess::new_commandmsg(const eros::
 std::vector<eros::diagnostic> DiagnosticNodeProcess::check_programvariables()
 {
 	std::vector<eros::diagnostic> diaglist;
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	bool status = true;
 
 	if (status == true) {
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Level = INFO;
-		diag.Diagnostic_Message = DIAGNOSTIC_PASSED;
-		diag.Description = "Checked Program Variables -> PASSED.";
+		diag = update_diagnostic(SOFTWARE,INFO,DIAGNOSTIC_PASSED,"Checked Program Variables -> PASSED.");
 		diaglist.push_back(diag);
 	} else {
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Level = WARN;
-		diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
-		diag.Description = "Checked Program Variables -> FAILED.";
+		diag = update_diagnostic(SOFTWARE,WARN,DIAGNOSTIC_FAILED,"Checked Program Variables -> FAILED.");
 		diaglist.push_back(diag);
 	}
 	return diaglist;
 }
 std::string DiagnosticNodeProcess::build_lcdmessage()
 {
-	eros::diagnostic diag = diagnostic;
 	if(lcd_partnumber == "617003")
 	{
 		char buffer[lcd_width*lcd_height];
@@ -443,6 +435,7 @@ void DiagnosticNodeProcess::new_heartbeatmsg(std::string topicname)
 			TaskList.at(i).last_heartbeat_received = run_time;
 		}
 	}
+	update_diagnostic(COMMUNICATIONS,INFO,NOERROR,"Heartbeat Updated.");
 }
 void DiagnosticNodeProcess::new_resourcemsg(std::string topicname,const eros::resource::ConstPtr& resource)
 {
@@ -535,7 +528,7 @@ void DiagnosticNodeProcess::new_diagnosticmsg(std::string topicname,const eros::
 std::vector<eros::diagnostic> DiagnosticNodeProcess::check_tasks()
 {
 	std::vector<eros::diagnostic> diaglist;
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	std::size_t task_ok_counter = 0;
 	for(std::size_t i = 0; i < TaskList.size(); i++)
 	{
@@ -547,10 +540,7 @@ std::vector<eros::diagnostic> DiagnosticNodeProcess::check_tasks()
 			char tempstr[512];
 			sprintf(tempstr,"Task: %s is using high CPU resource: %d/%d %%",
 					Task.Task_Name.c_str(),Task.CPU_Perc,CPU_usage_threshold_percent);
-			diag.Diagnostic_Type = SYSTEM_RESOURCE;
-			diag.Diagnostic_Message = HIGH_RESOURCE_USAGE;
-			diag.Level = WARN;
-			diag.Description = tempstr;
+			diag = update_diagnostic(SYSTEM_RESOURCE,WARN,HIGH_RESOURCE_USAGE,std::string(tempstr));
 			diaglist.push_back(diag);
 		}
 		if(Task.RAM_MB > RAM_usage_threshold_MB)
@@ -559,10 +549,7 @@ std::vector<eros::diagnostic> DiagnosticNodeProcess::check_tasks()
 			char tempstr[512];
 			sprintf(tempstr,"Task: %s is using high RAM resource: %ld/%d (MB)",
 					Task.Task_Name.c_str(),Task.RAM_MB,RAM_usage_threshold_MB);
-			diag.Diagnostic_Type = SYSTEM_RESOURCE;
-			diag.Diagnostic_Message = HIGH_RESOURCE_USAGE;
-			diag.Level = WARN;
-			diag.Description = tempstr;
+			diag = update_diagnostic(SYSTEM_RESOURCE,WARN,HIGH_RESOURCE_USAGE,std::string(tempstr));
 			diaglist.push_back(diag);
 		}
 		
@@ -573,10 +560,7 @@ std::vector<eros::diagnostic> DiagnosticNodeProcess::check_tasks()
 			char tempstr[512];
 			sprintf(tempstr,"Task: %s has not reported heartbeats in %.1f seconds",
 					Task.Task_Name.c_str(),heartbeat_time_duration);
-			diag.Diagnostic_Type = COMMUNICATIONS;
-			diag.Diagnostic_Message = MISSING_HEARTBEATS;
-			diag.Level = FATAL;
-			diag.Description = tempstr;
+			diag = update_diagnostic(COMMUNICATIONS,ERROR,MISSING_HEARTBEATS,std::string(tempstr));
 			diaglist.push_back(diag);
 		}
 
@@ -589,24 +573,13 @@ std::vector<eros::diagnostic> DiagnosticNodeProcess::check_tasks()
 			if(ready == true) { ready_to_arm = true; }
 			char tempstr[255];
 			sprintf(tempstr,"%d/%d (All) Tasks Operational.",(int)task_ok_counter,(int)TaskList.size());
-			eros::diagnostic system_diag;
-			system_diag.Node_Name = node_name;
-			system_diag.System = ROVER;
-			system_diag.SubSystem = ENTIRE_SUBSYSTEM;
-			system_diag.Component = DIAGNOSTIC_NODE;
-			system_diag.Diagnostic_Message = NOERROR;
-			system_diag.Diagnostic_Type = SOFTWARE;
-			system_diag.Level = NOTICE;
-			system_diag.Description = std::string(tempstr);
-			diaglist.push_back(system_diag);
+			diag = update_diagnostic(SOFTWARE,INFO,NOERROR,std::string(tempstr));
+			diaglist.push_back(diag);
 		}
 		else
 		{
 			ready_to_arm = false;
-			diag.Diagnostic_Type = SOFTWARE;
-			diag.Diagnostic_Message = INITIALIZING_ERROR;
-			diag.Level = FATAL;
-			diag.Description = "Not listening to Any Tasks.";
+			diag = update_diagnostic(SOFTWARE,ERROR,INITIALIZING_ERROR,"Not listening to Any Tasks.");
 			diaglist.push_back(diag);
 		}
 
@@ -616,10 +589,7 @@ std::vector<eros::diagnostic> DiagnosticNodeProcess::check_tasks()
 		ready_to_arm = false;
 		char tempstr[255];
 		sprintf(tempstr,"%d/%d Tasks are in WARN state or Higher!",(int)TaskList.size()-(int)task_ok_counter,(int)TaskList.size());
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
-		diag.Level = WARN;
-		diag.Description = tempstr;
+		diag = update_diagnostic(SOFTWARE,WARN,DEVICE_NOT_AVAILABLE,std::string(tempstr));
 		diaglist.push_back(diag);
 	}
 	return diaglist;

@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <csignal>
 
+
 //C++ System Files
 #include <thread>
 #include <iostream>
@@ -58,10 +59,12 @@ public:
 	virtual bool run_loop2() = 0;
 	/*! \brief Loop3 Must be Implemented in Derived Node.*/
 	virtual bool run_loop3() = 0;
-	/*! \brief Loop .1Hz Must be Implemented in Derived Node.*/
+	/*! \brief Loop .01Hz Must be Implemented in Derived Node.*/
 	virtual bool run_001hz() = 0;
-		/*! \brief Loop 1Hz Must be Implemented in Derived Node.*/
+		/*! \brief Loop .1Hz Must be Implemented in Derived Node.*/
 	virtual bool run_01hz() = 0;
+	/*! \brief Loop .1Hz Noisy Must be Implemented in Derived Node.*/
+	virtual bool run_01hz_noisy() = 0;
 	/*! \brief Loop 1Hz Must be Implemented in Derived Node.*/
 	virtual bool run_1hz() = 0;
 	/*! \brief Loop 10Hz Must be Implemented in Derived Node.*/
@@ -73,6 +76,7 @@ public:
 	std::string get_nodename() { return node_name; }
 	std::string get_verbositylevel() { return verbosity_level; }
 	eros::diagnostic get_diagnostic() { return diagnostic; }
+	eros::diagnostic get_resource_diagnostic() { return resource_diagnostic; }
 	std::string get_hostname() { return std::string(host_name); }
 
 	//Utility Functions
@@ -141,6 +145,7 @@ protected:
 	ros::Time boot_time;
 	ros::Time last_001hz_timer;
 	ros::Time last_01hz_timer;
+	ros::Time last_01hz_noisy_timer;
 	ros::Time last_1hz_timer;
 	ros::Time last_10hz_timer;
 	bool loop1_enabled;
@@ -160,6 +165,7 @@ protected:
 	bool require_pps_to_start,pps_received;
 	bool ready_to_arm;
 	bool publish_readytoarm;
+	double rand_delay_sec; 
 
 private:
 

@@ -1,23 +1,21 @@
 #include "SampleNodeProcess.h"
 eros::diagnostic SampleNodeProcess::set_config_filepaths(std::string t_filepath)
 {
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	config_filepath = t_filepath;
+	diag = update_diagnostic(DATA_STORAGE,INFO,INITIALIZING,"Config File Paths Set");
 	return diag;
 }
 eros::diagnostic SampleNodeProcess::load_configfile(std::string path)
 {
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	TiXmlDocument doc(path);
 	bool configfile_loaded = doc.LoadFile();
 	if(configfile_loaded == false)
 	{
-		diag.Diagnostic_Type = DATA_STORAGE;
-		diag.Level = FATAL;
-		diag.Diagnostic_Message = INITIALIZING_ERROR;
 		char tempstr[512];
 		sprintf(tempstr,"Unable to load: %s",path.c_str());
-		diag.Description = std::string(tempstr);
+		diag = update_diagnostic(DATA_STORAGE,FATAL,INITIALIZING_ERROR,std::string(tempstr));
 		return diag;
 	}
 	TiXmlElement *l_pRootElement = doc.RootElement();
@@ -32,18 +30,12 @@ eros::diagnostic SampleNodeProcess::load_configfile(std::string path)
 	}
 	if(all_items_loaded == false)
 	{
-		diag.Diagnostic_Type = DATA_STORAGE;
-		diag.Level = ERROR;
-		diag.Diagnostic_Message = INITIALIZING_ERROR;
-		diag.Description = "Not all items loaded.";
+		diag = update_diagnostic(DATA_STORAGE,ERROR,INITIALIZING_ERROR,"Not all items loaded.");
 		return diag;
 	}
 	else
 	{
-		diag.Diagnostic_Type = DATA_STORAGE;
-		diag.Level = INFO;
-		diag.Diagnostic_Message = INITIALIZING;
-		diag.Description = "Config Loaded.";
+		diag = update_diagnostic(DATA_STORAGE,INFO,INITIALIZING,"Config Loaded.");
 		return diag;
 	}
 
@@ -51,9 +43,10 @@ eros::diagnostic SampleNodeProcess::load_configfile(std::string path)
 }
 eros::diagnostic  SampleNodeProcess::finish_initialization()
 {
-    eros::diagnostic diag = diagnostic;
-	diagnostic = load_configfile(config_filepath);
-    return diagnostic;
+    eros::diagnostic diag = root_diagnostic;
+	diag = load_configfile(config_filepath);
+	diag = update_diagnostic(diag);
+    return diag;
 }
 eros::diagnostic SampleNodeProcess::update(double t_dt,double t_ros_time)
 {
@@ -62,29 +55,24 @@ eros::diagnostic SampleNodeProcess::update(double t_dt,double t_ros_time)
 		ready = true;
 
 	}
-	eros::diagnostic diag = diagnostic;
-	diag = update_baseprocess(t_dt,t_ros_time);
+	eros::diagnostic diag = update_baseprocess(t_dt,t_ros_time);
 	if(diag.Level <= NOTICE)
 	{
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Level = INFO;
-		diag.Diagnostic_Message = NOERROR;
-		diag.Description = "Node Running.";
-
+		diag = update_diagnostic(DATA_STORAGE,INFO,NOERROR,"No Error.");
+		diag = update_diagnostic(SOFTWARE,INFO,NOERROR,"Node Running");
+		
 	}
-	diagnostic = diag;
 	return diag;
 }
 eros::diagnostic SampleNodeProcess::new_devicemsg(const eros::device::ConstPtr& device)
 {
-	eros::diagnostic diag = diagnostic;
-	printf("Got Device: %s\n",device->DeviceName.c_str());
+	eros::diagnostic diag = update_diagnostic(SOFTWARE,INFO,NOERROR,"Updated Device");
 	return diag;
 }
 std::vector<eros::diagnostic> SampleNodeProcess::new_commandmsg(const eros::command::ConstPtr& t_msg)
 {
 	std::vector<eros::diagnostic> diaglist;
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	if (t_msg->Command == ROVERCOMMAND_RUNDIAGNOSTIC)
 	{
 		if (t_msg->Option1 == LEVEL1)
@@ -105,25 +93,23 @@ std::vector<eros::diagnostic> SampleNodeProcess::new_commandmsg(const eros::comm
 		{
 		}
 	}
+	for(std::size_t i = 0; i < diaglist.size(); ++i)
+	{
+		diag = update_diagnostic(diaglist.at(i));
+	}
 	return diaglist;
 }
 std::vector<eros::diagnostic> SampleNodeProcess::check_programvariables()
 {
 	std::vector<eros::diagnostic> diaglist;
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	bool status = true;
 
 	if (status == true) {
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Level = INFO;
-		diag.Diagnostic_Message = DIAGNOSTIC_PASSED;
-		diag.Description = "Checked Program Variables -> PASSED.";
+		diag = update_diagnostic(SOFTWARE,INFO,DIAGNOSTIC_PASSED,"Checked Program Variables -> PASSED.");
 		diaglist.push_back(diag);
 	} else {
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Level = WARN;
-		diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
-		diag.Description = "Checked Program Variables -> FAILED.";
+		diag = update_diagnostic(SOFTWARE,WARN,DIAGNOSTIC_FAILED,"Checked Program Variables -> FAILED.");
 		diaglist.push_back(diag);
 	}
 	return diaglist;

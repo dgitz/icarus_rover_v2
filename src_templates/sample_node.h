@@ -15,14 +15,14 @@ public:
 
 	const string BASE_NODE_NAME = "sample_node";
 
-	const uint8_t MAJOR_RELEASE_VERSION = 3;
+	const uint8_t MAJOR_RELEASE_VERSION = 4;
 	const uint8_t MINOR_RELEASE_VERSION = 0;
-	const uint8_t BUILD_NUMBER = 1;
-	const string FIRMWARE_DESCRIPTION = "Latest Rev: 26-November-2018";
+	const uint8_t BUILD_NUMBER = 0;
+	const string FIRMWARE_DESCRIPTION = "Latest Rev: 11-May-2019";
 
 	const uint8_t DIAGNOSTIC_SYSTEM = ROVER;
 	const uint8_t DIAGNOSTIC_SUBSYSTEM = ROBOT_CONTROLLER;
-	const uint8_t DIAGNOSTIC_COMPONENT = TIMING_NODE;
+	const uint8_t DIAGNOSTIC_COMPONENT = CONTROLLER_NODE;
 	~SampleNode()
 	{
 	}
@@ -48,6 +48,7 @@ private:
 	//Update Functions
 	bool run_001hz();
 	bool run_01hz();
+	bool run_01hz_noisy();
 	bool run_1hz();
 	bool run_10hz();
 	bool run_loop1();

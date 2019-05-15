@@ -1,7 +1,7 @@
 #include "CommandNodeProcess.h"
 eros::diagnostic  CommandNodeProcess::finish_initialization()
 {
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	diag = init_PeriodicCommands();
 	ms_timer = 0;
 	timeout_value_ms = 0;
@@ -29,18 +29,24 @@ eros::diagnostic  CommandNodeProcess::finish_initialization()
 	command_map[ROVERCOMMAND_STOPMOVEMENT] = "STOP MOVEMENT";
 	command_map[ROVERCOMMAND_DRIVECOMMAND] = "DRIVE COMMAND";
 	command_map[ROVERCOMMAND_WAIT] = "WAIT";
-	diagnostic = diag;
-	return diagnostic;
+	return diag;
 }
 eros::diagnostic CommandNodeProcess::update(double t_dt,double t_ros_time)
 {
+	eros::diagnostic diag = root_diagnostic;
 	//NEED MUTEX LOCK
+	if(initialized == false)
+	{
+		diag = update_diagnostic(REMOTE_CONTROL,NOTICE,NOERROR,"No Remote Control Command Yet.");
+		diag = update_diagnostic(DATA_STORAGE,NOTICE,INITIALIZING,"Initializing.");
+		diag = update_diagnostic(TARGET_ACQUISITION,INFO,NOERROR,"No Targets Found Yet.");
+	}
 	if(initialized == true)
 	{
 		ready = true;
 
 	}
-	eros::diagnostic diag = diagnostic;
+	
 	diag = update_baseprocess(t_dt,t_ros_time);
 	if(ready == true)
 	{
@@ -62,7 +68,7 @@ eros::diagnostic CommandNodeProcess::update(double t_dt,double t_ros_time)
 	}
 	else
 	{
-		for(int i = 0; i < ReadyToArmList.size();i++)
+		for(std::size_t i = 0; i < ReadyToArmList.size();i++)
 		{
 			if(ReadyToArmList.at(i).ready_to_arm == false)
 			{
@@ -99,16 +105,14 @@ eros::diagnostic CommandNodeProcess::update(double t_dt,double t_ros_time)
 			periodic_commands.at(i).lasttime_ran = run_time;
 		}
 	}
-
+	if((is_initialized() == true) and (is_ready() == true))
+	{
+		diag = update_diagnostic(DATA_STORAGE,INFO,NOERROR,"No Error.");
+	}
 	if(diag.Level <= NOTICE)
 	{
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Level = INFO;
-		diag.Diagnostic_Message = NOERROR;
-		diag.Description = "Node Running.";
-
+		diag = update_diagnostic(SOFTWARE,INFO,NOERROR,"Node Running.");
 	}
-	diagnostic = diag;
 	return diag;
 }
 std::vector<eros::command> CommandNodeProcess::get_command_buffer()
@@ -151,13 +155,13 @@ std::vector<eros::command> CommandNodeProcess::get_command_buffer()
 }
 eros::diagnostic CommandNodeProcess::new_devicemsg(const eros::device::ConstPtr& device)
 {
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	return diag;
 }
 std::vector<eros::diagnostic> CommandNodeProcess::new_commandmsg(const eros::command::ConstPtr& t_msg)
 {
 	std::vector<eros::diagnostic> diaglist;
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	if (t_msg->Command == ROVERCOMMAND_RUNDIAGNOSTIC)
 	{
 		if (t_msg->Option1 == LEVEL1)
@@ -183,27 +187,22 @@ std::vector<eros::diagnostic> CommandNodeProcess::new_commandmsg(const eros::com
 std::vector<eros::diagnostic> CommandNodeProcess::check_programvariables()
 {
 	std::vector<eros::diagnostic> diaglist;
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	bool status = true;
 
 	if (status == true) {
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Level = INFO;
-		diag.Diagnostic_Message = DIAGNOSTIC_PASSED;
-		diag.Description = "Checked Program Variables -> PASSED.";
+		diag = update_diagnostic(SOFTWARE,INFO,DIAGNOSTIC_PASSED,"Checked Program Variables -> PASSED.");
 		diaglist.push_back(diag);
 	} else {
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Level = WARN;
-		diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
-		diag.Description = "Checked Program Variables -> FAILED.";
+		diag = update_diagnostic(SOFTWARE,WARN,DIAGNOSTIC_FAILED,"Checked Program Variables -> FAILED.");
 		diaglist.push_back(diag);
 	}
 	return diaglist;
 }
 eros::diagnostic CommandNodeProcess::init_readytoarm_list(std::vector<std::string> topics)
 {
-	for(int i = 0; i < topics.size();i++)
+	eros::diagnostic diag = root_diagnostic;
+	for(std::size_t i = 0; i < topics.size();i++)
 	{
 		ReadyToArm newarm;
 		newarm.topic = topics.at(i);
@@ -211,15 +210,12 @@ eros::diagnostic CommandNodeProcess::init_readytoarm_list(std::vector<std::strin
 		newarm.time_since_lastrx = 0.0;
 		ReadyToArmList.push_back(newarm);
 	}
-	diagnostic.Diagnostic_Type = SOFTWARE;
-	diagnostic.Level = INFO;
-	diagnostic.Diagnostic_Message = NOERROR;
-	diagnostic.Description = "Initialized Ready To Arm List.";
-	return diagnostic;
+	diag = update_diagnostic(DATA_STORAGE,INFO,INITIALIZING,"Initialized Ready To Arm List.");
+	return diag;
 }
 void CommandNodeProcess::new_readytoarmmsg(std::string topic, bool value)
 {
-	for(int i = 0; i < ReadyToArmList.size();i++)
+	for(std::size_t i = 0; i < ReadyToArmList.size();i++)
 	{
 		if(ReadyToArmList.at(i).topic == topic)
 		{
@@ -231,65 +227,52 @@ void CommandNodeProcess::new_readytoarmmsg(std::string topic, bool value)
 }
 eros::diagnostic CommandNodeProcess::new_user_commandmsg(const eros::command::ConstPtr& msg)
 {
+	eros::diagnostic diag = root_diagnostic;
 	if((msg->Command == ROVERCOMMAND_ARM) || (msg->Command == ROVERCOMMAND_DISARM))
 	{
 		if(armeddisarmed_state == ARMEDSTATUS_DISARMED_CANNOTARM)
 		{
-			diagnostic.Diagnostic_Type = REMOTE_CONTROL;
-			diagnostic.Level = ERROR;
-			diagnostic.Description = "Armed Status is DISARMED AND CANNOT ARM!";
-			diagnostic.Diagnostic_Message = DIAGNOSTIC_FAILED;
-			return diagnostic;
+			diag = update_diagnostic(REMOTE_CONTROL,ERROR,DIAGNOSTIC_FAILED,"Armed Status is DISARMED AND CANNOT ARM!");
+			return diag;
 		}
 		last_command = current_command;
 		current_command = convert_fromptr(msg);
 		if(msg->Command == ROVERCOMMAND_ARM)
 		{
 			armeddisarmed_state = ARMEDSTATUS_ARMED;
-			diagnostic.Diagnostic_Type = REMOTE_CONTROL;
-			diagnostic.Level = NOTICE;
-			diagnostic.Description = "Rover is ARMED";
-			diagnostic.Diagnostic_Message = ROVERCOMMAND_ARM;
+			diag = update_diagnostic(REMOTE_CONTROL,NOTICE,ROVERCOMMAND_ARM,"Rover is ARMED");
 			disarmed_reason = "None";
-			return diagnostic;
+			return diag;
 		}
 		else//msg.Command == ROVERCOMMAND_DISARM
 		{
 			armeddisarmed_state = ARMEDSTATUS_DISARMED;
-			diagnostic.Diagnostic_Type = REMOTE_CONTROL;
-			diagnostic.Level = NOTICE;
-			diagnostic.Description = "Rover is DISARMED";
-			diagnostic.Diagnostic_Message = ROVERCOMMAND_DISARM;
+			diag = update_diagnostic(REMOTE_CONTROL,NOTICE,ROVERCOMMAND_DISARM,"Rover is DISARMED");
 			disarmed_reason = "None";
-			return diagnostic;
+			return diag;
 		}
 	}
 	else
 	{
-		diagnostic.Diagnostic_Type = REMOTE_CONTROL;
-		diagnostic.Level = WARN;
 		char tempstr[512];
 		sprintf(tempstr,"User Command: %d Not supported.",msg->Command);
-		diagnostic.Description = std::string(tempstr);
-		diagnostic.Diagnostic_Message = DIAGNOSTIC_FAILED;
-		return diagnostic;
+		diag = update_diagnostic(REMOTE_CONTROL,WARN,DIAGNOSTIC_FAILED,std::string(tempstr));
+		return diag;
 	}
 }
 
 eros::diagnostic CommandNodeProcess::get_disarmedreason()
 {
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	if(armeddisarmed_state == ARMEDSTATUS_DISARMED_CANNOTARM)
 	{
-		diag.Diagnostic_Type = REMOTE_CONTROL;
-		diag.Diagnostic_Message = ROVER_DISARMED;
-		diag.Level = WARN;
-		diag.Description = disarmed_reason;
+		diag = update_diagnostic(REMOTE_CONTROL,WARN,ROVER_DISARMED,disarmed_reason);
 	}
 	return diag;
 }
 eros::diagnostic CommandNodeProcess::new_targetmsg(std::string target)
 {
+	eros::diagnostic diag = root_diagnostic;
 	if(target == "outlet")
 	{
 		if(node_state == NODESTATE_SEARCHING_FOR_RECHARGE_FACILITY)
@@ -298,32 +281,23 @@ eros::diagnostic CommandNodeProcess::new_targetmsg(std::string target)
 			current_command.Command = ROVERCOMMAND_STOPSEARCHFOR_RECHARGE_FACILITY;
 			node_state = NODESTATE_ACQUIRING_TARGET;
 		}
-		diagnostic.Diagnostic_Type = TARGET_ACQUISITION;
-		diagnostic.Diagnostic_Message = NOERROR;
-		diagnostic.Level = INFO;
 		char tempstr[512];
 		sprintf(tempstr,"Found target: %s",target.c_str());
-		diagnostic.Description = std::string(tempstr);
-		return diagnostic;
+		diag = update_diagnostic(TARGET_ACQUISITION,INFO,NOERROR,std::string(tempstr));
+		return diag;
 
 	}
 	else if(target == "unknown")
 	{
-		diagnostic.Diagnostic_Type = TARGET_ACQUISITION;
-		diagnostic.Diagnostic_Message = NOERROR;
-		diagnostic.Level = INFO;
-		diagnostic.Description = "No Target Found";
-		return diagnostic;
+		diag = update_diagnostic(TARGET_ACQUISITION,INFO,NOERROR,"No Target Found");
+		return diag;
 	}
 	else
 	{
-		diagnostic.Diagnostic_Type = TARGET_ACQUISITION;
-		diagnostic.Diagnostic_Message = DROPPING_PACKETS;
-		diagnostic.Level = WARN;
 		char tempstr[512];
 		sprintf(tempstr,"Found target: %s But not currently supported",target.c_str());
-		diagnostic.Description = std::string(tempstr);
-		return diagnostic;
+		diag = update_diagnostic(TARGET_ACQUISITION,WARN,DROPPING_PACKETS,std::string(tempstr));
+		return diag;
 	}
 }
 
@@ -342,6 +316,7 @@ std::vector<eros::command> CommandNodeProcess::get_PeriodicCommands()
 }
 eros::diagnostic CommandNodeProcess::init_PeriodicCommands()
 {
+	eros::diagnostic diag = root_diagnostic;
 	std::vector<PeriodicCommand> commands;
 	{
 		eros::command cmd;
@@ -367,17 +342,14 @@ eros::diagnostic CommandNodeProcess::init_PeriodicCommands()
 
 
 
-	for(int i = 0; i < commands.size(); i++)
+	for(std::size_t i = 0; i < commands.size(); i++)
 	{
 		commands.at(i).lasttime_ran = 0.0;
 		commands.at(i).send_me = true;
 	}
 	periodic_commands = commands;
-	diagnostic.Diagnostic_Type = SOFTWARE;
-	diagnostic.Level = INFO;
-	diagnostic.Diagnostic_Message = NOERROR;
-	diagnostic.Description = "Initialized Periodic Command List";
-	return diagnostic;
+	diag = update_diagnostic(SOFTWARE,INFO,INITIALIZING, "Initialized Periodic Command List");
+	return diag;
 }
 uint16_t CommandNodeProcess::map_RoverCommand_ToInt(std::string command)
 {
@@ -407,7 +379,7 @@ std::string CommandNodeProcess::map_RoverCommand_ToString(uint16_t command)
 }
 eros::diagnostic CommandNodeProcess::load_loadscriptingfiles(std::string directory) //Use "" for default path, otherwise use specified directory
 {
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	std::vector<std::string> files_to_load;
 	DIR *dpdf;
 	struct dirent *epdf;
@@ -450,12 +422,9 @@ eros::diagnostic CommandNodeProcess::load_loadscriptingfiles(std::string directo
 				uint16_t command_type = map_RoverCommand_ToInt(items.at(0));
 				if(command_type == ROVERCOMMAND_UNDEFINED)
 				{
-					diag.Diagnostic_Type = DATA_STORAGE;
-					diag.Level = ERROR;
-					diag.Diagnostic_Message = INITIALIZING_ERROR;
 					char tempstr[1024];
 					sprintf(tempstr,"File: %s Line Number: %d Command: %s on line: %s Not Supported.",file.c_str(),line_counter,items.at(0).c_str(),line.c_str());
-					diag.Description = std::string(tempstr);
+					diag = update_diagnostic(DATA_STORAGE,ERROR,INITIALIZING_ERROR,std::string(tempstr));
 					return diag;
 				}
 				cmd.command.Command = command_type;
@@ -502,12 +471,9 @@ eros::diagnostic CommandNodeProcess::load_loadscriptingfiles(std::string directo
 				}
 				else
 				{
-					diag.Diagnostic_Type = DATA_STORAGE;
-					diag.Level = ERROR;
-					diag.Diagnostic_Message = INITIALIZING_ERROR;
 					char tempstr[1024];
 					sprintf(tempstr,"File: %s Command: %s Not Supported in Scripting.",file.c_str(),items.at(0).c_str());
-					diag.Description = std::string(tempstr);
+					diag = update_diagnostic(DATA_STORAGE,ERROR,INITIALIZING_ERROR,std::string(tempstr));
 					return diag;
 				}
 				switch(cmd.execution_mode)
@@ -539,10 +505,7 @@ eros::diagnostic CommandNodeProcess::load_loadscriptingfiles(std::string directo
 	}
 	script_execution_time = script_commands.at(script_commands.size()-1).command_stoptime;
 	command_buffer.push_back(script_commands.at(0).command);
-	diag.Diagnostic_Type = DATA_STORAGE;
-	diag.Level = NOTICE;
-	diag.Diagnostic_Message = NOERROR;
-	diag.Description = "Loaded Script.";
+	diag = update_diagnostic(DATA_STORAGE,NOTICE,NOERROR, "Loaded Script.");
 	return diag;
 }
 void CommandNodeProcess::print_scriptcommand_list()

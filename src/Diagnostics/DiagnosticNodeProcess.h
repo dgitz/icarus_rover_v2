@@ -78,6 +78,7 @@ public:
     /*! \brief Disable LCD */
 	void no_connectedlcd()
 	{
+		update_diagnostic(REMOTE_CONTROL,INFO,NOERROR,"LCD is Disabled.");
 		lcd_available = false;
 	}
 	bool get_lcdavailable() { return lcd_available; }

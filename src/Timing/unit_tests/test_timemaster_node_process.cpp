@@ -6,24 +6,13 @@
 std::string Node_Name = "/unittest_timemaster_node_process";
 std::string Host_Name = "unittest";
 std::string ros_DeviceName = Host_Name;
+#define DIAGNOSTIC_TYPE_COUNT 5
 
 
-TimeMasterNodeProcess* initializeprocess()
+TimeMasterNodeProcess* initializeprocess(std::string pps_source)
 {
-	eros::diagnostic diagnostic;
-	diagnostic.DeviceName = ros_DeviceName;
-	diagnostic.Node_Name = Node_Name;
-	diagnostic.System = ROVER;
-	diagnostic.SubSystem = ROBOT_CONTROLLER;
-	diagnostic.Component = TIMING_NODE;
-
-	diagnostic.Diagnostic_Type = NOERROR;
-	diagnostic.Level = INFO;
-	diagnostic.Diagnostic_Message = INITIALIZING;
-	diagnostic.Description = "Node Initializing";
-
 	eros::device device;
-	device.DeviceName = diagnostic.DeviceName;
+	device.DeviceName = ros_DeviceName;
 	device.BoardCount = 0;
 	device.SensorCount = 0;
 	device.DeviceParent = "None";
@@ -31,7 +20,15 @@ TimeMasterNodeProcess* initializeprocess()
 
 	TimeMasterNodeProcess *process;
 	process = new TimeMasterNodeProcess;
-	process->set_diagnostic(diagnostic);
+	process->initialize("timemaster_node",Node_Name,Host_Name,ROVER,ROBOT_CONTROLLER,TIMING_NODE);
+	std::vector<uint8_t> diagnostic_types;
+	diagnostic_types.push_back(SOFTWARE);
+	diagnostic_types.push_back(DATA_STORAGE);
+	diagnostic_types.push_back(SYSTEM_RESOURCE);
+	diagnostic_types.push_back(TIMING);
+	diagnostic_types.push_back(SENSORS);
+	process->enable_diagnostics(diagnostic_types);
+	process->set_ppssource(pps_source);
 	process->finish_initialization();
 	EXPECT_TRUE(process->is_initialized() == false);
 	process->set_mydevice(device);
@@ -44,17 +41,26 @@ TimeMasterNodeProcess* readyprocess(TimeMasterNodeProcess* process)
 	eros::diagnostic diag = process->update(0.0,0.0);
 	EXPECT_TRUE(diag.Level <= NOTICE);
 	EXPECT_TRUE(process->is_ready() == true);
+	{
+		std::vector<eros::diagnostic> diagnostics = process->get_diagnostics();
+		EXPECT_TRUE(diagnostics.size() == DIAGNOSTIC_TYPE_COUNT);
+		for (std::size_t i = 0; i < diagnostics.size(); ++i)
+		{
+			EXPECT_TRUE(diagnostics.at(i).Level <= NOTICE);
+		}
+	}
 	return process;
 }
 TEST(Template,Process_Initialization)
 {
-	TimeMasterNodeProcess* process = initializeprocess();
+	TimeMasterNodeProcess* process = initializeprocess("self");
 }
 
 TEST(Template,Process_Command)
 {
-	TimeMasterNodeProcess* process = initializeprocess();
+	TimeMasterNodeProcess* process = initializeprocess("self");
 	process = readyprocess(process);
+	return;
 	double time_to_run = 20.0;
 	double dt = 0.001;
 	double current_time = 0.0;
@@ -107,6 +113,15 @@ TEST(Template,Process_Command)
 			EXPECT_TRUE(diaglist.size() > 0);
 
 		}
+		if(slowrate_fire == true)
+		{
+			std::vector<eros::diagnostic> diagnostics = process->get_diagnostics();
+				EXPECT_TRUE(diagnostics.size() >= DIAGNOSTIC_TYPE_COUNT);
+				for (std::size_t i = 0; i < diagnostics.size(); ++i)
+				{
+					EXPECT_TRUE(diagnostics.at(i).Level <= NOTICE);
+				}
+		}
 
 		current_time += dt;
 	}
@@ -114,7 +129,7 @@ TEST(Template,Process_Command)
 }
 TEST(NormalOperation,PPS_Outputs)
 {
-	TimeMasterNodeProcess* process = initializeprocess();
+	TimeMasterNodeProcess* process = initializeprocess("self");
 	process = readyprocess(process);
 	double time_to_run = 100.0;
 	double dt = 0.001;

@@ -6,7 +6,6 @@ bool CalibrationNode::start(int argc,char **argv)
 	process = new CalibrationNodeProcess();
 	set_basenodename(BASE_NODE_NAME);
 	initialize_firmware(MAJOR_RELEASE_VERSION,MINOR_RELEASE_VERSION,BUILD_NUMBER,FIRMWARE_DESCRIPTION);
-	initialize_diagnostic(DIAGNOSTIC_SYSTEM,DIAGNOSTIC_SUBSYSTEM,DIAGNOSTIC_COMPONENT);
 	diagnostic = preinitialize_basenode(argc,argv);
 	if(diagnostic.Level > WARN)
 	{
@@ -18,8 +17,13 @@ bool CalibrationNode::start(int argc,char **argv)
 		return false;
 	}
 
-	process->initialize(get_basenodename(),get_nodename(),get_hostname());
-	process->set_diagnostic(diagnostic);
+	process->initialize(get_basenodename(),get_nodename(),get_hostname(),DIAGNOSTIC_SYSTEM,DIAGNOSTIC_SUBSYSTEM,DIAGNOSTIC_COMPONENT);
+	std::vector<uint8_t> diagnostic_types;
+	diagnostic_types.push_back(SOFTWARE);
+	diagnostic_types.push_back(DATA_STORAGE);
+	diagnostic_types.push_back(SYSTEM_RESOURCE);
+	diagnostic_types.push_back(SENSORS);
+	process->enable_diagnostics(diagnostic_types);
 	process->finish_initialization();
 	diagnostic = finish_initialization();
 	if(diagnostic.Level > WARN)
@@ -76,16 +80,20 @@ bool CalibrationNode::run_001hz()
 }
 bool CalibrationNode::run_01hz()
 {
-	eros::diagnostic diag = process->get_diagnostic();
+	return true;
+}
+bool CalibrationNode::run_01hz_noisy()
+{
+	std::vector<eros::diagnostic> diaglist = process->get_diagnostics();
+	for (std::size_t i = 0; i < diaglist.size(); ++i)
 	{
-		get_logger()->log_diagnostic(diag);
-		diagnostic_pub.publish(diag);
+		get_logger()->log_diagnostic(diaglist.at(i));
+		diagnostic_pub.publish(diaglist.at(i));
 	}
 	return true;
 }
 bool CalibrationNode::run_1hz()
 {
-	printf("sz: %d\n",point_list.size());
 	visualization_msgs::Marker points;
 	points.header.frame_id = "world";
 	points.header.stamp = ros::Time();
@@ -106,6 +114,7 @@ bool CalibrationNode::run_1hz()
 	points.color.g = 1.0;
 	points.color.b = 0.0;
 	imu_mag_marker_pub.publish( points );
+	process->update_diagnostic(get_resource_diagnostic());
 	if((process->is_initialized() == true) and (process->is_ready() == true))
 	{
 	}
@@ -126,7 +135,7 @@ bool CalibrationNode::run_1hz()
 				}
 				else
 				{
-					bool status = new_devicemsg(srv.request.query,srv.response.data.at(0));
+					new_devicemsg(srv.request.query,srv.response.data.at(0));
 				}
 			}
 			else
@@ -134,13 +143,15 @@ bool CalibrationNode::run_1hz()
 			}
 		}
 	}
-	eros::diagnostic diag = process->get_diagnostic();
-	//if(diag.Level >= NOTICE)
+	std::vector<eros::diagnostic> diaglist = process->get_diagnostics();
+	for (std::size_t i = 0; i < diaglist.size(); ++i)
 	{
-		get_logger()->log_diagnostic(diag);
-		diagnostic_pub.publish(diag);
+		if (diaglist.at(i).Level == WARN)
+		{
+			get_logger()->log_diagnostic(diaglist.at(i));
+			diagnostic_pub.publish(diaglist.at(i));
+		}
 	}
-
 	return true;
 }
 bool CalibrationNode::run_10hz()
@@ -151,6 +162,15 @@ bool CalibrationNode::run_10hz()
 	{
 		get_logger()->log_diagnostic(diag);
 		diagnostic_pub.publish(diag);
+	}
+	std::vector<eros::diagnostic> diaglist = process->get_diagnostics();
+	for (std::size_t i = 0; i < diaglist.size(); ++i)
+	{
+		if (diaglist.at(i).Level > WARN)
+		{
+			get_logger()->log_diagnostic(diaglist.at(i));
+			diagnostic_pub.publish(diaglist.at(i));
+		}
 	}
 	return true;
 }

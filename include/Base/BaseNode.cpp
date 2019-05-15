@@ -40,6 +40,7 @@ eros::diagnostic BaseNode::preinitialize_basenode(int argc,char **argv)
 	heartbeat.Node_Name = node_name;
 	host_name[1023] = '\0';
 	gethostname(host_name,1023);
+	rand_delay_sec = (double)(rand() % 2000 - 1000)/1000.0;  
 
 	diagnostic = read_baselaunchparameters();
 	std::string firmware_topic = "/" + node_name + "/firmware";
@@ -68,6 +69,9 @@ eros::diagnostic BaseNode::preinitialize_basenode(int argc,char **argv)
 eros::diagnostic BaseNode::set_mydevice(eros::device t_device)
 {
 	eros::diagnostic diag=diagnostic;
+	diag.Diagnostic_Type = SYSTEM_RESOURCE;
+	diag.Node_Name = node_name;
+	diag.DeviceName = t_device.DeviceName;
 	resourcemonitor = new ResourceMonitor(diag,t_device.Architecture,std::string(host_name),node_name);
 	resourcemonitor_initialized = true;
 	return diag;
@@ -119,6 +123,7 @@ eros::diagnostic BaseNode::read_baselaunchparameters()
 	}
 	double max_rate = 0.0;
 	last_01hz_timer = ros::Time::now();
+	last_01hz_noisy_timer = ros::Time::now();
 	last_1hz_timer = ros::Time::now();
 	last_10hz_timer = ros::Time::now();
 	std::string param_loop1_rate = node_name + "/loop1_rate";
@@ -190,10 +195,18 @@ bool BaseNode::update()
 	ros::spinOnce();
 	double mtime;
 	mtime = measure_time_diff(ros::Time::now(),last_001hz_timer);
+	
 	if(mtime >= 100.0)
 	{
 		run_001hz();
 		last_001hz_timer = ros::Time::now();
+	}
+	mtime = measure_time_diff(ros::Time::now(),last_01hz_noisy_timer);
+	if(mtime >= 10.0 + rand_delay_sec)
+	{
+		rand_delay_sec = (double)(rand() % 2000 - 1000)/1000.0;  
+		run_01hz_noisy();
+		last_01hz_noisy_timer = ros::Time::now();
 	}
 	mtime = measure_time_diff(ros::Time::now(),last_01hz_timer);
 	if(mtime >= 10.0)
@@ -243,6 +256,7 @@ bool BaseNode::update()
 		}
 		last_10hz_timer = ros::Time::now();
 	}
+	
 	if(loop1_enabled == true)
 	{
 		mtime = measure_time_diff(ros::Time::now(),last_loop1_timer);
