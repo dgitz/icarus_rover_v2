@@ -1,16 +1,18 @@
 #include "BoardControllerNodeProcess.h"
 eros::diagnostic  BoardControllerNodeProcess::finish_initialization()
 {
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	init_messages();
 	current_command.Command = ROVERCOMMAND_NONE;
 	LEDPixelMode = LEDPIXELMODE_ERROR;
 	encoder_count = 0;
-	return diagnostic;
+	diag = update_diagnostic(COMMUNICATIONS,INFO,NOERROR,"No Error."); //Using Boards for Device specific comm diagnostics
+	diag = update_diagnostic(SENSORS,INFO,NOERROR,"No Error."); //Using Sensors for Device specific sensor diagnostics
+	return diag;
 }
 eros::diagnostic BoardControllerNodeProcess::update(double t_dt,double t_ros_time)
 {
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	LEDPixelMode = LEDPIXELMODE_NORMAL;
 	diag = update_baseprocess(t_dt,t_ros_time);
 	bool boards_ready = true;
@@ -22,27 +24,21 @@ eros::diagnostic BoardControllerNodeProcess::update(double t_dt,double t_ros_tim
 			boards_ready = false;
 
 		}
-		if((run_time - board_diagnostics.at(i).lasttime_rx > 5.0) and
-				(run_time - board_diagnostics.at(i).lasttime_rx < 10.0))
+		if(((run_time - boards.at(i).lasttime_rx) > BOARDCOMM_TIMEOUT_WARN) and
+				((run_time - boards.at(i).lasttime_rx) < BOARDCOMM_TIMEOUT_ERROR))
 		{
-			diag.Level = WARN;
-			diag.Diagnostic_Type = COMMUNICATIONS;
-			diag.Diagnostic_Message = DROPPING_PACKETS;
 			char tempstr[512];
-			sprintf(tempstr,"Have not had comm with Board: %d in %f Seconds.  Disarming.",
-					board_diagnostics.at(i).id,run_time - board_diagnostics.at(i).lasttime_rx);
-			diag.Description = std::string(tempstr);
+			sprintf(tempstr,"Have not had comm with Board: %s in %4.2f Seconds.  Timing out Soon.",
+					boards.at(i).device.DeviceName.c_str(),run_time - boards.at(i).lasttime_rx);
+			diag = update_diagnostic(boards.at(i).device.DeviceName,COMMUNICATIONS,WARN,DROPPING_PACKETS,std::string(tempstr));
 			ready_to_arm = false;
 		}
-		else if((run_time - board_diagnostics.at(i).lasttime_rx > 10.0))
+		else if(((run_time - boards.at(i).lasttime_rx) > BOARDCOMM_TIMEOUT_ERROR))
 		{
-			diag.Level = ERROR;
-			diag.Diagnostic_Type = COMMUNICATIONS;
-			diag.Diagnostic_Message = DROPPING_PACKETS;
 			char tempstr[512];
-			sprintf(tempstr,"Have not had comm with Board: %d in %f Seconds.  Disarming.",
-					board_diagnostics.at(i).id,run_time - board_diagnostics.at(i).lasttime_rx);
-			diag.Description = std::string(tempstr);
+			sprintf(tempstr,"Have not had comm with Board: %s in %4.2f Seconds.  Disarming.",
+					boards.at(i).device.DeviceName.c_str(),(run_time - boards.at(i).lasttime_rx));
+			diag = update_diagnostic(boards.at(i).device.DeviceName,COMMUNICATIONS,ERROR,DROPPING_PACKETS,std::string(tempstr));
 			ready_to_arm = false;
 		}
 	}
@@ -62,32 +58,50 @@ eros::diagnostic BoardControllerNodeProcess::update(double t_dt,double t_ros_tim
 		}
 	}
 	bool status = true;
+	for(std::size_t i = 0; i < diagnostics.size(); ++i)
+	{
+		if((diagnostics.at(i).Level >= WARN) or (diagnostics.at(i).Diagnostic_Message == INITIALIZING))
+		{
+			status = false;
+		}
+	}
 	if(boards_ready == true)
 	{
 		status = status and true;
-		diag.Level = INFO;
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Diagnostic_Message = NOERROR;
-		diag.Description = "Node Running";
-		diagnostic = diag;
+		if(status == true)
+		{
+			diag = update_diagnostic(SOFTWARE,INFO,NOERROR,"Node Running.");
+			ready_to_arm = true;
+		}
+		else
+		{
+			ready_to_arm = false;
+		}
+		
 	}
 	else
 	{
 		status = false;
-		diag.Level = NOTICE;
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
-		char tempstr[512];
-		sprintf(tempstr,"All info for Boards not received yet.");
-		diag.Description = std::string(tempstr);
+		ready_to_arm = false;
+		if(mydevice.BoardCount == 0)
+		{
+			char tempstr[512];
+			sprintf(tempstr,"This node requires at least 1 Board, but 0 are defined.");
+			diag = update_diagnostic(DATA_STORAGE,ERROR,INITIALIZING_ERROR,std::string(tempstr));
+		}
+		else
+		{
+			char tempstr[512];
+			sprintf(tempstr,"All info for Boards not received yet.  Expected Board Count: %d",mydevice.BoardCount);
+			diag = update_diagnostic(DATA_STORAGE,NOTICE,INITIALIZING,std::string(tempstr));
+		}
+		
 	}
-	diagnostic = diag;
-	diagnostic = diag;
 	return diag;
 }
 eros::diagnostic BoardControllerNodeProcess::new_devicemsg(const eros::device::ConstPtr& t_newdevice)
 {
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	if(initialized == true)
 	{
 		if(ready == false)
@@ -96,13 +110,10 @@ eros::diagnostic BoardControllerNodeProcess::new_devicemsg(const eros::device::C
 			{
 				if(board_present(t_newdevice) == true)
 				{
-					diag.Level = WARN;
-					diag.Diagnostic_Type = SOFTWARE;
-					diag.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
 					char tempstr[512];
 					sprintf(tempstr,"Board: %s already loaded.",
 							t_newdevice->DeviceName.c_str());
-					diag.Description = std::string(tempstr);
+					diag = update_diagnostic(DATA_STORAGE,WARN,INITIALIZING_ERROR,std::string(tempstr));
 					return diag;
 				}
 				std::size_t board_message = t_newdevice->DeviceType.find("Board");
@@ -123,53 +134,39 @@ eros::diagnostic BoardControllerNodeProcess::new_devicemsg(const eros::device::C
 								new_sensor.connected_board = board_device;
 								new_sensor.connected_pin = t_newdevice->pins.at(i);
 								new_sensor.signal.status = SIGNALSTATE_UNDEFINED;
-
+								diag = update_diagnostic(new_sensor.name,DATA_STORAGE,NOTICE,NOERROR,"Sensor Initialized.");
 								sensors.push_back(new_sensor);
 								if(load_sensorinfo(new_sensor.name) == false)
 								{
-									diag.Level = ERROR;
-									diag.Diagnostic_Type = SOFTWARE;
-									diag.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
 									char tempstr[512];
 									sprintf(tempstr,"Unable to load info for Sensor: %s",new_sensor.name.c_str());
-									diag.Description = std::string(tempstr);
+									diag = update_diagnostic(DATA_STORAGE,ERROR,INITIALIZING_ERROR,std::string(tempstr));
 									return diag;
 								}
 
 							}
 							else
 							{
-								diag.Level = ERROR;
-								diag.Diagnostic_Type = SOFTWARE;
-								diag.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
 								char tempstr[512];
 								sprintf(tempstr,"Board Type: %s Pin Function: %s Not supported.",
 										t_newdevice->DeviceType.c_str(),t_newdevice->pins.at(i).Function.c_str());
-								diag.Description = std::string(tempstr);
+								diag = update_diagnostic(DATA_STORAGE,ERROR,INITIALIZING_ERROR,std::string(tempstr));
 								return diag;
 							}
 						}
-						boards.push_back(board_device);
-						BoardDiagnostic board_diag;
-						board_diag.id = t_newdevice->ID;
-						board_diag.diagnostic.System = SYSTEM_UNKNOWN;
-						board_diag.diagnostic.SubSystem = SUBSYSTEM_UNKNOWN;
-						board_diag.diagnostic.Component = COMPONENT_UNKNOWN;
-						board_diag.diagnostic.Diagnostic_Type = GENERAL_ERROR;
-						board_diag.diagnostic.Diagnostic_Message = UNKNOWN_STATE;
-						board_diag.diagnostic.Level = LEVEL_UNKNOWN;
-						board_diag.diagnostic.Description = "No Info received yet for this Board.";
-						board_diagnostics.push_back(board_diag);
+						Board board;
+						board.device = board_device;
+						board.lasttime_rx = 0.0;
+						boards.push_back(board);
+						diag = update_diagnostic(board_device.DeviceName,DATA_STORAGE,NOTICE,NOERROR,"No Error.");
+						diag = update_diagnostic(board_device.DeviceName,COMMUNICATIONS,NOTICE,NOERROR,"No Error.");
 						boards_running.push_back(true);
 					}
 					else
 					{
-						diag.Level = ERROR;
-						diag.Diagnostic_Type = SOFTWARE;
-						diag.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
 						char tempstr[512];
 						sprintf(tempstr,"Device Type: %s Not supported.",t_newdevice->DeviceType.c_str());
-						diag.Description = std::string(tempstr);
+						diag = update_diagnostic(DATA_STORAGE,ERROR,INITIALIZING_ERROR,std::string(tempstr));
 						return diag;
 					}
 
@@ -182,23 +179,24 @@ eros::diagnostic BoardControllerNodeProcess::new_devicemsg(const eros::device::C
 
 		}
 	}
-	if((boards.size() == mydevice.BoardCount) and
+	if(((uint16_t)(boards.size()) == mydevice.BoardCount) and
 			(sensors_initialized() == true))
 	{
 		ready = true;
+		diag = update_diagnostic(DATA_STORAGE,INFO,NOERROR,"All Devices Initialized and Running.");
 	}
-	diag.Level = INFO;
-	diag.Diagnostic_Type = COMMUNICATIONS;
-	diag.Diagnostic_Message = NOERROR;
-	char tempstr[512];
-	sprintf(tempstr,"Initialized: %d Ready: %d",initialized,ready);
-	diag.Description = std::string(tempstr);
+	if(ready == false)
+	{
+		char tempstr[512];
+		sprintf(tempstr,"Initialized: %d Ready: %d",initialized,ready);
+		diag = update_diagnostic(DATA_STORAGE,NOTICE,INITIALIZING,std::string(tempstr));
+	}
 	return diag;
 }
 std::vector<eros::diagnostic> BoardControllerNodeProcess::new_commandmsg(const eros::command::ConstPtr& t_msg)
 {
 	std::vector<eros::diagnostic> diaglist;
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	current_command = convert_fromptr(t_msg);
 	if (t_msg->Command == ROVERCOMMAND_RUNDIAGNOSTIC)
 	{
@@ -229,20 +227,14 @@ void BoardControllerNodeProcess::new_armedstatemsg(uint8_t t_armed_state)
 std::vector<eros::diagnostic> BoardControllerNodeProcess::check_programvariables()
 {
 	std::vector<eros::diagnostic> diaglist;
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	bool status = true;
 
 	if (status == true) {
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Level = INFO;
-		diag.Diagnostic_Message = DIAGNOSTIC_PASSED;
-		diag.Description = "Checked Program Variables -> PASSED.";
+		diag = update_diagnostic(SOFTWARE,INFO,DIAGNOSTIC_PASSED,"Checked Program Variables -> PASSED.");
 		diaglist.push_back(diag);
 	} else {
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Level = WARN;
-		diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
-		diag.Description = "Checked Program Variables -> FAILED.";
+		diag = update_diagnostic(SOFTWARE,WARN,DIAGNOSTIC_FAILED,"Checked Program Variables -> FAILED.");
 		diaglist.push_back(diag);
 	}
 	return diaglist;
@@ -273,7 +265,7 @@ std::vector<BoardControllerNodeProcess::BoardControllerNodeProcess::Message> Boa
 }
 eros::diagnostic BoardControllerNodeProcess::new_message_sent(unsigned char id)
 {
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	for(std::size_t i = 0; i < messages.size(); i++)
 	{
 		if(messages.at(i).id == id)
@@ -286,7 +278,7 @@ eros::diagnostic BoardControllerNodeProcess::new_message_sent(unsigned char id)
 }
 eros::diagnostic BoardControllerNodeProcess::new_message_recv(unsigned char id)
 {
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	for(std::size_t i = 0; i < messages.size(); i++)
 	{
 		if(messages.at(i).id == id)
@@ -368,7 +360,7 @@ void BoardControllerNodeProcess::init_messages()
 eros::diagnostic BoardControllerNodeProcess::get_LEDStripControlParameters
 (unsigned char& Mode,unsigned char& Param1,unsigned char& Param2)
 {
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	Mode = LEDPixelMode;
 	Param1 = 0;
 	Param2 = 0;
@@ -376,8 +368,7 @@ eros::diagnostic BoardControllerNodeProcess::get_LEDStripControlParameters
 }
 eros::diagnostic BoardControllerNodeProcess::send_commandmessage(unsigned char id)
 {
-	eros::diagnostic diag;
-	diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	for(std::size_t i = 0; i <messages.size(); i++)
 	{
 		if((messages.at(i).id == id) && (messages.at(i).type == "Command"))
@@ -386,39 +377,31 @@ eros::diagnostic BoardControllerNodeProcess::send_commandmessage(unsigned char i
 			diag.Diagnostic_Type = COMMUNICATIONS;
 			diag.Level = INFO;
 			diag.Diagnostic_Message = NOERROR;
+			diag = update_diagnostic(COMMUNICATIONS,INFO,NOERROR,"Processed Command Message.");
 			return diag;
 		}
 	}
 	char tempstr[255];
-	diag.Diagnostic_Type = COMMUNICATIONS;
-	diag.Level = WARN;
-	diag.Diagnostic_Message = DROPPING_PACKETS;
 	sprintf(tempstr,"Couldn't send Command Message: AB%0X",id);
-	diag.Description = std::string(tempstr);
+	diag = update_diagnostic(COMMUNICATIONS,WARN,DROPPING_PACKETS,std::string(tempstr));
 	return diag;
 }
 
 eros::diagnostic BoardControllerNodeProcess::send_querymessage(unsigned char id)
 {
-	eros::diagnostic diag;
-	diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	for(std::size_t i = 0; i <messages.size(); i++)
 	{
 		if((messages.at(i).id == id) && (messages.at(i).type == "Query"))
 		{
 			messages.at(i).send_me = true;
-			diag.Diagnostic_Type = COMMUNICATIONS;
-			diag.Level = INFO;
-			diag.Diagnostic_Message = NOERROR;
+			diag = update_diagnostic(COMMUNICATIONS,INFO,NOERROR,"Processed Query Message.");
 			return diag;
 		}
 	}
 	char tempstr[255];
-	diag.Diagnostic_Type = COMMUNICATIONS;
-	diag.Level = WARN;
-	diag.Diagnostic_Message = DROPPING_PACKETS;
 	sprintf(tempstr,"Couldn't send Query Message: AB%0X",id);
-	diag.Description = std::string(tempstr);
+	diag = update_diagnostic(COMMUNICATIONS,WARN,DROPPING_PACKETS,std::string(tempstr));
 	return diag;
 }
 std::string BoardControllerNodeProcess::get_messageinfo(bool v)
@@ -445,31 +428,24 @@ eros::diagnostic BoardControllerNodeProcess::new_message_TestMessageCounter(uint
 		unsigned char v5,unsigned char v6,unsigned char v7,unsigned char v8,
 		unsigned char v9,unsigned char v10,unsigned char v11,unsigned char v12)
 {
-	eros::diagnostic diag;
-	diag = diagnostic;
-	char tempstr[255];
-	diag.Diagnostic_Type = COMMUNICATIONS;
-	diag.Level = WARN;
-	diag.Diagnostic_Message = DROPPING_PACKETS;
+	eros::diagnostic diag = root_diagnostic;
+	char tempstr[256];
 	sprintf(tempstr,"Process Message: AB%0X Not Supported",SPIMessageHandler::SPI_TestMessageCounter_ID);
-	diag.Description = std::string(tempstr);
+	diag = update_diagnostic(COMMUNICATIONS,WARN,DROPPING_PACKETS,std::string(tempstr));
 	return diag;
 }
 eros::diagnostic BoardControllerNodeProcess::new_message_GetDIOPort1(uint8_t boardid,double tov,
 		int16_t v1,int16_t v2)
 {
 	int16_t v[6] = {v1,v2};
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	eros::device board = find_board(boardid);
 	eros::device::ConstPtr board_ptr(new eros::device(board));
 	if(board.DeviceName == "")
 	{
 		char tempstr[255];
-		diag.Diagnostic_Type = COMMUNICATIONS;
-		diag.Level = ERROR;
-		diag.Diagnostic_Message = DROPPING_PACKETS;
 		sprintf(tempstr,"Board ID: %d Not Found\n",boardid);
-		diag.Description = std::string(tempstr);
+		diag = update_diagnostic(COMMUNICATIONS,ERROR,DROPPING_PACKETS,std::string(tempstr));
 		return diag;
 	}
 	for(uint8_t i = 0; i < 2; i++)
@@ -483,12 +459,7 @@ eros::diagnostic BoardControllerNodeProcess::new_message_GetDIOPort1(uint8_t boa
 			}
 		}
 	}
-	char tempstr[255];
-	diag.Diagnostic_Type = COMMUNICATIONS;
-	diag.Level = INFO;
-	diag.Diagnostic_Message = NOERROR;
-	sprintf(tempstr,"Updated");
-	diag.Description = std::string(tempstr);
+	diag = update_diagnostic(COMMUNICATIONS,INFO,NOERROR,"Updated.");
 	return diag;
 }
 eros::diagnostic BoardControllerNodeProcess::new_message_Diagnostic(uint8_t boardid,
@@ -496,92 +467,39 @@ eros::diagnostic BoardControllerNodeProcess::new_message_Diagnostic(uint8_t boar
 		unsigned char Component,unsigned char Diagnostic_Type,
 		unsigned char Level,unsigned char Message)
 {
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	eros::diagnostic worst_diagnostic;
 	worst_diagnostic.Level = DEBUG;
 	eros::device board = find_board(boardid);
 	if(board.DeviceName == "")
 	{
 		char tempstr[255];
-		diag.Diagnostic_Type = COMMUNICATIONS;
-		diag.Level = ERROR;
-		diag.Diagnostic_Message = DROPPING_PACKETS;
 		sprintf(tempstr,"Board ID: %d Not Found\n",boardid);
-		diag.Description = std::string(tempstr);
+		diag = update_diagnostic(COMMUNICATIONS,ERROR,DROPPING_PACKETS,std::string(tempstr));
 		return diag;
 	}
-
-	bool should_i_arm = true;
-	bool found = false;
-	for(std::size_t i = 0; i < board_diagnostics.size(); i++)
+	diag = update_diagnostic(board.DeviceName,COMMUNICATIONS,Level,Message,"");
+	for(std::size_t i = 0; i < boards.size(); ++i)
 	{
-		if(board_diagnostics.at(i).id == boardid)
+		if(boards.at(i).device.DeviceName == board.DeviceName)
 		{
-			found = true;
-			board_diagnostics.at(i).lasttime_rx = run_time;
-			board_diagnostics.at(i).diagnostic.System = System;
-			board_diagnostics.at(i).diagnostic.SubSystem = SubSystem;
-			board_diagnostics.at(i).diagnostic.Component = Component;
-			board_diagnostics.at(i).diagnostic.Diagnostic_Type = Diagnostic_Type;
-			board_diagnostics.at(i).diagnostic.Level = Level;
-			board_diagnostics.at(i).diagnostic.Diagnostic_Message = Message;
-			board_diagnostics.at(i).diagnostic.Description = "";
-			if(Level > worst_diagnostic.Level)
-			{
-				worst_diagnostic = board_diagnostics.at(i).diagnostic;
-			}
-			if(Message == INITIALIZING)
-			{
-				should_i_arm = false;
-			}
-			else if((Level <= NOTICE) or (Message == NOERROR))
-			{
-				should_i_arm = should_i_arm and true;
-			}
-			else
-			{
-				should_i_arm = false;
-			}
+			boards.at(i).lasttime_rx = run_time;
 		}
 	}
-	if(found == false)
-	{
-		should_i_arm = false;
-	}
-	if(should_i_arm == true)
-	{
-		ready_to_arm = true;
-	}
-	if(worst_diagnostic.Level > NOTICE)
-	{
-		return worst_diagnostic;
-	}
-	else
-	{
-		char tempstr[255];
-		diag.Diagnostic_Type = COMMUNICATIONS;
-		diag.Level = INFO;
-		diag.Diagnostic_Message = NOERROR;
-		sprintf(tempstr,"Updated");
-		diag.Description = std::string(tempstr);
-		return diag;
-	}
+	return diag;
 }
 eros::diagnostic BoardControllerNodeProcess::new_message_GetANAPort1(uint8_t boardid,double tov,uint16_t v1,uint16_t v2,uint16_t v3,
 		uint16_t v4,uint16_t v5,uint16_t v6)
 {
 	uint16_t v[6] = {v1,v2,v3,v4,v5,v6};
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	eros::device board = find_board(boardid);
 	eros::device::ConstPtr board_ptr(new eros::device(board));
 	if(board.DeviceName == "")
 	{
 		char tempstr[255];
-		diag.Diagnostic_Type = COMMUNICATIONS;
-		diag.Level = ERROR;
-		diag.Diagnostic_Message = DROPPING_PACKETS;
 		sprintf(tempstr,"Board ID: %d Not Found\n",boardid);
-		diag.Description = std::string(tempstr);
+		diag = update_diagnostic(COMMUNICATIONS,ERROR,DROPPING_PACKETS,std::string(tempstr));
 		return diag;
 	}
 	for(uint8_t i = 0; i < 6; i++)
@@ -597,11 +515,8 @@ eros::diagnostic BoardControllerNodeProcess::new_message_GetANAPort1(uint8_t boa
 		}
 	}
 	char tempstr[255];
-	diag.Diagnostic_Type = COMMUNICATIONS;
-	diag.Level = INFO;
-	diag.Diagnostic_Message = NOERROR;
 	sprintf(tempstr,"Updated");
-	diag.Description = std::string(tempstr);
+	diag = update_diagnostic(board.DeviceName,COMMUNICATIONS,INFO,NOERROR,"Updated.");
 	return diag;
 
 
@@ -610,7 +525,7 @@ bool BoardControllerNodeProcess::board_present(const eros::device::ConstPtr& dev
 {
 	for(std::size_t i = 0; i < boards.size(); i++)
 	{
-		if((boards.at(i).DeviceName == device->DeviceName))
+		if((boards.at(i).device.DeviceName == device->DeviceName))
 		{
 			return true;
 		}
@@ -727,9 +642,9 @@ eros::device BoardControllerNodeProcess::find_board(uint8_t boardid)
 {
 	for(std::size_t i = 0; i < boards.size(); i++)
 	{
-		if(boards.at(i).ID == boardid)
+		if(boards.at(i).device.ID == boardid)
 		{
-			return boards.at(i);
+			return boards.at(i).device;
 		}
 	}
 	eros::device empty_device;

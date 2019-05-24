@@ -6,7 +6,6 @@ bool HatControllerNode::start(int argc,char **argv)
 	process = new HatControllerNodeProcess();
 	set_basenodename(BASE_NODE_NAME);
 	initialize_firmware(MAJOR_RELEASE_VERSION,MINOR_RELEASE_VERSION,BUILD_NUMBER,FIRMWARE_DESCRIPTION);
-	initialize_diagnostic(DIAGNOSTIC_SYSTEM,DIAGNOSTIC_SUBSYSTEM,DIAGNOSTIC_COMPONENT);
 	diagnostic = preinitialize_basenode(argc,argv);
 	if(diagnostic.Level > WARN)
 	{
@@ -17,9 +16,14 @@ bool HatControllerNode::start(int argc,char **argv)
 	{
 		return false;
 	}
-
-	process->initialize(get_basenodename(),get_nodename(),get_hostname());
-	process->set_diagnostic(diagnostic);
+	process->initialize(get_basenodename(),get_nodename(),get_hostname(),DIAGNOSTIC_SYSTEM,DIAGNOSTIC_SUBSYSTEM,DIAGNOSTIC_COMPONENT);
+	std::vector<uint8_t> diagnostic_types;
+	diagnostic_types.push_back(SOFTWARE);
+	diagnostic_types.push_back(DATA_STORAGE);
+	diagnostic_types.push_back(SYSTEM_RESOURCE);
+	diagnostic_types.push_back(COMMUNICATIONS);
+	diagnostic_types.push_back(SENSORS);
+	process->enable_diagnostics(diagnostic_types);
 	process->finish_initialization();
 	diagnostic = finish_initialization();
 	if(diagnostic.Level > WARN)
@@ -28,10 +32,7 @@ bool HatControllerNode::start(int argc,char **argv)
 	}
 	if(diagnostic.Level < WARN)
 	{
-		diagnostic.Diagnostic_Type = NOERROR;
-		diagnostic.Level = INFO;
-		diagnostic.Diagnostic_Message = NOERROR;
-		diagnostic.Description = "Node Configured.  Initializing.";
+		diagnostic = process->update_diagnostic(SOFTWARE,INFO,NOERROR,"Node Configured.  Initializing.");
 		get_logger()->log_diagnostic(diagnostic);
 	}
 	status = true;
@@ -82,7 +83,7 @@ bool HatControllerNode::run_001hz()
 }
 bool HatControllerNode::run_01hz()
 {
-	eros::diagnostic diag=process->get_diagnostic();
+	eros::diagnostic diag = diagnostic;
 	if(process->is_ready())
 	{
 		std::vector<uint16_t> ServoHats_ids = process->get_servohataddresses();
@@ -96,14 +97,9 @@ bool HatControllerNode::run_01hz()
 				int status = ServoHats.at(i).init(ServoHats_ids.at(i));
 				if(status < 0)
 				{
-					diag.Diagnostic_Type = COMMUNICATIONS;
-					diag.Level = ERROR;
-					diag.Diagnostic_Message = INITIALIZING_ERROR;
 					char tempstr[512];
 					sprintf(tempstr,"Unable to Start ServoHat at Address: %d",ServoHats_ids.at(i));
-					diag.Description = std::string(tempstr);
-					process->set_diagnostic(diag);
-					diagnostic_pub.publish(diag);
+					diag = process->update_diagnostic(COMMUNICATIONS,ERROR,INITIALIZING_ERROR,std::string(tempstr));
 					get_logger()->log_diagnostic(diag);
 					return false;
 				}
@@ -127,13 +123,9 @@ bool HatControllerNode::run_01hz()
 				int status = GPIOHats.at(i).init(GPIOHats_ids.at(i));
 				if(status < 0)
 				{
-					diag.Diagnostic_Type = COMMUNICATIONS;
-					diag.Level = ERROR;
-					diag.Diagnostic_Message = INITIALIZING_ERROR;
 					char tempstr[512];
 					sprintf(tempstr,"Unable to Start GPIOHat at Address: %d",GPIOHats_ids.at(i));
-					diag.Description = std::string(tempstr);
-					process->set_diagnostic(diag);
+					diag = process->update_diagnostic(COMMUNICATIONS,ERROR,INITIALIZING_ERROR,std::string(tempstr));
 					diagnostic_pub.publish(diag);
 					get_logger()->log_diagnostic(diag);
 					return false;
@@ -157,13 +149,9 @@ bool HatControllerNode::run_01hz()
 					if(TerminalHat.configure_pin(pins.at(i).Number,pins.at(i).Function) == false)
 					{
 						any_error = true;
-						diag.Diagnostic_Type = SOFTWARE;
-						diag.Level = ERROR;
-						diag.Diagnostic_Message = INITIALIZING_ERROR;
 						char tempstr[512];
 						sprintf(tempstr,"[TerminalHat] Could not configure Pin: %d with Function: %s",pins.at(i).Number,pins.at(i).Function.c_str());
-						diag.Description = std::string(tempstr);
-						process->set_diagnostic(diag);
+						diag = process->update_diagnostic(SOFTWARE,ERROR,INITIALIZING_ERROR,std::string(tempstr));
 						get_logger()->log_error(std::string(tempstr));
 						kill_node = 1;
 					}
@@ -178,15 +166,21 @@ bool HatControllerNode::run_01hz()
 
 		}
 	}
-	diag = process->get_diagnostic();
+	return true;
+}
+bool HatControllerNode::run_01hz_noisy()
+{
+	std::vector<eros::diagnostic> diaglist = process->get_diagnostics();
+	for (std::size_t i = 0; i < diaglist.size(); ++i)
 	{
-		get_logger()->log_diagnostic(diag);
-		diagnostic_pub.publish(diag);
+		get_logger()->log_diagnostic(diaglist.at(i));
+		diagnostic_pub.publish(diaglist.at(i));
 	}
 	return true;
 }
 bool HatControllerNode::run_1hz()
 {
+	process->update_diagnostic(get_resource_diagnostic());
 	if((process->is_initialized() == true) and (process->is_ready() == true))
 	{
 	}
@@ -249,13 +243,15 @@ bool HatControllerNode::run_1hz()
 
 		}
 	}
-	eros::diagnostic diag = process->get_diagnostic();
-	if(diag.Level >= NOTICE)
+	std::vector<eros::diagnostic> diaglist = process->get_diagnostics();
+	for (std::size_t i = 0; i < diaglist.size(); ++i)
 	{
-		get_logger()->log_diagnostic(diag);
-		diagnostic_pub.publish(diag);
+		if (diaglist.at(i).Level == WARN)
+		{
+			get_logger()->log_diagnostic(diaglist.at(i));
+			diagnostic_pub.publish(diaglist.at(i));
+		}
 	}
-
 	return true;
 }
 bool HatControllerNode::run_10hz()
@@ -327,24 +323,29 @@ bool HatControllerNode::run_10hz()
 				if(TerminalHat.configure_pin(pins.at(i).Number,pins.at(i).Function) == false)
 				{
 					any_error = true;
-					diag.Diagnostic_Type = SOFTWARE;
-					diag.Level = ERROR;
-					diag.Diagnostic_Message = INITIALIZING_ERROR;
 					char tempstr[512];
 					sprintf(tempstr,"[TerminalHat] Could not configure Pin: %d with Function: %s",pins.at(i).Number,pins.at(i).Function.c_str());
-					diag.Description = std::string(tempstr);
-					process->set_diagnostic(diag);
+					diag = process->update_diagnostic(SOFTWARE,ERROR,INITIALIZING_ERROR,std::string(tempstr));
 					get_logger()->log_error(std::string(tempstr));
 					kill_node = 1;
 				}
 			}
 		}
 	}
+	std::vector<eros::diagnostic> diaglist = process->get_diagnostics();
+	for (std::size_t i = 0; i < diaglist.size(); ++i)
+	{
+		if (diaglist.at(i).Level > WARN)
+		{
+			get_logger()->log_diagnostic(diaglist.at(i));
+			diagnostic_pub.publish(diaglist.at(i));
+		}
+	}
 	return true;
 }
 bool HatControllerNode::run_loop1()
 {
-	eros::diagnostic diag = process->get_diagnostic();
+	eros::diagnostic diag = diagnostic;
 	for(std::size_t i = 0; i < GPIOHats.size(); i++)
 	{
 		unsigned char inputbuffer[12];
@@ -383,14 +384,10 @@ bool HatControllerNode::run_loop1()
 					if(process->set_terminalhatpinvalue(pins.at(i).Name,TerminalHat.read_pin(pins.at(i).Number)) == false)
 					{
 						any_error = true;
-						diag.Diagnostic_Type = SOFTWARE;
-						diag.Level = ERROR;
-						diag.Diagnostic_Message = INITIALIZING_ERROR;
 						char tempstr[512];
 						sprintf(tempstr,"[TerminalHat] Could not read Pin: %s:%d with Function: %s",pins.at(i).Name.c_str(),pins.at(i).Number,pins.at(i).Function.c_str());
-						diag.Description = std::string(tempstr);
-						process->set_diagnostic(diag);
-						get_logger()->log_error(std::string(tempstr));
+						diag = process->update_diagnostic(SOFTWARE,ERROR,INITIALIZING_ERROR,std::string(tempstr));
+						get_logger()->log_diagnostic(diag);
 						kill_node = 1;
 					}
 				}
@@ -403,14 +400,10 @@ bool HatControllerNode::run_loop1()
 					if(TerminalHat.set_pin(pins.at(i).Number,pins.at(i).Value) == false)
 					{
 						any_error = true;
-						diag.Diagnostic_Type = SOFTWARE;
-						diag.Level = ERROR;
-						diag.Diagnostic_Message = INITIALIZING_ERROR;
 						char tempstr[512];
 						sprintf(tempstr,"[TerminalHat] Could not set Pin: %s:%d with Function: %s",pins.at(i).Name.c_str(),pins.at(i).Number,pins.at(i).Function.c_str());
-						diag.Description = std::string(tempstr);
-						process->set_diagnostic(diag);
-						get_logger()->log_error(std::string(tempstr));
+						diag = process->update_diagnostic(SOFTWARE,ERROR,INITIALIZING_ERROR,std::string(tempstr));
+						get_logger()->log_diagnostic(diag);
 						kill_node = 1;
 					}
 				}
@@ -505,14 +498,10 @@ bool HatControllerNode::new_devicemsg(std::string query,eros::device t_device)
 							else
 							{
 								eros::diagnostic diagnostic;
-								diagnostic.Diagnostic_Type = SOFTWARE;
-								diagnostic.Level = ERROR;
-								diagnostic.Diagnostic_Message = INITIALIZING_ERROR;
 								char tempstr[512];
 								sprintf(tempstr,"[TerminalHat] Unsupported Pin Function: %s",pins.at(i).Function.c_str());
-								diagnostic.Description = std::string(tempstr);
-								process->set_diagnostic(diagnostic);
-								get_logger()->log_error(std::string(tempstr));
+								diag = process->update_diagnostic(SOFTWARE,ERROR,INITIALIZING_ERROR,std::string(tempstr));
+								get_logger()->log_diagnostic(diag);
 								kill_node = 1;
 							}
 						}

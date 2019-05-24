@@ -202,6 +202,9 @@ add_library(lcddriver src/Diagnostics/Driver/LCDDriver.cpp)
 #Add CMakeLists for Templates
 add_subdirectory(src_templates)
 
+#Add CMakeLists for Board
+add_subdirectory(src/Board)
+
 #Add CMakeLists for Communication
 add_subdirectory(src/Communication)
 
@@ -213,6 +216,9 @@ add_subdirectory(src/Diagnostics)
 
 #Add CMakeLists for Pose
 add_subdirectory(src/Pose)
+
+#Add CMakeLists for Sensors
+add_subdirectory(src/Sensor) 
 
 #Add CMakeLists for Timing
 add_subdirectory(src/Timing)

@@ -3,11 +3,19 @@
 #include "ros/time.h"
 #include <map>
 #include "../IMUNodeProcess.h"
+#define DIAGNOSTIC_TYPE_COUNT 4
 
 std::string Node_Name = "/unittest_imu_node_process";
 std::string Host_Name = "unittest";
 std::string ros_DeviceName = Host_Name;
-
+void print_diagnostic(uint8_t level,eros::diagnostic diagnostic)
+{
+	if(diagnostic.Level >= level)
+	{
+		printf("Type: %d Message: %d Level: %d Device: %s Desc: %s\n",diagnostic.Diagnostic_Type,diagnostic.Diagnostic_Message,
+			  		diagnostic.Level,diagnostic.DeviceName.c_str(),diagnostic.Description.c_str());
+	}
+}
 void print_3x3matrix(std::string name,Eigen::Matrix3f mat)
 {
 	printf("Matrix: %s\n",name.c_str());
@@ -25,20 +33,8 @@ void print_3x3matrix(std::string name,Eigen::Matrix3f mat)
 }
 IMUNodeProcess* initializeprocess(std::string imuname,std::string imu_partnumber)
 {
-	eros::diagnostic diagnostic;
-	diagnostic.DeviceName = ros_DeviceName;
-	diagnostic.Node_Name = Node_Name;
-	diagnostic.System = ROVER;
-	diagnostic.SubSystem = ROBOT_CONTROLLER;
-	diagnostic.Component = COMMUNICATION_NODE;
-
-	diagnostic.Diagnostic_Type = NOERROR;
-	diagnostic.Level = INFO;
-	diagnostic.Diagnostic_Message = INITIALIZING;
-	diagnostic.Description = "Node Initializing";
-
 	eros::device device;
-	device.DeviceName = diagnostic.DeviceName;
+	device.DeviceName = ros_DeviceName;
 	device.BoardCount = 0;
 	device.SensorCount = 1;
 	device.DeviceParent = "None";
@@ -54,8 +50,13 @@ IMUNodeProcess* initializeprocess(std::string imuname,std::string imu_partnumber
 
 	IMUNodeProcess *process;
 	process = new IMUNodeProcess;
-	process->initialize("imu_node",Node_Name,Host_Name);
-	process->set_diagnostic(diagnostic);
+	process->initialize("imu_node",Node_Name,Host_Name,ROVER,ROBOT_CONTROLLER,POSE_NODE);
+	std::vector<uint8_t> diagnostic_types;
+	diagnostic_types.push_back(SOFTWARE);
+	diagnostic_types.push_back(DATA_STORAGE);
+	diagnostic_types.push_back(SYSTEM_RESOURCE);
+	diagnostic_types.push_back(SENSORS);
+	process->enable_diagnostics(diagnostic_types);
 	process->finish_initialization();
 	EXPECT_TRUE(process->is_initialized() == false);
 	process->set_mydevice(device);
@@ -88,9 +89,25 @@ IMUNodeProcess* initializeprocess(std::string imuname,std::string imu_partnumber
 		leverarm.yaw.value = -170.0;
 	}
 	eros::leverarm::ConstPtr leverarm_ptr(new eros::leverarm(leverarm));
-	diagnostic = process->new_devicemsg(imu_ptr,leverarm_ptr);
+	eros::diagnostic diagnostic = process->new_devicemsg(imu_ptr,leverarm_ptr);
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
+	diagnostic = process->update(0.0,0.0);
 	EXPECT_TRUE(process->is_ready() == true);
+	{
+		std::vector<eros::diagnostic> diagnostics = process->get_diagnostics();
+		EXPECT_TRUE(diagnostics.size() == (DIAGNOSTIC_TYPE_COUNT + process->get_imus().size()));
+		for (std::size_t i = 0; i < diagnostics.size(); ++i)
+		{
+			if(diagnostics.at(i).Diagnostic_Type == SENSORS) //Should not be ok until the IMU is running and a message is received.
+			{
+
+			}
+			else
+			{
+				EXPECT_TRUE(diagnostics.at(i).Level <= NOTICE);
+			}
+		}
+	}
 	EXPECT_TRUE(process->get_imus_initialized() == true);
 	EXPECT_TRUE(process->get_imus_running() == false);
 
@@ -98,7 +115,7 @@ IMUNodeProcess* initializeprocess(std::string imuname,std::string imu_partnumber
 }
 TEST(Template,Process_Initialization)
 {
-	IMUNodeProcess* process = initializeprocess("IMU1","110012");
+	initializeprocess("IMU1","110012");
 }
 TEST(Template,Process_Msg)
 {
@@ -110,9 +127,14 @@ TEST(Template,Process_Msg)
 	bool fastrate_fire = false; //10 Hz
 	bool mediumrate_fire = false; //1 Hz
 	bool slowrate_fire = false; //0.1 Hz
+	bool all_valid_msg_sent = false;
 	while(current_time <= time_to_run)
 	{
 		eros::diagnostic diag = process->update(dt,current_time);
+		if(all_valid_msg_sent == true)
+		{
+			EXPECT_TRUE(process->get_ready_to_arm() == true);
+		}
 		EXPECT_TRUE(diag.Level <= NOTICE);
 		int current_time_ms = (int)(current_time*1000.0);
 		if((current_time_ms % 100) == 0)
@@ -160,6 +182,7 @@ TEST(Template,Process_Msg)
 				eros::imu processed_imudata;
 
 				EXPECT_TRUE(process->new_imumsg(imus.at(i).devicename,raw_imudata,processed_imudata).Level <= NOTICE);
+				all_valid_msg_sent = true;
 				EXPECT_TRUE((fabs((raw_imudata.acc_x/imus.at(i).acc_scale_factor)-processed_imudata.xacc.value) < .0001));
 				EXPECT_TRUE((fabs((raw_imudata.acc_y/imus.at(i).acc_scale_factor)-processed_imudata.yacc.value) < .0001));
 				EXPECT_TRUE((fabs((raw_imudata.acc_z/imus.at(i).acc_scale_factor)-processed_imudata.zacc.value) < .0001));
@@ -169,7 +192,7 @@ TEST(Template,Process_Msg)
 				EXPECT_TRUE((fabs((raw_imudata.mag_x/imus.at(i).mag_scale_factor)-processed_imudata.xmag.value) < .0001));
 				EXPECT_TRUE((fabs((raw_imudata.mag_y/imus.at(i).mag_scale_factor)-processed_imudata.ymag.value) < .0001));
 				EXPECT_TRUE((fabs((raw_imudata.mag_z/imus.at(i).mag_scale_factor)-processed_imudata.zmag.value) < .0001));
-				EXPECT_TRUE(process->get_ready_to_arm() == true);
+				
 			}
 
 		}
@@ -178,6 +201,14 @@ TEST(Template,Process_Msg)
 		}
 		if(slowrate_fire == true)
 		{
+			{
+				std::vector<eros::diagnostic> diagnostics = process->get_diagnostics();
+				EXPECT_TRUE(diagnostics.size() == (DIAGNOSTIC_TYPE_COUNT + process->get_imus().size()));
+				for (std::size_t i = 0; i < diagnostics.size(); ++i)
+				{
+					EXPECT_TRUE(diagnostics.at(i).Level <= NOTICE);
+				}
+			}
 		}
 		current_time += dt;
 	}
@@ -188,12 +219,13 @@ TEST(Template,Process_BadMsg)
 {
 	IMUNodeProcess* process = initializeprocess("IMU1","110012");
 	EXPECT_TRUE(process->set_imu_info_path("IMU1","/home/robot/catkin_ws/src/icarus_rover_v2/src/Pose/unit_tests/IMU1.xml"));
-	double time_to_run = 20.0;
+	double time_to_run = 1.0;
 	double dt = 0.001;
 	double current_time = 0.0;
 	bool fastrate_fire = false; //10 Hz
 	bool mediumrate_fire = false; //1 Hz
 	bool slowrate_fire = false; //0.1 Hz
+	bool message_sent = false;
 	while(current_time <= time_to_run)
 	{
 		eros::diagnostic diag = process->update(dt,current_time);
@@ -243,14 +275,8 @@ TEST(Template,Process_BadMsg)
 				eros::imu processed_imudata;
 
 				EXPECT_TRUE(process->new_imumsg(imus.at(i).devicename,raw_imudata,processed_imudata).Level > NOTICE);
-				if(current_time >= process->get_commtimeout_threshold())
-				{
-					EXPECT_TRUE(process->get_ready_to_arm() == false);
-				}
-				else
-				{
-					EXPECT_TRUE(process->get_ready_to_arm() == true);
-				}
+				message_sent = true;
+				
 			}
 
 		}
@@ -259,6 +285,35 @@ TEST(Template,Process_BadMsg)
 		}
 		if(slowrate_fire == true)
 		{
+			{
+				std::vector<eros::diagnostic> diagnostics = process->get_diagnostics();
+				EXPECT_TRUE(diagnostics.size() == (DIAGNOSTIC_TYPE_COUNT + process->get_imus().size()));
+				for (std::size_t i = 0; i < diagnostics.size(); ++i)
+				{
+					if(diagnostics.at(i).Diagnostic_Type == SENSORS) 
+					{
+						std::vector<IMUNodeProcess::IMU> imus = process->get_imus();
+						EXPECT_TRUE(imus.size() > 0);
+						for(std::size_t j = 0; j < imus.size(); ++j)
+						{
+							if(imus.at(j).diagnostic.DeviceName == diagnostics.at(i).DeviceName)
+							{
+								if(message_sent == true)
+								{
+									EXPECT_TRUE(diagnostics.at(i).Level > NOTICE);
+								}
+							}
+						}
+					}
+					else
+					{
+					
+										
+						EXPECT_TRUE(diagnostics.at(i).Level <= NOTICE);
+					}
+				}
+
+			}
 		}
 		current_time += dt;
 	}
@@ -396,7 +451,14 @@ TEST(Template,Process_Command)
 		}
 		if(slowrate_fire == true)
 		{
-			//Don't run LEVEL3 Test, as this will be called circularly and is only responsible for running this test anyways.
+			{
+				std::vector<eros::diagnostic> diagnostics = process->get_diagnostics();
+				EXPECT_TRUE(diagnostics.size() == (DIAGNOSTIC_TYPE_COUNT + process->get_imus().size()));
+				for (std::size_t i = 0; i < diagnostics.size(); ++i)
+				{
+					EXPECT_TRUE(diagnostics.at(i).Level <= NOTICE);
+				}
+			}
 
 		}
 		current_time += dt;

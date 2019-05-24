@@ -6,7 +6,6 @@ bool SafetyNode::start(int argc,char **argv)
 	process = new SafetyNodeProcess();
 	set_basenodename(BASE_NODE_NAME);
 	initialize_firmware(MAJOR_RELEASE_VERSION,MINOR_RELEASE_VERSION,BUILD_NUMBER,FIRMWARE_DESCRIPTION);
-	initialize_diagnostic();
 	diagnostic = preinitialize_basenode(argc,argv);
 	if(diagnostic.Level > WARN)
 	{
@@ -33,7 +32,7 @@ bool SafetyNode::start(int argc,char **argv)
 	}
 	if(diagnostic.Level < WARN)
 	{
-		diagnostic = update_diagnostic(DATA_STORAGE,INFO,INITIALIZING,"Node Configured.  Initializing.");
+		diagnostic = process->update_diagnostic(DATA_STORAGE,INFO,INITIALIZING,"Node Configured.  Initializing.");
 		get_logger()->log_diagnostic(diagnostic);
 	}
 	status = true;
@@ -81,7 +80,7 @@ bool SafetyNode::run_1hz()
 	}
 	else if((process->is_ready() == false) and (process->is_initialized() == true))
 	{
-		eros::diagnostic diag = process->get_diagnostic();
+		eros::diagnostic diag = diagnostic;
 		eros::srv_device srv;
 		srv.request.query = "DeviceType=TerminalHat";
 		if(srv_device.call(srv) == true)

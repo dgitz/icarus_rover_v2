@@ -14,7 +14,14 @@ double SLOW_RATE = 0.1f;
 double MEDIUM_RATE = 1.0f;
 double FAST_RATE = 10.0f;
 int DeviceID = 123;
-
+void print_diagnostic(uint8_t level,eros::diagnostic diagnostic)
+{
+	if(diagnostic.Level >= level)
+	{
+		printf("Type: %d Message: %d Level: %d Device: %s Desc: %s\n",diagnostic.Diagnostic_Type,diagnostic.Diagnostic_Message,
+			  		diagnostic.Level,diagnostic.DeviceName.c_str(),diagnostic.Description.c_str());
+	}
+}
 
 CommandNodeProcess* initializeprocess()
 {
@@ -64,7 +71,14 @@ CommandNodeProcess* readyprocess(CommandNodeProcess* process)
 		EXPECT_TRUE(diagnostics.size() == DIAGNOSTIC_TYPE_COUNT);
 		for (std::size_t i = 0; i < diagnostics.size(); ++i)
 		{	
-			EXPECT_TRUE(diagnostics.at(i).Level <= NOTICE);			
+			if(diagnostics.at(i).Diagnostic_Type == REMOTE_CONTROL) // This should not be ok yet, waiting on a user command message
+			{
+
+			}
+			else
+			{
+				EXPECT_TRUE(diagnostics.at(i).Level <= NOTICE);	
+			}		
 		}
 	}
 	return process;
@@ -115,7 +129,14 @@ TEST(PeriodicCommands,TestA)
 					EXPECT_TRUE(diagnostics.size() >= DIAGNOSTIC_TYPE_COUNT);
 					for (std::size_t i = 0; i < diagnostics.size(); ++i)
 					{
-						EXPECT_TRUE(diagnostics.at(i).Level <= NOTICE);
+						if(diagnostics.at(i).Diagnostic_Type == REMOTE_CONTROL) // This should not be ok yet, waiting on a user command message
+						{
+
+						}
+						else
+						{
+							EXPECT_TRUE(diagnostics.at(i).Level <= NOTICE);
+						}
 					}
 				}
 			}
@@ -189,6 +210,11 @@ TEST(ArmDisarm,TestA)
 	eros::command::ConstPtr cmd_ptr(new eros::command(arm_command));
 	diagnostic = process->new_user_commandmsg(cmd_ptr);
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
+	std::vector<eros::diagnostic> diagnostics = process->get_diagnostics();
+	for (std::size_t i = 0; i < diagnostics.size(); ++i)
+	{
+		EXPECT_TRUE(diagnostics.at(i).Level <= NOTICE);
+	}
 	EXPECT_EQ(process->get_currentcommand().Command,ROVERCOMMAND_ARM);
 	for(int i = 0; i < 10; i++)
 	{
@@ -196,6 +222,12 @@ TEST(ArmDisarm,TestA)
 		EXPECT_TRUE(diagnostic.Level <= NOTICE);
 		EXPECT_EQ(process->get_armeddisarmed_state(),ARMEDSTATUS_ARMED);
 	}
+	diagnostics = process->get_diagnostics();
+	for (std::size_t i = 0; i < diagnostics.size(); ++i)
+	{
+		EXPECT_TRUE(diagnostics.at(i).Level <= NOTICE);
+	}
+					
 
 }
 

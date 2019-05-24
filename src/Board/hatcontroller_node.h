@@ -59,6 +59,7 @@ private:
 	//Update Functions
 	bool run_001hz();
 	bool run_01hz();
+	bool run_01hz_noisy();
 	bool run_1hz();
 	bool run_10hz();
 	bool run_loop1();

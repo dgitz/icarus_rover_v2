@@ -1,13 +1,14 @@
 #include "IMUNodeProcess.h"
 eros::diagnostic  IMUNodeProcess::finish_initialization()
 {
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	imus_initialized = false;
 	imus_running = false;
-	return diagnostic;
+	return diag;
 }
 eros::diagnostic IMUNodeProcess::update(double t_dt,double t_ros_time)
 {
+	eros::diagnostic diag = root_diagnostic;
 	if(initialized == true)
 	{
 		if(mydevice.SensorCount == 0)
@@ -15,7 +16,12 @@ eros::diagnostic IMUNodeProcess::update(double t_dt,double t_ros_time)
 			ready = true;
 		}
 	}
-	eros::diagnostic diag = diagnostic;
+	if((is_initialized() == true) and (is_ready() == true))
+	{
+		diag = update_diagnostic(DATA_STORAGE,INFO,NOERROR,"No Error.");
+
+	}
+	
 	diag = update_baseprocess(t_dt,t_ros_time);
 	if(diag.Level > NOTICE)
 	{
@@ -24,9 +30,14 @@ eros::diagnostic IMUNodeProcess::update(double t_dt,double t_ros_time)
 	bool ok = true;
 	for(std::size_t i = 0; i < imus.size(); ++i)
 	{
-		if((imus.at(i).running == true) and (run_time > IMU_INVALID_TIME_THRESHOLD))
+		if(imus.at(i).running == false)
+		{
+			ok = false;
+		}
+		else if((imus.at(i).running == true) and (run_time > IMU_INVALID_TIME_THRESHOLD))
 		{
 			double dt = run_time - imus.at(i).lasttime_rx;
+			
 			if(imus.at(i).update_count == 0)
 			{
 				eros::diagnostic imu_diagnostic = imus.at(i).diagnostic;
@@ -37,7 +48,7 @@ eros::diagnostic IMUNodeProcess::update(double t_dt,double t_ros_time)
 				sprintf(tempstr,"Never Received data from IMU: %s",imus.at(i).devicename.c_str());
 				imu_diagnostic.Description = std::string(tempstr);
 				imus.at(i).diagnostic = imu_diagnostic;
-				diag = imu_diagnostic;
+				diag = update_diagnostic(imus.at(i).devicename,SENSORS,ERROR,DEVICE_NOT_AVAILABLE,std::string(tempstr));
 				ok = false;
 			}
 			else if(dt >=IMU_INVALID_TIME_THRESHOLD)
@@ -50,17 +61,22 @@ eros::diagnostic IMUNodeProcess::update(double t_dt,double t_ros_time)
 				sprintf(tempstr,"No IMU Data from %s in %f Seconds.",imus.at(i).devicename.c_str(),dt);
 				imu_diagnostic.Description = std::string(tempstr);
 				imus.at(i).diagnostic = imu_diagnostic;
-				diag = imu_diagnostic;
+				diag = update_diagnostic(imus.at(i).devicename,SENSORS,ERROR,DEVICE_NOT_AVAILABLE,std::string(tempstr));
 				ok = false;
 			}
 		}
+		else
+		{
+			ok = ok and true;
+		}
+	}
+	if(imus.size() == 0)
+	{
+		ok = false;
 	}
 	if(diag.Level <= NOTICE)
 	{
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Level = INFO;
-		diag.Diagnostic_Message = NOERROR;
-		diag.Description = "Node Running.";
+		diag = update_diagnostic(SOFTWARE,INFO,NOERROR,"Node Running.");
 
 	}
 	if(ok == true)
@@ -71,26 +87,28 @@ eros::diagnostic IMUNodeProcess::update(double t_dt,double t_ros_time)
 	{
 		ready_to_arm = false;
 	}
-	diagnostic = diag;
 	return diag;
 }
 eros::diagnostic IMUNodeProcess::new_imumsg(std::string devicename,IMUDriver::RawIMU imu_data,eros::imu &proc_imu)
 {
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	bool found = false;
 	for(std::size_t i = 0; i < imus.size(); ++i)
 	{
 		if(imus.at(i).devicename == devicename)
 		{
 
-			if(imu_data.signal_state != SIGNALSTATE_UPDATED)
+			if((imu_data.signal_state == SIGNALSTATE_UPDATED) or 
+			   (imu_data.signal_state == SIGNALSTATE_EXTRAPOLATED) or
+			   (imu_data.signal_state == SIGNALSTATE_HOLD) 
+			  )
+			  {
+			  }
+			else
 			{
-				diag.Diagnostic_Type = SENSORS;
-				diag.Level = WARN;
-				diag.Diagnostic_Message = DROPPING_PACKETS;
 				char tempstr[512];
 				sprintf(tempstr,"IMU State: %s",map_signalstate_tostring(imu_data.signal_state).c_str());
-				diag.Description = std::string(tempstr);
+				diag = update_diagnostic(devicename,SENSORS,WARN,DROPPING_PACKETS,std::string(tempstr));
 				return diag;
 			}
 			proc_imu = imus.at(i).imu_data;
@@ -244,38 +262,29 @@ eros::diagnostic IMUNodeProcess::new_imumsg(std::string devicename,IMUDriver::Ra
 	}
 	if(found == false)
 	{
-		diag.Diagnostic_Type = DATA_STORAGE;
-		diag.Level = ERROR;
-		diag.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
 		char tempstr[512];
 		sprintf(tempstr,"Could not find Device: %s",devicename.c_str());
-		diag.Description = std::string(tempstr);
+		diag = update_diagnostic(DATA_STORAGE,ERROR,DEVICE_NOT_AVAILABLE,std::string(tempstr));
 	}
 	else
 	{
-		diag.Diagnostic_Type = DATA_STORAGE;
-		diag.Level = INFO;
-		diag.Diagnostic_Message = NOERROR;
 		char tempstr[512];
 		sprintf(tempstr,"Device: %s Updated",devicename.c_str());
-		diag.Description = std::string(tempstr);
+		diag = update_diagnostic(devicename,SENSORS,INFO,NOERROR,std::string(tempstr));
 	}
 	return diag;
 }
 eros::diagnostic IMUNodeProcess::new_devicemsg(const eros::device::ConstPtr& device)
 {
-	eros::diagnostic diag = diagnostic;
-	diag.Diagnostic_Type = DATA_STORAGE;
-	diag.Level = ERROR;
-	diag.Diagnostic_Message = INITIALIZING_ERROR;
+	eros::diagnostic diag = root_diagnostic;
 	char tempstr[512];
 	sprintf(tempstr,"DeviceType: %s Not Supported.",device->DeviceType.c_str());
-	diag.Description = std::string(tempstr);
+	diag = update_diagnostic(DATA_STORAGE,ERROR,INITIALIZING_ERROR,std::string(tempstr));
 	return diag;
 }
 eros::diagnostic IMUNodeProcess::new_devicemsg(const eros::device::ConstPtr& device,const eros::leverarm::ConstPtr& leverarm)
 {
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	if(device->DeviceType == "IMU")
 	{
 		if(device->PartNumber == "110012")
@@ -323,6 +332,8 @@ eros::diagnostic IMUNodeProcess::new_devicemsg(const eros::device::ConstPtr& dev
 			imus.push_back(newimu);
 			ready = true;
 			imus_initialized = true;
+			diag = update_diagnostic(SENSORS,INFO,NOERROR,"Sensors Initialized.");
+			diag = update_diagnostic(newimu.diagnostic);
 		}
 		else if(device->PartNumber == "110015")
 		{
@@ -369,26 +380,22 @@ eros::diagnostic IMUNodeProcess::new_devicemsg(const eros::device::ConstPtr& dev
 			imus.push_back(newimu);
 			ready = true;
 			imus_initialized = true;
+			diag = update_diagnostic(SENSORS,INFO,NOERROR,"Sensors Initialized.");
+			diag = update_diagnostic(newimu.diagnostic);
 		}
 		else
 		{
-			diag.Diagnostic_Type = DATA_STORAGE;
-			diag.Level = ERROR;
-			diag.Diagnostic_Message = INITIALIZING_ERROR;
 			char tempstr[512];
 			sprintf(tempstr,"PartNumber: %s Not Supported.",device->PartNumber.c_str());
-			diag.Description = std::string(tempstr);
+			diag = update_diagnostic(DATA_STORAGE,ERROR,INITIALIZING_ERROR,std::string(tempstr));
 		}
 
 	}
 	else
 	{
-		diag.Diagnostic_Type = DATA_STORAGE;
-		diag.Level = ERROR;
-		diag.Diagnostic_Message = INITIALIZING_ERROR;
 		char tempstr[512];
 		sprintf(tempstr,"DeviceType: %s Not Supported.",device->DeviceType.c_str());
-		diag.Description = std::string(tempstr);
+		diag = update_diagnostic(DATA_STORAGE,ERROR,INITIALIZING_ERROR,std::string(tempstr));
 	}
 	return diag;
 }
@@ -448,7 +455,7 @@ IMUNodeProcess::IMU IMUNodeProcess::get_imu(std::string devicename)
 std::vector<eros::diagnostic> IMUNodeProcess::new_commandmsg(const eros::command::ConstPtr& t_msg)
 {
 	std::vector<eros::diagnostic> diaglist;
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	if (t_msg->Command == ROVERCOMMAND_RUNDIAGNOSTIC)
 	{
 		if (t_msg->Option1 == LEVEL1)
@@ -474,20 +481,14 @@ std::vector<eros::diagnostic> IMUNodeProcess::new_commandmsg(const eros::command
 std::vector<eros::diagnostic> IMUNodeProcess::check_programvariables()
 {
 	std::vector<eros::diagnostic> diaglist;
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	bool status = true;
 
 	if (status == true) {
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Level = INFO;
-		diag.Diagnostic_Message = DIAGNOSTIC_PASSED;
-		diag.Description = "Checked Program Variables -> PASSED.";
+		diag = update_diagnostic(SOFTWARE,INFO,DIAGNOSTIC_PASSED,"Checked Program Variables -> PASSED.");
 		diaglist.push_back(diag);
 	} else {
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Level = WARN;
-		diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
-		diag.Description = "Checked Program Variables -> FAILED.";
+		diag = update_diagnostic(SOFTWARE,WARN,DIAGNOSTIC_FAILED,"Checked Program Variables -> FAILED.");
 		diaglist.push_back(diag);
 	}
 	return diaglist;
