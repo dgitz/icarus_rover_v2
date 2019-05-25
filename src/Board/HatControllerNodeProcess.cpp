@@ -1,7 +1,7 @@
 #include "HatControllerNodeProcess.h"
 eros::diagnostic  HatControllerNodeProcess::finish_initialization()
 {
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	ready_to_arm = false;
 	armed_state = ARMEDSTATUS_DISARMED_CANNOTARM;
 	hats.clear();
@@ -10,11 +10,13 @@ eros::diagnostic  HatControllerNodeProcess::finish_initialization()
 	pps_counter = 0;
 	analyze_timing = false;
 	timing_diff.clear();
-	return diagnostic;
+	diag = update_diagnostic(COMMUNICATIONS,INFO,NOERROR,"No Error.");
+	diag = update_diagnostic(SENSORS,INFO,NOERROR,"No Error.");
+	return diag;
 }
 eros::diagnostic HatControllerNodeProcess::update(double t_dt,double t_ros_time)
 {
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	diag = update_baseprocess(t_dt,t_ros_time);
 	if((mydevice.HatCount == 0) and (mydevice.SensorCount == 0))
 	{
@@ -35,10 +37,7 @@ eros::diagnostic HatControllerNodeProcess::update(double t_dt,double t_ros_time)
 	else
 	{
 		status = false;
-		diag.Level = INFO;
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Diagnostic_Message = INITIALIZING;
-		diag.Description = "Initializing";
+		diag = update_diagnostic(DATA_STORAGE,INFO,INITIALIZING,"Initializing.");
 	}
 	ready_to_arm = status;
 	if(status == false)
@@ -48,18 +47,14 @@ eros::diagnostic HatControllerNodeProcess::update(double t_dt,double t_ros_time)
 	}
 	else
 	{
-		diag.Level = INFO;
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Diagnostic_Message = NOERROR;
-		diag.Description = "Node Running";
+		diag = update_diagnostic(SOFTWARE,INFO,NOERROR,"Node Running.");
 	}
-	diagnostic = diag;
 	return diag;
 }
 std::vector<eros::diagnostic> HatControllerNodeProcess::new_commandmsg(const eros::command::ConstPtr& t_msg)
 {
 	std::vector<eros::diagnostic> diaglist;
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	if (t_msg->Command == ROVERCOMMAND_RUNDIAGNOSTIC)
 	{
 		if (t_msg->Option1 == LEVEL1)
@@ -85,20 +80,14 @@ std::vector<eros::diagnostic> HatControllerNodeProcess::new_commandmsg(const ero
 std::vector<eros::diagnostic> HatControllerNodeProcess::check_programvariables()
 {
 	std::vector<eros::diagnostic> diaglist;
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	bool status = true;
 
 	if (status == true) {
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Level = INFO;
-		diag.Diagnostic_Message = DIAGNOSTIC_PASSED;
-		diag.Description = "Checked Program Variables -> PASSED.";
+		diag = update_diagnostic(SOFTWARE,INFO,DIAGNOSTIC_PASSED,"Checked Program Variables -> PASSED.");
 		diaglist.push_back(diag);
 	} else {
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Level = WARN;
-		diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
-		diag.Description = "Checked Program Variables -> FAILED.";
+		diag = update_diagnostic(SOFTWARE,WARN,DIAGNOSTIC_FAILED,"Checked Program Variables -> FAILED.");
 		diaglist.push_back(diag);
 	}
 	return diaglist;
@@ -148,7 +137,7 @@ int HatControllerNodeProcess::map_PinFunction_ToInt(std::string Function)
 }
 eros::diagnostic HatControllerNodeProcess::new_devicemsg(const eros::device::ConstPtr& t_newdevice)
 {
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	eros::device device = convert_fromptr(t_newdevice);
 	if(initialized == false)
 	{
@@ -161,13 +150,10 @@ eros::diagnostic HatControllerNodeProcess::new_devicemsg(const eros::device::Con
 			{
 				if(hat_present(t_newdevice) == true)
 				{
-					diag.Level = WARN;
-					diag.Diagnostic_Type = SOFTWARE;
-					diag.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
 					char tempstr[512];
 					sprintf(tempstr,"Hat: %s already loaded.",
 							t_newdevice->DeviceName.c_str());
-					diag.Description = std::string(tempstr);
+					diag = update_diagnostic(DATA_STORAGE,ERROR,INITIALIZING_ERROR,std::string(tempstr));
 					return diag;
 				}
 				std::size_t hat_message = t_newdevice->DeviceType.find("Hat");
@@ -182,13 +168,10 @@ eros::diagnostic HatControllerNodeProcess::new_devicemsg(const eros::device::Con
 							}
 							else
 							{
-								diag.Level = ERROR;
-								diag.Diagnostic_Type = SOFTWARE;
-								diag.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
 								char tempstr[512];
 								sprintf(tempstr,"Hat Type: %s Pin Function: %s Not supported.",
 										t_newdevice->DeviceType.c_str(),t_newdevice->pins.at(i).Function.c_str());
-								diag.Description = std::string(tempstr);
+								diag = update_diagnostic(DATA_STORAGE,ERROR,INITIALIZING_ERROR,std::string(tempstr));
 								return diag;
 							}
 						}
@@ -204,13 +187,10 @@ eros::diagnostic HatControllerNodeProcess::new_devicemsg(const eros::device::Con
 
 							else
 							{
-								diag.Level = ERROR;
-								diag.Diagnostic_Type = SOFTWARE;
-								diag.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
 								char tempstr[512];
 								sprintf(tempstr,"Hat Type: %s Pin Function: %s Not supported.",
 										t_newdevice->DeviceType.c_str(),t_newdevice->pins.at(i).Function.c_str());
-								diag.Description = std::string(tempstr);
+								diag = update_diagnostic(DATA_STORAGE,ERROR,INITIALIZING_ERROR,std::string(tempstr));
 								return diag;
 							}
 						}
@@ -228,43 +208,35 @@ eros::diagnostic HatControllerNodeProcess::new_devicemsg(const eros::device::Con
 								new_sensor.connected_hat = device;
 								new_sensor.connected_pin = t_newdevice->pins.at(i);
 								new_sensor.status = SIGNALSTATE_UNDEFINED;
-
+								diag = update_diagnostic(new_sensor.name,SENSORS,INFO,NOERROR,"No Error.");
 								sensors.push_back(new_sensor);
 								if(load_sensorinfo(new_sensor.name) == false)
 								{
-									diag.Level = ERROR;
-									diag.Diagnostic_Type = SOFTWARE;
-									diag.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
 									char tempstr[512];
 									sprintf(tempstr,"Unable to load info for Sensor: %s",new_sensor.name.c_str());
-									diag.Description = std::string(tempstr);
+									diag = update_diagnostic(new_sensor.name,SENSORS,ERROR,INITIALIZING_ERROR,std::string(tempstr));
 									return diag;
 								}
 
 							}
 							else
 							{
-								diag.Level = ERROR;
-								diag.Diagnostic_Type = SOFTWARE;
-								diag.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
 								char tempstr[512];
 								sprintf(tempstr,"Hat Type: %s Pin Function: %s Not supported.",
 										t_newdevice->DeviceType.c_str(),t_newdevice->pins.at(i).Function.c_str());
-								diag.Description = std::string(tempstr);
+								diag = update_diagnostic(DATA_STORAGE,ERROR,INITIALIZING_ERROR,std::string(tempstr));
 								return diag;
 							}
 						}
 					}
 					else
 					{
-						diag.Level = ERROR;
-						diag.Diagnostic_Type = SOFTWARE;
-						diag.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
 						char tempstr[512];
 						sprintf(tempstr,"Hat Type: %s Not supported.",t_newdevice->DeviceType.c_str());
-						diag.Description = std::string(tempstr);
+						diag = update_diagnostic(DATA_STORAGE,ERROR,INITIALIZING_ERROR,std::string(tempstr));
 						return diag;
 					}
+					diag = update_diagnostic(device.DeviceName,COMMUNICATIONS,NOTICE,NOERROR,"No Error.");
 					hats.push_back(device);
 					hats_running.push_back(false);
 					if(hats.size() == mydevice.HatCount)
@@ -281,20 +253,21 @@ eros::diagnostic HatControllerNodeProcess::new_devicemsg(const eros::device::Con
 	if((hats.size() == mydevice.HatCount) and
 			(sensors_initialized() == true))
 	{
+		diag = update_diagnostic(DATA_STORAGE,INFO,NOERROR,"No Error.");
 		ready = true;
 	}
-	diag.Level = INFO;
-	diag.Diagnostic_Type = COMMUNICATIONS;
-	diag.Diagnostic_Message = NOERROR;
-	char tempstr[512];
-	sprintf(tempstr,"Initialized: %d Ready: %d",initialized,ready);
-	diag.Description = std::string(tempstr);
+	else
+	{
+		char tempstr[512];
+		sprintf(tempstr,"Initialized: %d Ready: %d",initialized,ready);
+		diag = update_diagnostic(DATA_STORAGE,INFO,INITIALIZING,std::string(tempstr));
+	}
 	return diag;
 }
 
 eros::diagnostic HatControllerNodeProcess::new_pinmsg(const eros::pin::ConstPtr& t_msg)
 {
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	int found = -1;
 	for(std::size_t i = 0; i < hats.size(); i++)
 	{
@@ -316,23 +289,11 @@ eros::diagnostic HatControllerNodeProcess::new_pinmsg(const eros::pin::ConstPtr&
 	}
 
 
-	if(found == -1)
+	if(found == 0)
 	{
-		diag.Level = INFO;
-		diag.Diagnostic_Type = COMMUNICATIONS;
-		diag.Diagnostic_Message = NOERROR;
-		char tempstr[512];
-		sprintf(tempstr,"Pin Msg for Device: %s but not for me.",t_msg->ParentDevice.c_str());
-		diag.Description = std::string(tempstr);
-	}
-	else if(found == 0)
-	{
-		diag.Level = WARN;
-		diag.Diagnostic_Type = COMMUNICATIONS;
-		diag.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
 		char tempstr[512];
 		sprintf(tempstr,"Pin Msg for My Hat but Pin not found: %s:%d",t_msg->ParentDevice.c_str(),t_msg->Number);
-		diag.Description = std::string(tempstr);
+		diag = update_diagnostic(t_msg->ParentDevice,COMMUNICATIONS,WARN,DEVICE_NOT_AVAILABLE,std::string(tempstr));
 	}
 	else
 	{
@@ -344,13 +305,9 @@ eros::diagnostic HatControllerNodeProcess::new_pinmsg(const eros::pin::ConstPtr&
 				timing_diff.erase(timing_diff.begin());
 			}
 		}
-
-		diag.Level = INFO;
-		diag.Diagnostic_Type = COMMUNICATIONS;
-		diag.Diagnostic_Message = NOERROR;
 		char tempstr[512];
 		sprintf(tempstr,"Updated Pin %s:%d to value: %d.",t_msg->ParentDevice.c_str(),t_msg->Number,t_msg->Value);
-		diag.Description = std::string(tempstr);
+		diag = update_diagnostic(t_msg->ParentDevice,COMMUNICATIONS,INFO,NOERROR,std::string(tempstr));
 
 	}
 	return diag;
@@ -388,14 +345,11 @@ eros::diagnostic HatControllerNodeProcess::new_message_GetDIOPort1(uint8_t hatid
 {
 	bool any_error = false;
 	uint16_t v[6] = {v1,v2,v3,v4};
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	eros::device hat = find_hat(hatid);
 	if(hat.DeviceName == "")
 	{
 		char tempstr[1024];
-		diag.Diagnostic_Type = COMMUNICATIONS;
-		diag.Level = ERROR;
-		diag.Diagnostic_Message = DROPPING_PACKETS;
 		sprintf(tempstr,"Hat ID: %d Not Found.  Defined Hats: ",hatid);
 		char tempstr2[512];
 		for(int j = 0; j < hats.size(); j++)
@@ -403,7 +357,7 @@ eros::diagnostic HatControllerNodeProcess::new_message_GetDIOPort1(uint8_t hatid
 			sprintf(tempstr2,"%s:%ld,",hats.at(j).DeviceName.c_str(),hats.at(j).ID);
 		}
 		sprintf(tempstr,"%s%s\n",tempstr,tempstr2);
-		diag.Description = std::string(tempstr);
+		diag = update_diagnostic(COMMUNICATIONS,ERROR,DROPPING_PACKETS,std::string(tempstr));
 		return diag;
 	}
 	for(uint8_t i = 0; i < 4; i++)
@@ -417,32 +371,23 @@ eros::diagnostic HatControllerNodeProcess::new_message_GetDIOPort1(uint8_t hatid
 			{
 				any_error = true;
 				char tempstr[255];
-				diag.Diagnostic_Type = COMMUNICATIONS;
-				diag.Level = WARN;
-				diag.Diagnostic_Message = DROPPING_PACKETS;
 				sprintf(tempstr,"Unable to Update Pin: UltraSonicSensorInput:%d",i);
-				diag.Description = std::string(tempstr);
+				diag = update_diagnostic(hat_ptr->DeviceName,COMMUNICATIONS,WARN,DROPPING_PACKETS,std::string(tempstr));
 			}
 		}
 		else
 		{
 			any_error = true;
 			char tempstr[255];
-			diag.Diagnostic_Type = COMMUNICATIONS;
-			diag.Level = WARN;
-			diag.Diagnostic_Message = DROPPING_PACKETS;
 			sprintf(tempstr,"Unable to Find Pin: UltraSonicSensorInput:%d",i);
-			diag.Description = std::string(tempstr);
+			diag = update_diagnostic(hat_ptr->DeviceName,COMMUNICATIONS,WARN,DROPPING_PACKETS,std::string(tempstr));
 		}
 	}
 	if(any_error == false)
 	{
 		char tempstr[255];
-		diag.Diagnostic_Type = COMMUNICATIONS;
-		diag.Level = INFO;
-		diag.Diagnostic_Message = NOERROR;
 		sprintf(tempstr,"Updated");
-		diag.Description = std::string(tempstr);
+		diag = update_diagnostic(hat.DeviceName,COMMUNICATIONS,INFO,NOERROR,"Updated.");
 	}
 	return diag;
 }
@@ -488,7 +433,7 @@ double HatControllerNodeProcess::get_timedelay()
 }
 eros::diagnostic HatControllerNodeProcess::new_pinsmsg(const eros::iopins::ConstPtr& t_msg)
 {
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	int found = -1;
 	for(std::size_t k = 0; k < t_msg->pins.size(); k++)
 	{
@@ -539,12 +484,9 @@ eros::diagnostic HatControllerNodeProcess::new_pinsmsg(const eros::iopins::Const
         diag.Description = std::string(tempstr);
     }
 	 */
-	diag.Level = INFO;
-	diag.Diagnostic_Type = COMMUNICATIONS;
-	diag.Diagnostic_Message = NOERROR;
 	char tempstr[512];
 	sprintf(tempstr,"Updated Pins %d",(int)t_msg->pins.size());
-	diag.Description = std::string(tempstr);
+	diag = update_diagnostic(COMMUNICATIONS,INFO,NOERROR,std::string(tempstr));
 	return diag;
 
 }
@@ -552,14 +494,11 @@ eros::diagnostic HatControllerNodeProcess::new_pinsmsg(const eros::iopins::Const
 
 eros::diagnostic HatControllerNodeProcess::new_armedstatemsg(uint8_t msg)
 {
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	armed_state = msg;
-	diag.Level = INFO;
-	diag.Diagnostic_Type = SOFTWARE;
-	diag.Diagnostic_Message = NOERROR;
 	char tempstr[512];
 	sprintf(tempstr,"Rover Armed State: %d Processed.",msg);
-	diag.Description = std::string(tempstr);
+	diag = update_diagnostic(SOFTWARE,INFO,NOERROR,std::string(tempstr));
 	return diag;
 }
 bool HatControllerNodeProcess::is_hat_running(std::string devicetype,uint16_t id)
@@ -584,7 +523,7 @@ bool HatControllerNodeProcess::is_hat_running(std::string devicetype,uint16_t id
 }
 eros::diagnostic HatControllerNodeProcess::set_hat_running(std::string devicetype,uint16_t id)
 {
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	eros::device hat;
 	bool found = false;
 	for(std::size_t i = 0; i < hats.size(); i++)
@@ -598,9 +537,6 @@ eros::diagnostic HatControllerNodeProcess::set_hat_running(std::string devicetyp
 	}
 	if(found == false)
 	{
-		diag.Level = WARN;
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
 		char tempstr[512];
 		sprintf(tempstr,"Hat ID: %d Not Found.  Defined Hats: ",id);
 		char tempstr2[512];
@@ -609,22 +545,19 @@ eros::diagnostic HatControllerNodeProcess::set_hat_running(std::string devicetyp
 			sprintf(tempstr2,"%s:%ld,",hats.at(j).DeviceName.c_str(),hats.at(j).ID);
 		}
 		sprintf(tempstr,"%s%s\n",tempstr,tempstr2);
-		diag.Description = std::string(tempstr);
+		diag = update_diagnostic(DATA_STORAGE,WARN,INITIALIZING_ERROR,std::string(tempstr));
 	}
 	else
 	{
-		diag.Level = INFO;
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Diagnostic_Message = NOERROR;
 		char tempstr[512];
 		sprintf(tempstr,"%s is now Initialized",hat.DeviceName.c_str());
-		diag.Description = std::string(tempstr);
+		diag = update_diagnostic(hat.DeviceName,DATA_STORAGE,INFO,NOERROR,std::string(tempstr));
 	}
 	return diag;
 }
 eros::diagnostic HatControllerNodeProcess::set_terminalhat_initialized()
 {
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	bool found = false;
 	for(std::size_t i = 0; i < hats.size(); i++)
 	{
@@ -637,21 +570,15 @@ eros::diagnostic HatControllerNodeProcess::set_terminalhat_initialized()
 	}
 	if(found == false)
 	{
-		diag.Level = WARN;
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
 		char tempstr[512];
 		sprintf(tempstr,"TerminalHat Not Found");
-		diag.Description = std::string(tempstr);
+		diag = update_diagnostic(DATA_STORAGE,ERROR,INITIALIZING_ERROR,std::string(tempstr));
 	}
 	else
 	{
-		diag.Level = INFO;
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Diagnostic_Message = NOERROR;
 		char tempstr[512];
 		sprintf(tempstr,"TerminalHat is now Initialized");
-		diag.Description = std::string(tempstr);
+		diag = update_diagnostic(DATA_STORAGE,INFO,NOERROR,std::string(tempstr));
 	}
 	return diag;
 }

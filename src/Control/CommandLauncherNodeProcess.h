@@ -25,7 +25,7 @@ public:
 		std::string process_name;
 		std::string kill_name;
 		uint32_t pid;
-		uint32_t restart_counter;
+		int32_t restart_counter;
 		int32_t max_restarts;
 	};
 	struct IPMap

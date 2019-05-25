@@ -6,7 +6,6 @@ bool SafetyNode::start(int argc,char **argv)
 	process = new SafetyNodeProcess();
 	set_basenodename(BASE_NODE_NAME);
 	initialize_firmware(MAJOR_RELEASE_VERSION,MINOR_RELEASE_VERSION,BUILD_NUMBER,FIRMWARE_DESCRIPTION);
-	initialize_diagnostic(DIAGNOSTIC_SYSTEM,DIAGNOSTIC_SUBSYSTEM,DIAGNOSTIC_COMPONENT);
 	diagnostic = preinitialize_basenode(argc,argv);
 	if(diagnostic.Level > WARN)
 	{
@@ -18,8 +17,13 @@ bool SafetyNode::start(int argc,char **argv)
 		return false;
 	}
 
-	process->initialize(get_basenodename(),get_nodename(),get_hostname());
-	process->set_diagnostic(diagnostic);
+	process->initialize(get_basenodename(),get_nodename(),get_hostname(),DIAGNOSTIC_SYSTEM,DIAGNOSTIC_SUBSYSTEM,DIAGNOSTIC_COMPONENT);
+	std::vector<uint8_t> diagnostic_types;
+	diagnostic_types.push_back(SOFTWARE);
+	diagnostic_types.push_back(DATA_STORAGE);
+	diagnostic_types.push_back(SYSTEM_RESOURCE);
+	diagnostic_types.push_back(REMOTE_CONTROL);
+	process->enable_diagnostics(diagnostic_types);
 	process->finish_initialization();
 	diagnostic = finish_initialization();
 	if(diagnostic.Level > WARN)
@@ -28,10 +32,7 @@ bool SafetyNode::start(int argc,char **argv)
 	}
 	if(diagnostic.Level < WARN)
 	{
-		diagnostic.Diagnostic_Type = NOERROR;
-		diagnostic.Level = INFO;
-		diagnostic.Diagnostic_Message = NOERROR;
-		diagnostic.Description = "Node Configured.  Initializing.";
+		diagnostic = process->update_diagnostic(DATA_STORAGE,INFO,INITIALIZING,"Node Configured.  Initializing.");
 		get_logger()->log_diagnostic(diagnostic);
 	}
 	status = true;
@@ -59,22 +60,27 @@ bool SafetyNode::run_001hz()
 }
 bool SafetyNode::run_01hz()
 {
-	eros::diagnostic diag = process->get_diagnostic();
+	return true;
+}
+bool SafetyNode::run_01hz_noisy()
+{
+	std::vector<eros::diagnostic> diaglist = process->get_diagnostics();
+	for (std::size_t i = 0; i < diaglist.size(); ++i)
 	{
-		get_logger()->log_diagnostic(diag);
-		diagnostic_pub.publish(diag);
+		get_logger()->log_diagnostic(diaglist.at(i));
+		diagnostic_pub.publish(diaglist.at(i));
 	}
 	return true;
 }
 bool SafetyNode::run_1hz()
 {
-
-	if((process->is_initialized() == true) and (process->is_ready() == true))
+	process->update_diagnostic(get_resource_diagnostic());
+	if ((process->is_initialized() == true) and (process->is_ready() == true))
 	{
 	}
 	else if((process->is_ready() == false) and (process->is_initialized() == true))
 	{
-		eros::diagnostic diag = process->get_diagnostic();
+		eros::diagnostic diag = diagnostic;
 		eros::srv_device srv;
 		srv.request.query = "DeviceType=TerminalHat";
 		if(srv_device.call(srv) == true)
@@ -98,13 +104,9 @@ bool SafetyNode::run_1hz()
 					if(TerminalHat.configure_pin(pins.at(i).Number,pins.at(i).Function) == false)
 					{
 						any_error = true;
-						diag.Diagnostic_Type = SOFTWARE;
-						diag.Level = ERROR;
-						diag.Diagnostic_Message = INITIALIZING_ERROR;
 						char tempstr[512];
 						sprintf(tempstr,"[TerminalHat] Could not configure Pin: %d with Function: %s",pins.at(i).Number,pins.at(i).Function.c_str());
-						diag.Description = std::string(tempstr);
-						process->set_diagnostic(diag);
+						diag = process->update_diagnostic(DATA_STORAGE,ERROR,INITIALIZING_ERROR,std::string(tempstr));
 						logger->log_error(std::string(tempstr));
 						kill_node = 1;
 					}
@@ -132,7 +134,7 @@ bool SafetyNode::run_1hz()
 				}
 				else
 				{
-					bool status = new_devicemsg(srv.request.query,srv.response.data.at(0));
+					new_devicemsg(srv.request.query,srv.response.data.at(0));
 				}
 			}
 			else
@@ -140,13 +142,15 @@ bool SafetyNode::run_1hz()
 			}
 		}
 	}
-	eros::diagnostic diag = process->get_diagnostic();
-	if(diag.Level >= NOTICE)
+	std::vector<eros::diagnostic> diaglist = process->get_diagnostics();
+	for (std::size_t i = 0; i < diaglist.size(); ++i)
 	{
-		get_logger()->log_diagnostic(diag);
-		diagnostic_pub.publish(diag);
+		if (diaglist.at(i).Level == WARN)
+		{
+			get_logger()->log_diagnostic(diaglist.at(i));
+			diagnostic_pub.publish(diaglist.at(i));
+		}
 	}
-
 	return true;
 }
 bool SafetyNode::run_10hz()
@@ -164,15 +168,20 @@ bool SafetyNode::run_10hz()
 		bool v = process->set_pinvalue("ArmSwitch",pin_value);
 		if(v == false)
 		{
-			diag.Diagnostic_Type = SOFTWARE;
-			diag.Level = ERROR;
-			diag.Diagnostic_Message = INITIALIZING_ERROR;
 			char tempstr[512];
 			sprintf(tempstr,"[TerminalHat] Could not read Arm Switch");
-			diag.Description = std::string(tempstr);
-			process->set_diagnostic(diag);
+			diag = process->update_diagnostic(DATA_STORAGE,ERROR,DEVICE_NOT_AVAILABLE,std::string(tempstr));
 			logger->log_error(std::string(tempstr));
 			kill_node = 1;
+		}
+	}
+	std::vector<eros::diagnostic> diaglist = process->get_diagnostics();
+	for (std::size_t i = 0; i < diaglist.size(); ++i)
+	{
+		if (diaglist.at(i).Level > WARN)
+		{
+			get_logger()->log_diagnostic(diaglist.at(i));
+			diagnostic_pub.publish(diaglist.at(i));
 		}
 	}
 	return true;

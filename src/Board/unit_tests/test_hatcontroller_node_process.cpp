@@ -9,23 +9,19 @@ std::string Host_Name = "ControlModule1";
 std::string ros_DeviceName = Host_Name;
 std::string ros_ParentDevice = "";
 std::string ros_DeviceType = "ControlModule";
-
+#define DIAGNOSTIC_TYPE_COUNT 5
+void print_diagnostic(uint8_t level,eros::diagnostic diagnostic)
+{
+	if(diagnostic.Level >= level)
+	{
+		printf("Type: %d Message: %d Level: %d Device: %s Desc: %s\n",diagnostic.Diagnostic_Type,diagnostic.Diagnostic_Message,
+			  		diagnostic.Level,diagnostic.DeviceName.c_str(),diagnostic.Description.c_str());
+	}
+}
 HatControllerNodeProcess* initializeprocess()
 {
-	eros::diagnostic diagnostic;
-	diagnostic.DeviceName = ros_DeviceName;
-	diagnostic.Node_Name = Node_Name;
-	diagnostic.System = ROVER;
-	diagnostic.SubSystem = ROBOT_CONTROLLER;
-	diagnostic.Component = GPIO_NODE;
-
-	diagnostic.Diagnostic_Type = NOERROR;
-	diagnostic.Level = INFO;
-	diagnostic.Diagnostic_Message = INITIALIZING;
-	diagnostic.Description = "Node Initializing";
-
 	eros::device device;
-	device.DeviceName = diagnostic.DeviceName;
+	device.DeviceName = ros_DeviceName;
 	device.BoardCount = 0;
 	device.SensorCount = 0;
 	device.HatCount = 0;
@@ -34,10 +30,15 @@ HatControllerNodeProcess* initializeprocess()
 
 	HatControllerNodeProcess *process;
 	process = new HatControllerNodeProcess;
-	process->initialize("hatcontroller_node",Node_Name,Host_Name);
-	process->set_diagnostic(diagnostic);
+	process->initialize("hatcontroller_node",Node_Name,Host_Name,ROVER,ROBOT_CONTROLLER,CONTROLLER_NODE);
+	std::vector<uint8_t> diagnostic_types;
+	diagnostic_types.push_back(SOFTWARE);
+	diagnostic_types.push_back(DATA_STORAGE);
+	diagnostic_types.push_back(SYSTEM_RESOURCE);
+	diagnostic_types.push_back(COMMUNICATIONS);
+	diagnostic_types.push_back(SENSORS);
+	process->enable_diagnostics(diagnostic_types);
 	process->finish_initialization();
-	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 	EXPECT_TRUE(process->is_initialized() == false);
 	process->set_mydevice(device);
 	EXPECT_TRUE(process->is_initialized() == true);
@@ -46,51 +47,43 @@ HatControllerNodeProcess* initializeprocess()
 }
 HatControllerNodeProcess* initializeprocess(eros::device device)
 {
-	eros::diagnostic diagnostic;
-	diagnostic.DeviceName = ros_DeviceName;
-	diagnostic.Node_Name = Node_Name;
-	diagnostic.System = ROVER;
-	diagnostic.SubSystem = ROBOT_CONTROLLER;
-	diagnostic.Component = GPIO_NODE;
-
-	diagnostic.Diagnostic_Type = NOERROR;
-	diagnostic.Level = INFO;
-	diagnostic.Diagnostic_Message = INITIALIZING;
-	diagnostic.Description = "Node Initializing";
-
 	HatControllerNodeProcess *process;
 	process = new HatControllerNodeProcess;
-		process->initialize("hatcontroller_node",Node_Name,Host_Name);
-		process->set_diagnostic(diagnostic);
-		process->finish_initialization();
-		EXPECT_TRUE(diagnostic.Level <= NOTICE);
-		EXPECT_TRUE(process->is_initialized() == false);
-		process->set_mydevice(device);
-		EXPECT_TRUE(process->is_initialized() == true);
-		EXPECT_TRUE(process->get_mydevice().DeviceName == device.DeviceName);
+	process->initialize("hatcontroller_node",Node_Name,Host_Name,ROVER,ROBOT_CONTROLLER,CONTROLLER_NODE);
+	std::vector<uint8_t> diagnostic_types;
+	diagnostic_types.push_back(SOFTWARE);
+	diagnostic_types.push_back(DATA_STORAGE);
+	diagnostic_types.push_back(SYSTEM_RESOURCE);
+	diagnostic_types.push_back(COMMUNICATIONS);
+	diagnostic_types.push_back(SENSORS);
+	process->enable_diagnostics(diagnostic_types);
+	process->finish_initialization();
+	EXPECT_TRUE(process->is_initialized() == false);
+	process->set_mydevice(device);
+	EXPECT_TRUE(process->is_initialized() == true);
+	EXPECT_TRUE(process->get_mydevice().DeviceName == device.DeviceName);
 	return process;
 }
 HatControllerNodeProcess* readyprocess(HatControllerNodeProcess* process)
 {
-	eros::diagnostic diag = process->update(0.0,0.0);
+	process->update_diagnostic(SYSTEM_RESOURCE,INFO,NOERROR,"Not testing this during unit tests.");
+	eros::diagnostic diag = process->update(0.0, 0.0);
 	EXPECT_TRUE(diag.Level <= NOTICE);
+	{
+		std::vector<eros::diagnostic> diagnostics = process->get_diagnostics();
+		//EXPECT_TRUE(diagnostics.size() == DIAGNOSTIC_TYPE_COUNT+(2*process->get_boarddata().size())+(process->get_sensordata().size()));
+		for (std::size_t i = 0; i < diagnostics.size(); ++i)
+		{
+			print_diagnostic(WARN,diagnostics.at(i));
+			EXPECT_TRUE(diagnostics.at(i).Level <= NOTICE);
+		}
+	}
 	EXPECT_TRUE(process->is_ready() == true);
 	return process;
 }
 TEST(Template,Process_Initialization_ServoHat)
 {
 	HatControllerNodeProcess* process = initializeprocess();
-	eros::diagnostic diagnostic;
-	diagnostic.DeviceName = ros_DeviceName;
-	diagnostic.Node_Name = Node_Name;
-	diagnostic.System = ROVER;
-	diagnostic.SubSystem = ROBOT_CONTROLLER;
-	diagnostic.Component = COMMUNICATION_NODE;
-
-	diagnostic.Diagnostic_Type = NOERROR;
-	diagnostic.Level = INFO;
-	diagnostic.Diagnostic_Message = INITIALIZING;
-	diagnostic.Description = "Node Initializing";
 
 	eros::device ros_device;
 	ros_device.DeviceName = ros_DeviceName;
@@ -144,26 +137,13 @@ TEST(Template,Process_Initialization_ServoHat)
 	EXPECT_TRUE(process->is_ready() == false);
 
 	eros::device::ConstPtr dev_ptr(new eros::device(servohat1_device));
-	diagnostic = process->new_devicemsg(dev_ptr);
+	eros::diagnostic diagnostic = process->new_devicemsg(dev_ptr);
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
-
-	EXPECT_TRUE(process->is_ready() == true);
+	process = readyprocess(process);
 }
 TEST(Template,Process_Initialization_GPIOHat)
 {
 	HatControllerNodeProcess* process = initializeprocess();
-	eros::diagnostic diagnostic;
-	diagnostic.DeviceName = ros_DeviceName;
-	diagnostic.Node_Name = Node_Name;
-	diagnostic.System = ROVER;
-	diagnostic.SubSystem = ROBOT_CONTROLLER;
-	diagnostic.Component = COMMUNICATION_NODE;
-
-	diagnostic.Diagnostic_Type = NOERROR;
-	diagnostic.Level = INFO;
-	diagnostic.Diagnostic_Message = INITIALIZING;
-	diagnostic.Description = "Node Initializing";
-
 	eros::device ros_device;
 	ros_device.DeviceName = ros_DeviceName;
 	ros_device.DeviceParent = "";
@@ -220,10 +200,9 @@ TEST(Template,Process_Initialization_GPIOHat)
 	EXPECT_TRUE(process->is_ready() == false);
 
 	eros::device::ConstPtr dev_ptr(new eros::device(gpiohat1_device));
-	diagnostic = process->new_devicemsg(dev_ptr);
+	eros::diagnostic diagnostic = process->new_devicemsg(dev_ptr);
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
-
-	EXPECT_TRUE(process->is_ready() == true);
+	process = readyprocess(process);
 }
 
 TEST(Template,Process_Command)
@@ -285,6 +264,13 @@ TEST(Template,Process_Command)
 		}
 		if(slowrate_fire == true)
 		{
+			std::vector<eros::diagnostic> diagnostics = process->get_diagnostics();
+			EXPECT_TRUE(diagnostics.size() == (DIAGNOSTIC_TYPE_COUNT+process->get_hats().size() + process->get_sensordata().size()));
+			for (std::size_t i = 0; i < diagnostics.size(); ++i)
+			{
+				print_diagnostic(WARN,diagnostics.at(i));
+				EXPECT_TRUE(diagnostics.at(i).Level <= NOTICE);
+			}
 		}
 		current_time += dt;
 	}
@@ -292,7 +278,6 @@ TEST(Template,Process_Command)
 }
 TEST(DeviceInitialization,DeviceInitialization_TerminalHat)
 {
-
 	eros::device ros_device;
 	ros_device.DeviceName = ros_DeviceName;
 	ros_device.DeviceParent = ros_ParentDevice;
@@ -336,9 +321,7 @@ TEST(DeviceInitialization,DeviceInitialization_TerminalHat)
 
 	eros::device::ConstPtr hat1_ptr(new eros::device(hat1));
 	diagnostic = process->new_devicemsg(hat1_ptr);
-	EXPECT_TRUE(diagnostic.Level <= NOTICE);
-
-	EXPECT_TRUE(process->is_ready() == true);
+	process = readyprocess(process);
 	diagnostic = process->set_terminalhat_initialized();
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 
@@ -421,10 +404,15 @@ TEST(DeviceInitialization,DeviceInitialization_TerminalHat)
 	{
 		EXPECT_TRUE(input_pins.at(i).Value == gpio_input_pins.at(i).Value);
 	}
+	std::vector<eros::diagnostic> diagnostics = process->get_diagnostics();
+	for (std::size_t i = 0; i < diagnostics.size(); ++i)
+	{
+		print_diagnostic(WARN,diagnostics.at(i));
+		EXPECT_TRUE(diagnostics.at(i).Level <= NOTICE);
+	}
 }
 TEST(DeviceInitialization,DeviceInitialization_ServoHat_GPIOHat_TerminalHat)
 {
-
 	eros::device ros_device;
 	ros_device.DeviceName = ros_DeviceName;
 	ros_device.DeviceParent = ros_ParentDevice;
@@ -561,7 +549,7 @@ TEST(DeviceInitialization,DeviceInitialization_ServoHat_GPIOHat_TerminalHat)
 	eros::device::ConstPtr hat3_ptr(new eros::device(hat3));
 	diagnostic = process->new_devicemsg(hat3_ptr);
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
-	EXPECT_TRUE(process->is_ready() == true);
+	process = readyprocess(process);
 
 	diagnostic = process->set_hat_running("ServoHat",0);
 	EXPECT_TRUE(diagnostic.Level > NOTICE);
@@ -744,6 +732,13 @@ TEST(DeviceInitialization,DeviceInitialization_ServoHat_GPIOHat_TerminalHat)
 	for(std::size_t i = 0; i < hat2.pins.size(); i++)
 	{
 		EXPECT_TRUE(hat2.pins.at(i).Number == gpiohat_pins.at(i).Number);
+	}
+	std::vector<eros::diagnostic> diagnostics = process->get_diagnostics();
+	//EXPECT_TRUE(diagnostics.size() == DIAGNOSTIC_TYPE_COUNT+(2*process->get_boarddata().size())+(process->get_sensordata().size()));
+	for (std::size_t i = 0; i < diagnostics.size(); ++i)
+	{
+		print_diagnostic(WARN,diagnostics.at(i));
+		EXPECT_TRUE(diagnostics.at(i).Level <= NOTICE);
 	}
 }
 int main(int argc, char **argv){

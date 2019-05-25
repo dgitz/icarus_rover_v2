@@ -1,71 +1,65 @@
 #include "BaseNodeProcess.h"
-eros::diagnostic BaseNodeProcess::update_baseprocess(double t_dt,double t_ros_time)
+eros::diagnostic BaseNodeProcess::update_baseprocess(double t_dt, double t_ros_time)
 {
-	eros::diagnostic diag = diagnostic;
-	run_time+=t_dt;
+	
+	run_time += t_dt;
 	ros_time = t_ros_time;
-	diag.Diagnostic_Type = SOFTWARE;
-	diag.Level = INFO;
-	diag.Diagnostic_Message = NOERROR;
-	diag.Description = "Base Process Updated.";
-
-	diagnostic = diag;
-
+	eros::diagnostic diag = update_diagnostic(SOFTWARE,INFO,NOERROR,"Base Process Updated.");
 	return diag;
 }
 void BaseNodeProcess::set_mydevice(eros::device t_device)
 {
 	mydevice = t_device;
 	initialized = true;
-
 }
 ros::Time BaseNodeProcess::convert_time(struct timeval t_)
 {
 	ros::Time t;
 	t.sec = t_.tv_sec;
-	t.nsec = t_.tv_usec*1000;
+	t.nsec = t_.tv_usec * 1000;
 	return t;
 }
 ros::Time BaseNodeProcess::convert_time(double t_)
 {
 	ros::Time t;
 	t.sec = (int64_t)t_;
-	double rem = t_-(double)t.sec;
-	t.nsec = (int64_t)(rem*1000000.0);
+	double rem = t_ - (double)t.sec;
+	t.nsec = (int64_t)(rem * 1000000.0);
 	return t;
 }
 std::vector<eros::diagnostic> BaseNodeProcess::run_unittest()
 {
 
 	std::vector<eros::diagnostic> diaglist;
-	if (unittest_running == false) {
+	eros::diagnostic diag = root_diagnostic;
+	if (unittest_running == false)
+	{
 		unittest_running = true;
-		eros::diagnostic diag = diagnostic;
 		bool status = true;
 		std::string data;
 		std::string cmd =
-				"cd ~/catkin_ws && "
-				"bash devel/setup.bash && catkin_make run_tests_icarus_rover_v2_gtest_test_"
-				+ base_node_name
-				+ "_process >/dev/null 2>&1 && "
-				"mv /home/robot/catkin_ws/build/test_results/icarus_rover_v2/gtest-test_"
-				+ base_node_name
-				+ "_process.xml "
-				"/home/robot/catkin_ws/build/test_results/icarus_rover_v2/"
-				+ base_node_name + "/ >/dev/null 2>&1";
-		system(cmd.c_str());
+			"cd ~/catkin_ws && "
+			"bash devel/setup.bash && catkin_make run_tests_icarus_rover_v2_gtest_test_" +
+			base_node_name + "_process >/dev/null 2>&1 && "
+							 "mv /home/robot/catkin_ws/build/test_results/icarus_rover_v2/gtest-test_" +
+			base_node_name + "_process.xml "
+							 "/home/robot/catkin_ws/build/test_results/icarus_rover_v2/" +
+			base_node_name + "/ >/dev/null 2>&1";
+		//system(cmd.c_str());
 		cmd =
-				"cd ~/catkin_ws && bash devel/setup.bash && catkin_test_results build/test_results/icarus_rover_v2/"
-				+ base_node_name + "/";
-		FILE * stream;
+			"cd ~/catkin_ws && bash devel/setup.bash && catkin_test_results build/test_results/icarus_rover_v2/" + base_node_name + "/";
+		FILE *stream;
 
 		const int max_buffer = 256;
 		char buffer[max_buffer];
 		cmd.append(" 2>&1");
 		stream = popen(cmd.c_str(), "r");
-		if (stream) {
-			if (!feof(stream)) {
-				if (fgets(buffer, max_buffer, stream) != NULL) {
+		if (stream)
+		{
+			if (!feof(stream))
+			{
+				if (fgets(buffer, max_buffer, stream) != NULL)
+				{
 					data.append(buffer);
 				}
 				pclose(stream);
@@ -75,15 +69,13 @@ std::vector<eros::diagnostic> BaseNodeProcess::run_unittest()
 		std::size_t start = data.find(":");
 		data.erase(0, start + 1);
 		boost::split(strs, data, boost::is_any_of(",: "),
-				boost::token_compress_on);
-		if(strs.size() < 6)
+					 boost::token_compress_on);
+		if (strs.size() < 6)
 		{
-			diag.Diagnostic_Type = SOFTWARE;
-			diag.Level = ERROR;
-			diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
 			char tempstr[1024];
-			sprintf(tempstr,"Unable to process Unit Test Result: %s.",data.c_str());
+			sprintf(tempstr, "Unable to process Unit Test Result: %s.", data.c_str());
 			diag.Description = std::string(tempstr);
+			diag = update_diagnostic(SOFTWARE,ERROR,DIAGNOSTIC_FAILED,std::string(tempstr));
 			diaglist.push_back(diag);
 			return diaglist;
 		}
@@ -92,46 +84,33 @@ std::vector<eros::diagnostic> BaseNodeProcess::run_unittest()
 		int failure_count = std::atoi(strs.at(5).c_str());
 		if (test_count == 0)
 		{
-			diag.Diagnostic_Type = SOFTWARE;
-			diag.Level = ERROR;
-			diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
-			diag.Description = "Test Count: 0.";
+			diag = update_diagnostic(SOFTWARE,ERROR,DIAGNOSTIC_FAILED,"Test Count: 0");
 			diaglist.push_back(diag);
 			status = false;
 		}
 		if (error_count > 0)
 		{
-			diag.Diagnostic_Type = SOFTWARE;
-			diag.Level = ERROR;
-			diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
 			char tempstr[512];
 			sprintf(tempstr, "Error Count: %d.", error_count);
-			diag.Description = std::string(tempstr);
+			diag = update_diagnostic(SOFTWARE,ERROR,DIAGNOSTIC_FAILED,std::string(tempstr));
 			diaglist.push_back(diag);
 			status = false;
 		}
 		if (failure_count > 0)
 		{
-			diag.Diagnostic_Type = SOFTWARE;
-			diag.Level = ERROR;
-			diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
 			char tempstr[512];
 			sprintf(tempstr, "Failure Count: %d.", failure_count);
-			diag.Description = std::string(tempstr);
+			diag = update_diagnostic(SOFTWARE,ERROR,DIAGNOSTIC_FAILED,std::string(tempstr));
 			diaglist.push_back(diag);
 			status = false;
 		}
 		if (status == true)
 		{
-			diag.Diagnostic_Type = SOFTWARE;
-			diag.Level = NOTICE;
-			diag.Diagnostic_Message = DIAGNOSTIC_PASSED;
-			diag.Description = "Unit Test -> PASSED.";
+			diag = update_diagnostic(SOFTWARE,NOTICE,DIAGNOSTIC_PASSED,"Unit Test -> PASSED.");
 			diaglist.push_back(diag);
 		}
 		else
 		{
-			diag.Diagnostic_Type = SOFTWARE;
 			uint8_t highest_error = INFO;
 			for (std::size_t i = 0; i < diaglist.size(); i++)
 			{
@@ -140,26 +119,19 @@ std::vector<eros::diagnostic> BaseNodeProcess::run_unittest()
 					highest_error = diaglist.at(i).Level;
 				}
 			}
-			diag.Level = highest_error;
-			diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
-			diag.Description = "Unit Test -> FAILED.";
+			diag = update_diagnostic(SOFTWARE,highest_error,DIAGNOSTIC_FAILED,"Unit Test -> FAILED.");
 			diaglist.push_back(diag);
 		}
 		unittest_running = false;
 	}
 	else
 	{
-
-		eros::diagnostic diag = diagnostic;
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Level = WARN;
-		diag.Diagnostic_Message = DROPPING_PACKETS;
-		diag.Description = "Unit Test -> IS STILL IN PROGRESS.";
+		diag = update_diagnostic(SOFTWARE,WARN,DROPPING_PACKETS,"Unit Test -> IS STILL IN PROGRESS.");
 		diaglist.push_back(diag);
 	}
 	return diaglist;
 }
-eros::device BaseNodeProcess::convert_fromptr(const eros::device::ConstPtr& t_ptr)
+eros::device BaseNodeProcess::convert_fromptr(const eros::device::ConstPtr &t_ptr)
 {
 	eros::device dev;
 	dev.Architecture = t_ptr->Architecture;
@@ -177,7 +149,7 @@ eros::device BaseNodeProcess::convert_fromptr(const eros::device::ConstPtr& t_pt
 	dev.pins = t_ptr->pins;
 	return dev;
 }
-eros::pin BaseNodeProcess::convert_fromptr(const eros::pin::ConstPtr& t_ptr)
+eros::pin BaseNodeProcess::convert_fromptr(const eros::pin::ConstPtr &t_ptr)
 {
 	eros::pin pin;
 	pin.AuxTopic = t_ptr->AuxTopic;
@@ -195,7 +167,7 @@ eros::pin BaseNodeProcess::convert_fromptr(const eros::pin::ConstPtr& t_ptr)
 	pin.stamp = t_ptr->stamp;
 	return pin;
 }
-eros::command BaseNodeProcess::convert_fromptr(const eros::command::ConstPtr& t_ptr)
+eros::command BaseNodeProcess::convert_fromptr(const eros::command::ConstPtr &t_ptr)
 {
 	eros::command cmd;
 	cmd.Command = t_ptr->Command;
@@ -206,7 +178,7 @@ eros::command BaseNodeProcess::convert_fromptr(const eros::command::ConstPtr& t_
 	cmd.Option3 = t_ptr->Option3;
 	return cmd;
 }
-eros::diagnostic BaseNodeProcess::convert_fromptr(const eros::diagnostic::ConstPtr& t_ptr)
+eros::diagnostic BaseNodeProcess::convert_fromptr(const eros::diagnostic::ConstPtr &t_ptr)
 {
 	eros::diagnostic diag;
 	diag.Component = t_ptr->Component;
@@ -220,7 +192,7 @@ eros::diagnostic BaseNodeProcess::convert_fromptr(const eros::diagnostic::ConstP
 	diag.System = t_ptr->System;
 	return diag;
 }
-eros::imu BaseNodeProcess::convert_fromptr(const eros::imu::ConstPtr& t_ptr)
+eros::imu BaseNodeProcess::convert_fromptr(const eros::imu::ConstPtr &t_ptr)
 {
 	eros::imu imu;
 	imu.timestamp = t_ptr->timestamp;
@@ -236,4 +208,62 @@ eros::imu BaseNodeProcess::convert_fromptr(const eros::imu::ConstPtr& t_ptr)
 	imu.ymag = t_ptr->ymag;
 	imu.zmag = t_ptr->zmag;
 	return imu;
+}
+eros::diagnostic BaseNodeProcess::update_diagnostic(uint8_t diagnostic_type, uint8_t level, uint8_t message, std::string description)
+{
+	return update_diagnostic(host_name,diagnostic_type,level,message,description);
+}
+eros::diagnostic BaseNodeProcess::update_diagnostic(eros::diagnostic diag)
+{
+	return update_diagnostic(diag.DeviceName,diag.Diagnostic_Type,diag.Level,diag.Diagnostic_Message,diag.Description);
+}
+eros::diagnostic BaseNodeProcess::update_diagnostic(std::string device_name, uint8_t diagnostic_type, uint8_t level, uint8_t message, std::string description)
+{
+	bool devicetype_found = false;
+	bool devicename_found = false;
+	eros::diagnostic diag;
+	uint8_t insert_index = -1;
+	for (std::size_t i = 0; i < diagnostics.size(); ++i)
+	{
+		if (diagnostic_type == diagnostics.at(i).Diagnostic_Type)
+		{
+			devicetype_found = true;
+			insert_index = i;
+			if (diagnostics.at(i).DeviceName == device_name)
+			{
+				devicename_found = true;
+				diag = diagnostics.at(i);
+				diag.Level = level;
+				diag.Diagnostic_Message = message;
+				diag.Description = description;
+				diagnostics.at(i) = diag;
+			}
+		}
+	}
+	if((devicetype_found == true) and (devicename_found == false))
+	{
+		diag = root_diagnostic;
+		diag.Diagnostic_Type = diagnostic_type;
+		diag.DeviceName = device_name;
+		diag.Level = level;
+		diag.Diagnostic_Message = message;
+		diag.Description = description;
+		std::vector<eros::diagnostic>::iterator it;
+		it = diagnostics.begin();
+		diagnostics.insert(it+insert_index,diag);
+	}
+	if (devicetype_found == true)
+	{
+		return diag;
+	}
+	else
+	{
+		diag = root_diagnostic;
+		diag.Diagnostic_Type = diagnostic_type;
+		diag.Level = ERROR;
+		diag.Diagnostic_Message = UNKNOWN_MESSAGE;
+		char tempstr[512];
+		sprintf(tempstr, "Unsupported Diagnostic Type: %s.  Did you forget to enable it?", diagnostic_helper.get_DiagTypeString(diagnostic_type).c_str());
+		return diag;
+	}
 }

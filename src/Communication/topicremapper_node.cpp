@@ -6,7 +6,6 @@ bool TopicRemapperNode::start(int argc,char **argv)
 	process = new TopicRemapperNodeProcess();
 	set_basenodename(BASE_NODE_NAME);
 	initialize_firmware(MAJOR_RELEASE_VERSION,MINOR_RELEASE_VERSION,BUILD_NUMBER,FIRMWARE_DESCRIPTION);
-	initialize_diagnostic(DIAGNOSTIC_SYSTEM,DIAGNOSTIC_SUBSYSTEM,DIAGNOSTIC_COMPONENT);
 	diagnostic = preinitialize_basenode(argc,argv);
 	if(diagnostic.Level > WARN)
 	{
@@ -18,8 +17,13 @@ bool TopicRemapperNode::start(int argc,char **argv)
 		return false;
 	}
 
-	process->initialize(get_basenodename(),get_nodename(),get_hostname());
-	process->set_diagnostic(diagnostic);
+	process->initialize(get_basenodename(),get_nodename(),get_hostname(),DIAGNOSTIC_SYSTEM,DIAGNOSTIC_SUBSYSTEM,DIAGNOSTIC_COMPONENT);
+	std::vector<uint8_t> diagnostic_types;
+	diagnostic_types.push_back(SOFTWARE);
+	diagnostic_types.push_back(DATA_STORAGE);
+	diagnostic_types.push_back(SYSTEM_RESOURCE);
+	diagnostic_types.push_back(REMOTE_CONTROL);
+	process->enable_diagnostics(diagnostic_types);
 	process->finish_initialization();
 	diagnostic = finish_initialization();
 	if(diagnostic.Level > WARN)
@@ -28,10 +32,7 @@ bool TopicRemapperNode::start(int argc,char **argv)
 	}
 	if(diagnostic.Level < WARN)
 	{
-		diagnostic.Diagnostic_Type = NOERROR;
-		diagnostic.Level = INFO;
-		diagnostic.Diagnostic_Message = NOERROR;
-		diagnostic.Description = "Node Configured.  Initializing.";
+		diagnostic = process->update_diagnostic(SOFTWARE,INFO,INITIALIZING,"Node Configured.  Initializing.");
 		get_logger()->log_diagnostic(diagnostic);
 	}
 	status = true;
@@ -59,7 +60,7 @@ eros::diagnostic TopicRemapperNode::finish_initialization()
 	std::string device_topic = "/" + std::string(host_name) + "_master_node/srv_device";
 	srv_device = n->serviceClient<eros::srv_device>(device_topic);
 	std::vector<TopicRemapperNodeProcess::TopicMap> TopicMaps = process->get_topicmaps();
-	for(int i = 0; i < TopicMaps.size();i++)
+	for(std::size_t i = 0; i < TopicMaps.size();i++)
 	{
 		if(TopicMaps.at(i).in.type == "sensor_msgs/Joy")
 		{
@@ -69,7 +70,7 @@ eros::diagnostic TopicRemapperNode::finish_initialization()
 			logger->log_info(tempstr);
 			subs.push_back(sub);
 		}
-		for(int j = 0; j < TopicMaps.at(i).outs.size();j++)
+		for(std::size_t j = 0; j < TopicMaps.at(i).outs.size();j++)
 		{
 			if(TopicMaps.at(i).outs.at(j).type == "eros/pin")
 			{
@@ -97,16 +98,22 @@ bool TopicRemapperNode::run_001hz()
 }
 bool TopicRemapperNode::run_01hz()
 {
-	eros::diagnostic diag = process->get_diagnostic();
+	return true;
+}
+bool TopicRemapperNode::run_01hz_noisy()
+{
+	std::vector<eros::diagnostic> diaglist = process->get_diagnostics();
+	for (std::size_t i = 0; i < diaglist.size(); ++i)
 	{
-		get_logger()->log_diagnostic(diag);
-		diagnostic_pub.publish(diag);
+		get_logger()->log_diagnostic(diaglist.at(i));
+		diagnostic_pub.publish(diaglist.at(i));
 	}
 	return true;
 }
 bool TopicRemapperNode::run_1hz()
 {
-	if((process->is_initialized() == true) and (process->is_ready() == true))
+	process->update_diagnostic(get_resource_diagnostic());
+	if ((process->is_initialized() == true) and (process->is_ready() == true))
 	{
 	}
 	else if((process->is_ready() == false) and (process->is_initialized() == true))
@@ -126,7 +133,7 @@ bool TopicRemapperNode::run_1hz()
 				}
 				else
 				{
-					bool status = new_devicemsg(srv.request.query,srv.response.data.at(0));
+					new_devicemsg(srv.request.query,srv.response.data.at(0));
 				}
 			}
 			else
@@ -134,13 +141,15 @@ bool TopicRemapperNode::run_1hz()
 			}
 		}
 	}
-	eros::diagnostic diag = process->get_diagnostic();
-	if(diag.Level >= NOTICE)
+	std::vector<eros::diagnostic> diaglist = process->get_diagnostics();
+	for (std::size_t i = 0; i < diaglist.size(); ++i)
 	{
-		get_logger()->log_diagnostic(diag);
-		diagnostic_pub.publish(diag);
+		if (diaglist.at(i).Level == WARN)
+		{
+			get_logger()->log_diagnostic(diaglist.at(i));
+			diagnostic_pub.publish(diaglist.at(i));
+		}
 	}
-
 	return true;
 }
 bool TopicRemapperNode::run_10hz()
@@ -151,6 +160,15 @@ bool TopicRemapperNode::run_10hz()
 	{
 		get_logger()->log_diagnostic(diag);
 		diagnostic_pub.publish(diag);
+	}
+	std::vector<eros::diagnostic> diaglist = process->get_diagnostics();
+	for (std::size_t i = 0; i < diaglist.size(); ++i)
+	{
+		if (diaglist.at(i).Level > WARN)
+		{
+			get_logger()->log_diagnostic(diaglist.at(i));
+			diagnostic_pub.publish(diaglist.at(i));
+		}
 	}
 	return true;
 }

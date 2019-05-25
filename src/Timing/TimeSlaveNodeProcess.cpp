@@ -1,16 +1,18 @@
 #include "TimeSlaveNodeProcess.h"
 eros::diagnostic  TimeSlaveNodeProcess::finish_initialization()
 {
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	ntp_initialized = false;
 	ros_master_uri = "";
 	primary_time_server = "";
 	unittesting_enabled = false;
 	timesyncinfo.devicename = host_name;
-	return diagnostic;
+	return diag;
 }
 eros::diagnostic TimeSlaveNodeProcess::update(double t_dt,double t_ros_time)
 {
+	
+	eros::diagnostic diag = root_diagnostic;
 	if(ntp_initialized == false)
 	{
 		if(const char* env_p = std::getenv("ROS_MASTER_URI"))
@@ -31,34 +33,39 @@ eros::diagnostic TimeSlaveNodeProcess::update(double t_dt,double t_ros_time)
 			time_servers.push_back(server);
 			timesyncinfo.servers.push_back(server.name);
 			init_timeservers();
+			
+
 		}
 		ntp_initialized = true;
 
 	}
+	if(initialized == false)
+	{
+		update_diagnostic(TIMING,NOTICE,INITIALIZING,"Initializing Time Servers.");
+	}
 	initialized = true;
 	ready = true;
-	eros::diagnostic diag = diagnostic;
+	
 	diag = update_baseprocess(t_dt,t_ros_time);
 	if(diag.Level <= NOTICE)
 	{
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Level = INFO;
-		diag.Diagnostic_Message = NOERROR;
-		diag.Description = "Node Running.";
-
+		diag = update_diagnostic(SOFTWARE,INFO,NOERROR,"Node Running.");
 	}
-	diagnostic = diag;
+	if((is_initialized() == true) and (is_ready() == true))
+	{
+		diag = update_diagnostic(DATA_STORAGE,INFO,NOERROR,"No Error.");
+	}
 	return diag;
 }
 eros::diagnostic TimeSlaveNodeProcess::new_devicemsg(const eros::device::ConstPtr& device)
 {
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	return diag;
 }
 std::vector<eros::diagnostic> TimeSlaveNodeProcess::new_commandmsg(const eros::command::ConstPtr& t_msg)
 {
 	std::vector<eros::diagnostic> diaglist;
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	if (t_msg->Command == ROVERCOMMAND_RUNDIAGNOSTIC)
 	{
 		if (t_msg->Option1 == LEVEL1)
@@ -84,20 +91,14 @@ std::vector<eros::diagnostic> TimeSlaveNodeProcess::new_commandmsg(const eros::c
 std::vector<eros::diagnostic> TimeSlaveNodeProcess::check_programvariables()
 {
 	std::vector<eros::diagnostic> diaglist;
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	bool status = true;
 
 	if (status == true) {
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Level = INFO;
-		diag.Diagnostic_Message = DIAGNOSTIC_PASSED;
-		diag.Description = "Checked Program Variables -> PASSED.";
+		diag = update_diagnostic(SOFTWARE,INFO,DIAGNOSTIC_PASSED,"Checked Program Variables -> PASSED.");
 		diaglist.push_back(diag);
 	} else {
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Level = WARN;
-		diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
-		diag.Description = "Checked Program Variables -> FAILED.";
+		diag = update_diagnostic(SOFTWARE,WARN,DIAGNOSTIC_FAILED,"Checked Program Variables -> FAILED.");
 		diaglist.push_back(diag);
 	}
 	return diaglist;
@@ -151,7 +152,7 @@ void TimeSlaveNodeProcess::set_timeserver(TimeSlaveNodeProcess::TimeServer serve
 }
 eros::diagnostic TimeSlaveNodeProcess::update_timeservers()
 {
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	//First check Primary Time Server
 	diag = update_timeserver(primary_time_server);
 	if(diag.Level > NOTICE)
@@ -183,12 +184,9 @@ eros::diagnostic TimeSlaveNodeProcess::update_timeservers()
 	}
 	if(time_servers.size() == 0)
 	{
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Level = ERROR;
-		diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
 		char tempstr[512];
 		sprintf(tempstr,"No Time Servers Defined.");
-		diag.Description = std::string(tempstr);
+		diag = update_diagnostic(TIMING,ERROR,DIAGNOSTIC_FAILED,std::string(tempstr));
 	}
 	else
 	{
@@ -196,47 +194,28 @@ eros::diagnostic TimeSlaveNodeProcess::update_timeservers()
 		switch(time_servers.at(0).level)
 		{
 		case INFO:
-			diag.Diagnostic_Type = SOFTWARE;
-			diag.Level = INFO;
-			diag.Diagnostic_Message = DIAGNOSTIC_PASSED;
 			sprintf(tempstr,"Primary Time Server OK.");
-			diag.Description = std::string(tempstr);
+			diag = update_diagnostic(TIMING,INFO,DIAGNOSTIC_PASSED,std::string(tempstr));
 			break;
 		case NOTICE:
-			diag.Diagnostic_Type = SOFTWARE;
-			diag.Level = NOTICE;
-			diag.Diagnostic_Message = DIAGNOSTIC_PASSED;
 			sprintf(tempstr,"Primary Time Server OK.");
-			diag.Description = std::string(tempstr);
+			diag = update_diagnostic(TIMING,NOTICE,DIAGNOSTIC_PASSED,std::string(tempstr));
 			break;
 		case WARN:
-			diag.Diagnostic_Type = SOFTWARE;
-			diag.Level = WARN;
-			diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
-			char tempstr[512];
 			sprintf(tempstr,"Primary Time Server Has bad Values.");
-			diag.Description = std::string(tempstr);
+			diag = update_diagnostic(TIMING,WARN,DIAGNOSTIC_FAILED,std::string(tempstr));
 			break;
 		case ERROR:
-			diag.Diagnostic_Type = SOFTWARE;
-			diag.Level = ERROR;
-			diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
 			sprintf(tempstr,"Primary Time Server Has bad Values.");
-			diag.Description = std::string(tempstr);
+			diag = update_diagnostic(TIMING,ERROR,DIAGNOSTIC_FAILED,std::string(tempstr));
 			break;
 		case FATAL:
-			diag.Diagnostic_Type = SOFTWARE;
-			diag.Level = FATAL;
-			diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
 			sprintf(tempstr,"Primary Time Server Has bad Values.");
-			diag.Description = std::string(tempstr);
+			diag = update_diagnostic(TIMING,FATAL,DIAGNOSTIC_FAILED,std::string(tempstr));
 			break;
 		default:
-			diag.Diagnostic_Type = SOFTWARE;
-			diag.Level = FATAL;
-			diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
 			sprintf(tempstr,"Primary Time Server Has unknown Values.");
-			diag.Description = std::string(tempstr);
+			diag = update_diagnostic(TIMING,FATAL,DIAGNOSTIC_FAILED,std::string(tempstr));
 			break;
 		}
 	}
@@ -248,7 +227,7 @@ eros::diagnostic TimeSlaveNodeProcess::update_timeservers()
 }
 eros::diagnostic TimeSlaveNodeProcess::update_timeserver(std::string name)
 {
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	TimeSlaveNodeProcess::TimeServer server = get_timeserver(name);
 	if(unittesting_enabled == false)
 	{
@@ -275,12 +254,9 @@ eros::diagnostic TimeSlaveNodeProcess::update_timeserver(std::string name)
 	}
 	else
 	{
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Level = ERROR;
-		diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
 		char tempstr[1024];
 		sprintf(tempstr,"Improperly formatted NTP Command:\n%s\n",exec_result.c_str());
-		diag.Description = std::string(tempstr);
+		diag = update_diagnostic(TIMING,ERROR,DIAGNOSTIC_FAILED,std::string(tempstr));
 		return diag;
 
 	}
@@ -288,12 +264,9 @@ eros::diagnostic TimeSlaveNodeProcess::update_timeserver(std::string name)
 	std::size_t found2 = items.at(1).find(name);
 	if((found1== std::string::npos) and (found2== std::string::npos))
 	{
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Level = ERROR;
-		diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
 		char tempstr[512];
 		sprintf(tempstr,"Time Server: %s Not Found",name.c_str());
-		diag.Description = std::string(tempstr);
+		diag = update_diagnostic(TIMING,ERROR,DIAGNOSTIC_FAILED,std::string(tempstr));
 		return diag;
 	}
 	server.delay = std::atof(items.at(delay_index).c_str());
@@ -317,35 +290,23 @@ eros::diagnostic TimeSlaveNodeProcess::update_timeserver(std::string name)
 	switch(host_field.at(0))
 	{
 	case '-':
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Level = WARN;
-		diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
 		sprintf(tempstr2,"Time Server: %s Not Being Used by NTP.",name.c_str());
-		diag.Description = std::string(tempstr2);
+		diag = update_diagnostic(TIMING,WARN,DIAGNOSTIC_FAILED,std::string(tempstr2));
 		return diag;
 		break;
 	case '+':
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Level = INFO;
-		diag.Diagnostic_Message = DIAGNOSTIC_PASSED;
 		sprintf(tempstr2,"Time Server: %s Being Used by NTP.",name.c_str());
-		diag.Description = std::string(tempstr2);
+		diag = update_diagnostic(TIMING,INFO,DIAGNOSTIC_PASSED,std::string(tempstr2));
 		return diag;
 		break;
 	case '*':
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Level = INFO;
-		diag.Diagnostic_Message = DIAGNOSTIC_PASSED;
 		sprintf(tempstr2,"Time Server: %s Being Used by NTP.",name.c_str());
-		diag.Description = std::string(tempstr2);
+		diag = update_diagnostic(TIMING,INFO,DIAGNOSTIC_PASSED,std::string(tempstr2));
 		return diag;
 		break;
 	default:
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Level = WARN;
-		diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
 		sprintf(tempstr2,"Time Server: %s Not Being Used by NTP.",name.c_str());
-		diag.Description = std::string(tempstr2);
+		diag = update_diagnostic(TIMING,WARN,DIAGNOSTIC_FAILED,std::string(tempstr2));
 		return diag;
 		break;
 	}

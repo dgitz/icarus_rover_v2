@@ -1,38 +1,41 @@
 #include "TopicRemapperNodeProcess.h"
 eros::diagnostic  TopicRemapperNodeProcess::finish_initialization()
 {
-    eros::diagnostic diag = diagnostic;
-    return diagnostic;
+    eros::diagnostic diag = root_diagnostic;
+	diag = update_diagnostic(REMOTE_CONTROL,NOTICE,NOERROR,"No Message Processed Yet.");
+    return diag;
 }
 eros::diagnostic TopicRemapperNodeProcess::update(double t_dt,double t_ros_time)
 {
+	eros::diagnostic diag = root_diagnostic;
 	if(initialized == true)
 	{
 		ready = true;
 
 	}
-	eros::diagnostic diag = diagnostic;
+	
 	diag = update_baseprocess(t_dt,t_ros_time);
+	if((is_initialized() == true) and (is_ready() == true))
+	{
+		diag = update_diagnostic(DATA_STORAGE,INFO,NOERROR,"No Error.");
+	}
 	if(diag.Level <= NOTICE)
 	{
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Level = INFO;
-		diag.Diagnostic_Message = NOERROR;
-		diag.Description = "Node Running.";
+
+		diag = update_diagnostic(SOFTWARE,INFO,NOERROR,"Node Running.");
 
 	}
-	diagnostic = diag;
 	return diag;
 }
 eros::diagnostic TopicRemapperNodeProcess::new_devicemsg(const eros::device::ConstPtr& device)
 {
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	return diag;
 }
 std::vector<eros::diagnostic> TopicRemapperNodeProcess::new_commandmsg(const eros::command::ConstPtr& t_msg)
 {
 	std::vector<eros::diagnostic> diaglist;
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	if (t_msg->Command == ROVERCOMMAND_RUNDIAGNOSTIC)
 	{
 		if (t_msg->Option1 == LEVEL1)
@@ -58,20 +61,14 @@ std::vector<eros::diagnostic> TopicRemapperNodeProcess::new_commandmsg(const ero
 std::vector<eros::diagnostic> TopicRemapperNodeProcess::check_programvariables()
 {
 	std::vector<eros::diagnostic> diaglist;
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	bool status = true;
 
 	if (status == true) {
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Level = INFO;
-		diag.Diagnostic_Message = DIAGNOSTIC_PASSED;
-		diag.Description = "Checked Program Variables -> PASSED.";
+		diag = update_diagnostic(SOFTWARE,INFO,DIAGNOSTIC_PASSED,"Checked Program Variables -> PASSED.");
 		diaglist.push_back(diag);
 	} else {
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Level = WARN;
-		diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
-		diag.Description = "Checked Program Variables -> FAILED.";
+		diag = update_diagnostic(SOFTWARE,WARN,DIAGNOSTIC_FAILED,"Checked Program Variables -> FAILED.");
 		diaglist.push_back(diag);
 	}
 	return diaglist;
@@ -309,40 +306,31 @@ int TopicRemapperNodeProcess::parse_topicmapfile(TiXmlDocument doc)
 }
 eros::diagnostic TopicRemapperNodeProcess::load(std::string topicmapfilepath)
 {
-    eros::diagnostic diag = diagnostic;
+    eros::diagnostic diag = root_diagnostic;
     TiXmlDocument topicmap_doc(topicmapfilepath);
     bool topicmapfile_loaded = topicmap_doc.LoadFile();
 	if(topicmapfile_loaded == true)
 	{
 		if(parse_topicmapfile(topicmap_doc) <= 0)
 		{
-			diag.Diagnostic_Type = DATA_STORAGE;
-            diag.Level = ERROR;
-            diag.Diagnostic_Message = INITIALIZING_ERROR;
             char tempstr[512];
             sprintf(tempstr,"Didn't read any TopicMaps in: %s",topicmapfilepath.c_str());
-            diag.Description = std::string(tempstr);
+			diag = update_diagnostic(DATA_STORAGE,ERROR,INITIALIZING_ERROR,std::string(tempstr));
             return diag;
 		}
         else
         {
-            diag.Diagnostic_Type = DATA_STORAGE;
-            diag.Level = INFO;
-            diag.Diagnostic_Message = INITIALIZING;
             char tempstr[512];
             sprintf(tempstr,"Loaded: %s with %d Topic Maps",topicmapfilepath.c_str(),(int)TopicMaps.size());
-            diag.Description = std::string(tempstr);
+			diag = update_diagnostic(DATA_STORAGE,INFO,INITIALIZING,std::string(tempstr));
             return diag;
         }
     }
     else
     {
-        diag.Diagnostic_Type = DATA_STORAGE;
-        diag.Level = ERROR;
-        diag.Diagnostic_Message = INITIALIZING_ERROR;
         char tempstr[512];
         sprintf(tempstr,"Unable to load: %s",topicmapfilepath.c_str());
-        diag.Description = std::string(tempstr);
+		diag = update_diagnostic(DATA_STORAGE,ERROR,INITIALIZING_ERROR,std::string(tempstr));
         return diag;
     }
 }
@@ -350,7 +338,7 @@ std::string TopicRemapperNodeProcess::print_topicmaps()
 {
     std::ostringstream ss;
     ss << "------ Topic Map -----" << std::endl;
-    for(int i = 0; i < TopicMaps.size();i++)
+    for(std::size_t i = 0; i < TopicMaps.size();i++)
     {
         if(TopicMaps.at(i).outputmode.mode == "Direct")
         {
@@ -417,13 +405,12 @@ double TopicRemapperNodeProcess::scale_value(double x,double neutral,double x1,d
 }
 eros::diagnostic TopicRemapperNodeProcess::new_joymsg(sensor_msgs::Joy msg,std::string topic)
 {
-    eros::diagnostic diag = diagnostic;
-    for(int i = 0; i < TopicMaps.size();i++)
+    eros::diagnostic diag = root_diagnostic;
+    for(std::size_t i = 0; i < TopicMaps.size();i++)
 	{
         TopicMap map = TopicMaps.at(i);
 		if(map.in.topic == topic)
 		{
-			char tempstr[128];
             if(map.in.name == "axis")
             {
                 for(std::size_t j = 0; j < TopicMaps.at(i).outs.size();j++)
@@ -509,7 +496,8 @@ eros::diagnostic TopicRemapperNodeProcess::new_joymsg(sensor_msgs::Joy msg,std::
 							{
 								char tempstr[512];
 								sprintf(tempstr,"OutputChannel JointState Not Supported: %s\n",member.c_str());
-								printf("%s\n",tempstr);
+								diag = update_diagnostic(DATA_STORAGE,ERROR,INITIALIZING_ERROR,std::string(tempstr));
+								return diag;
 								//logger->log_warn(std::string(tempstr));
 							}
 							map.outs.at(j).value = out;
@@ -571,7 +559,7 @@ eros::diagnostic TopicRemapperNodeProcess::new_joymsg(sensor_msgs::Joy msg,std::
                 			{
                 				char tempstr[512];
                 				sprintf(tempstr,"OutputChannel JointState Not Supported: %s\n",member.c_str());
-                				printf("%s\n",tempstr);
+                				diag = update_diagnostic(DATA_STORAGE,ERROR,INITIALIZING_ERROR,std::string(tempstr));
                 				//logger->log_warn(std::string(tempstr));
                 			}
                 			//map.pubs.at(j).publish(joint);
@@ -600,13 +588,9 @@ eros::diagnostic TopicRemapperNodeProcess::new_joymsg(sensor_msgs::Joy msg,std::
 		}
 		TopicMaps.at(i) = map;
 	}
-
-    diag.Diagnostic_Type = COMMUNICATIONS;
-    diag.Level = INFO;
-    diag.Diagnostic_Message = NOERROR;
     char tempstr[512];
     sprintf(tempstr,"Processed joystick message from topic: %s",topic.c_str());
-    diag.Description = std::string(tempstr);
+	diag = update_diagnostic(REMOTE_CONTROL,INFO,NOERROR,std::string(tempstr));
     return diag;
 }
 std::vector<eros::pin> TopicRemapperNodeProcess::get_outputs_pins()

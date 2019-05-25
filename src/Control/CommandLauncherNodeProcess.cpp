@@ -1,30 +1,29 @@
 #include "CommandLauncherNodeProcess.h"
 eros::diagnostic  CommandLauncherNodeProcess::finish_initialization()
 {
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	camerastream_port = "";
 	init_processlist();
 	if(load_configfiles() == false)
 	{
-		diag.Level = ERROR;
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Diagnostic_Message = ERROR;
 		char tempstr[512];
 		sprintf(tempstr,"Unable to load config files.");
-		diag.Description = std::string(tempstr);
+		diag = update_diagnostic(DATA_STORAGE,ERROR,INITIALIZING_ERROR,std::string(tempstr));
 	}
-
-	diagnostic = diag;
-	return diagnostic;
+	return diag;
 }
 eros::diagnostic CommandLauncherNodeProcess::update(double t_dt,double t_ros_time)
 {
+	eros::diagnostic diag = root_diagnostic;
 	if(initialized == true)
 	{
 		ready = true;
 
 	}
-	eros::diagnostic diag = diagnostic;
+	if((is_initialized() == true) and (is_ready() == true))
+	{
+		diag = update_diagnostic(DATA_STORAGE,INFO,NOERROR,"No Error.");
+	}
 	diag = update_baseprocess(t_dt,t_ros_time);
 	bool processes_ok = true;
 	if(initialized == true)
@@ -38,56 +37,43 @@ eros::diagnostic CommandLauncherNodeProcess::update(double t_dt,double t_ros_tim
 			else if(processlist.at(i).initialized == false)
 			{
 				processes_ok = false;
-				diag.Diagnostic_Type = SOFTWARE;
-				diag.Level = WARN;
-				diag.Diagnostic_Message = INITIALIZING_ERROR;
 				char tempstr[512];
 				sprintf(tempstr,"Unable to start process: %s",processlist.at(i).process_name.c_str());
-				diag.Description = std::string(tempstr);
+				diag = update_diagnostic(SOFTWARE,ERROR,INITIALIZING_ERROR,std::string(tempstr));
 			}
 			else if(processlist.at(i).running == false)
 			{
 				processes_ok = false;
-				diag.Diagnostic_Type = SOFTWARE;
-				diag.Level = WARN;
-				diag.Diagnostic_Message = INITIALIZING_ERROR;
 				char tempstr[512];
 				sprintf(tempstr,"Process: %s is Not Running.",processlist.at(i).process_name.c_str());
-				diag.Description = std::string(tempstr);
+				diag = update_diagnostic(SOFTWARE,WARN,DEVICE_NOT_AVAILABLE,std::string(tempstr));
 			}
 		}
 
 		if(processlist.size() == 0)
 		{
 			processes_ok = false;
-			diag.Diagnostic_Type = SOFTWARE;
-			diag.Level = WARN;
-			diag.Diagnostic_Message = INITIALIZING_ERROR;
 			char tempstr[512];
 			sprintf(tempstr,"No Processes Found.");
-			diag.Description = std::string(tempstr);
+			diag = update_diagnostic(SOFTWARE,NOTICE,INITIALIZING_ERROR,std::string(tempstr));
 
 		}
 		if(processes_ok == true)
 		{
-			diag.Diagnostic_Type = SOFTWARE;
-			diag.Level = INFO;
-			diag.Diagnostic_Message = NOERROR;
-			diag.Description = "Node Running";
+			diag = update_diagnostic(SOFTWARE,INFO,NOERROR,"Node Running.");
 		}
 	}
-	diagnostic = diag;
 	return diag;
 }
 eros::diagnostic CommandLauncherNodeProcess::new_devicemsg(const eros::device::ConstPtr& device)
 {
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	return diag;
 }
 std::vector<eros::diagnostic> CommandLauncherNodeProcess::new_commandmsg(const eros::command::ConstPtr& t_msg)
 {
 	std::vector<eros::diagnostic> diaglist;
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	if (t_msg->Command == ROVERCOMMAND_RUNDIAGNOSTIC)
 	{
 		if (t_msg->Option1 == LEVEL1)
@@ -113,20 +99,14 @@ std::vector<eros::diagnostic> CommandLauncherNodeProcess::new_commandmsg(const e
 std::vector<eros::diagnostic> CommandLauncherNodeProcess::check_programvariables()
 {
 	std::vector<eros::diagnostic> diaglist;
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	bool status = true;
 
 	if (status == true) {
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Level = INFO;
-		diag.Diagnostic_Message = DIAGNOSTIC_PASSED;
-		diag.Description = "Checked Program Variables -> PASSED.";
+		diag = update_diagnostic(SOFTWARE,INFO,DIAGNOSTIC_PASSED,"Checked Program Variables -> PASSED.");
 		diaglist.push_back(diag);
 	} else {
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Level = WARN;
-		diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
-		diag.Description = "Checked Program Variables -> FAILED.";
+		diag = update_diagnostic(SOFTWARE,WARN,DIAGNOSTIC_FAILED,"Checked Program Variables -> FAILED.");;
 		diaglist.push_back(diag);
 	}
 	return diaglist;
@@ -153,6 +133,7 @@ bool CommandLauncherNodeProcess::set_processpid(std::string name,uint32_t pid)
 			return true;
 		}
 	}
+	return false;
 }
 bool CommandLauncherNodeProcess::set_process_restarted(std::string name)
 {
@@ -161,8 +142,10 @@ bool CommandLauncherNodeProcess::set_process_restarted(std::string name)
 		if(processlist.at(i).name == name)
 		{
 			processlist.at(i).restart_counter++;
+			return true;
 		}
 	}
+	return false;
 }
 std::string CommandLauncherNodeProcess::get_processinfo()
 {

@@ -15,6 +15,8 @@ public:
 	//Constants
     /*! \brief  Require 2 Encoders in DeviceFile. */
 	const uint8_t REQUIRED_ENCODER_COUNT = 2;
+	const double BOARDCOMM_TIMEOUT_WARN = 5.0;
+	const double BOARDCOMM_TIMEOUT_ERROR = 10.0;
 	//Enums
 	//Structs
     /*! \brief  SPI Message statistics structure */
@@ -29,11 +31,10 @@ public:
 		double recv_rate;
 		bool send_me;
 	};
-    /*! \brief  Board Diagnostic statistic structure */
-	struct BoardDiagnostic
+	/*! \brief Board info structure */
+	struct Board
 	{
-		uint16_t id;
-		eros::diagnostic diagnostic;
+		eros::device device;
 		double lasttime_rx;
 	};
     /*! \brief Sensor info structure */
@@ -60,6 +61,8 @@ public:
 	/*! \brief Implementation of the update function */
 	eros::diagnostic update(double t_dt,double t_ros_time);
 	//Attribute Functions
+	double get_boardcomm_timeout_warn_threshold() { return BOARDCOMM_TIMEOUT_WARN; }
+	double get_boardcomm_timeout_error_threshold() { return BOARDCOMM_TIMEOUT_ERROR; }
 	eros::command get_current_command() { return current_command; }
 	uint8_t get_armed_state() { return armed_state; }
 	//Message Functions
@@ -98,7 +101,7 @@ public:
 	Sensor find_sensor(std::string name);
 	bool update_sensorinfo(Sensor sensor);
 	std::vector<Sensor> get_sensordata() { return sensors; }
-	std::vector<BoardDiagnostic> get_boarddiagnostics() { return board_diagnostics; }
+	std::vector<Board> get_boarddata() { return boards; }
 
 	//Printing Functions
 protected:
@@ -118,8 +121,7 @@ private:
 	eros::pin find_pin(const eros::device::ConstPtr& t_board,std::string pinname);
 
 	std::vector<Message> messages;
-	std::vector<eros::device> boards;
-	std::vector<BoardDiagnostic> board_diagnostics;
+	std::vector<Board> boards;
 
 	std::vector<Sensor> sensors;
 	std::vector<bool> boards_running;

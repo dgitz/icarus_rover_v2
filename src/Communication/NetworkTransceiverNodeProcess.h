@@ -72,8 +72,7 @@ public:
 	{
 		if(type == "eros/resource")
 		{
-			bool found = true;
-			for(int i = 0; i < resource_topics.size();i++)
+			for(std::size_t i = 0; i < resource_topics.size();i++)
 			{
 				if(resource_topics.at(i) == name)
 				{
@@ -85,8 +84,7 @@ public:
 		}
 		else if(type == "eros/diagnostic")
 		{
-			bool found = true;
-			for(int i = 0; i < diagnostic_topics.size();i++)
+			for(std::size_t i = 0; i < diagnostic_topics.size();i++)
 			{
 				if(diagnostic_topics.at(i) == name)
 				{
@@ -98,8 +96,7 @@ public:
 		}
 		else if(type == "eros/device")
 		{
-			bool found = true;
-			for(int i = 0; i < device_topics.size();i++)
+			for(std::size_t i = 0; i < device_topics.size();i++)
 			{
 				if(device_topics.at(i) == name)
 				{
@@ -111,8 +108,7 @@ public:
 		}
 		else if(type == "eros/firmware")
 		{
-			bool found = true;
-			for(int i = 0; i < firmware_topics.size();i++)
+			for(std::size_t i = 0; i < firmware_topics.size();i++)
 			{
 				if(firmware_topics.at(i) == name)
 				{

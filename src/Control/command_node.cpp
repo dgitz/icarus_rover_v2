@@ -18,8 +18,14 @@ bool CommandNode::start(int argc,char **argv)
 		return false;
 	}
 
-	process->initialize(get_basenodename(),get_nodename(),get_hostname());
-	process->set_diagnostic(diagnostic);
+	process->initialize(get_basenodename(),get_nodename(),get_hostname(),DIAGNOSTIC_SYSTEM,DIAGNOSTIC_SUBSYSTEM,DIAGNOSTIC_COMPONENT);
+	std::vector<uint8_t> diagnostic_types;
+	diagnostic_types.push_back(SOFTWARE);
+	diagnostic_types.push_back(DATA_STORAGE);
+	diagnostic_types.push_back(SYSTEM_RESOURCE);
+	diagnostic_types.push_back(REMOTE_CONTROL);
+	diagnostic_types.push_back(TARGET_ACQUISITION);
+	process->enable_diagnostics(diagnostic_types);
 	process->finish_initialization();
 	diagnostic = finish_initialization();
 	if(diagnostic.Level > WARN)
@@ -28,10 +34,7 @@ bool CommandNode::start(int argc,char **argv)
 	}
 	if(diagnostic.Level < WARN)
 	{
-		diagnostic.Diagnostic_Type = NOERROR;
-		diagnostic.Level = INFO;
-		diagnostic.Diagnostic_Message = NOERROR;
-		diagnostic.Description = "Node Configured.  Initializing.";
+		diagnostic = process->update_diagnostic(DATA_STORAGE,INFO,NOERROR,"Node Configured. Initializing.");
 		get_logger()->log_diagnostic(diagnostic);
 	}
 	status = true;
@@ -52,7 +55,7 @@ eros::diagnostic CommandNode::finish_initialization()
 	std::string device_topic = "/" + std::string(host_name) + "_master_node/srv_device";
 	srv_device = n->serviceClient<eros::srv_device>(device_topic);
 	std::string command_topic = "/command";
-	command_pub =  n->advertise<eros::command>(command_topic,10);
+	command_pub =  n->advertise<eros::command>(command_topic,20);
 
 	std::vector<std::string> ready_to_arm_topics;
 
@@ -61,14 +64,12 @@ eros::diagnostic CommandNode::finish_initialization()
 	while(search_for_topics == true)
 	{
 		std::string topic;
-		bool add_new_topic = false;
 		std::string param_topic = node_name +"/ready_to_arm_topic" + boost::lexical_cast<std::string>(topicindex);
 		if(n->getParam(param_topic,topic) == false)
 		{
 			char tempstr[255];
 			sprintf(tempstr,"Didn't find %s Not adding anymore.",param_topic.c_str());
 			logger->log_info(tempstr);
-			add_new_topic = false;
 			search_for_topics = false;
 		}
 		else
@@ -81,12 +82,13 @@ eros::diagnostic CommandNode::finish_initialization()
 			topicindex++;
 		}
 	}
-	for(int i = 0; i < ready_to_arm_topics.size();i++)
+	for(std::size_t i = 0; i < ready_to_arm_topics.size();i++)
 	{
 		ros::Subscriber sub = n->subscribe<std_msgs::Bool>(ready_to_arm_topics.at(i),10,boost::bind(&CommandNode::ReadyToArm_Callback,this,_1,ready_to_arm_topics.at(i)));
 		ready_to_arm_subs.push_back(sub);
 	}
 	diag = process->load_loadscriptingfiles("/home/robot/config/scriptfiles/");
+	diag = process->update_diagnostic(diag);
 	if(diag.Level >= WARN)
 	{
 		logger->log_diagnostic(diagnostic);
@@ -96,11 +98,7 @@ eros::diagnostic CommandNode::finish_initialization()
 	diag = process->init_readytoarm_list(ready_to_arm_topics);
 	if(diag.Level >= WARN)
 	{
-		diag.Diagnostic_Type = DATA_STORAGE;
-		diag.Level = ERROR;
-		diag.Diagnostic_Message = INITIALIZING_ERROR;
-		diag.Description = "Unable to initialize Ready To Arm List.  Exiting.";
-		logger->log_diagnostic(diagnostic);
+		logger->log_diagnostic(diag);
 		return diag;
 	}
 
@@ -108,18 +106,16 @@ eros::diagnostic CommandNode::finish_initialization()
 	std::string user_command_topic;
 	if(n->getParam(param_user_command_topic,user_command_topic) == false)
 	{
-		diag.Diagnostic_Type = DATA_STORAGE;
-		diag.Level = ERROR;
-		diag.Diagnostic_Message = INITIALIZING_ERROR;
-		diag.Description = "Missing parameter: user_command_topic. Exiting.";
-		logger->log_diagnostic(diagnostic);
+
+		diag = process->update_diagnostic(DATA_STORAGE,ERROR,INITIALIZING_ERROR,"Missing parameter: user_command_topic. Exiting.");
+		logger->log_diagnostic(diag);
 		return diag;
 	}
 	user_command_sub = n->subscribe<eros::command>(user_command_topic,10,&CommandNode::User_Command_Callback,this);
 
 	std::string armeddisarmed_state_topic = "/armed_state";
 	armeddisarmed_state_pub = n->advertise<std_msgs::UInt8>(armeddisarmed_state_topic,10);
-	return diagnostic;
+	return diag;
 }
 bool CommandNode::run_001hz()
 {
@@ -127,15 +123,21 @@ bool CommandNode::run_001hz()
 }
 bool CommandNode::run_01hz()
 {
-	eros::diagnostic diag = process->get_diagnostic();
+	return true;
+}
+bool CommandNode::run_01hz_noisy()
+{
+	std::vector<eros::diagnostic> diaglist = process->get_diagnostics();
+	for (std::size_t i = 0; i < diaglist.size(); ++i)
 	{
-		get_logger()->log_diagnostic(diag);
-		diagnostic_pub.publish(diag);
+		get_logger()->log_diagnostic(diaglist.at(i));
+		diagnostic_pub.publish(diaglist.at(i));
 	}
 	return true;
 }
 bool CommandNode::run_1hz()
 {
+	process->update_diagnostic(get_resource_diagnostic());
 	if((process->is_initialized() == true) and (process->is_ready() == true))
 	{
 	}
@@ -156,7 +158,7 @@ bool CommandNode::run_1hz()
 				}
 				else
 				{
-					bool status = new_devicemsg(srv.request.query,srv.response.data.at(0));
+					new_devicemsg(srv.request.query,srv.response.data.at(0));
 				}
 			}
 			else
@@ -164,13 +166,15 @@ bool CommandNode::run_1hz()
 			}
 		}
 	}
-	eros::diagnostic diag = process->get_diagnostic();
-	if(diag.Level >= NOTICE)
+	std::vector<eros::diagnostic> diaglist = process->get_diagnostics();
+	for (std::size_t i = 0; i < diaglist.size(); ++i)
 	{
-		get_logger()->log_diagnostic(diag);
-		diagnostic_pub.publish(diag);
+		if (diaglist.at(i).Level == WARN)
+		{
+			get_logger()->log_diagnostic(diaglist.at(i));
+			diagnostic_pub.publish(diaglist.at(i));
+		}
 	}
-
 	return true;
 }
 bool CommandNode::run_10hz()
@@ -189,12 +193,21 @@ bool CommandNode::run_10hz()
 	std::vector<eros::command> periodiccommands = process->get_PeriodicCommands();
 	for(std::size_t i = 0; i < periodiccommands.size(); ++i)
 	{
-		//command_pub.publish(periodiccommands.at(i));
+		command_pub.publish(periodiccommands.at(i));
 	}
 	std::vector<eros::command> command_buffer = process->get_command_buffer();
 	for(std::size_t i = 0; i < command_buffer.size(); ++i)
 	{
 		command_pub.publish(command_buffer.at(i));
+	}
+	std::vector<eros::diagnostic> diaglist = process->get_diagnostics();
+	for (std::size_t i = 0; i < diaglist.size(); ++i)
+	{
+		if (diaglist.at(i).Level > WARN)
+		{
+			get_logger()->log_diagnostic(diaglist.at(i));
+			diagnostic_pub.publish(diaglist.at(i));
+		}
 	}
 	return true;
 }

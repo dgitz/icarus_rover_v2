@@ -49,6 +49,7 @@ private:
 	//Update Functions
 	bool run_001hz();
 	bool run_01hz();
+	bool run_01hz_noisy();
 	bool run_1hz();
 	bool run_10hz();
 	bool run_loop1();
@@ -59,7 +60,7 @@ private:
 	void PPS1_Callback(const std_msgs::Bool::ConstPtr& t_msg);
 	void Command_Callback(const eros::command::ConstPtr& t_msg);
 	bool new_devicemsg(std::string query,eros::device t_device);
-	eros::diagnostic rescan_topics(eros::diagnostic diag);
+	eros::diagnostic rescan_topics();
 	void heartbeat_Callback(const eros::heartbeat::ConstPtr& msg,const std::string &topicname);
 	void resource_Callback(const eros::resource::ConstPtr& msg,const std::string &topicname);
 	void diagnostic_Callback(const eros::diagnostic::ConstPtr& msg,const std::string &topicname);

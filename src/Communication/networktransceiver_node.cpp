@@ -6,7 +6,6 @@ bool NetworkTransceiverNode::start(int argc,char **argv)
 	process = new NetworkTransceiverNodeProcess();
 	set_basenodename(BASE_NODE_NAME);
 	initialize_firmware(MAJOR_RELEASE_VERSION,MINOR_RELEASE_VERSION,BUILD_NUMBER,FIRMWARE_DESCRIPTION);
-	initialize_diagnostic(DIAGNOSTIC_SYSTEM,DIAGNOSTIC_SUBSYSTEM,DIAGNOSTIC_COMPONENT);
 	diagnostic = preinitialize_basenode(argc,argv);
 	if(diagnostic.Level > WARN)
 	{
@@ -17,8 +16,14 @@ bool NetworkTransceiverNode::start(int argc,char **argv)
 	{
 		return false;
 	}
-	process->initialize(get_basenodename(),get_nodename(),get_hostname());
-	process->set_diagnostic(diagnostic);
+	process->initialize(get_basenodename(),get_nodename(),get_hostname(),DIAGNOSTIC_SYSTEM,DIAGNOSTIC_SUBSYSTEM,DIAGNOSTIC_COMPONENT);
+	std::vector<uint8_t> diagnostic_types;
+	diagnostic_types.push_back(SOFTWARE);
+	diagnostic_types.push_back(DATA_STORAGE);
+	diagnostic_types.push_back(SYSTEM_RESOURCE);
+	diagnostic_types.push_back(COMMUNICATIONS);
+	diagnostic_types.push_back(REMOTE_CONTROL);
+	process->enable_diagnostics(diagnostic_types);
 	process->finish_initialization();
 	diagnostic = finish_initialization();
 	if(diagnostic.Level > WARN)
@@ -27,10 +32,7 @@ bool NetworkTransceiverNode::start(int argc,char **argv)
 	}
 	if(diagnostic.Level < WARN)
 	{
-		diagnostic.Diagnostic_Type = DATA_STORAGE;
-		diagnostic.Level = INFO;
-		diagnostic.Diagnostic_Message = NOERROR;
-		diagnostic.Description = "Node Configured.  Initializing.";
+		diagnostic = process->update_diagnostic(DATA_STORAGE,INFO,NOERROR,"Node Configured. Initializing.");
 		get_logger()->log_diagnostic(diagnostic);
 	}
 	status = true;
@@ -45,10 +47,7 @@ eros::diagnostic NetworkTransceiverNode::read_launchparameters()
 	std::string param_send_multicast_group = node_name +"/Send_Multicast_Group";
 	if(n->getParam(param_send_multicast_group,send_multicast_group) == false)
 	{
-		diag.Diagnostic_Type = DATA_STORAGE;
-		diag.Level = ERROR;
-		diag.Diagnostic_Message = INITIALIZING_ERROR;
-		diag.Description = "Missing Parameter: Send_Multicast_Group. Exiting.";
+		diag = process->update_diagnostic(DATA_STORAGE,ERROR,INITIALIZING_ERROR,"Missing Parameter: Send_Multicast_Group. Exiting.");
 		logger->log_diagnostic(diag);
 		return diag;
 	}
@@ -56,20 +55,14 @@ eros::diagnostic NetworkTransceiverNode::read_launchparameters()
 	std::string param_send_multicast_port = node_name +"/Send_Multicast_Port";
 	if(n->getParam(param_send_multicast_port,send_multicast_port) == false)
 	{
-		diag.Diagnostic_Type = DATA_STORAGE;
-		diag.Level = ERROR;
-		diag.Diagnostic_Message = INITIALIZING_ERROR;
-		diag.Description = "Missing Parameter: Send_Multicast_Port. Exiting.";
+		diag = process->update_diagnostic(DATA_STORAGE,ERROR,INITIALIZING_ERROR,"Missing Parameter: Send_Multicast_Port. Exiting.");
 		logger->log_diagnostic(diag);
 		return diag;
 	}
 	std::string param_recv_unicast_port = node_name +"/Recv_Unicast_Port";
 	if(n->getParam(param_recv_unicast_port,recv_unicast_port) == false)
 	{
-		diag.Diagnostic_Type = DATA_STORAGE;
-		diag.Level = ERROR;
-		diag.Diagnostic_Message = INITIALIZING_ERROR;
-		diag.Description = "Missing Parameter: Recv_Unicast_Port. Exiting.";
+		diag = process->update_diagnostic(DATA_STORAGE,ERROR,INITIALIZING_ERROR,"Missing Parameter: Recv_Unicast_Port. Exiting.");
 		logger->log_diagnostic(diag);
 		return diag;
 	}
@@ -78,16 +71,13 @@ eros::diagnostic NetworkTransceiverNode::read_launchparameters()
 	std::string param_Mode = node_name +"/Mode";
 	if(n->getParam(param_Mode,UIMode) == false)
 	{
-		diag.Diagnostic_Type = DATA_STORAGE;
-		diag.Level = ERROR;
-		diag.Diagnostic_Message = INITIALIZING_ERROR;
-		diag.Description = "Missing Parameter: Mode. Exiting.";
+		diag = process->update_diagnostic(DATA_STORAGE,ERROR,INITIALIZING_ERROR,"Missing Parameter: Mode. Exiting.");
 		logger->log_diagnostic(diag);
 		return diag;
 	}
 	process->set_UIMode(UIMode);
 	get_logger()->log_notice("Configuration Files Loaded.");
-	return diagnostic;
+	return diag;
 }
 eros::diagnostic NetworkTransceiverNode::finish_initialization()
 {
@@ -133,19 +123,13 @@ eros::diagnostic NetworkTransceiverNode::finish_initialization()
 	udpmessagehandler = new UDPMessageHandler();
 	if(initialize_sendsocket() == false)
 	{
-		diag.Diagnostic_Type = COMMUNICATIONS;
-		diag.Level = ERROR;
-		diag.Diagnostic_Message = INITIALIZING_ERROR;
-		diag.Description = "Couldn't initialize send socket.  Exiting.";
+		diag = process->update_diagnostic(COMMUNICATIONS,ERROR,INITIALIZING_ERROR,"Couldn't initialize send socket.  Exiting.");
 		logger->log_diagnostic(diag);
 		return diag;
 	}
 	if(initialize_recvsocket() == false)
 	{
-		diag.Diagnostic_Type = COMMUNICATIONS;
-		diag.Level = ERROR;
-		diag.Diagnostic_Message = INITIALIZING_ERROR;
-		diag.Description = "Couldn't initialize recv socket.  Exiting.";
+		diag = process->update_diagnostic(COMMUNICATIONS,ERROR,INITIALIZING_ERROR,"Couldn't initialize recv socket.  Exiting.");
 		logger->log_diagnostic(diag);
 		return diag;
 	}
@@ -153,27 +137,34 @@ eros::diagnostic NetworkTransceiverNode::finish_initialization()
 }
 bool NetworkTransceiverNode::run_001hz()
 {
-	eros::diagnostic diagnostic = rescan_topics(process->get_diagnostic());
-	if(diagnostic.Level > NOTICE)
+	eros::diagnostic diag = rescan_topics();
+	diag = process->update_diagnostic(diag);
+	if(diag.Level > NOTICE)
 	{
-		logger->log_diagnostic(diagnostic);
-		diagnostic_pub.publish(diagnostic);
+		logger->log_diagnostic(diag);
+		diagnostic_pub.publish(diag);
 	}
 	return true;
 }
 bool NetworkTransceiverNode::run_01hz()
 {
 
-	eros::diagnostic diag = process->get_diagnostic();
-	{
-		get_logger()->log_diagnostic(diag);
-		diagnostic_pub.publish(diag);
-	}
 	logger->log_info(process->get_messageinfo(false));
+	return true;
+}
+bool NetworkTransceiverNode::run_01hz_noisy()
+{
+	std::vector<eros::diagnostic> diaglist = process->get_diagnostics();
+	for (std::size_t i = 0; i < diaglist.size(); ++i)
+	{
+		get_logger()->log_diagnostic(diaglist.at(i));
+		diagnostic_pub.publish(diaglist.at(i));
+	}
 	return true;
 }
 bool NetworkTransceiverNode::run_1hz()
 {
+	process->update_diagnostic(get_resource_diagnostic());
 	if((process->is_initialized() == true) and (process->is_ready() == true))
 	{
 	}
@@ -195,7 +186,7 @@ bool NetworkTransceiverNode::run_1hz()
 					}
 					else
 					{
-						bool status = new_devicemsg(srv.request.query,srv.response.data.at(0));
+						new_devicemsg(srv.request.query,srv.response.data.at(0));
 					}
 				}
 				else
@@ -219,13 +210,15 @@ bool NetworkTransceiverNode::run_1hz()
 
 		}
 	}
-	eros::diagnostic diag = process->get_diagnostic();
-	if(diag.Level >= NOTICE)
+	std::vector<eros::diagnostic> diaglist = process->get_diagnostics();
+	for (std::size_t i = 0; i < diaglist.size(); ++i)
 	{
-		get_logger()->log_diagnostic(diag);
-		diagnostic_pub.publish(diag);
+		if (diaglist.at(i).Level == WARN)
+		{
+			get_logger()->log_diagnostic(diaglist.at(i));
+			diagnostic_pub.publish(diaglist.at(i));
+		}
 	}
-
 	return true;
 }
 bool NetworkTransceiverNode::run_10hz()
@@ -241,10 +234,20 @@ bool NetworkTransceiverNode::run_10hz()
 		ready_to_arm = false;
 	}
 	eros::diagnostic diag = process->update(0.1,ros::Time::now().toSec());
+	diag = process->update_diagnostic(diag);
 	if(diag.Level > WARN)
 	{
 		get_logger()->log_diagnostic(diag);
 		diagnostic_pub.publish(diag);
+	}
+	std::vector<eros::diagnostic> diaglist = process->get_diagnostics();
+	for (std::size_t i = 0; i < diaglist.size(); ++i)
+	{
+		if ((diaglist.at(i).Level > WARN))
+		{
+			get_logger()->log_diagnostic(diaglist.at(i));
+			diagnostic_pub.publish(diaglist.at(i));
+		}
 	}
 	return true;
 }
@@ -332,8 +335,9 @@ bool NetworkTransceiverNode::new_devicemsg(std::string query,eros::device t_devi
 	}
 	return true;
 }
-eros::diagnostic NetworkTransceiverNode::rescan_topics(eros::diagnostic diag)
+eros::diagnostic NetworkTransceiverNode::rescan_topics()
 {
+	eros::diagnostic diag = diagnostic;
 	int found_new_topics = 0;
 
 	ros::master::V_TopicInfo master_topics;
@@ -383,11 +387,6 @@ eros::diagnostic NetworkTransceiverNode::rescan_topics(eros::diagnostic diag)
 
 	}
 
-
-	diag.Diagnostic_Type = SOFTWARE;
-	diag.Level = INFO;
-	diag.Diagnostic_Message = NOERROR;
-
 	char tempstr[255];
 	if(found_new_topics > 0)
 	{
@@ -397,8 +396,8 @@ eros::diagnostic NetworkTransceiverNode::rescan_topics(eros::diagnostic diag)
 	{
 		sprintf(tempstr,"Rescanned and found no new topics.");
 	}
+	diag = process->update_diagnostic(SOFTWARE,INFO,NOERROR,std::string(tempstr));
 	logger->log_info(tempstr);
-	diag.Description = tempstr;
 	return diag;
 }
 void NetworkTransceiverNode::ArmedState_Callback(const std_msgs::UInt8::ConstPtr& msg)
@@ -567,6 +566,7 @@ void NetworkTransceiverNode::thread_loop()
 						&button1,&button2,&button3,&button4,&button5,&button6,&button7,&button8);
 				if(success == 1)
 				{
+					process->update_diagnostic(REMOTE_CONTROL,INFO,NOERROR,"Remote Control OK.");
 					sensor_msgs::Joy newjoy;
 					double send_time = t/1000.0;
 					newjoy.header.stamp.sec = floor(send_time);

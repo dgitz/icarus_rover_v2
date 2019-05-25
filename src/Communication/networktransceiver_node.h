@@ -59,6 +59,7 @@ private:
 	//Update Functions
 	bool run_001hz();
 	bool run_01hz();
+	bool run_01hz_noisy();
 	bool run_1hz();
 	bool run_10hz();
 	bool run_loop1();
@@ -76,7 +77,7 @@ private:
 	void device_callback(std::vector<eros::device> devicelist);
 	void subsystem_diagnostic_Callback(const eros::subsystem_diagnostic::ConstPtr& msg);
 	//Support Functions
-	eros::diagnostic rescan_topics(eros::diagnostic diag);
+	eros::diagnostic rescan_topics();
 
 	void process_udp_receive();
 

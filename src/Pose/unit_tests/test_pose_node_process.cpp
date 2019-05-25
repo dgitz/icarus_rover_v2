@@ -2,6 +2,7 @@
 #include "ros/ros.h"
 #include "ros/time.h"
 #include "../PoseNodeProcess.h"
+#define DIAGNOSTIC_TYPE_COUNT 5
 
 std::string Node_Name = "/unittest_pose_node_process";
 std::string Host_Name = "unittest";
@@ -10,20 +11,8 @@ std::string ros_DeviceName = Host_Name;
 
 PoseNodeProcess* initializeprocess(uint8_t imucount)
 {
-	eros::diagnostic diagnostic;
-	diagnostic.DeviceName = ros_DeviceName;
-	diagnostic.Node_Name = Node_Name;
-	diagnostic.System = ROVER;
-	diagnostic.SubSystem = ROBOT_CONTROLLER;
-	diagnostic.Component = COMMUNICATION_NODE;
-
-	diagnostic.Diagnostic_Type = NOERROR;
-	diagnostic.Level = INFO;
-	diagnostic.Diagnostic_Message = INITIALIZING;
-	diagnostic.Description = "Node Initializing";
-
 	eros::device device;
-	device.DeviceName = diagnostic.DeviceName;
+	device.DeviceName = ros_DeviceName;
 	device.BoardCount = 0;
 	device.SensorCount = 0;
 	device.DeviceParent = "None";
@@ -42,8 +31,14 @@ PoseNodeProcess* initializeprocess(uint8_t imucount)
 
 	PoseNodeProcess *process;
 	process = new PoseNodeProcess;
-	process->initialize("pose_node",Node_Name,Host_Name);
-	process->set_diagnostic(diagnostic);
+	process->initialize("pose_node",Node_Name,Host_Name,ROVER,ROBOT_CONTROLLER,POSE_NODE);
+	std::vector<uint8_t> diagnostic_types;
+	diagnostic_types.push_back(SOFTWARE);
+	diagnostic_types.push_back(DATA_STORAGE);
+	diagnostic_types.push_back(SYSTEM_RESOURCE);
+	diagnostic_types.push_back(SENSORS);
+	diagnostic_types.push_back(POSE);
+	process->enable_diagnostics(diagnostic_types);
 	process->finish_initialization();
 	EXPECT_TRUE(process->is_initialized() == false);
 	process->set_mydevice(device);
@@ -52,7 +47,7 @@ PoseNodeProcess* initializeprocess(uint8_t imucount)
 	for(std::size_t i = 0; i < imu_list.size(); ++i)
 	{
 		eros::device::ConstPtr imu_ptr(new eros::device(imu_list.at(i)));
-		diagnostic = process->new_devicemsg(imu_ptr);
+		eros::diagnostic diagnostic = process->new_devicemsg(imu_ptr);
 		EXPECT_TRUE(diagnostic.Level <= NOTICE);
 	}
 	EXPECT_TRUE(process->get_mydevice().DeviceName == device.DeviceName);
@@ -63,11 +58,19 @@ PoseNodeProcess* readyprocess(PoseNodeProcess* process)
 	eros::diagnostic diag = process->update(0.0,0.0);
 	EXPECT_TRUE(diag.Level <= NOTICE);
 	EXPECT_TRUE(process->is_ready() == true);
+	{
+		std::vector<eros::diagnostic> diagnostics = process->get_diagnostics();
+		EXPECT_TRUE(diagnostics.size() == (DIAGNOSTIC_TYPE_COUNT+process->get_imus().size()));
+		for (std::size_t i = 0; i < diagnostics.size(); ++i)
+		{
+			EXPECT_TRUE(diagnostics.at(i).Level <= NOTICE);
+		}
+	}
 	return process;
 }
 TEST(Template,Process_Initialization)
 {
-	PoseNodeProcess* process = initializeprocess(1);
+	initializeprocess(1);
 }
 TEST(Math,Definitions)
 {
@@ -187,6 +190,14 @@ TEST(Template,Process_Command)
 		}
 		if(slowrate_fire == true)
 		{
+			{
+				std::vector<eros::diagnostic> diagnostics = process->get_diagnostics();
+				EXPECT_TRUE(diagnostics.size() == (DIAGNOSTIC_TYPE_COUNT+process->get_imus().size()));
+				for (std::size_t i = 0; i < diagnostics.size(); ++i)
+				{
+					EXPECT_TRUE(diagnostics.at(i).Level <= NOTICE);
+				}
+			}
 		}
 		current_time += dt;
 	}
@@ -241,6 +252,14 @@ TEST(Template,Process_IMUMsg)
 		}
 		if(slowrate_fire == true)
 		{
+			{
+				std::vector<eros::diagnostic> diagnostics = process->get_diagnostics();
+				EXPECT_TRUE(diagnostics.size() == (DIAGNOSTIC_TYPE_COUNT+process->get_imus().size()));
+				for (std::size_t i = 0; i < diagnostics.size(); ++i)
+				{
+					EXPECT_TRUE(diagnostics.at(i).Level <= NOTICE);
+				}
+			}
 		}
 		current_time += dt;
 	}

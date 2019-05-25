@@ -6,6 +6,12 @@
 #include <cstdio>
 #include <memory>
 #include <fstream>
+#include <stdio.h>     
+#include <stdlib.h>
+#include <dirent.h>
+#include <fcntl.h>      // File control definitions
+#include <errno.h>      // Error number definitions
+#include <termios.h>    // POSIX terminal control definitions
 //C++ System Files
 #include <string>
 #include <boost/algorithm/string.hpp>
@@ -51,6 +57,8 @@ public:
 	eros::diagnostic update(double t_dt,double t_ros_time);
 
 	//Attribute Functions
+	bool get_query_for_device_configuration() { return query_for_device_configuration; }
+	void set_query_for_device_configuration(bool v) {query_for_device_configuration = v;  }
     bool set_audiostoragedirectory(std::string v);
 	bool set_audioarchivedirectory(std::string v);
 	std::string get_audiostoragedirectory() { return audiostorage_directory; }
@@ -63,6 +71,7 @@ public:
 	void enable_archive(bool v) { archive = v; }
 	bool add_audioplayfile(std::string filepath,std::string trigger,uint8_t priority); //Only used for unit testing
 	void set_volume(double v) { volume_perc = v; }
+	int get_microphone_count() { return microphone_count; }
 	//Message Functions
 	/*! \brief  Process Command Message.  
 	 *
@@ -82,7 +91,7 @@ private:
 	 */
 	std::vector<eros::diagnostic> check_programvariables();
     void init_audioplayfiles();
-    std::string exec(const char* cmd);
+    std::string exec(const char* cmd,bool wait_for_result);
     
     std::string audiostorage_directory;
     std::string audioarchive_directory;
@@ -110,4 +119,5 @@ private:
     double audioplay_nextimeavailable;
     uint8_t last_armedstate;
     double volume_perc;
+	bool query_for_device_configuration;
 };

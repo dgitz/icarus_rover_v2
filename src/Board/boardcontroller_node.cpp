@@ -6,7 +6,6 @@ bool BoardControllerNode::start(int argc,char **argv)
 	process = new BoardControllerNodeProcess();
 	set_basenodename(BASE_NODE_NAME);
 	initialize_firmware(MAJOR_RELEASE_VERSION,MINOR_RELEASE_VERSION,BUILD_NUMBER,FIRMWARE_DESCRIPTION);
-	initialize_diagnostic(DIAGNOSTIC_SYSTEM,DIAGNOSTIC_SUBSYSTEM,DIAGNOSTIC_COMPONENT);
 	diagnostic = preinitialize_basenode(argc,argv);
 	if(diagnostic.Level > WARN)
 	{
@@ -18,8 +17,14 @@ bool BoardControllerNode::start(int argc,char **argv)
 		return false;
 	}
 
-	process->initialize(get_basenodename(),get_nodename(),get_hostname());
-	process->set_diagnostic(diagnostic);
+	process->initialize(get_basenodename(),get_nodename(),get_hostname(),DIAGNOSTIC_SYSTEM,DIAGNOSTIC_SUBSYSTEM,DIAGNOSTIC_COMPONENT);
+	std::vector<uint8_t> diagnostic_types;
+	diagnostic_types.push_back(SOFTWARE);
+	diagnostic_types.push_back(DATA_STORAGE);
+	diagnostic_types.push_back(SYSTEM_RESOURCE);
+	diagnostic_types.push_back(COMMUNICATIONS);
+	diagnostic_types.push_back(SENSORS);
+	process->enable_diagnostics(diagnostic_types);
 	process->finish_initialization();
 	diagnostic = finish_initialization();
 	if(diagnostic.Level > WARN)
@@ -28,10 +33,7 @@ bool BoardControllerNode::start(int argc,char **argv)
 	}
 	if(diagnostic.Level < WARN)
 	{
-		diagnostic.Diagnostic_Type = NOERROR;
-		diagnostic.Level = INFO;
-		diagnostic.Diagnostic_Message = NOERROR;
-		diagnostic.Description = "Node Configured.  Initializing.";
+		diagnostic = process->update_diagnostic(SOFTWARE,INFO,NOERROR,"Node Configured.  Initializing.");
 		get_logger()->log_diagnostic(diagnostic);
 	}
 	status = true;
@@ -66,10 +68,16 @@ bool BoardControllerNode::run_001hz()
 }
 bool BoardControllerNode::run_01hz()
 {
-	eros::diagnostic diag = process->get_diagnostic();
+	
+	return true;
+}
+bool BoardControllerNode::run_01hz_noisy()
+{
+	std::vector<eros::diagnostic> diaglist = process->get_diagnostics();
+	for (std::size_t i = 0; i < diaglist.size(); ++i)
 	{
-		get_logger()->log_diagnostic(diag);
-		diagnostic_pub.publish(diag);
+		get_logger()->log_diagnostic(diaglist.at(i));
+		diagnostic_pub.publish(diaglist.at(i));
 	}
 	char tempstr[512];
 	sprintf(tempstr,"Passed Checksum: %d @ %f Failed Checksum: %d @ %f",
@@ -81,6 +89,7 @@ bool BoardControllerNode::run_01hz()
 }
 bool BoardControllerNode::run_1hz()
 {
+	process->update_diagnostic(get_resource_diagnostic());
 	if((process->is_initialized() == true) and (process->is_ready() == true))
 	{
 	}
@@ -93,7 +102,7 @@ bool BoardControllerNode::run_1hz()
 			{
 				for(std::size_t i = 0; i < srv.response.data.size(); i++)
 				{
-					bool status = new_devicemsg(srv.request.query,srv.response.data.at(i));
+					new_devicemsg(srv.request.query,srv.response.data.at(i));
 
 				}
 			}
@@ -113,7 +122,7 @@ bool BoardControllerNode::run_1hz()
 				}
 				else
 				{
-					bool status = new_devicemsg(srv.request.query,srv.response.data.at(0));
+					new_devicemsg(srv.request.query,srv.response.data.at(0));
 				}
 			}
 			else
@@ -121,13 +130,15 @@ bool BoardControllerNode::run_1hz()
 			}
 		}
 	}
-	eros::diagnostic diag = process->get_diagnostic();
-	if(diag.Level >= NOTICE)
+	std::vector<eros::diagnostic> diaglist = process->get_diagnostics();
+	for (std::size_t i = 0; i < diaglist.size(); ++i)
 	{
-		get_logger()->log_diagnostic(diag);
-		diagnostic_pub.publish(diag);
+		if (diaglist.at(i).Level == WARN)
+		{
+			get_logger()->log_diagnostic(diaglist.at(i));
+			diagnostic_pub.publish(diaglist.at(i));
+		}
 	}
-
 	return true;
 }
 bool BoardControllerNode::run_10hz()
@@ -141,28 +152,36 @@ bool BoardControllerNode::run_loop1()
 	process->send_commandmessage(SPIMessageHandler::SPI_Command_ID);
 	process->send_commandmessage(SPIMessageHandler::SPI_Arm_Status_ID);
 	process->send_querymessage(SPIMessageHandler::SPI_Diagnostic_ID);
-	eros::diagnostic diag = process->get_diagnostic();
-	if(diag.Level > WARN)
-	{
-		diagnostic_pub.publish(diag);
-		logger->log_diagnostic(diag);
-	}
-	diag = process->send_querymessage(SPIMessageHandler::SPI_Get_DIO_Port1_ID);
+	process->send_querymessage(SPIMessageHandler::SPI_Get_DIO_Port1_ID);
 	std::vector<BoardControllerNodeProcess::Sensor> sensors = process->get_sensordata();
 	for(std::size_t i = 0; i < sensors.size(); i++)
 	{
 		signal_sensor_pubs.at(i).publish(sensors.at(i).signal);
+	}
+	std::vector<eros::diagnostic> diaglist = process->get_diagnostics();
+	for (std::size_t i = 0; i < diaglist.size(); ++i)
+	{
+		if (diaglist.at(i).Level > WARN)
+		{
+			get_logger()->log_diagnostic(diaglist.at(i));
+			diagnostic_pub.publish(diaglist.at(i));
+		}
 	}
 	return true;
 }
 bool BoardControllerNode::run_loop2()
 {
 	eros::diagnostic diag = process->update(0.1,ros::Time::now().toSec());
+	if (diag.Level > WARN)
+	{
+		get_logger()->log_diagnostic(diag);
+		diagnostic_pub.publish(diag);
+	}
 	return true;
 }
 bool BoardControllerNode::run_loop3()
 {
-	eros::diagnostic diag = process->get_diagnostic();
+	eros::diagnostic diag = diagnostic;
 	std::vector<BoardControllerNodeProcess::Message> querymessages_tosend = process->get_querymessages_tosend();
 	for(std::size_t i = 0; i < querymessages_tosend.size(); i++)
 	{

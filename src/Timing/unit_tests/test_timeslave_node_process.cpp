@@ -6,6 +6,7 @@
 std::string Node_Name = "/unittest_timeslave_node_process";
 std::string Host_Name = "unittest";
 std::string ros_DeviceName = Host_Name;
+#define DIAGNOSTIC_TYPE_COUNT 4
 
 void print_timeserverinfo(std::vector<TimeSlaveNodeProcess::TimeServer> time_servers)
 {
@@ -25,20 +26,8 @@ std::map<std::string,std::string> initialize_timeservers()
 		}
 TimeSlaveNodeProcess* initializeprocess(std::string server)
 {
-	eros::diagnostic diagnostic;
-	diagnostic.DeviceName = ros_DeviceName;
-	diagnostic.Node_Name = Node_Name;
-	diagnostic.System = ROVER;
-	diagnostic.SubSystem = ROBOT_CONTROLLER;
-	diagnostic.Component = TIMING_NODE;
-
-	diagnostic.Diagnostic_Type = NOERROR;
-	diagnostic.Level = INFO;
-	diagnostic.Diagnostic_Message = INITIALIZING;
-	diagnostic.Description = "Node Initializing";
-
 	eros::device device;
-	device.DeviceName = diagnostic.DeviceName;
+	device.DeviceName = ros_DeviceName;
 	device.BoardCount = 0;
 	device.SensorCount = 0;
 	device.DeviceParent = "None";
@@ -46,8 +35,13 @@ TimeSlaveNodeProcess* initializeprocess(std::string server)
 
 	TimeSlaveNodeProcess *process;
 	process = new TimeSlaveNodeProcess;
-	process->initialize("timeslave_node",Node_Name,Host_Name);
-	process->set_diagnostic(diagnostic);
+	process->initialize("timeslave_node",Node_Name,Host_Name,ROVER,ROBOT_CONTROLLER,TIMING_NODE);
+	std::vector<uint8_t> diagnostic_types;
+	diagnostic_types.push_back(SOFTWARE);
+	diagnostic_types.push_back(DATA_STORAGE);
+	diagnostic_types.push_back(SYSTEM_RESOURCE);
+	diagnostic_types.push_back(TIMING);
+	process->enable_diagnostics(diagnostic_types);
 	process->finish_initialization();
 	EXPECT_TRUE(process->is_initialized() == false);
 	process->set_unittestingenabled(true);
@@ -61,6 +55,14 @@ TimeSlaveNodeProcess* readyprocess(TimeSlaveNodeProcess* process)
 	eros::diagnostic diag = process->update(0.0,0.0);
 	EXPECT_TRUE(diag.Level <= NOTICE);
 	EXPECT_TRUE(process->is_ready() == true);
+	{
+		std::vector<eros::diagnostic> diagnostics = process->get_diagnostics();
+		EXPECT_TRUE(diagnostics.size() == DIAGNOSTIC_TYPE_COUNT);
+		for (std::size_t i = 0; i < diagnostics.size(); ++i)
+		{
+			EXPECT_TRUE(diagnostics.at(i).Level <= NOTICE);
+		}
+	}
 	return process;
 }
 TEST(Template,Process_Initialization)
@@ -80,8 +82,9 @@ TEST(Template,Process_Command)
 	for(it = time_servers.begin();it != time_servers.end(); ++it)
 	{
 		TimeSlaveNodeProcess* process = initializeprocess(it->first);
-		process = readyprocess(process);
 		process->set_exec_result(it->second);
+		process = readyprocess(process);
+		
 		double time_to_run = 20.0;
 		double dt = 0.001;
 		double current_time = 0.0;
@@ -141,16 +144,13 @@ TEST(Template,Process_Command)
 			{
 				diag = process->update_timeservers();
 				EXPECT_TRUE(diag.Level <= NOTICE);
-				//Don't run LEVEL3 Test, as this will be called circularly and is only responsible for running this test anyways.
-				/*
-            cmd.Option1 = LEVEL3;
-            std::vector<eros::diagnostic> diaglist = process->new_commandmsg(cmd);
-            for(std::size_t i = 0; i < diaglist.size(); i++)
-            {
-                EXPECT_TRUE(diaglist.at(i).Level <= NOTICE);
-            }
-             EXPECT_TRUE(diaglist.size() > 0);
-				 */
+				std::vector<eros::diagnostic> diagnostics = process->get_diagnostics();
+				EXPECT_TRUE(diagnostics.size() >= DIAGNOSTIC_TYPE_COUNT);
+				for (std::size_t i = 0; i < diagnostics.size(); ++i)
+				{
+					EXPECT_TRUE(diagnostics.at(i).Level <= NOTICE);
+				}
+				
 			}
 			current_time += dt;
 		}

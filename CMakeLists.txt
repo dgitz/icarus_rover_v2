@@ -199,89 +199,31 @@ add_library(lcddriver src/Diagnostics/Driver/LCDDriver.cpp)
 #add_library(servohatdriver src/Board/Driver/ServoHatDriver.cpp) #Only compatible for armv7l
 
 
+#Add CMakeLists for Templates
+add_subdirectory(src_templates)
 
+#Add CMakeLists for Board
+add_subdirectory(src/Board)
 
-#Sample_Node
-file(MAKE_DIRECTORY /home/robot/catkin_ws/build/test_results/icarus_rover_v2/sample_node)
-add_library(sample_node_process src_templates/SampleNodeProcess.cpp)
-target_link_libraries(sample_node_process  ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} )
-add_executable(sample_node src_templates/sample_node.cpp)
-target_link_libraries(sample_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor sample_node_process)
-catkin_add_gtest(test_sample_node_process src_templates/unit_tests/test_sample_node_process.cpp)
-target_link_libraries(test_sample_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} sample_node_process)
-
-
-
-#TimeMaster Node
-file(MAKE_DIRECTORY /home/robot/catkin_ws/build/test_results/icarus_rover_v2/timemaster_node)
-add_library(timemaster_node_process src/Timing/TimeMasterNodeProcess.cpp)
-target_link_libraries(timemaster_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} )
-add_executable(timemaster_node src/Timing/timemaster_node.cpp)
-target_link_libraries(timemaster_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor timemaster_node_process)
-catkin_add_gtest(test_timemaster_node_process src/Timing/unit_tests/test_timemaster_node_process.cpp)
-target_link_libraries(test_timemaster_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} timemaster_node_process logger serialmessage)
-
-#TimeSlave Node
-file(MAKE_DIRECTORY /home/robot/catkin_ws/build/test_results/icarus_rover_v2/timeslave_node)
-add_library(timeslave_node_process src/Timing/TimeSlaveNodeProcess.cpp)
-target_link_libraries(timeslave_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} )
-add_executable(timeslave_node src/Timing/timeslave_node.cpp)
-target_link_libraries(timeslave_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor timeslave_node_process)
-catkin_add_gtest(test_timeslave_node_process src/Timing/unit_tests/test_timeslave_node_process.cpp)
-target_link_libraries(test_timeslave_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} timeslave_node_process logger serialmessage)
-
-#Network Transceiver Node
-file(MAKE_DIRECTORY /home/robot/catkin_ws/build/test_results/icarus_rover_v2/networktransceiver_node)
-add_library(networktransceiver_node_process src/Communication/NetworkTransceiverNodeProcess.cpp)
-target_link_libraries(networktransceiver_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} )
-add_executable(networktransceiver_node src/Communication/networktransceiver_node.cpp)
-target_link_libraries(networktransceiver_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} logger udpmessage resourcemonitor networktransceiver_node_process)
-catkin_add_gtest(test_networktransceiver_node_process src/Communication/unit_tests/test_networktransceiver_node_process.cpp)
-target_link_libraries(test_networktransceiver_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} networktransceiver_node_process logger serialmessage)
-
-#HatController Node
-file(MAKE_DIRECTORY /home/robot/catkin_ws/build/test_results/icarus_rover_v2/hatcontroller_node)
-add_library(hatcontroller_node_process src/Board/HatControllerNodeProcess.cpp)
-target_link_libraries(hatcontroller_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} )
-#add_executable(hatcontroller_node src/Board/hatcontroller_node.cpp) #Only compatible for armv7l
-#target_link_libraries(hatcontroller_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor wiringPi i2cmessage gpiohatdriver servohatdriver terminalhatdriver hatcontroller_node_process) #Only compatible for armv7l
-catkin_add_gtest(test_hatcontroller_node_process src/Board/unit_tests/test_hatcontroller_node_process.cpp)
-target_link_libraries(test_hatcontroller_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} hatcontroller_node_process logger)
-
-#Audio Node
-#file(MAKE_DIRECTORY /home/robot/catkin_ws/build/test_results/icarus_rover_v2/audio_node)
-#add_library(audio_node_process src/User_Control/AudioNodeProcess.cpp)
-#add_executable(audio_node src/User_Control/audio_node.cpp) 
-#target_link_libraries(audio_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor audio_node_process)
-#catkin_add_gtest(test_audio_node_process src/User_Control/unit_tests/test_audio_node_process.cpp)
-#target_link_libraries(test_audio_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} audio_node_process)
-
-#Topic Remapper Node
-file(MAKE_DIRECTORY /home/robot/catkin_ws/build/test_results/icarus_rover_v2/topicremapper_node)
-add_library(topicremapper_node_process src/Communication/TopicRemapperNodeProcess.cpp)
-target_link_libraries(topicremapper_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} )
-add_executable(topicremapper_node src/Communication/topicremapper_node.cpp)
-target_link_libraries(topicremapper_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} logger resourcemonitor topicremapper_node_process)
-catkin_add_gtest(test_topicremapper_node_process src/Communication/unit_tests/test_topicremapper_node_process.cpp)
-target_link_libraries(test_topicremapper_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} topicremapper_node_process logger)
-
-#Board Controller Node
-file(MAKE_DIRECTORY /home/robot/catkin_ws/build/test_results/icarus_rover_v2/boardcontroller_node)
-add_library(boardcontroller_node_process src/Board/BoardControllerNodeProcess.cpp)
-target_link_libraries(boardcontroller_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} )
-add_executable(boardcontroller_node src/Board/boardcontroller_node.cpp)
-target_link_libraries(boardcontroller_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} spimessage boardcontroller_node_process logger resourcemonitor)
-catkin_add_gtest(test_boardcontroller_node_process src/Board/unit_tests/test_boardcontroller_node_process.cpp)
-target_link_libraries(test_boardcontroller_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES}  ${TinyXML_LIBRARIES} spimessage boardcontroller_node_process logger)
-
-#Add CMakeLists for Sensors
-add_subdirectory(src/Sensor)
-
-#Add CMakeLists for Pose
-add_subdirectory(src/Pose)
+#Add CMakeLists for Communication
+add_subdirectory(src/Communication)
 
 #Add CMakeLists for Control
 add_subdirectory(src/Control)
 
 #Add CMakeLists for Diagnostics
 add_subdirectory(src/Diagnostics)
+
+#Add CMakeLists for Pose
+add_subdirectory(src/Pose)
+
+#Add CMakeLists for Sensors
+add_subdirectory(src/Sensor) 
+
+#Add CMakeLists for Timing
+add_subdirectory(src/Timing)
+
+#Add CMakeLists for User Control
+add_subdirectory(src/User_Control)
+
+

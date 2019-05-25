@@ -1,41 +1,45 @@
 #include "TimeMasterNodeProcess.h"
-eros::diagnostic  TimeMasterNodeProcess::finish_initialization()
+eros::diagnostic TimeMasterNodeProcess::finish_initialization()
 {
-    eros::diagnostic diag = diagnostic;
-    	pps1_delay = 0;
-    	time_since_last_1pps = 0.0;
-    return diagnostic;
+	eros::diagnostic diag = root_diagnostic;
+	pps1_delay = 0;
+	time_since_last_1pps = 0.0;
+	if (pps_source == "self")
+	{
+		update_diagnostic(TIMING, INFO, NOERROR, "Using Self Timebase.");
+		update_diagnostic(SENSORS, INFO, NOERROR, "Using Self Timebase.");
+	}
+
+	return diag;
 }
-eros::diagnostic TimeMasterNodeProcess::update(double t_dt,double t_ros_time)
+eros::diagnostic TimeMasterNodeProcess::update(double t_dt, double t_ros_time)
 {
-	if(initialized == true)
+	eros::diagnostic diag = root_diagnostic;
+	if (initialized == true)
 	{
 		ready = true;
-
+	}
+	if ((is_initialized() == true) and (is_ready() == true))
+	{
+		update_diagnostic(DATA_STORAGE, INFO, NOERROR, "No Error.");
 	}
 	time_since_last_1pps += t_dt;
-	eros::diagnostic diag = diagnostic;
-	diag = update_baseprocess(t_dt,t_ros_time);
-	if(diag.Level <= NOTICE)
+	diag = update_baseprocess(t_dt, t_ros_time);
+	if (diag.Level <= NOTICE)
 	{
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Level = INFO;
-		diag.Diagnostic_Message = NOERROR;
-		diag.Description = "Node Running.";
-
+		diag = update_diagnostic(SOFTWARE, INFO, NOERROR, "Node Running.");
 	}
-	diagnostic = diag;
 	return diag;
 }
-eros::diagnostic TimeMasterNodeProcess::new_devicemsg(const eros::device::ConstPtr& device)
+eros::diagnostic TimeMasterNodeProcess::new_devicemsg(const eros::device::ConstPtr &device)
 {
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	return diag;
 }
-std::vector<eros::diagnostic> TimeMasterNodeProcess::new_commandmsg(const eros::command::ConstPtr& t_msg)
+std::vector<eros::diagnostic> TimeMasterNodeProcess::new_commandmsg(const eros::command::ConstPtr &t_msg)
 {
 	std::vector<eros::diagnostic> diaglist;
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	if (t_msg->Command == ROVERCOMMAND_RUNDIAGNOSTIC)
 	{
 		if (t_msg->Option1 == LEVEL1)
@@ -61,27 +65,24 @@ std::vector<eros::diagnostic> TimeMasterNodeProcess::new_commandmsg(const eros::
 std::vector<eros::diagnostic> TimeMasterNodeProcess::check_programvariables()
 {
 	std::vector<eros::diagnostic> diaglist;
-	eros::diagnostic diag = diagnostic;
+	eros::diagnostic diag = root_diagnostic;
 	bool status = true;
 
-	if (status == true) {
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Level = INFO;
-		diag.Diagnostic_Message = DIAGNOSTIC_PASSED;
-		diag.Description = "Checked Program Variables -> PASSED.";
+	if (status == true)
+	{
+		diag = update_diagnostic(SOFTWARE, INFO, DIAGNOSTIC_PASSED, "Checked Program Variables -> PASSED.");
 		diaglist.push_back(diag);
-	} else {
-		diag.Diagnostic_Type = SOFTWARE;
-		diag.Level = WARN;
-		diag.Diagnostic_Message = DIAGNOSTIC_FAILED;
-		diag.Description = "Checked Program Variables -> FAILED.";
+	}
+	else
+	{
+		diag = update_diagnostic(SOFTWARE, WARN, DIAGNOSTIC_FAILED, "Checked Program Variables -> FAILED.");
 		diaglist.push_back(diag);
 	}
 	return diaglist;
 }
 bool TimeMasterNodeProcess::set_ppssource(std::string v)
 {
-	if(v == "self")
+	if (v == "self")
 	{
 		pps_source = v;
 		return true;
@@ -90,7 +91,7 @@ bool TimeMasterNodeProcess::set_ppssource(std::string v)
 }
 bool TimeMasterNodeProcess::publish_1pps()
 {
-	if(time_since_last_1pps >= 1.0)
+	if (time_since_last_1pps >= 1.0)
 	{
 		time_since_last_1pps = 0.0;
 		return true;

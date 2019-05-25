@@ -26,6 +26,9 @@
 #include "../../include/serialmessage.h"
 #include "../../include/Definitions.h"
 
+#define TEMPERATURE_HIGH_VALUE 130.0
+#define TEMPERATURE_LOW_VALUE 50.0
+
 /*! \class MasterNodeProcess MasterNodeProcess.h "MasterNodeProcess.h"
  *  \brief This is a MasterNodeProcess class.  Used for the master_node node.
  *
@@ -75,7 +78,24 @@ public:
 	std::vector<eros::leverarm> get_allleverarms() { return leverarms; }
 	bool get_leverarm(eros::leverarm *leverarm,std::string name);
 	double get_devicetemperature() { return device_temperature; }
-	void set_devicetemperature(double t_temperature) { device_temperature = t_temperature; }
+	void set_devicetemperature(double t_temperature)
+	 { 
+		 device_temperature = t_temperature; 
+		 if(device_temperature> TEMPERATURE_HIGH_VALUE)
+		{
+			char tempstr[200];
+			sprintf(tempstr,"Device Temperature: %4.2f",device_temperature);
+			update_diagnostic(SENSORS,WARN,TEMPERATURE_HIGH,std::string(tempstr));
+		}
+		else if(device_temperature < TEMPERATURE_LOW_VALUE)
+		{
+		
+			char tempstr[200];
+			sprintf(tempstr,"Device Temperature: %4.2f",device_temperature);
+			update_diagnostic(SENSORS,WARN,TEMPERATURE_LOW,std::string(tempstr));
+
+		}
+	}
 	//Message Functions
 	/*! \brief  Process Command Message. */
 	std::vector<eros::diagnostic> new_commandmsg(const eros::command::ConstPtr& t_msg);

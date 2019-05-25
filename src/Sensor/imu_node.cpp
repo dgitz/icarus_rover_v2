@@ -6,7 +6,6 @@ bool IMUNode::start(int argc,char **argv)
 	process = new IMUNodeProcess();
 	set_basenodename(BASE_NODE_NAME);
 	initialize_firmware(MAJOR_RELEASE_VERSION,MINOR_RELEASE_VERSION,BUILD_NUMBER,FIRMWARE_DESCRIPTION);
-	initialize_diagnostic(DIAGNOSTIC_SYSTEM,DIAGNOSTIC_SUBSYSTEM,DIAGNOSTIC_COMPONENT);
 	diagnostic = preinitialize_basenode(argc,argv);
 	if(diagnostic.Level > WARN)
 	{
@@ -18,8 +17,13 @@ bool IMUNode::start(int argc,char **argv)
 		return false;
 	}
 
-	process->initialize(get_basenodename(),get_nodename(),get_hostname());
-	process->set_diagnostic(diagnostic);
+	process->initialize(get_basenodename(),get_nodename(),get_hostname(),DIAGNOSTIC_SYSTEM,DIAGNOSTIC_SUBSYSTEM,DIAGNOSTIC_COMPONENT);
+	std::vector<uint8_t> diagnostic_types;
+	diagnostic_types.push_back(SOFTWARE);
+	diagnostic_types.push_back(DATA_STORAGE);
+	diagnostic_types.push_back(SYSTEM_RESOURCE);
+	diagnostic_types.push_back(SENSORS);
+	process->enable_diagnostics(diagnostic_types);
 	process->finish_initialization();
 	diagnostic = finish_initialization();
 	if(diagnostic.Level > WARN)
@@ -28,10 +32,7 @@ bool IMUNode::start(int argc,char **argv)
 	}
 	if(diagnostic.Level < WARN)
 	{
-		diagnostic.Diagnostic_Type = NOERROR;
-		diagnostic.Level = INFO;
-		diagnostic.Diagnostic_Message = NOERROR;
-		diagnostic.Description = "Node Configured.  Initializing.";
+		diagnostic = process->update_diagnostic(SOFTWARE,INFO,NOERROR,"Node Configured.  Initializing.");
 		get_logger()->log_diagnostic(diagnostic);
 	}
 	status = true;
@@ -64,16 +65,21 @@ bool IMUNode::run_001hz()
 }
 bool IMUNode::run_01hz()
 {
-
-	eros::diagnostic diag = process->get_diagnostic();
+	return true;
+}
+bool IMUNode::run_01hz_noisy()
+{
+	std::vector<eros::diagnostic> diaglist = process->get_diagnostics();
+	for (std::size_t i = 0; i < diaglist.size(); ++i)
 	{
-		get_logger()->log_diagnostic(diag);
-		diagnostic_pub.publish(diag);
+		get_logger()->log_diagnostic(diaglist.at(i));
+		diagnostic_pub.publish(diaglist.at(i));
 	}
 	return true;
 }
 bool IMUNode::run_1hz()
 {
+	process->update_diagnostic(get_resource_diagnostic());
 	if((process->is_initialized() == true) and (process->is_ready() == true))
 	{
 		if((process->get_imus_initialized() == true) and (process->get_imus_running() == false))
@@ -139,7 +145,7 @@ bool IMUNode::run_1hz()
 				}
 				else
 				{
-					bool status = new_devicemsg(srv.request.query,srv.response.data.at(0));
+					new_devicemsg(srv.request.query,srv.response.data.at(0));
 				}
 			}
 			else
@@ -158,7 +164,7 @@ bool IMUNode::run_1hz()
 					la_srv.request.name = dev_srv.response.data.at(i).DeviceName;
 					if(srv_leverarm.call(la_srv) == true)
 					{
-						bool status = new_devicemsg(dev_srv.request.query,dev_srv.response.data.at(i),la_srv.response.lever);
+						new_devicemsg(dev_srv.request.query,dev_srv.response.data.at(i),la_srv.response.lever);
 					}
 
 				}
@@ -168,36 +174,40 @@ bool IMUNode::run_1hz()
 			}
 		}
 	}
-	eros::diagnostic diag = process->get_diagnostic();
-	if(diag.Level >= NOTICE)
+	std::vector<eros::diagnostic> diaglist = process->get_diagnostics();
+	for (std::size_t i = 0; i < diaglist.size(); ++i)
 	{
-		get_logger()->log_diagnostic(diag);
-		diagnostic_pub.publish(diag);
+		if (diaglist.at(i).Level == WARN)
+		{
+			get_logger()->log_diagnostic(diaglist.at(i));
+			diagnostic_pub.publish(diaglist.at(i));
+		}
 	}
-
 	return true;
 }
 bool IMUNode::run_10hz()
 {
-	eros::diagnostic diag = process->get_diagnostic();
 	ready_to_arm = process->get_ready_to_arm();
-	diag = process->update(0.1,ros::Time::now().toSec());
-	if(diag.Level > WARN)
+	eros::diagnostic diag = process->update(0.1, ros::Time::now().toSec());
+	if (diag.Level > WARN)
 	{
 		get_logger()->log_diagnostic(diag);
 		diagnostic_pub.publish(diag);
 	}
-	if(diag.Level >= FATAL)
+	std::vector<eros::diagnostic> diaglist = process->get_diagnostics();
+	for (std::size_t i = 0; i < diaglist.size(); ++i)
 	{
-		kill_node = true;
-		return false;
+		if (diaglist.at(i).Level > WARN)
+		{
+			get_logger()->log_diagnostic(diaglist.at(i));
+			diagnostic_pub.publish(diaglist.at(i));
+		}
 	}
 	return true;
 }
 bool IMUNode::run_loop1()
 {
 	eros::diagnostic diag;
-	bool imus_ok = false;
 	if((process->is_initialized() == true) and (process->is_ready() == true))
 	{
 		if((process->get_imus_initialized() == true) and (process->get_imus_running() == true))
@@ -214,7 +224,6 @@ bool IMUNode::run_loop1()
 				}
 				else
 				{
-					imus_ok = true;
 					diagnostic_pub.publish(diag);
 				}
 

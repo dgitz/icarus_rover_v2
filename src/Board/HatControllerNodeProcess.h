@@ -73,6 +73,7 @@ public:
 	//Generic Hat Functions
 	eros::diagnostic set_hat_running(std::string devicetype,uint16_t id);
 	bool is_hat_running(std::string devicetype,uint16_t id);
+	std::vector<eros::device> get_hats() { return hats; }
 
 	//Servo Hat Functions
 	std::vector<eros::pin> get_servohatpins(uint16_t id);

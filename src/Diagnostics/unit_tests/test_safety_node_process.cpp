@@ -9,31 +9,26 @@ std::string Host_Name = "ControlModule1";
 std::string ros_DeviceName = Host_Name;
 std::string ros_ParentDevice = "";
 std::string ros_DeviceType = "ControlModule";
+#define DIAGNOSTIC_TYPE_COUNT 4
 
 SafetyNodeProcess* initializeprocess()
 {
-	eros::diagnostic diagnostic;
-	diagnostic.DeviceName = ros_DeviceName;
-	diagnostic.Node_Name = Node_Name;
-	diagnostic.System = ROVER;
-	diagnostic.SubSystem = ROBOT_CONTROLLER;
-	diagnostic.Component = COMMUNICATION_NODE;
-
-	diagnostic.Diagnostic_Type = NOERROR;
-	diagnostic.Level = INFO;
-	diagnostic.Diagnostic_Message = INITIALIZING;
-	diagnostic.Description = "Node Initializing";
 
 	eros::device device;
-	device.DeviceName = diagnostic.DeviceName;
+	device.DeviceName = ros_DeviceName;
 	device.HatCount = 1;
 	device.SensorCount = 0;
 	device.DeviceParent = "None";
 
 	SafetyNodeProcess *process;
 	process = new SafetyNodeProcess;
-    process->initialize("safety_node",Node_Name,Host_Name);
-	process->set_diagnostic(diagnostic);
+    process->initialize("safety_node",Node_Name,Host_Name,ROVER,ROBOT_CONTROLLER,DIAGNOSTIC_NODE);
+	std::vector<uint8_t> diagnostic_types;
+	diagnostic_types.push_back(SOFTWARE);
+	diagnostic_types.push_back(DATA_STORAGE);
+	diagnostic_types.push_back(SYSTEM_RESOURCE);
+	diagnostic_types.push_back(REMOTE_CONTROL);
+	process->enable_diagnostics(diagnostic_types);
 	process->finish_initialization();
 	EXPECT_TRUE(process->is_initialized() == false);
 	process->set_mydevice(device);
@@ -59,7 +54,7 @@ SafetyNodeProcess* initializeprocess()
 	hat1.pins.push_back(newpin);
 
 
-	diagnostic = process->update(0.02,0.02);
+	eros::diagnostic diagnostic = process->update(0.02,0.02);
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 
     eros::device::ConstPtr hat_ptr(new eros::device(hat1));
@@ -107,11 +102,19 @@ SafetyNodeProcess* readyprocess(SafetyNodeProcess* process)
 	eros::diagnostic diag = process->update(0.0,0.0);
 	EXPECT_TRUE(diag.Level <= NOTICE);
 	EXPECT_TRUE(process->is_ready() == true);
+	{
+		std::vector<eros::diagnostic> diagnostics = process->get_diagnostics();
+		EXPECT_TRUE(diagnostics.size() == DIAGNOSTIC_TYPE_COUNT);
+		for (std::size_t i = 0; i < diagnostics.size(); ++i)
+		{
+			EXPECT_TRUE(diagnostics.at(i).Level <= NOTICE);
+		}
+	}
 	return process;
 }
 TEST(Template,Process_Initialization)
 {
-	SafetyNodeProcess* process = initializeprocess();
+	initializeprocess();
 }
 
 TEST(Template,Process_Command)
@@ -173,6 +176,14 @@ TEST(Template,Process_Command)
 		}
 		if(slowrate_fire == true)
 		{
+			{
+				std::vector<eros::diagnostic> diagnostics = process->get_diagnostics();
+				EXPECT_TRUE(diagnostics.size() == DIAGNOSTIC_TYPE_COUNT);
+				for (std::size_t i = 0; i < diagnostics.size(); ++i)
+				{
+					EXPECT_TRUE(diagnostics.at(i).Level <= NOTICE);
+				}
+			}
 		}
 		current_time += dt;
 	}

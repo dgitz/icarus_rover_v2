@@ -70,9 +70,10 @@ public:
 	//Attribute Functions
 	eros::diagnostic fetch_complete()
 	{
-		eros::diagnostic diag = diagnostic;
+		eros::diagnostic diag = root_diagnostic;
 		if(initialized == true)
 		{
+			diag = update_diagnostic(REMOTE_CONTROL,INFO,NOERROR,"No Error.");
 			ready = true;
 		}
 		return diag;
