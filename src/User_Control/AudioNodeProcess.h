@@ -57,6 +57,8 @@ public:
 	eros::diagnostic update(double t_dt,double t_ros_time);
 
 	//Attribute Functions
+	bool get_query_for_device_configuration() { return query_for_device_configuration; }
+	void set_query_for_device_configuration(bool v) {query_for_device_configuration = v;  }
     bool set_audiostoragedirectory(std::string v);
 	bool set_audioarchivedirectory(std::string v);
 	std::string get_audiostoragedirectory() { return audiostorage_directory; }
@@ -117,4 +119,5 @@ private:
     double audioplay_nextimeavailable;
     uint8_t last_armedstate;
     double volume_perc;
+	bool query_for_device_configuration;
 };

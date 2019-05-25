@@ -33,13 +33,17 @@ public:
     { 
         log_directory = v; 
         log_directory_available = false;
+		logging_enabled = false;
         struct stat status;
         if(stat(log_directory.c_str(),&status) == 0)
         {
             log_directory_available = true;
+			logging_enabled = true;
         }
+
         return log_directory_available;
     }
+	bool is_logging_enabled() { return logging_enabled; }
 	std::string get_logdirectory() { return log_directory; }
 
 	//Message Functions
@@ -61,6 +65,7 @@ private:
 	std::string log_directory;
 	bool log_directory_available;
     double logfile_duration;
+	bool logging_enabled;
 
 
 };

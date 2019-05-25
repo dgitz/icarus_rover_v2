@@ -73,6 +73,7 @@ eros::diagnostic IMUNodeProcess::update(double t_dt,double t_ros_time)
 	if(imus.size() == 0)
 	{
 		ok = false;
+		diag = update_diagnostic(SENSORS,WARN,DEVICE_NOT_AVAILABLE,"No IMU's Configured.");
 	}
 	if(diag.Level <= NOTICE)
 	{

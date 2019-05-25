@@ -50,7 +50,7 @@ eros::diagnostic BaseNode::preinitialize_basenode(int argc,char **argv)
 	std::string heartbeat_topic = "/" + node_name + "/heartbeat";
 	heartbeat_pub = n->advertise<eros::heartbeat>(heartbeat_topic,1);
 	std::string diagnostic_topic = "/" + node_name + "/diagnostic";
-	diagnostic_pub = n->advertise<eros::diagnostic>(diagnostic_topic,1);
+	diagnostic_pub = n->advertise<eros::diagnostic>(diagnostic_topic,30);
 	std::string readytoarm_topic = "/" + node_name + "/readytoarm";
 	readytoarm_pub = n->advertise<std_msgs::Bool>(readytoarm_topic,1);
 	if(diagnostic.Level > WARN)

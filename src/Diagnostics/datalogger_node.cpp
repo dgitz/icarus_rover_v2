@@ -41,7 +41,17 @@ bool DataLoggerNode::start(int argc,char **argv)
 eros::diagnostic DataLoggerNode::read_launchparameters()
 {
 	eros::diagnostic diag = diagnostic;
-    std::string param_logfile_duration = node_name +"/LogFile_Duration";
+	return diag;
+}
+eros::diagnostic DataLoggerNode::finish_initialization()
+{
+	eros::diagnostic diag = diagnostic;
+	pps1_sub = n->subscribe<std_msgs::Bool>("/1PPS",1,&DataLoggerNode::PPS1_Callback,this);
+	command_sub = n->subscribe<eros::command>("/command",1,&DataLoggerNode::Command_Callback,this);
+	std::string device_topic = "/" + std::string(host_name) + "_master_node/srv_device";
+	srv_device = n->serviceClient<eros::srv_device>(device_topic);
+
+	std::string param_logfile_duration = node_name +"/LogFile_Duration";
     double logfile_duration;
 	if(n->getParam(param_logfile_duration,logfile_duration) == false)
 	{
@@ -62,21 +72,11 @@ eros::diagnostic DataLoggerNode::read_launchparameters()
     if(available == false)
     {
         char tempstr[512];  
-        sprintf(tempstr,"LogFile_Directory: %s Does Not Exist. Exiting.",logfile_directory.c_str());
-		diag = process->update_diagnostic(DATA_STORAGE,ERROR,INITIALIZING_ERROR,std::string(tempstr));
+        sprintf(tempstr,"LogFile_Directory: %s Does Not Exist. Not logging anything.",logfile_directory.c_str());
+		diag = process->update_diagnostic(DATA_STORAGE,WARN,DEVICE_NOT_AVAILABLE,std::string(tempstr));
 		logger->log_diagnostic(diag);
-		return diag;
     }
 	get_logger()->log_notice("Configuration Files Loaded.");
-	return diagnostic;
-}
-eros::diagnostic DataLoggerNode::finish_initialization()
-{
-	eros::diagnostic diag = diagnostic;
-	pps1_sub = n->subscribe<std_msgs::Bool>("/1PPS",1,&DataLoggerNode::PPS1_Callback,this);
-	command_sub = n->subscribe<eros::command>("/command",1,&DataLoggerNode::Command_Callback,this);
-	std::string device_topic = "/" + std::string(host_name) + "_master_node/srv_device";
-	srv_device = n->serviceClient<eros::srv_device>(device_topic);
 	return diagnostic;
 }
 bool DataLoggerNode::run_001hz()
@@ -220,17 +220,20 @@ void signalinterrupt_handler(int sig)
 }
 void DataLoggerNode::run_logger(DataLoggerNode *node)
 {
-	rosbag::RecorderOptions opts;
-    opts.record_all = true;
-    opts.quiet = true;
-    opts.verbose=false;
-    opts.prefix = node->get_process()->get_logdirectory() + "BAG";
-    opts.append_date = true;
-    opts.max_duration = ros::Duration(node->get_process()->get_logfile_duration()); //30 minutes
-    opts.split = true;
-    rosbag::Recorder recorder(opts);
-    recorder.run();
-    node->get_logger()->log_info("Logger Finished.");
+	if(node->get_process()->is_logging_enabled() == true)
+	{
+		rosbag::RecorderOptions opts;
+		opts.record_all = true;
+		opts.quiet = true;
+		opts.verbose=false;
+		opts.prefix = node->get_process()->get_logdirectory() + "BAG";
+		opts.append_date = true;
+		opts.max_duration = ros::Duration(node->get_process()->get_logfile_duration()); //30 minutes
+		opts.split = true;
+		rosbag::Recorder recorder(opts);
+		recorder.run();
+		node->get_logger()->log_info("Logger Finished.");
+	}
 
 	return;
 

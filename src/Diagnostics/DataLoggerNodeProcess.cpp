@@ -2,6 +2,7 @@
 eros::diagnostic  DataLoggerNodeProcess::finish_initialization()
 {
 	log_directory_available = false;
+	logging_enabled = false;
     eros::diagnostic diag = root_diagnostic; 
     return diag;
 }

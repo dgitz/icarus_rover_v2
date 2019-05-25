@@ -43,6 +43,18 @@ bool AudioNode::start(int argc,char **argv)
 eros::diagnostic AudioNode::read_launchparameters()
 {
 	eros::diagnostic diag = diagnostic;
+	return diagnostic;
+}
+eros::diagnostic AudioNode::finish_initialization()
+{
+	eros::diagnostic diag = diagnostic;
+	pps1_sub = n->subscribe<std_msgs::Bool>("/1PPS",1,&AudioNode::PPS1_Callback,this);
+	command_sub = n->subscribe<eros::command>("/command",1,&AudioNode::Command_Callback,this);
+	std::string device_topic = "/" + std::string(host_name) + "_master_node/srv_device";
+	srv_device = n->serviceClient<eros::srv_device>(device_topic);
+	std::string armed_state_topic = "/armed_state";
+	armed_state_sub = n->subscribe<std_msgs::UInt8>(armed_state_topic,1,&AudioNode::ArmedState_Callback,this);
+
 	std::string param_audiostage_dir = node_name + "/audiostage_directory";
 	std::string audiostage_dir;
 	if(n->getParam(param_audiostage_dir,audiostage_dir) == false)
@@ -97,17 +109,6 @@ eros::diagnostic AudioNode::read_launchparameters()
 	logger->log_diagnostic(diag);
 	return diagnostic;
 }
-eros::diagnostic AudioNode::finish_initialization()
-{
-	eros::diagnostic diag = diagnostic;
-	pps1_sub = n->subscribe<std_msgs::Bool>("/1PPS",1,&AudioNode::PPS1_Callback,this);
-	command_sub = n->subscribe<eros::command>("/command",1,&AudioNode::Command_Callback,this);
-	std::string device_topic = "/" + std::string(host_name) + "_master_node/srv_device";
-	srv_device = n->serviceClient<eros::srv_device>(device_topic);
-	std::string armed_state_topic = "/armed_state";
-	armed_state_sub = n->subscribe<std_msgs::UInt8>(armed_state_topic,1,&AudioNode::ArmedState_Callback,this);
-	return diagnostic;
-}
 bool AudioNode::run_001hz()
 {
 	return true;
@@ -132,7 +133,7 @@ bool AudioNode::run_1hz()
 	if ((process->is_initialized() == true) and (process->is_ready() == true))
 	{
 	}
-	else if((process->is_ready() == false) and (process->is_initialized() == true))
+	else if((process->is_ready() == false) and (process->is_initialized() == true) and (process->get_query_for_device_configuration()))
 	{
 		{
 			eros::srv_device srv;
@@ -142,6 +143,10 @@ bool AudioNode::run_1hz()
 				for(std::size_t i = 0; i < srv.response.data.size(); i++)
 				{
 					new_devicemsg(srv.request.query,srv.response.data.at(i));
+				}
+				if(srv.response.data.size() == 0)
+				{
+					process->update_diagnostic(SENSORS,WARN,DEVICE_NOT_AVAILABLE,"No Microphone Available.");
 				}
 			}
 		}
@@ -154,8 +159,13 @@ bool AudioNode::run_1hz()
 				{
 					new_devicemsg(srv.request.query,srv.response.data.at(i));
 				}
+				if(srv.response.data.size() == 0)
+				{
+					process->update_diagnostic(REMOTE_CONTROL,WARN,DEVICE_NOT_AVAILABLE,"No Audio Amplifier Available.");
+				}
 			}
 		}
+		process->set_query_for_device_configuration(false);
 	}
 	else if(process->is_initialized() == false)
 	{

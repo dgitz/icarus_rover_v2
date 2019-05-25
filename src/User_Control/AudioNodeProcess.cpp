@@ -2,6 +2,7 @@
 eros::diagnostic AudioNodeProcess::finish_initialization()
 {
 	eros::diagnostic diag = root_diagnostic;
+	query_for_device_configuration = true;
 	audiorecord_timer = 0.0;
 	totalaudio_tokeep = 30.0;
 	number_files_removed = 0;
@@ -26,6 +27,7 @@ eros::diagnostic AudioNodeProcess::update(double t_dt, double t_ros_time)
 	if (microphone_count == 0)
 	{
 		ready = false; //At least 1 required
+		
 	}
 	else if (microphone_count == 1)
 	{
