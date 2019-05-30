@@ -21,6 +21,9 @@ public:
     virtual void   ZeroDisplacement() = 0;
     virtual void   Run() = 0;
     virtual void   Stop() = 0;
+    virtual void   ResetDevice() = 0;
+    virtual double GetLastPacketTimestamp() = 0;
+    virtual void   SetDebugLevel(uint8_t level) = 0;
 };
 
 #endif /* SRC_IIOPROVIDER_H_ */

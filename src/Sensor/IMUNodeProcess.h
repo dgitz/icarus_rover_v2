@@ -17,7 +17,7 @@
 class IMUNodeProcess: public BaseNodeProcess {
 public:
 	//Constants
-	const double IMU_INVALID_TIME_THRESHOLD = 1.0f;
+	const double IMU_INVALID_TIME_THRESHOLD = 3.0f;
 	//Enums
 	//Structs
 	struct RotationMatrix
@@ -52,6 +52,7 @@ public:
 		double mag_scale_factor;
 		uint64_t update_count;
 		uint16_t sequence_number;
+		uint64_t packet_count;
 		double update_rate;
 		double mounting_angle_offset_roll_deg;
 		double mounting_angle_offset_pitch_deg;
@@ -89,6 +90,15 @@ public:
     bool set_imu_info_path(std::string devicename,std::string path); //Only used for Unit Testing
 	bool get_imus_initialized() { return imus_initialized; }
 	bool get_imus_running() { return imus_running; }
+	bool get_imureset_trigger() 
+	{
+		if(imu_reset_trigger == true)
+		{
+			imu_reset_trigger = false;
+			return true;
+		}
+		return false;
+	}
 	//Message Functions
 	/*! \brief  Process Command Message.  All implementation should use at least the code in this Sample Function.
 	 *
@@ -115,4 +125,7 @@ private:
 	std::vector<IMU> imus;
 	bool imus_initialized;
 	bool imus_running;
+	bool imu_reset_trigger;
+	bool imu_reset_inprogress;
+	double imu_reset_inprogress_timer;
 };

@@ -59,6 +59,7 @@ class AHRSInternal : public IIOCompleteNotification, public IBoardCapabilities {
         ahrs->compass_heading        = ahrs_update.compass_heading;
         ahrs->yaw_offset_tracker->UpdateHistory(ahrs_update.yaw);
 
+
         /* Update AHRS class variables */
 
         // 9-axis data
@@ -445,6 +446,10 @@ void AHRS::ZeroYaw() {
         yaw_offset_tracker->SetOffset();
     }
 }
+double AHRS::GetLastTimestamp()
+{
+    return io->GetLastPacketTimestamp();
+}
 
 /**
  * Returns true if the sensor is currently performing automatic
@@ -478,6 +483,10 @@ bool AHRS::IsCalibrating() {
  */
 bool AHRS::IsConnected() {
     return io->IsConnected();
+}
+void AHRS::SetDebugLevel(uint8_t level)
+{
+     io->SetDebugLevel(level);
 }
 
 /**
@@ -994,6 +1003,12 @@ void AHRS::Reset() {
     ZeroYaw();
 }
 
+bool AHRS::ResetDevice()
+{
+     io->ResetDevice();
+     usleep(1000000); //Sleep 1 second
+     return true;
+}
 static const float DEV_UNITS_MAX = 32768.0f;
 
 /**
@@ -1005,6 +1020,7 @@ static const float DEV_UNITS_MAX = 32768.0f;
  * @return Returns the current rotation rate (in degrees/sec).
  */
 float AHRS::GetRawGyroX() {
+    
     return this->raw_gyro_x / (DEV_UNITS_MAX / (float)gyro_fsr_dps);
 }
 

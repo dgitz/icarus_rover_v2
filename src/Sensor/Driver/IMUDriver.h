@@ -26,7 +26,7 @@
 #include <sys/time.h>
 #include "110015/AHRS.h"
 #define G 9.807
-#define COMM_LOSS_THRESHOLD 1.0f
+#define COMM_LOSS_THRESHOLD 2.0f
 class IMUDriver
 {
 public:
@@ -35,10 +35,6 @@ public:
 		UNKNOWN=0,
 		PN_110013=1,
 		PN_110015=2
-	};
-	enum Command
-	{
-		INIT=1,
 	};
 	struct RawIMU
 	{
@@ -62,19 +58,23 @@ public:
 
 	IMUDriver();
 	~IMUDriver();
-	void set_debugmode(uint8_t v) { debug_mode = v; }
-	int init(std::string t_partnumber,std::string t_port);
+	void set_debugmode(uint8_t v);
+	int init(std::string t_partnumber,std::string t_port,std::string t_devicename);
 	int finish();
 	std::string map_pn_tostring(PartNumber v);
 	IMUDriver::PartNumber map_pn_toenum(std::string v);
 	RawIMU update();
 	double measure_time_diff(struct timeval a,struct timeval b);
 	double measure_time_diff(double a,double b);
+	double convert_timestamp(struct timeval a);
 	std::string map_signalstate_tostring(uint8_t v);
 	std::string get_rawdata() { return raw_data; } //For debugging
 	double get_timedelay() { return time_delay; }
+	std::string get_devicename() { return devicename; }
+	bool reset();
 
 private:
+	std::string devicename;
 	PartNumber partnumber;
 	uint16_t last_sequence_number;
 	uint64_t convert_time_toms(struct timeval t);

@@ -122,7 +122,7 @@ public:
     AHRS(std::string serial_port_id);
 
     AHRS(std::string serial_port_id, AHRS::SerialDataType data_type, uint8_t update_rate_hz);
-
+    void   SetDebugLevel(uint8_t level);
     float  GetPitch();
     float  GetRoll();
     float  GetYaw();
@@ -160,6 +160,7 @@ public:
     double GetAngle();
     double GetRate();
     void   Reset();
+    bool   ResetDevice();
     float  GetRawGyroX();
     float  GetRawGyroY();
     float  GetRawGyroZ();
@@ -181,6 +182,7 @@ public:
     int GetRequestedUpdateRate();
 
     void Close();
+    double GetLastTimestamp();
 
 private:
     void SerialInit(std::string serial_port_id, AHRS::SerialDataType data_type, uint8_t update_rate_hz);
