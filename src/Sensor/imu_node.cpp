@@ -54,9 +54,6 @@ eros::diagnostic IMUNode::finish_initialization()
 	srv_device = n->serviceClient<eros::srv_device>(device_topic);
 	std::string leverarm_topic = "/" + std::string(host_name) + "_master_node/srv_leverarm";
 	srv_leverarm = n->serviceClient<eros::srv_leverarm>(leverarm_topic);
-
-
-
 	return diagnostic;
 }
 bool IMUNode::run_001hz()
@@ -88,7 +85,7 @@ bool IMUNode::run_1hz()
 			for(std::size_t i = 0; i < imus.size(); ++i)
 			{
 				IMUDriver imu_driver;
-				int status = imu_driver.init(imus.at(i).partnumber,imus.at(i).device_path);
+				int status = imu_driver.init(imus.at(i).partnumber,imus.at(i).device_path,imus.at(i).devicename);
 				if(status <= 0)
 				{
 					diagnostic.Diagnostic_Type = SENSORS;
@@ -203,6 +200,21 @@ bool IMUNode::run_10hz()
 			diagnostic_pub.publish(diaglist.at(i));
 		}
 	}
+	if(process->get_imureset_trigger() == true)
+	{
+		
+		for(std::size_t i = 0; i < imu_drivers.size(); ++i)
+		{
+			diag = process->update_diagnostic(imu_drivers.at(i).get_devicename(),SENSORS,NOTICE,INITIALIZING,"Resetting IMU.");
+			get_logger()->log_diagnostic(diag);
+			bool status = imu_drivers.at(i).reset();
+			if(status == false)
+			{
+				diag = process->update_diagnostic(imu_drivers.at(i).get_devicename(),SENSORS,ERROR,INITIALIZING_ERROR,"IMU Reset Failed.");
+			}
+		}
+
+	}
 	return true;
 }
 bool IMUNode::run_loop1()
@@ -224,6 +236,7 @@ bool IMUNode::run_loop1()
 				}
 				else
 				{
+					imu_pubs.at(i).publish(proc_imu);
 					diagnostic_pub.publish(diag);
 				}
 
@@ -249,6 +262,19 @@ void IMUNode::PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 void IMUNode::Command_Callback(const eros::command::ConstPtr& t_msg)
 {
 	std::vector<eros::diagnostic> diaglist = process->new_commandmsg(t_msg);
+	if(t_msg->Command == ROVERCOMMAND_SETDEBUGLEVEL)
+	{
+		if(t_msg->Option1 == SENSORS)
+		{
+			char tempstr[128];
+			sprintf(tempstr,"Setting Debug Level: %d",t_msg->Option2);
+			logger->log_notice(std::string(tempstr));
+			for(std::size_t i = 0; i < imu_drivers.size(); ++i)
+			{
+				imu_drivers.at(i).set_debugmode(t_msg->Option2);
+			}
+		}
+	}
 	new_commandmsg_result(t_msg,diaglist);
 }
 bool IMUNode::new_devicemsg(std::string query,eros::device t_device)

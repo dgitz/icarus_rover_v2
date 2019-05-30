@@ -18,6 +18,7 @@
 #include "IMUProtocol.h"
 #include "IIOCompleteNotification.h"
 #include "IBoardCapabilities.h"
+#include <sys/time.h>
 
 class SerialIO : public IIOProvider {
 
@@ -57,13 +58,24 @@ public:
     void ZeroDisplacement();
     void Run();
     void Stop();
+    void ResetDevice();
+    double GetLastPacketTimestamp() { return last_valid_packet_time; }
+    void SetDebugLevel(uint8_t level)
+    {
+        debug_level = level;
+    }
 private:
-
+    uint8_t debug_level;
     SerialPort *ResetSerialPort();
     SerialPort *GetMaybeCreateSerialPort();
+    double measure_time_diff(struct timeval a,struct timeval b);
+    double convert_timestamp(struct timeval a);
     void EnqueueIntegrationControlMessage(uint8_t action);
     void DispatchStreamResponse(IMUProtocol::StreamResponse& response);
     int DecodePacketHandler(char * received_data, int bytes_remaining);
+    double flush_timer;
+    struct timeval now;
+    double run_time;
 };
 
 #endif /* SRC_SERIALIO_H_ */

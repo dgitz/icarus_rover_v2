@@ -135,6 +135,7 @@ TEST(Template,Process_Msg)
 		{
 			EXPECT_TRUE(process->get_ready_to_arm() == true);
 		}
+		print_diagnostic(WARN,diag);
 		EXPECT_TRUE(diag.Level <= NOTICE);
 		int current_time_ms = (int)(current_time*1000.0);
 		if((current_time_ms % 100) == 0)
@@ -695,6 +696,240 @@ TEST(Template,RMS_Computation)
 		current_time += dt;
 		counter++;
 	}
+}
+TEST(Template,IMUReset_Auto)
+{
+	IMUNodeProcess* process = initializeprocess("IMU1","110012");
+	EXPECT_TRUE(process->set_imu_info_path("IMU1","/home/robot/catkin_ws/src/icarus_rover_v2/src/Pose/unit_tests/IMU1.xml"));
+	IMUNodeProcess::IMU imu1 = process->get_imu("IMU1");
+	double time_to_run = 100.0;
+	double dt = 0.001;
+	double current_time = 0.0;
+	bool fastrate_fire = false; //10 Hz
+	bool mediumrate_fire = false; //1 Hz
+	bool slowrate_fire = false; //0.1 Hz
+	bool send_imu_msg = true;
+	bool sent_imu_msg = false;
+	bool reset_test_ok = false;
+	int counter = 0;
+	while(current_time <= time_to_run)
+	{
+		eros::diagnostic diag = process->update(dt,current_time);
+		if(sent_imu_msg == true)
+		{
+			EXPECT_TRUE(diag.Level <= NOTICE);
+		}
+		int current_time_ms = (int)(current_time*1000.0);
+		if((current_time_ms % 100) == 0)
+		{
+			fastrate_fire = true;
+		}
+		else { fastrate_fire = false; }
+		if((current_time_ms % 1000) == 0)
+		{
+			mediumrate_fire = true;
+		}
+		else { mediumrate_fire = false; }
+		if((current_time_ms % 10000) == 0)
+		{
+			slowrate_fire = true;
+		}
+		else { slowrate_fire = false; }
+
+		if(fastrate_fire == true) //Nothing to do here
+		{
+			if(process->get_imus_running() == false)
+			{
+				std::vector<IMUNodeProcess::IMU> imus = process->get_imus();
+				for(std::size_t i = 0; i < imus.size(); ++i)
+				{
+					EXPECT_TRUE(process->set_imu_running(imus.at(i).devicename));
+				}
+			}
+			if(send_imu_msg == true)
+			{
+				EXPECT_TRUE(process->get_imus_running());
+				std::vector<IMUNodeProcess::IMU> imus = process->get_imus();
+				for(std::size_t i = 0; i < imus.size(); ++i)
+				{
+					sent_imu_msg = true;
+					IMUDriver::RawIMU raw_imudata;
+					raw_imudata.signal_state = SIGNALSTATE_UPDATED;
+					raw_imudata.tov = current_time;
+					raw_imudata.acc_x = (double)(counter % 11)*imu1.acc_scale_factor; //sawtooth
+					raw_imudata.acc_y = (double)(counter % 11)*imu1.acc_scale_factor;
+					raw_imudata.acc_z = (double)(counter % 11)*imu1.acc_scale_factor;
+					raw_imudata.gyro_x = (double)(counter % 11)*imu1.gyro_scale_factor;
+					raw_imudata.gyro_y = (double)(counter % 11)*imu1.gyro_scale_factor;
+					raw_imudata.gyro_z = (double)(counter % 11)*imu1.gyro_scale_factor;
+					raw_imudata.mag_x = (double)(counter % 11)*imu1.mag_scale_factor;
+					raw_imudata.mag_y = (double)(counter % 11)*imu1.mag_scale_factor;
+					raw_imudata.mag_z = (double)(counter % 11)*imu1.mag_scale_factor;
+					eros::imu processed_imudata;
+
+					EXPECT_TRUE(process->new_imumsg(imus.at(i).devicename,raw_imudata,processed_imudata).Level <= NOTICE);
+				}
+			}
+			else
+			{
+				sent_imu_msg = false;
+			}
+		}
+		if(mediumrate_fire == true)
+		{
+			std::vector<IMUNodeProcess::IMU> imus = process->get_imus();
+			for(std::size_t i = 0; i < imus.size(); ++i)
+			{
+				if((imus.at(i).diagnostic.Diagnostic_Message == DROPPING_PACKETS) and 
+				  (imus.at(i).diagnostic.Level == ERROR))
+				  {
+					  printf("%f ",current_time);
+					  print_diagnostic(WARN,imus.at(i).diagnostic);
+				  }
+			}
+			bool reset = process->get_imureset_trigger();
+			if(reset== true)
+			{
+				EXPECT_TRUE(process->get_imureset_trigger() == false);
+				reset_test_ok = true;
+				send_imu_msg = true;
+			}
+		}
+		if(slowrate_fire == true)
+		{
+			if((current_time >= 20.0) and (reset_test_ok == false))
+			{
+				send_imu_msg = false;
+			}
+		}
+		counter++;
+		current_time += dt;
+	}
+	EXPECT_TRUE(process->get_runtime() >= time_to_run);
+}
+TEST(Template,IMUReset_Manual)
+{
+	IMUNodeProcess* process = initializeprocess("IMU1","110012");
+	EXPECT_TRUE(process->set_imu_info_path("IMU1","/home/robot/catkin_ws/src/icarus_rover_v2/src/Pose/unit_tests/IMU1.xml"));
+	IMUNodeProcess::IMU imu1 = process->get_imu("IMU1");
+	double time_to_run = 100.0;
+	double dt = 0.001;
+	double current_time = 0.0;
+	bool fastrate_fire = false; //10 Hz
+	bool mediumrate_fire = false; //1 Hz
+	bool slowrate_fire = false; //0.1 Hz
+	bool send_imu_msg = true;
+	bool sent_imu_msg = false;
+	bool reset_test_ok = false;
+	int counter = 0;
+	while(current_time <= time_to_run)
+	{
+		eros::diagnostic diag = process->update(dt,current_time);
+		if(sent_imu_msg == true)
+		{
+			EXPECT_TRUE(diag.Level <= NOTICE);
+		}
+		int current_time_ms = (int)(current_time*1000.0);
+		if((current_time_ms % 100) == 0)
+		{
+			fastrate_fire = true;
+		}
+		else { fastrate_fire = false; }
+		if((current_time_ms % 1000) == 0)
+		{
+			mediumrate_fire = true;
+		}
+		else { mediumrate_fire = false; }
+		if((current_time_ms % 10000) == 0)
+		{
+			slowrate_fire = true;
+		}
+		else { slowrate_fire = false; }
+
+		if(fastrate_fire == true) //Nothing to do here
+		{
+			if(process->get_imus_running() == false)
+			{
+				std::vector<IMUNodeProcess::IMU> imus = process->get_imus();
+				for(std::size_t i = 0; i < imus.size(); ++i)
+				{
+					EXPECT_TRUE(process->set_imu_running(imus.at(i).devicename));
+				}
+			}
+			if(send_imu_msg == true)
+			{
+				EXPECT_TRUE(process->get_imus_running());
+				std::vector<IMUNodeProcess::IMU> imus = process->get_imus();
+				for(std::size_t i = 0; i < imus.size(); ++i)
+				{
+					sent_imu_msg = true;
+					IMUDriver::RawIMU raw_imudata;
+					raw_imudata.signal_state = SIGNALSTATE_UPDATED;
+					raw_imudata.tov = current_time;
+					raw_imudata.acc_x = (double)(counter % 11)*imu1.acc_scale_factor; //sawtooth
+					raw_imudata.acc_y = (double)(counter % 11)*imu1.acc_scale_factor;
+					raw_imudata.acc_z = (double)(counter % 11)*imu1.acc_scale_factor;
+					raw_imudata.gyro_x = (double)(counter % 11)*imu1.gyro_scale_factor;
+					raw_imudata.gyro_y = (double)(counter % 11)*imu1.gyro_scale_factor;
+					raw_imudata.gyro_z = (double)(counter % 11)*imu1.gyro_scale_factor;
+					raw_imudata.mag_x = (double)(counter % 11)*imu1.mag_scale_factor;
+					raw_imudata.mag_y = (double)(counter % 11)*imu1.mag_scale_factor;
+					raw_imudata.mag_z = (double)(counter % 11)*imu1.mag_scale_factor;
+					eros::imu processed_imudata;
+
+					EXPECT_TRUE(process->new_imumsg(imus.at(i).devicename,raw_imudata,processed_imudata).Level <= NOTICE);
+				}
+			}
+			else
+			{
+				sent_imu_msg = false;
+			}
+		}
+		if(mediumrate_fire == true)
+		{
+			std::vector<IMUNodeProcess::IMU> imus = process->get_imus();
+			for(std::size_t i = 0; i < imus.size(); ++i)
+			{
+				if((imus.at(i).diagnostic.Diagnostic_Message == DROPPING_PACKETS) and 
+				  (imus.at(i).diagnostic.Level == ERROR))
+				  {
+					  printf("%f ",current_time);
+					  print_diagnostic(WARN,imus.at(i).diagnostic);
+				  }
+			}
+			bool reset = process->get_imureset_trigger();
+			if(reset== true)
+			{
+				EXPECT_TRUE(process->get_imureset_trigger() == false);
+				reset_test_ok = true;
+				send_imu_msg = true;
+			}
+		}
+		if(slowrate_fire == true)
+		{
+			if((current_time >= 20.0) and (reset_test_ok == false))
+			{
+				eros::command cmd;
+				cmd.Command = ROVERCOMMAND_RESET;
+				cmd.Option1 = SENSORS;
+				eros::command::ConstPtr cmd_ptr(new eros::command(cmd));
+				std::vector<eros::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
+				for(std::size_t i = 0; i < diaglist.size(); i++)
+				{
+					EXPECT_TRUE(diaglist.at(i).Level <= NOTICE);
+				}
+				bool reset = process->get_imureset_trigger();
+				if(reset== true)
+				{
+					EXPECT_TRUE(process->get_imureset_trigger() == false);
+					reset_test_ok = true;
+				}
+			}
+		}
+		counter++;
+		current_time += dt;
+	}
+	EXPECT_TRUE(process->get_runtime() >= time_to_run);
 }
 int main(int argc, char **argv){
 	testing::InitGoogleTest(&argc, argv);

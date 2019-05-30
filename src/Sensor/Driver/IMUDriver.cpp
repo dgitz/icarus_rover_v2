@@ -31,8 +31,9 @@ IMUDriver::~IMUDriver()
 }
 
 
-int IMUDriver::init(std::string t_partnumber,std::string t_port)
+int IMUDriver::init(std::string t_partnumber,std::string t_port,std::string t_devicename)
 {
+	devicename = t_devicename;
 	partnumber = map_pn_toenum(t_partnumber);
 	if(partnumber == UNKNOWN)
 	{
@@ -108,6 +109,7 @@ int IMUDriver::init(std::string t_partnumber,std::string t_port)
 	}
 	else if(connection_method == "AHRS")
 	{
+		port = t_port;
 		device = new AHRS(t_port,AHRS::SerialDataType::kRawData,200);
 		usleep(1000000);
 		if(device->IsConnected())
@@ -144,6 +146,20 @@ int IMUDriver::init(std::string t_partnumber,std::string t_port)
 	 */
 	return conn_fd;
 }
+bool IMUDriver::reset()
+{
+	if(partnumber == PN_110013)
+	{
+		return false;
+	}
+	else if(partnumber == PN_110015)
+	{
+		device->ResetDevice();
+		usleep(1000000);
+		return true;
+	}
+	return false;
+}
 int IMUDriver::finish()
 {
 	close(conn_fd);
@@ -151,6 +167,7 @@ int IMUDriver::finish()
 }
 IMUDriver::RawIMU IMUDriver::update()
 {
+	//printf("conn: %d\n",device->IsConnected());
 	RawIMU t_imu = imu_data;
 
 	t_imu.updated = false;
@@ -229,7 +246,7 @@ IMUDriver::RawIMU IMUDriver::update()
 	{
 		status = false;
 
-		t_imu.tov = convert_time(now);
+		t_imu.tov = device->GetLastTimestamp();
 		last_sequence_number = imu_data.sequence_number;
 		t_imu.sequence_number=device->GetUpdateCount();
 
@@ -243,18 +260,13 @@ IMUDriver::RawIMU IMUDriver::update()
 		t_imu.mag_y = device->GetRawMagY();
 		t_imu.mag_z = device->GetRawMagZ();
 		status = true;
-
-
-
-
-
 	}
 
 	if(status == true) //parsing is ok
 	{
 		gettimeofday(&now,NULL);
 		time_delay = convert_time(now)-t_imu.tov;
-		if(fabs(time_delay) > 0.25)
+		if(fabs(time_delay) > COMM_LOSS_THRESHOLD)
 		{
 			t_imu.signal_state = SIGNALSTATE_INVALID;
 		}
@@ -280,6 +292,14 @@ IMUDriver::RawIMU IMUDriver::update()
 	t_imu.updated = true;
 	imu_data = t_imu;
 	return imu_data;
+}
+void IMUDriver::set_debugmode(uint8_t v)
+{
+	debug_mode = v;
+	if(partnumber == PN_110015)
+	{
+		device->SetDebugLevel(v);
+	}
 }
 std::string IMUDriver::read_serialdata()
 {

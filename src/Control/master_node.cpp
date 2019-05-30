@@ -362,6 +362,10 @@ bool MasterNode::check_serialports()
 	{
 		process->update_diagnostic(COMMUNICATIONS,INFO,NOERROR,"No Serial Ports Found.");
 	}
+	else
+	{
+		process->update_diagnostic(COMMUNICATIONS,INFO,NOERROR,"No Error.");
+	}
 	return true;
 }
 std::vector<std::string> MasterNode::find_serialports()

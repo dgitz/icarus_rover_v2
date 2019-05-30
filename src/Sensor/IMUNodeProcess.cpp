@@ -4,6 +4,9 @@ eros::diagnostic  IMUNodeProcess::finish_initialization()
 	eros::diagnostic diag = root_diagnostic;
 	imus_initialized = false;
 	imus_running = false;
+	imu_reset_trigger = false;
+	imu_reset_inprogress = false;
+	imu_reset_inprogress_timer = 0.0;
 	return diag;
 }
 eros::diagnostic IMUNodeProcess::update(double t_dt,double t_ros_time)
@@ -53,16 +56,40 @@ eros::diagnostic IMUNodeProcess::update(double t_dt,double t_ros_time)
 			}
 			else if(dt >=IMU_INVALID_TIME_THRESHOLD)
 			{
+				if(imu_reset_inprogress == false)
+				{
+					imu_reset_trigger = true;
+					imu_reset_inprogress = true;
+				}
+				if(imu_reset_inprogress == true)
+				{
+					if(imu_reset_inprogress_timer > 2.0*IMU_INVALID_TIME_THRESHOLD)
+					{
+						imu_reset_trigger = true;
+					}
+				}
 				eros::diagnostic imu_diagnostic = imus.at(i).diagnostic;
 				imu_diagnostic.Diagnostic_Type = SENSORS;
-				imu_diagnostic.Level = ERROR;
+				imu_diagnostic.Level = WARN;
 				imu_diagnostic.Diagnostic_Message = DROPPING_PACKETS;
 				char tempstr[512];
-				sprintf(tempstr,"No IMU Data from %s in %f Seconds.",imus.at(i).devicename.c_str(),dt);
+				sprintf(tempstr,"No IMU Data from %s in %f Seconds. Update Rate: %4.2fHz",imus.at(i).devicename.c_str(),dt,imus.at(i).update_rate);
 				imu_diagnostic.Description = std::string(tempstr);
 				imus.at(i).diagnostic = imu_diagnostic;
-				diag = update_diagnostic(imus.at(i).devicename,SENSORS,ERROR,DEVICE_NOT_AVAILABLE,std::string(tempstr));
+				diag = update_diagnostic(imus.at(i).devicename,imu_diagnostic.Diagnostic_Type,imu_diagnostic.Level,imu_diagnostic.Diagnostic_Message,std::string(tempstr));
 				ok = false;
+			}
+			else
+			{
+				eros::diagnostic imu_diagnostic = imus.at(i).diagnostic;
+				imu_diagnostic.Diagnostic_Type = SENSORS;
+				imu_diagnostic.Level = INFO;
+				imu_diagnostic.Diagnostic_Message = NOERROR;
+				char tempstr[512];
+				sprintf(tempstr,"IMU: %s Updated, Update Rate: %4.2fHz",imus.at(i).devicename.c_str(),imus.at(i).update_rate);
+				imu_diagnostic.Description = std::string(tempstr);
+				imus.at(i).diagnostic = imu_diagnostic;
+				diag = update_diagnostic(imus.at(i).devicename,SENSORS,INFO,NOERROR,std::string(tempstr));
 			}
 		}
 		else
@@ -104,6 +131,8 @@ eros::diagnostic IMUNodeProcess::new_imumsg(std::string devicename,IMUDriver::Ra
 			   (imu_data.signal_state == SIGNALSTATE_HOLD) 
 			  )
 			  {
+				  imu_reset_inprogress = false;
+				  imu_reset_inprogress_timer = 0.0;
 			  }
 			else
 			{
@@ -113,6 +142,7 @@ eros::diagnostic IMUNodeProcess::new_imumsg(std::string devicename,IMUDriver::Ra
 				return diag;
 			}
 			proc_imu = imus.at(i).imu_data;
+			imus.at(i).packet_count++;
 			imus.at(i).sequence_number = imu_data.sequence_number;
 			imus.at(i).imu_data.tov = imu_data.tov;
 			proc_imu.tov = imu_data.tov;
@@ -267,12 +297,6 @@ eros::diagnostic IMUNodeProcess::new_imumsg(std::string devicename,IMUDriver::Ra
 		sprintf(tempstr,"Could not find Device: %s",devicename.c_str());
 		diag = update_diagnostic(DATA_STORAGE,ERROR,DEVICE_NOT_AVAILABLE,std::string(tempstr));
 	}
-	else
-	{
-		char tempstr[512];
-		sprintf(tempstr,"Device: %s Updated",devicename.c_str());
-		diag = update_diagnostic(devicename,SENSORS,INFO,NOERROR,std::string(tempstr));
-	}
 	return diag;
 }
 eros::diagnostic IMUNodeProcess::new_devicemsg(const eros::device::ConstPtr& device)
@@ -302,6 +326,7 @@ eros::diagnostic IMUNodeProcess::new_devicemsg(const eros::device::ConstPtr& dev
 			newimu.mag_scale_factor = 6.665;
 
 			newimu.update_count = 0;
+			newimu.packet_count = 0;
 			newimu.update_rate = 0.0;
 			newimu.lasttime_rx = 0.0;
 			newimu.sensor_info_path = "/home/robot/config/sensors/" + device->DeviceName + "/" + device->DeviceName + ".xml";
@@ -350,6 +375,7 @@ eros::diagnostic IMUNodeProcess::new_devicemsg(const eros::device::ConstPtr& dev
 			newimu.mag_scale_factor = 1.0;
 
 			newimu.update_count = 0;
+			newimu.packet_count = 0;
 			newimu.update_rate = 0.0;
 			newimu.lasttime_rx = 0.0;
 			newimu.sensor_info_path = "/home/robot/config/sensors/" + device->DeviceName + "/" + device->DeviceName + ".xml";
@@ -475,6 +501,17 @@ std::vector<eros::diagnostic> IMUNodeProcess::new_commandmsg(const eros::command
 		}
 		else if (t_msg->Option1 == LEVEL4)
 		{
+		}
+	}
+	else if(t_msg->Command == ROVERCOMMAND_RESET)
+	{
+		if(t_msg->Option1 == SENSORS)
+		{
+			if(imu_reset_inprogress == false)
+			{
+				imu_reset_trigger = true;
+				imu_reset_inprogress = true;
+			}
 		}
 	}
 	return diaglist;

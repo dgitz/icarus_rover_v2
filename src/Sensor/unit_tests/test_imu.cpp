@@ -145,13 +145,15 @@ int main(int argc, char* argv[])
 		}
 	}
 	IMUDriver imu;
-	int status = imu.init(partnumber,port);
+	int status = imu.init(partnumber,port,"testdevice");
 	imu.set_debugmode(verbosity);
 	if(status <= 0)
 	{
 		printf("[IMU]: Unable to Initialize. Exiting.\n");
 		return 0;
 	}
+	double run_time = 0.0;
+	bool reset = false;
 	while(1)
 	{
 		if(mode == "monitor")
@@ -159,11 +161,21 @@ int main(int argc, char* argv[])
 			gettimeofday(&now,NULL);
 			imu_data = imu.update();
 			print_imudata(report,imu,imu_data);
+			/*
+			if((reset == false) and (run_time > 10.0))
+			{
+				printf("RESET\n");
+				imu.reset();
+				reset = true;
+			}
+			*/
+			
 
 
 
 		}
 		usleep(delay);
+		run_time += (double)(delay)/1000000.0;
 	}
 	imu.finish();
 	return 0;
@@ -204,7 +216,7 @@ void print_imudata(std::string report,IMUDriver driver,IMUDriver::RawIMU imu_dat
 			start_color.c_str());
 	if((report == "stat") or (report == "all"))
 	{
-		sprintf(tempstr,"%s Delay=%4.2f Seq=%d T=%4.2f U=%ld R=%4.2f State: %s",
+		sprintf(tempstr,"%s Delay=%4.2f Seq=%d T=%4.2f U=%ld R=%4.2fHz State: %s",
 				tempstr,
 				driver.get_timedelay(),
 				imu_data.sequence_number,
