@@ -220,6 +220,8 @@ bool BaseNode::update()
 		firmware_pub.publish(firmware);
 		if(resourcemonitor_initialized == true)
 		{
+			eros::resource resource = resourcemonitor->get_resourceused();
+			resource.stamp = ros::Time::now();
 			resource_diagnostic = resourcemonitor->update();
 			if(resource_diagnostic.Diagnostic_Message == DEVICE_NOT_AVAILABLE)
 			{
@@ -228,13 +230,13 @@ bool BaseNode::update()
 			}
 			else if(resource_diagnostic.Level >= WARN)
 			{
-				resource_pub.publish(resourcemonitor->get_resourceused());
+				resource_pub.publish(resource);
 				logger->log_diagnostic(resource_diagnostic);
 				diagnostic_pub.publish(resource_diagnostic);
 			}
 			else if(resource_diagnostic.Level <= NOTICE)
 			{
-				resource_pub.publish(resourcemonitor->get_resourceused());
+				resource_pub.publish(resource);
 			}
 		}
 		else
