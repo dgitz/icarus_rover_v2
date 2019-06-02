@@ -53,7 +53,7 @@ TimeMasterNodeProcess* readyprocess(TimeMasterNodeProcess* process)
 }
 TEST(Template,Process_Initialization)
 {
-	TimeMasterNodeProcess* process = initializeprocess("self");
+	initializeprocess("self");
 }
 
 TEST(Template,Process_Command)

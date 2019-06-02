@@ -7,7 +7,14 @@ std::string Node_Name = "/unittest_timeslave_node_process";
 std::string Host_Name = "unittest";
 std::string ros_DeviceName = Host_Name;
 #define DIAGNOSTIC_TYPE_COUNT 4
-
+void print_diagnostic(uint8_t level,eros::diagnostic diagnostic)
+{
+	if(diagnostic.Level >= level)
+	{
+		printf("Type: %d Message: %d Level: %d Device: %s Desc: %s\n",diagnostic.Diagnostic_Type,diagnostic.Diagnostic_Message,
+			  		diagnostic.Level,diagnostic.DeviceName.c_str(),diagnostic.Description.c_str());
+	}
+}
 void print_timeserverinfo(std::vector<TimeSlaveNodeProcess::TimeServer> time_servers)
 {
 	for(std::size_t i = 0; i < time_servers.size(); i++)
@@ -43,9 +50,14 @@ TimeSlaveNodeProcess* initializeprocess(std::string server)
 	diagnostic_types.push_back(TIMING);
 	process->enable_diagnostics(diagnostic_types);
 	process->finish_initialization();
-	EXPECT_TRUE(process->is_initialized() == false);
 	process->set_unittestingenabled(true);
 	process->set_primary_timeserver(server);
+	process->update(0.0,0.0);
+	EXPECT_TRUE(process->is_initialized() == false);
+	process->set_mydevice(device);
+	EXPECT_TRUE(process->is_initialized() == true);
+	
+	
 	process->set_ntp_initialized(true);
 	EXPECT_TRUE(process->get_mydevice().DeviceName == device.DeviceName);
 	return process;

@@ -59,6 +59,7 @@ eros::diagnostic SampleNode::finish_initialization()
 }
 bool SampleNode::run_001hz()
 {
+	
 	return true;
 }
 bool SampleNode::run_01hz()
@@ -187,6 +188,8 @@ void SampleNode::thread_loop()
 }
 void SampleNode::cleanup()
 {
+	base_cleanup();
+	get_logger()->log_info("Node Finished Safely.");
 }
 /*! \brief Attempts to kill a node when an interrupt is received.
  *
@@ -209,6 +212,6 @@ int main(int argc, char **argv)
 		status = node->update();
 	}
 	node->cleanup();
-	node->get_logger()->log_info("Node Finished Safely.");
+	thread.detach();
 	return 0;
 }
