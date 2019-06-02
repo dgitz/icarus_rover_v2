@@ -72,5 +72,6 @@ private:
 	ros::ServiceClient srv_device;
 	TimeMasterNodeProcess *process;
 	bool publish_1pps;
+	ros::Publisher uptime_pub;
 
 };

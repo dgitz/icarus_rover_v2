@@ -1,3 +1,8 @@
+if (${CMAKE_HOST_SYSTEM_PROCESSOR} STREQUAL armv7l)
+    add_library(servohatdriver Driver/ServoHatDriver.cpp)
+    add_library(gpiohatdriver Driver/GPIOHatDriver.cpp)
+    add_library(terminalhatdriver Driver/TerminalHatDriver.cpp)
+endif ()
 #Board Controller Node
 file(MAKE_DIRECTORY /home/robot/catkin_ws/build/test_results/icarus_rover_v2/boardcontroller_node)
 add_library(boardcontroller_node_process BoardControllerNodeProcess.cpp)

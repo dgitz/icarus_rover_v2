@@ -33,7 +33,7 @@ bool MasterNode::start(int argc,char **argv)
 	{
 		return false;
 	}
-	system("rosnode list -ua > /home/robot/config/AllNodeList");
+	system("rosnode list -ua > /home/robot/unsorted && sort /home/robot/unsorted > /home/robot/config/AllNodeList");
 
 	bool create_nodelist = process->create_nodelist("/home/robot/config/AllNodeList","/home/robot/config/ActiveNodes");
 	if(create_nodelist == false)

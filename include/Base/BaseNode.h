@@ -16,7 +16,7 @@
 
 
 //Project
-#include "../logger.h"
+#include "../../../eROS/include/logger.h"
 #include "../resourcemonitor.h"
 
 /*! \class BaseNode BaseNode.h "BaseNode.h"
@@ -100,6 +100,7 @@ public:
 
 	//Destructors
 	virtual void cleanup() = 0;
+	void base_cleanup();
 	/*! \brief Publishes ReadyToArm By Default.  Call this to Disable the Publisher. */
 	void disable_readytoarm_publisher()
 	{

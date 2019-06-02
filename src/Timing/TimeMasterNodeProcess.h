@@ -3,6 +3,7 @@
 //C++ System Files
 //ROS Base Functionality
 //ROS Messages
+#include "std_msgs/Float32.h"
 //Project
 
 /*! \class TimeMasterNodeProcess TimeMasterNodeProcess.h "TimeMasterNodeProcess.h"
@@ -28,6 +29,12 @@ public:
 	//Attribute Functions
 	bool set_ppssource(std::string v);
 	bool publish_1pps();
+	std_msgs::Float32 get_uptime()
+	{
+		std_msgs::Float32 msg;
+		msg.data = run_time;
+		return msg;
+	}
 
 	//Message Functions
 	/*! \brief  Process Command Message.  All implementation should use at least the code in this Sample Function.

@@ -19,7 +19,7 @@ find_package(catkin REQUIRED COMPONENTS
   cv_bridge
   roslib
   tf
-  eros
+  #eros
   rosbag
 )
 
@@ -183,7 +183,6 @@ install(DIRECTORY include/${PROJECT_NAME}/
 # catkin_add_nosetests(test)
 include_directories(include ${catkin_INCLUDE_DIRS} ${roscpp_INCLUDE_DIRS})
 #Libraries-General
-add_library(logger util/logger.cpp)
 add_library(resourcemonitor util/resourcemonitor.cpp)
 
 #Libraries-Communications
@@ -191,13 +190,6 @@ add_library(udpmessage util/udpmessage.cpp)
 add_library(serialmessage util/serialmessage.cpp)
 add_library(spimessage util/spimessage.cpp)
 add_library(i2cmessage util/i2cmessage.cpp)
-
-#Libraries-Drivers
-add_library(lcddriver src/Diagnostics/Driver/LCDDriver.cpp)
-#add_library(terminalhatdriver src/Board/Driver/TerminalHatDriver.cpp) #Only compatible for armv7l
-#add_library(gpiohatdriver src/Board/Driver/GPIOHatDriver.cpp) #Only compatible for armv7l
-#add_library(servohatdriver src/Board/Driver/ServoHatDriver.cpp) #Only compatible for armv7l
-
 
 #Add CMakeLists for Templates
 add_subdirectory(src_templates)
@@ -225,5 +217,3 @@ add_subdirectory(src/Timing)
 
 #Add CMakeLists for User Control
 add_subdirectory(src/User_Control)
-
-

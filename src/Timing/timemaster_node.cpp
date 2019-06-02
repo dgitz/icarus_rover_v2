@@ -73,6 +73,8 @@ eros::diagnostic TimeMasterNode::finish_initialization()
 	command_sub = n->subscribe<eros::command>("/command",1,&TimeMasterNode::Command_Callback,this);
 	std::string device_topic = "/" + std::string(host_name) + "_master_node/srv_device";
 	srv_device = n->serviceClient<eros::srv_device>(device_topic);
+
+	uptime_pub =  n->advertise<std_msgs::Float32>("/Uptime",10);
 	last_pps1_timer = ros::Time::now();
 	return diagnostic;
 }
@@ -158,6 +160,7 @@ bool TimeMasterNode::run_loop1()
 		msg.data = true;
 		pps1_pub.publish(msg);
 	}
+	uptime_pub.publish(process->get_uptime());
 	return true;
 }
 bool TimeMasterNode::run_loop2()

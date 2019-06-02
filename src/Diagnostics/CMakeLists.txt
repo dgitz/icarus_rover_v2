@@ -1,3 +1,5 @@
+add_library(lcddriver Driver/LCDDriver.cpp)
+
 #Diagnostic Node
 file(MAKE_DIRECTORY /home/robot/catkin_ws/build/test_results/icarus_rover_v2/diagnostic_node)
 add_library(diagnostic_node_process DiagnosticNodeProcess.cpp)

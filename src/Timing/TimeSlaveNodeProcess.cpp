@@ -15,36 +15,43 @@ eros::diagnostic TimeSlaveNodeProcess::update(double t_dt,double t_ros_time)
 	eros::diagnostic diag = root_diagnostic;
 	if(ntp_initialized == false)
 	{
-		if(const char* env_p = std::getenv("ROS_MASTER_URI"))
+		if(unittesting_enabled == true)
 		{
-			ros_master_uri = std::string(env_p);
-			std::string tempstr  = ros_master_uri.substr(7);
-			std::string tmp_server = tempstr.substr(0,tempstr.find(":"));
-			if(tmp_server == "localhost")  //For when timeslave node is running on same device as timemaster
-			{
-				primary_time_server = "0.ubuntu.pool.n";
-			}
-			else
-			{
-				primary_time_server = tmp_server;
-			}
-			TimeServer server;
-			server.name = primary_time_server;
-			time_servers.push_back(server);
-			timesyncinfo.servers.push_back(server.name);
-			init_timeservers();
-			
-
+			ntp_initialized = true;
 		}
-		ntp_initialized = true;
+		else
+		{
+			if(const char* env_p = std::getenv("ROS_MASTER_URI"))
+			{
+				ros_master_uri = std::string(env_p);
+				std::string tempstr  = ros_master_uri.substr(7);
+				std::string tmp_server = tempstr.substr(0,tempstr.find(":"));
+				if(tmp_server == "localhost")  //For when timeslave node is running on same device as timemaster
+				{
+					primary_time_server = "0.ubuntu.pool.n";
+				}
+				else
+				{
+					primary_time_server = tmp_server;
+				}
+				TimeServer server;
+				server.name = primary_time_server;
+				time_servers.push_back(server);
+				timesyncinfo.servers.push_back(server.name);
+				init_timeservers();
+			}
+		}
+		
 
 	}
 	if(initialized == false)
 	{
 		update_diagnostic(TIMING,NOTICE,INITIALIZING,"Initializing Time Servers.");
 	}
-	initialized = true;
-	ready = true;
+	if(initialized == true)
+	{
+		ready = true;
+	}
 	
 	diag = update_baseprocess(t_dt,t_ros_time);
 	if(diag.Level <= NOTICE)
@@ -153,12 +160,16 @@ void TimeSlaveNodeProcess::set_timeserver(TimeSlaveNodeProcess::TimeServer serve
 eros::diagnostic TimeSlaveNodeProcess::update_timeservers()
 {
 	eros::diagnostic diag = root_diagnostic;
-	//First check Primary Time Server
-	diag = update_timeserver(primary_time_server);
-	if(diag.Level > NOTICE)
+	for(std::size_t i = 0; i < time_servers.size(); ++i)
 	{
-		return diag;
+		diag = update_timeserver(time_servers.at(i).name);
+		if(diag.Level > NOTICE)
+		{
+			return diag;
+		}
 	}
+
+	
 	for(std::size_t i = 0; i < time_servers.size(); ++i)
 	{
 		if(fabs(time_servers.at(i).delay) > 50.0)

@@ -37,6 +37,7 @@ eros::diagnostic BaseNode::preinitialize_basenode(int argc,char **argv)
 	diagnostic.Level = INFO;
 	diagnostic.Diagnostic_Message = INITIALIZING;
 	diagnostic.Description = "Node Initializing.";
+	heartbeat.BaseNode_Name = base_node_name;
 	heartbeat.Node_Name = node_name;
 	host_name[1023] = '\0';
 	gethostname(host_name,1023);
@@ -49,6 +50,9 @@ eros::diagnostic BaseNode::preinitialize_basenode(int argc,char **argv)
 	resource_pub = n->advertise<eros::resource>(resource_topic,1);
 	std::string heartbeat_topic = "/" + node_name + "/heartbeat";
 	heartbeat_pub = n->advertise<eros::heartbeat>(heartbeat_topic,1);
+	heartbeat.stamp = ros::Time::now();
+	heartbeat.TaskState = TASKSTATE_INITIALIZING;
+	heartbeat_pub.publish(heartbeat);
 	std::string diagnostic_topic = "/" + node_name + "/diagnostic";
 	diagnostic_pub = n->advertise<eros::diagnostic>(diagnostic_topic,30);
 	std::string readytoarm_topic = "/" + node_name + "/readytoarm";
@@ -233,6 +237,10 @@ bool BaseNode::update()
 				resource_pub.publish(resourcemonitor->get_resourceused());
 			}
 		}
+		else
+		{
+			logger->log_warn("Resource Monitor Not Initialized.");
+		}
 	}
 	mtime = measure_time_diff(ros::Time::now(),last_1hz_timer);
 	if(mtime >= 1.0)
@@ -246,6 +254,7 @@ bool BaseNode::update()
 	if(mtime >= 0.1)
 	{
 		run_10hz();
+		heartbeat.TaskState = TASKSTATE_RUNNING;
 		heartbeat.stamp = ros::Time::now();
 		heartbeat_pub.publish(heartbeat);
 		if(publish_readytoarm == true)
@@ -313,4 +322,11 @@ void BaseNode::new_commandmsg_result(const eros::command::ConstPtr& t_msg,std::v
 			}
 		}
 	}
+}
+void BaseNode::base_cleanup()
+{
+	printf("sending\n");
+	heartbeat.TaskState = TASKSTATE_STOPPED;
+	heartbeat.stamp = ros::Time::now();
+	heartbeat_pub.publish(heartbeat);
 }

@@ -31,7 +31,6 @@
     <build_depend>roslib</build_depend>
     <run_depend>roslib</run_depend>
     <build_depend>tinyxml</build_depend>
-    <run_depend>tinyxml</run_depend>
     <run_depend>roscpp</run_depend>
     <run_depend>rospy</run_depend>
     <run_depend>std_msgs</run_depend>
