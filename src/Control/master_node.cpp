@@ -117,6 +117,7 @@ bool MasterNode::run_1hz()
 {
 
 	eros::resource device_resource_available;
+	device_resource_available.stamp = ros::Time::now();
 	device_resource_available.Node_Name = process->get_mydevice().DeviceName;
 	device_resource_available.PID = 0;
 	device_resource_available.CPU_Perc = resourcemonitor->get_CPUFree_perc();

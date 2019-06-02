@@ -11,7 +11,6 @@ eros::diagnostic  TimeSlaveNodeProcess::finish_initialization()
 }
 eros::diagnostic TimeSlaveNodeProcess::update(double t_dt,double t_ros_time)
 {
-	
 	eros::diagnostic diag = root_diagnostic;
 	if(ntp_initialized == false)
 	{
@@ -39,6 +38,7 @@ eros::diagnostic TimeSlaveNodeProcess::update(double t_dt,double t_ros_time)
 				time_servers.push_back(server);
 				timesyncinfo.servers.push_back(server.name);
 				init_timeservers();
+				ntp_initialized = true;
 			}
 		}
 		
