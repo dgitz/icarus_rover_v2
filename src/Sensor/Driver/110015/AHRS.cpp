@@ -228,6 +228,13 @@ class AHRSInternal : public IIOCompleteNotification, public IBoardCapabilities {
         ahrs->hw_rev = board_id.hw_rev;
         ahrs->fw_ver_major = board_id.fw_ver_major;
         ahrs->fw_ver_minor = board_id.fw_ver_minor;
+        uint64_t temp = 0;
+        for(int i = 8; i < 12; ++i)
+        {
+             temp |= (uint8_t)(board_id.unique_id[i]) << (24 - (12-i) * 8);
+        }
+        ahrs->serial_number = temp;
+
     }
 
     void SetBoardState(IIOCompleteNotification::BoardState& board_state) {
@@ -340,8 +347,8 @@ class AHRSInternal : public IIOCompleteNotification, public IBoardCapabilities {
      * @param data_type either kProcessedData or kRawData
      * @param update_rate_hz Custom Update Rate (Hz)
      */
-AHRS::AHRS(std::string serial_port_id, AHRS::SerialDataType data_type, uint8_t update_rate_hz) {
-    SerialInit(serial_port_id, data_type, update_rate_hz);
+AHRS::AHRS(std::string serial_port_id, AHRS::SerialDataType data_type, uint8_t update_rate_hz,uint8_t verbosity) {
+    SerialInit(serial_port_id, data_type, update_rate_hz,verbosity);
 }
 
 /**
@@ -372,7 +379,7 @@ AHRS::AHRS(std::string serial_port_id, AHRS::SerialDataType data_type, uint8_t u
  * @param serial_port_id SerialPort to use
  */
 AHRS::AHRS(std::string serial_port_id) {
-    SerialInit(serial_port_id, SerialDataType::kProcessedData, NAVX_DEFAULT_UPDATE_RATE_HZ);
+    SerialInit(serial_port_id, SerialDataType::kProcessedData, NAVX_DEFAULT_UPDATE_RATE_HZ,0);
 }
 
 /**
@@ -874,10 +881,11 @@ float AHRS::GetDisplacementZ() {
 #define NAVX_IO_THREAD_NAME "navXIOThread"
 
 
-void AHRS::SerialInit(std::string serial_port_id, AHRS::SerialDataType data_type, uint8_t update_rate_hz) {
+void AHRS::SerialInit(std::string serial_port_id, AHRS::SerialDataType data_type, uint8_t update_rate_hz,uint8_t verbosity) {
     commonInit(update_rate_hz);
+    this->serial_number = 0;
     bool processed_data = (data_type == SerialDataType::kProcessedData);
-    io = new SerialIO(serial_port_id, update_rate_hz, processed_data, ahrs_internal, ahrs_internal);
+    io = new SerialIO(serial_port_id, update_rate_hz, processed_data, verbosity,ahrs_internal, ahrs_internal);
     pthread_t trd;
     pthread_create(&trd, NULL, AHRS::ThreadFunc, io);
 }
@@ -1022,6 +1030,10 @@ static const float DEV_UNITS_MAX = 32768.0f;
 float AHRS::GetRawGyroX() {
     
     return this->raw_gyro_x / (DEV_UNITS_MAX / (float)gyro_fsr_dps);
+}
+uint64_t AHRS::GetSerialNumber()
+{
+    return this->serial_number;
 }
 
 /**

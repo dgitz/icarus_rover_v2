@@ -15,7 +15,7 @@ static void show_usage(std::string name)
 	std::cerr << "Usage: Test IMU. Options:\n"
 			<< "\t-h,--help\t\tShow this help message\n"
 			<< "\t-d,--delay Delay (uS)\t\t Delay in micro Seconds.  Default is 100000.\n"
-			<< "\t-m,--mode\tMode: monitor. Default=monitor.\n"
+			<< "\t-m,--mode\tMode: monitor,query. Default=monitor.\n"
 			<< "\t-r,--report\tReport: stat,acc,gyro,mag,all. Default=all.\n"
 			<< "\t-v,--verbose\tVerbosity: Default=0.\n"
 			<< "\t-pn,--partno\tPart Number: 110013,110015.\n"
@@ -145,8 +145,7 @@ int main(int argc, char* argv[])
 		}
 	}
 	IMUDriver imu;
-	int status = imu.init(partnumber,port,"testdevice");
-	imu.set_debugmode(verbosity);
+	int status = imu.init(partnumber,port,"testdevice",verbosity);
 	if(status <= 0)
 	{
 		printf("[IMU]: Unable to Initialize. Exiting.\n");
@@ -169,10 +168,10 @@ int main(int argc, char* argv[])
 				reset = true;
 			}
 			*/
-			
-
-
-
+		}
+		else if(mode == "query")
+		{
+			printf("SN: %llu\n",imu.update().serial_number);
 		}
 		usleep(delay);
 		run_time += (double)(delay)/1000000.0;
@@ -212,18 +211,21 @@ void print_imudata(std::string report,IMUDriver driver,IMUDriver::RawIMU imu_dat
 		break;
 	}
 	char tempstr[1024];
-	sprintf(tempstr,"%s[IMU] ",
-			start_color.c_str());
+	sprintf(tempstr,"%s[IMU]:%llu ",
+			start_color.c_str(),
+			imu_data.serial_number);
 	if((report == "stat") or (report == "all"))
 	{
-		sprintf(tempstr,"%s Delay=%4.2f Seq=%d T=%4.2f U=%ld R=%4.2fHz State: %s",
+		sprintf(tempstr,"%s Delay=%4.2f Seq=%d T=%4.2f U=%ld R=%4.2fHz State: %s Temp: %4.2fC",
 				tempstr,
 				driver.get_timedelay(),
 				imu_data.sequence_number,
 				imu_data.tov,
 				imu_data.update_count,
 				imu_data.update_rate,
-				driver.map_signalstate_tostring(imu_data.signal_state).c_str());
+				driver.map_signalstate_tostring(imu_data.signal_state).c_str(),
+				imu_data.temperature);
+				
 	}
 	if((report == "acc") or (report == "all"))
 	{

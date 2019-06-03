@@ -85,7 +85,7 @@ bool IMUNode::run_1hz()
 			for(std::size_t i = 0; i < imus.size(); ++i)
 			{
 				IMUDriver imu_driver;
-				int status = imu_driver.init(imus.at(i).partnumber,imus.at(i).device_path,imus.at(i).devicename);
+				int status = imu_driver.init(imus.at(i).partnumber,imus.at(i).device_path,imus.at(i).devicename,0);
 				if(status <= 0)
 				{
 					diagnostic.Diagnostic_Type = SENSORS;
@@ -99,11 +99,16 @@ bool IMUNode::run_1hz()
 				}
 				else
 				{
-					std::string imu_topic = "/" + imus.at(i).devicename;
-
-					ros::Publisher pub = n->advertise<eros::imu>(imu_topic,1);
-
-					imu_pubs.push_back(pub);
+					{
+						std::string imu_topic = "/" + imus.at(i).devicename;
+						ros::Publisher pub = n->advertise<eros::imu>(imu_topic,1);
+						imu_pubs.push_back(pub);
+					}
+					{
+						std::string imu_temp_topic = "/" + imus.at(i).devicename + "_Temperature";
+						ros::Publisher pub = n->advertise<eros::signal>(imu_temp_topic,1);
+						imutemp_pubs.push_back(pub);
+					}
 					if(process->set_imu_running(imus.at(i).devicename) == true)
 					{
 						imu_drivers.push_back(imu_driver);
@@ -225,11 +230,20 @@ bool IMUNode::run_loop1()
 		if((process->get_imus_initialized() == true) and (process->get_imus_running() == true))
 		{
 			std::vector<IMUNodeProcess::IMU> imus = process->get_imus();
+			std::vector<uint64_t> serial_numbers = process->get_imu_serialnumbers();
 			for(std::size_t i = 0; i < imus.size(); ++i)
 			{
 				eros::imu proc_imu;
-				diag = process->new_imumsg(imus.at(i).devicename,imu_drivers.at(i).update(),proc_imu);
+				eros::signal proc_imu_temp;
+				diag = process->new_imumsg(imus.at(i).devicename,imu_drivers.at(i).update(),proc_imu,proc_imu_temp);
+				if((serial_numbers.at(i) == 0) and (process->get_runtime() > COMM_TIMEOUT_THRESHOLD))
+				{
+					diag = process->update_diagnostic(imus.at(i).devicename,SENSORS,ERROR,INITIALIZING_ERROR,"Could not read Serial Number. Exiting.");
+					logger->log_diagnostic(diag);
+					kill_node = 1;
+				}
 				proc_imu.timestamp = ros::Time::now().toSec();
+				imutemp_pubs.at(i).publish(proc_imu_temp);
 				if(diag.Level <= NOTICE)
 				{
 					imu_pubs.at(i).publish(proc_imu);

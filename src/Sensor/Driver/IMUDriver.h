@@ -38,6 +38,7 @@ public:
 	};
 	struct RawIMU
 	{
+		uint64_t serial_number;
 		bool updated;
 		uint8_t signal_state;
 		uint64_t update_count;
@@ -54,12 +55,14 @@ public:
 		double mag_x;
 		double mag_y;
 		double mag_z;
+		double temperature;
 	};
 
 	IMUDriver();
 	~IMUDriver();
+	uint64_t get_serialnumber() { return imu_data.serial_number; }
 	void set_debugmode(uint8_t v);
-	int init(std::string t_partnumber,std::string t_port,std::string t_devicename);
+	int init(std::string t_partnumber,std::string t_port,std::string t_devicename,uint8_t verbosity);
 	int finish();
 	std::string map_pn_tostring(PartNumber v);
 	IMUDriver::PartNumber map_pn_toenum(std::string v);

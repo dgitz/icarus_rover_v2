@@ -17,6 +17,7 @@ static const double IO_TIMEOUT_SECONDS = 1.0;
 SerialIO::SerialIO(std::string port_id,
                    uint8_t update_rate_hz,
                    bool processed_data,
+                   uint8_t verbosity,
                    IIOCompleteNotification *notify_sink,
                    IBoardCapabilities *board_capabilities)
 {
@@ -27,10 +28,12 @@ SerialIO::SerialIO(std::string port_id,
     ahrs_update_data = {};
     ahrspos_update_data = {};
     ahrspos_ts_update_data = {};
-    debug_level = 0;
+    debug_level = verbosity;
     run_time = 0.0;
     board_id = {0, 0, 0, 0, 0, {0}};
     board_state = {0, 0, 0, 0, 0, 0, 0, 0};
+    request_stream = false;
+    identity_received = false;
     this->notify_sink = notify_sink;
     this->board_capabilities = board_capabilities;
     serial_port = 0;
@@ -179,8 +182,9 @@ int SerialIO::DecodePacketHandler(char *received_data, int bytes_remaining)
     }
     else if ((packet_length = IMUProtocol::decodeGyroUpdate(received_data, bytes_remaining, gyro_update_data)) > 0)
     {
+        request_stream = false;
         notify_sink->SetRawData(gyro_update_data, sensor_timestamp);
-        if (debug_level >= 2)
+        if (debug_level >= 3)
         {
             printf("[%4.2f] Updating RawData.\n", run_time);
         }
@@ -193,10 +197,19 @@ int SerialIO::DecodePacketHandler(char *received_data, int bytes_remaining)
     }
     else if ((packet_length = AHRSProtocol::decodeBoardIdentityResponse(received_data, bytes_remaining, board_id)) > 0)
     {
+        identity_received = true;
+        request_stream = true;
         notify_sink->SetBoardID(board_id);
         if (debug_level >= 2)
         {
-            printf("[%4.2f] Updating Identidy Response.\n", run_time);
+            printf("[%4.2f] Updating Identity Response.\n",run_time);
+            printf("\tID:");
+            for(int i = 0; i < 12; i++)
+            {
+                printf("[%d]:%d ",i,board_id.unique_id[i]);
+            }
+            printf("\n");
+            
         }
         //printf("UPDATING ELSE\n");
     }
@@ -258,20 +271,17 @@ void SerialIO::Run()
     }
 
     char stream_command[256];
+    char id_command[256];
     char integration_control_command[256];
     IMUProtocol::StreamResponse response = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
     AHRSProtocol::IntegrationControl integration_control = {0, 0};
     AHRSProtocol::IntegrationControl integration_control_response = {0, 0};
 
-    int cmd_packet_length = IMUProtocol::encodeStreamCommand(stream_command, update_type, update_rate_hz);
+    int cmd_packet_length = IMUProtocol::encodeStreamCommand(stream_command, update_type, 1);
     try
     {
-        serial_port->Reset();
         //std::cout << "Initial Write" << std::endl;
         serial_port->Write(stream_command, cmd_packet_length);
-        cmd_packet_length = AHRSProtocol::encodeDataGetRequest(stream_command, AHRS_DATA_TYPE::BOARD_IDENTITY, AHRS_TUNING_VAR_ID::UNSPECIFIED);
-        serial_port->Write(stream_command, cmd_packet_length);
-        serial_port->Flush();
         port_reset_count++;
         last_stream_command_sent_timestamp = time(0);
     }
@@ -279,6 +289,7 @@ void SerialIO::Run()
     {
         printf("SerialPort Run() Port Send Encode Stream Command Exception:  %s\n", ex.what());
     }
+    
 
     int remainder_bytes = 0;
     char received_data[256 * 3];
@@ -289,8 +300,52 @@ void SerialIO::Run()
     double last_timedelta = 0.0;
     struct timeval last_time;
     gettimeofday(&last_time,NULL);
+    uint16_t request_timer = 0;
+
     while (!stop)
     {
+        if(identity_received == false)
+        {
+            if(request_timer == 0)
+            {
+                if (debug_level >= 1)
+                {
+                    printf("[%4.2f] Requesting Board Id.\n", run_time);
+                }
+                cmd_packet_length = AHRSProtocol::encodeDataGetRequest(id_command, AHRS_DATA_TYPE::BOARD_IDENTITY, AHRS_TUNING_VAR_ID::UNSPECIFIED);
+                serial_port->Write(id_command, cmd_packet_length);
+                if (debug_level >= 4)
+                {
+                    printf("[%4.2f] x0.\n", run_time);
+                }
+            }
+            request_timer++;
+            if(request_timer == 500)
+            {
+                request_timer = 0;
+            }
+        }
+        if(request_stream == true)
+        {
+            if (debug_level >= 1)
+            {
+                printf("[%4.2f] Requesting Stream.\n", run_time);
+            }
+            cmd_packet_length = IMUProtocol::encodeStreamCommand(stream_command, update_type, update_rate_hz);
+            try
+            {
+                //std::cout << "Initial Write" << std::endl;
+                serial_port->Write(stream_command, cmd_packet_length);
+                port_reset_count++;
+                last_stream_command_sent_timestamp = time(0);
+            }
+            catch (std::exception ex)
+            {
+                printf("SerialPort Run() Port Send Encode Stream Command Exception:  %s\n", ex.what());
+            }
+
+        }
+        
         gettimeofday(&now,NULL);
         last_timedelta = measure_time_diff(now,last_time);
         gettimeofday(&last_time,NULL);
@@ -306,7 +361,7 @@ void SerialIO::Run()
             {
                 printf("[%4.2f] Periodic Flush.\n", run_time);
             }
-            //serial_port->Flush();
+            serial_port->Flush();
             flush_timer = 0.0;
         }
         try
@@ -388,7 +443,7 @@ void SerialIO::Run()
             {
                 printf("[%4.2f] e.\n", run_time);
             }
-            if (debug_level >= 1)
+            if (debug_level >= 3)
             {
                 printf("[%4.2f] Bytes Read:%d.\n", run_time, bytes_read);
             }
@@ -641,8 +696,8 @@ void SerialIO::Run()
                     // No packets received and 256 bytes received; this
                     // condition occurs in the SerialPort.  In this case,
                     // reset the serial port.
-                    serial_port->Flush();
-                    serial_port->Reset();
+                   // serial_port->Flush();
+                    //serial_port->Reset();
                     port_reset_count++;
                 }
 

@@ -74,6 +74,7 @@ private:
 	ros::ServiceClient srv_leverarm;
     std::vector<IMUDriver> imu_drivers;
     std::vector<ros::Publisher> imu_pubs;
+	std::vector<ros::Publisher> imutemp_pubs;
 
 	IMUNodeProcess *process;
 

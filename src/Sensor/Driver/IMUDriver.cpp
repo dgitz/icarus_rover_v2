@@ -31,7 +31,7 @@ IMUDriver::~IMUDriver()
 }
 
 
-int IMUDriver::init(std::string t_partnumber,std::string t_port,std::string t_devicename)
+int IMUDriver::init(std::string t_partnumber,std::string t_port,std::string t_devicename,uint8_t verbosity)
 {
 	devicename = t_devicename;
 	partnumber = map_pn_toenum(t_partnumber);
@@ -110,16 +110,9 @@ int IMUDriver::init(std::string t_partnumber,std::string t_port,std::string t_de
 	else if(connection_method == "AHRS")
 	{
 		port = t_port;
-		device = new AHRS(t_port,AHRS::SerialDataType::kRawData,200);
+		device = new AHRS(t_port,AHRS::SerialDataType::kRawData,200,verbosity);
 		usleep(1000000);
-		if(device->IsConnected())
-		{
-			conn_fd= 1;
-		}
-		else
-		{
-			conn_fd= 0;
-		}
+		conn_fd = 1;
 	}
 	else
 	{
@@ -245,7 +238,7 @@ IMUDriver::RawIMU IMUDriver::update()
 	else if(partnumber == PN_110015)
 	{
 		status = false;
-
+		t_imu.serial_number = device->GetSerialNumber();
 		t_imu.tov = device->GetLastTimestamp();
 		last_sequence_number = imu_data.sequence_number;
 		t_imu.sequence_number=device->GetUpdateCount();
@@ -259,6 +252,7 @@ IMUDriver::RawIMU IMUDriver::update()
 		t_imu.mag_x = device->GetRawMagX();
 		t_imu.mag_y = device->GetRawMagY();
 		t_imu.mag_z = device->GetRawMagZ();
+		t_imu.temperature = device->GetTempC();
 		status = true;
 	}
 
@@ -266,7 +260,11 @@ IMUDriver::RawIMU IMUDriver::update()
 	{
 		gettimeofday(&now,NULL);
 		time_delay = convert_time(now)-t_imu.tov;
-		if(fabs(time_delay) > COMM_LOSS_THRESHOLD)
+		if(t_imu.serial_number == 0)
+		{
+			t_imu.signal_state = SIGNALSTATE_INVALID;
+		}
+		else if(fabs(time_delay) > COMM_LOSS_THRESHOLD)
 		{
 			t_imu.signal_state = SIGNALSTATE_INVALID;
 		}

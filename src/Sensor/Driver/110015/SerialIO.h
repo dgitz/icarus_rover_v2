@@ -48,6 +48,7 @@ public:
     SerialIO( std::string port_id,
               uint8_t update_rate_hz,
               bool processed_data,
+              uint8_t verbosity,
               IIOCompleteNotification *notify_sink,
               IBoardCapabilities *board_capabilities );
     bool IsConnected();
@@ -76,6 +77,8 @@ private:
     double flush_timer;
     struct timeval now;
     double run_time;
+    bool identity_received;
+    bool request_stream;
 };
 
 #endif /* SRC_SERIALIO_H_ */

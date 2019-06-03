@@ -98,7 +98,6 @@ class SerialPort {
     void Write(char *data, int length) {
         int n_written = 0, spot = 0;
         do {
-
             n_written = write( this->fd, &data[spot], length );
             if (n_written > 0)
                 spot += n_written;

@@ -16,7 +16,7 @@ Unit Tests:
   >>catkin_make run_tests_icarus_rover_v2_gtest_test_imu_node_process
 2.  IMU Unit Tests:
   Compile: 
-  >>cd ~/catkin_ws/src/icarus_rover_v2/src/Sensor/unit_tests/
-  >>cmake .
-  >>make
+  >>cd ~/catkin_ws/devel/lib/icarus_rover_v2
+  >>./test_imu.out
+
 

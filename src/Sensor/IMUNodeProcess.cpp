@@ -117,7 +117,7 @@ eros::diagnostic IMUNodeProcess::update(double t_dt,double t_ros_time)
 	}
 	return diag;
 }
-eros::diagnostic IMUNodeProcess::new_imumsg(std::string devicename,IMUDriver::RawIMU imu_data,eros::imu &proc_imu)
+eros::diagnostic IMUNodeProcess::new_imumsg(std::string devicename,IMUDriver::RawIMU imu_data,eros::imu &proc_imu,eros::signal &proc_imu_temperature)
 {
 	eros::diagnostic diag = root_diagnostic;
 	bool found = false;
@@ -141,11 +141,33 @@ eros::diagnostic IMUNodeProcess::new_imumsg(std::string devicename,IMUDriver::Ra
 				diag = update_diagnostic(devicename,SENSORS,WARN,DROPPING_PACKETS,std::string(tempstr));
 				return diag;
 			}
+			if(imu_data.serial_number != 0)
+			{
+				if(imus.at(i).serial_number_checked == false)
+				{
+				if(imu_data.serial_number != imus.at(i).serial_number)
+				{
+					char tempstr[512];
+					sprintf(tempstr,"Expected Id: %llu but Received: %llu",imus.at(i).serial_number,imu_data.serial_number);
+					diag = update_diagnostic(imus.at(i).devicename,DATA_STORAGE,ERROR,DEVICE_NOT_AVAILABLE,std::string(tempstr));
+				}
+				else
+				{
+					diag = update_diagnostic(imus.at(i).devicename,DATA_STORAGE,INFO,NOERROR,"Serial Number Checked.");
+				}
+				}
+				imus.at(i).serial_number_checked = true;
+			}
+			
 			proc_imu = imus.at(i).imu_data;
 			imus.at(i).packet_count++;
 			imus.at(i).sequence_number = imu_data.sequence_number;
 			imus.at(i).imu_data.tov = imu_data.tov;
 			proc_imu.tov = imu_data.tov;
+			proc_imu_temperature.tov = convert_time(imu_data.tov);
+			proc_imu_temperature.units = "C";
+			proc_imu_temperature.value = imu_data.temperature;
+			proc_imu_temperature.status = imu_data.signal_state;
 			proc_imu.sequence_number = imu_data.sequence_number;
 			{
 				double x = imu_data.acc_x/imus.at(i).acc_scale_factor;
@@ -331,6 +353,7 @@ eros::diagnostic IMUNodeProcess::new_devicemsg(const eros::device::ConstPtr& dev
 			newimu.lasttime_rx = 0.0;
 			newimu.sensor_info_path = "/home/robot/config/sensors/" + device->DeviceName + "/" + device->DeviceName + ".xml";
 			newimu.diagnostic.DeviceName = device->DeviceName;
+			newimu.serial_number = (uint64_t)device->ID;
 			newimu.diagnostic.Node_Name = diag.Node_Name;
 			newimu.diagnostic.System = diag.System;
 			newimu.diagnostic.SubSystem = diag.SubSystem;
@@ -359,6 +382,7 @@ eros::diagnostic IMUNodeProcess::new_devicemsg(const eros::device::ConstPtr& dev
 			ready = true;
 			imus_initialized = true;
 			diag = update_diagnostic(SENSORS,INFO,NOERROR,"Sensors Initialized.");
+			diag = update_diagnostic(newimu.diagnostic.DeviceName,DATA_STORAGE,INFO,INITIALIZING,"Initializing.");
 			diag = update_diagnostic(newimu.diagnostic);
 		}
 		else if(device->PartNumber == "110015")
@@ -366,6 +390,8 @@ eros::diagnostic IMUNodeProcess::new_devicemsg(const eros::device::ConstPtr& dev
 			IMUNodeProcess::IMU newimu;
 			newimu.initialized = false;
 			newimu.devicename = device->DeviceName;
+			newimu.serial_number = (uint64_t)device->ID;
+			newimu.serial_number_checked = false;
 			newimu.connection_method = "serial";
 			newimu.device_path = "/dev/ttyACM0";
 			newimu.comm_rate = "115200";
@@ -408,6 +434,7 @@ eros::diagnostic IMUNodeProcess::new_devicemsg(const eros::device::ConstPtr& dev
 			ready = true;
 			imus_initialized = true;
 			diag = update_diagnostic(SENSORS,INFO,NOERROR,"Sensors Initialized.");
+			diag = update_diagnostic(newimu.diagnostic.DeviceName,DATA_STORAGE,INFO,INITIALIZING,"Initializing.");
 			diag = update_diagnostic(newimu.diagnostic);
 		}
 		else

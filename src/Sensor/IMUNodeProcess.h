@@ -7,6 +7,7 @@
 //Project
 #include <tinyxml.h>
 #define RMS_BUFFER_LIMIT 200
+#define COMM_TIMEOUT_THRESHOLD 10.0f
 #include <eigen3/Eigen/Dense>
 
 #include "Driver/IMUDriver.h"
@@ -39,6 +40,8 @@ public:
 	{
 		std::string partnumber;
 		std::string devicename;
+		uint64_t serial_number;
+		bool serial_number_checked;
         std::string sensor_info_path;
 		bool initialized;
 		bool running;
@@ -54,6 +57,7 @@ public:
 		uint16_t sequence_number;
 		uint64_t packet_count;
 		double update_rate;
+		double temperature;
 		double mounting_angle_offset_roll_deg;
 		double mounting_angle_offset_pitch_deg;
 		double mounting_angle_offset_yaw_deg;
@@ -99,6 +103,15 @@ public:
 		}
 		return false;
 	}
+	std::vector<uint64_t> get_imu_serialnumbers()
+	{
+		std::vector<uint64_t> serial_numbers;
+		for(std::size_t i = 0; i < imus.size(); ++i)
+		{
+			serial_numbers.push_back(imus.at(i).serial_number);
+		}
+		return serial_numbers;
+	}
 	//Message Functions
 	/*! \brief  Process Command Message.  All implementation should use at least the code in this Sample Function.
 	 *
@@ -106,7 +119,7 @@ public:
 	std::vector<eros::diagnostic> new_commandmsg(const eros::command::ConstPtr& t_msg);
 	eros::diagnostic new_devicemsg(const eros::device::ConstPtr& device);
 	eros::diagnostic new_devicemsg(const eros::device::ConstPtr& device,const eros::leverarm::ConstPtr& leverarm);
-	eros::diagnostic new_imumsg(std::string devicename,IMUDriver::RawIMU imu_data,eros::imu &proc_imu);
+	eros::diagnostic new_imumsg(std::string devicename,IMUDriver::RawIMU imu_data,eros::imu &proc_imu,eros::signal &proc_imu_temperature);
 
 	//Support Functions
 

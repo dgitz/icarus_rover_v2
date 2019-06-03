@@ -26,12 +26,11 @@ void print_3x3matrix(std::string name,Eigen::Matrix3f mat)
 			mat(1,0),
 			mat(1,1),
 			mat(1,2),
-			mat(2,0),
 			mat(2,1),
 			mat(2,2));
 
 }
-IMUNodeProcess* initializeprocess(std::string imuname,std::string imu_partnumber)
+IMUNodeProcess* initializeprocess(std::string imuname,std::string imu_partnumber,uint64_t *id)
 {
 	eros::device device;
 	device.DeviceName = ros_DeviceName;
@@ -44,7 +43,8 @@ IMUNodeProcess* initializeprocess(std::string imuname,std::string imu_partnumber
 	imu.DeviceName = imuname;
 	imu.DeviceParent = ros_DeviceName;
 	imu.DeviceType = "IMU";
-	imu.ID = 0;
+	imu.ID = 17;
+	*id = imu.ID;
 	imu.PartNumber = imu_partnumber;
 
 
@@ -95,7 +95,7 @@ IMUNodeProcess* initializeprocess(std::string imuname,std::string imu_partnumber
 	EXPECT_TRUE(process->is_ready() == true);
 	{
 		std::vector<eros::diagnostic> diagnostics = process->get_diagnostics();
-		EXPECT_TRUE(diagnostics.size() == (DIAGNOSTIC_TYPE_COUNT + process->get_imus().size()));
+		EXPECT_TRUE(diagnostics.size() == (DIAGNOSTIC_TYPE_COUNT +(2*process->get_imus().size())));
 		for (std::size_t i = 0; i < diagnostics.size(); ++i)
 		{
 			if(diagnostics.at(i).Diagnostic_Type == SENSORS) //Should not be ok until the IMU is running and a message is received.
@@ -115,11 +115,13 @@ IMUNodeProcess* initializeprocess(std::string imuname,std::string imu_partnumber
 }
 TEST(Template,Process_Initialization)
 {
-	initializeprocess("IMU1","110012");
+	uint64_t id = 0;
+	initializeprocess("IMU1","110012",&id);
 }
 TEST(Template,Process_Msg)
 {
-	IMUNodeProcess* process = initializeprocess("IMU1","110012");
+	uint64_t id = 0;
+	IMUNodeProcess* process = initializeprocess("IMU1","110012",&id);
 	EXPECT_TRUE(process->set_imu_info_path("IMU1","/home/robot/catkin_ws/src/icarus_rover_v2/src/Pose/unit_tests/IMU1.xml"));
 	double time_to_run = 20.0;
 	double dt = 0.001;
@@ -135,7 +137,6 @@ TEST(Template,Process_Msg)
 		{
 			EXPECT_TRUE(process->get_ready_to_arm() == true);
 		}
-		print_diagnostic(WARN,diag);
 		EXPECT_TRUE(diag.Level <= NOTICE);
 		int current_time_ms = (int)(current_time*1000.0);
 		if((current_time_ms % 100) == 0)
@@ -169,7 +170,9 @@ TEST(Template,Process_Msg)
 			for(std::size_t i = 0; i < imus.size(); ++i)
 			{
 				IMUDriver::RawIMU raw_imudata;
+				raw_imudata.serial_number = id;
 				raw_imudata.signal_state = SIGNALSTATE_UPDATED;
+				raw_imudata.serial_number = id;
 				raw_imudata.tov = current_time;
 				raw_imudata.acc_x = 1.0;
 				raw_imudata.acc_y = 2.0;
@@ -181,8 +184,9 @@ TEST(Template,Process_Msg)
 				raw_imudata.mag_y = 8.0;
 				raw_imudata.mag_z = 9.0;
 				eros::imu processed_imudata;
-
-				EXPECT_TRUE(process->new_imumsg(imus.at(i).devicename,raw_imudata,processed_imudata).Level <= NOTICE);
+				eros::signal processed_imudata_temperature;
+				diag = process->new_imumsg(imus.at(i).devicename,raw_imudata,processed_imudata,processed_imudata_temperature);
+				EXPECT_TRUE(diag.Level <= NOTICE);
 				all_valid_msg_sent = true;
 				EXPECT_TRUE((fabs((raw_imudata.acc_x/imus.at(i).acc_scale_factor)-processed_imudata.xacc.value) < .0001));
 				EXPECT_TRUE((fabs((raw_imudata.acc_y/imus.at(i).acc_scale_factor)-processed_imudata.yacc.value) < .0001));
@@ -204,11 +208,12 @@ TEST(Template,Process_Msg)
 		{
 			{
 				std::vector<eros::diagnostic> diagnostics = process->get_diagnostics();
-				EXPECT_TRUE(diagnostics.size() == (DIAGNOSTIC_TYPE_COUNT + process->get_imus().size()));
+				EXPECT_TRUE(diagnostics.size() == (DIAGNOSTIC_TYPE_COUNT + (2*process->get_imus().size())));
 				for (std::size_t i = 0; i < diagnostics.size(); ++i)
 				{
 					EXPECT_TRUE(diagnostics.at(i).Level <= NOTICE);
 				}
+				return;
 			}
 		}
 		current_time += dt;
@@ -218,7 +223,8 @@ TEST(Template,Process_Msg)
 
 TEST(Template,Process_BadMsg)
 {
-	IMUNodeProcess* process = initializeprocess("IMU1","110012");
+	uint64_t id = 0;
+	IMUNodeProcess* process = initializeprocess("IMU1","110012",&id);
 	EXPECT_TRUE(process->set_imu_info_path("IMU1","/home/robot/catkin_ws/src/icarus_rover_v2/src/Pose/unit_tests/IMU1.xml"));
 	double time_to_run = 1.0;
 	double dt = 0.001;
@@ -262,6 +268,7 @@ TEST(Template,Process_BadMsg)
 			for(std::size_t i = 0; i < imus.size(); ++i)
 			{
 				IMUDriver::RawIMU raw_imudata;
+				raw_imudata.serial_number = id;
 				raw_imudata.signal_state = SIGNALSTATE_INVALID;
 				raw_imudata.tov = current_time;
 				raw_imudata.acc_x = 1.0;
@@ -274,8 +281,8 @@ TEST(Template,Process_BadMsg)
 				raw_imudata.mag_y = 8.0;
 				raw_imudata.mag_z = 9.0;
 				eros::imu processed_imudata;
-
-				EXPECT_TRUE(process->new_imumsg(imus.at(i).devicename,raw_imudata,processed_imudata).Level > NOTICE);
+				eros::signal processed_imudata_temperature;
+				EXPECT_TRUE(process->new_imumsg(imus.at(i).devicename,raw_imudata,processed_imudata,processed_imudata_temperature).Level > NOTICE);
 				message_sent = true;
 				
 			}
@@ -288,7 +295,7 @@ TEST(Template,Process_BadMsg)
 		{
 			{
 				std::vector<eros::diagnostic> diagnostics = process->get_diagnostics();
-				EXPECT_TRUE(diagnostics.size() == (DIAGNOSTIC_TYPE_COUNT + process->get_imus().size()));
+				EXPECT_TRUE(diagnostics.size() == (DIAGNOSTIC_TYPE_COUNT + (2*process->get_imus().size())));
 				for (std::size_t i = 0; i < diagnostics.size(); ++i)
 				{
 					if(diagnostics.at(i).Diagnostic_Type == SENSORS) 
@@ -323,7 +330,8 @@ TEST(Template,Process_BadMsg)
 
 TEST(Template,Process_Command)
 {
-	IMUNodeProcess* process = initializeprocess("IMU1","110012");
+	uint64_t id = 0;
+	IMUNodeProcess* process = initializeprocess("IMU1","110012",&id);
 	EXPECT_TRUE(process->set_imu_info_path("IMU1","/home/robot/catkin_ws/src/icarus_rover_v2/src/Pose/unit_tests/IMU1.xml"));
 	double time_to_run = 20.0;
 	double dt = 0.001;
@@ -420,6 +428,7 @@ TEST(Template,Process_Command)
 			for(std::size_t i = 0; i < imus.size(); ++i)
 			{
 				IMUDriver::RawIMU raw_imudata;
+				raw_imudata.serial_number = id;
 				raw_imudata.signal_state = SIGNALSTATE_UPDATED;
 				raw_imudata.tov = current_time;
 				raw_imudata.acc_x = 1.0;
@@ -432,8 +441,9 @@ TEST(Template,Process_Command)
 				raw_imudata.mag_y = 8.0;
 				raw_imudata.mag_z = 9.0;
 				eros::imu processed_imudata;
-
-				EXPECT_TRUE(process->new_imumsg(imus.at(i).devicename,raw_imudata,processed_imudata).Level <= NOTICE);
+				eros::signal processed_imudata_temperature;
+				diag = process->new_imumsg(imus.at(i).devicename,raw_imudata,processed_imudata,processed_imudata_temperature);
+				EXPECT_TRUE(diag.Level <= NOTICE);
 			}
 
 
@@ -454,7 +464,7 @@ TEST(Template,Process_Command)
 		{
 			{
 				std::vector<eros::diagnostic> diagnostics = process->get_diagnostics();
-				EXPECT_TRUE(diagnostics.size() == (DIAGNOSTIC_TYPE_COUNT + process->get_imus().size()));
+				EXPECT_TRUE(diagnostics.size() == (DIAGNOSTIC_TYPE_COUNT + (2*process->get_imus().size())));
 				for (std::size_t i = 0; i < diagnostics.size(); ++i)
 				{
 					EXPECT_TRUE(diagnostics.at(i).Level <= NOTICE);
@@ -470,7 +480,8 @@ TEST(Template,Process_Command)
 TEST(Template,Rotation_Computation)
 {
 	//Test Identity Matrix
-	IMUNodeProcess* process = initializeprocess("IMU2","110015");
+	uint64_t id = 0;
+	IMUNodeProcess* process = initializeprocess("IMU2","110015",&id);
 	EXPECT_TRUE(process->set_imu_info_path("IMU2","/home/robot/catkin_ws/src/icarus_rover_v2/src/Pose/unit_tests/IMU2.xml"));
 	IMUNodeProcess::IMU imu2 = process->get_imu("IMU2");
 
@@ -569,6 +580,7 @@ TEST(Template,Rotation_Computation)
 			for(std::size_t i = 0; i < imus.size(); ++i)
 			{
 				IMUDriver::RawIMU raw_imudata;
+				raw_imudata.serial_number = id;
 				raw_imudata.signal_state = SIGNALSTATE_UPDATED;
 				raw_imudata.acc_x = 1.1234*imu2.acc_scale_factor;
 				raw_imudata.acc_y = -2.345*imu2.acc_scale_factor;
@@ -580,8 +592,8 @@ TEST(Template,Rotation_Computation)
 				raw_imudata.mag_y = 80.213*imu2.mag_scale_factor;
 				raw_imudata.mag_z = 17.214*imu2.mag_scale_factor;
 				eros::imu processed_imudata;
-
-				EXPECT_TRUE(process->new_imumsg(imus.at(i).devicename,raw_imudata,processed_imudata).Level <= NOTICE);
+				eros::signal processed_imudata_temperature;
+				EXPECT_TRUE(process->new_imumsg(imus.at(i).devicename,raw_imudata,processed_imudata,processed_imudata_temperature).Level <= NOTICE);
 				//Check Rotated Acc Vector
 				{
 
@@ -637,7 +649,8 @@ TEST(Template,RMS_Computation)
 
 
 	//Test Identity Matrix
-	IMUNodeProcess* process = initializeprocess("IMU1","110012");
+	uint64_t id = 0;
+	IMUNodeProcess* process = initializeprocess("IMU1","110012",&id);
 	EXPECT_TRUE(process->set_imu_info_path("IMU1","/home/robot/catkin_ws/src/icarus_rover_v2/src/Pose/unit_tests/IMU1.xml"));
 	IMUNodeProcess::IMU imu1 = process->get_imu("IMU1");
 
@@ -666,6 +679,7 @@ TEST(Template,RMS_Computation)
 		for(std::size_t i = 0; i < imus.size(); ++i)
 		{
 			IMUDriver::RawIMU raw_imudata;
+			raw_imudata.serial_number = id;
 			raw_imudata.signal_state = SIGNALSTATE_UPDATED;
 			raw_imudata.tov = current_time;
 			raw_imudata.acc_x = (double)(counter % 11)*imu1.acc_scale_factor; //sawtooth
@@ -678,8 +692,8 @@ TEST(Template,RMS_Computation)
 			raw_imudata.mag_y = (double)(counter % 11)*imu1.mag_scale_factor;
 			raw_imudata.mag_z = (double)(counter % 11)*imu1.mag_scale_factor;
 			eros::imu processed_imudata;
-
-			EXPECT_TRUE(process->new_imumsg(imus.at(i).devicename,raw_imudata,processed_imudata).Level <= NOTICE);
+			eros::signal processed_imudata_temperature;
+			EXPECT_TRUE(process->new_imumsg(imus.at(i).devicename,raw_imudata,processed_imudata,processed_imudata_temperature).Level <= NOTICE);
 			std::map<long,double>::iterator front = rms_checkpoints.begin();
 			if(front->first == counter)
 			{
@@ -699,7 +713,8 @@ TEST(Template,RMS_Computation)
 }
 TEST(Template,IMUReset_Auto)
 {
-	IMUNodeProcess* process = initializeprocess("IMU1","110012");
+	uint64_t id = 0;
+	IMUNodeProcess* process = initializeprocess("IMU1","110012",&id);
 	EXPECT_TRUE(process->set_imu_info_path("IMU1","/home/robot/catkin_ws/src/icarus_rover_v2/src/Pose/unit_tests/IMU1.xml"));
 	IMUNodeProcess::IMU imu1 = process->get_imu("IMU1");
 	double time_to_run = 100.0;
@@ -754,6 +769,7 @@ TEST(Template,IMUReset_Auto)
 				{
 					sent_imu_msg = true;
 					IMUDriver::RawIMU raw_imudata;
+					raw_imudata.serial_number = id;
 					raw_imudata.signal_state = SIGNALSTATE_UPDATED;
 					raw_imudata.tov = current_time;
 					raw_imudata.acc_x = (double)(counter % 11)*imu1.acc_scale_factor; //sawtooth
@@ -766,8 +782,8 @@ TEST(Template,IMUReset_Auto)
 					raw_imudata.mag_y = (double)(counter % 11)*imu1.mag_scale_factor;
 					raw_imudata.mag_z = (double)(counter % 11)*imu1.mag_scale_factor;
 					eros::imu processed_imudata;
-
-					EXPECT_TRUE(process->new_imumsg(imus.at(i).devicename,raw_imudata,processed_imudata).Level <= NOTICE);
+					eros::signal processed_imudata_temperature;
+					EXPECT_TRUE(process->new_imumsg(imus.at(i).devicename,raw_imudata,processed_imudata,processed_imudata_temperature).Level <= NOTICE);
 				}
 			}
 			else
@@ -809,7 +825,8 @@ TEST(Template,IMUReset_Auto)
 }
 TEST(Template,IMUReset_Manual)
 {
-	IMUNodeProcess* process = initializeprocess("IMU1","110012");
+	uint64_t id = 0;
+	IMUNodeProcess* process = initializeprocess("IMU1","110012",&id);
 	EXPECT_TRUE(process->set_imu_info_path("IMU1","/home/robot/catkin_ws/src/icarus_rover_v2/src/Pose/unit_tests/IMU1.xml"));
 	IMUNodeProcess::IMU imu1 = process->get_imu("IMU1");
 	double time_to_run = 100.0;
@@ -864,6 +881,7 @@ TEST(Template,IMUReset_Manual)
 				{
 					sent_imu_msg = true;
 					IMUDriver::RawIMU raw_imudata;
+					raw_imudata.serial_number = id;
 					raw_imudata.signal_state = SIGNALSTATE_UPDATED;
 					raw_imudata.tov = current_time;
 					raw_imudata.acc_x = (double)(counter % 11)*imu1.acc_scale_factor; //sawtooth
@@ -876,8 +894,8 @@ TEST(Template,IMUReset_Manual)
 					raw_imudata.mag_y = (double)(counter % 11)*imu1.mag_scale_factor;
 					raw_imudata.mag_z = (double)(counter % 11)*imu1.mag_scale_factor;
 					eros::imu processed_imudata;
-
-					EXPECT_TRUE(process->new_imumsg(imus.at(i).devicename,raw_imudata,processed_imudata).Level <= NOTICE);
+					eros::signal processed_imudata_temperature;
+					EXPECT_TRUE(process->new_imumsg(imus.at(i).devicename,raw_imudata,processed_imudata,processed_imudata_temperature).Level <= NOTICE);
 				}
 			}
 			else

@@ -121,8 +121,10 @@ private:
 public:
     AHRS(std::string serial_port_id);
 
-    AHRS(std::string serial_port_id, AHRS::SerialDataType data_type, uint8_t update_rate_hz);
+    AHRS(std::string serial_port_id, AHRS::SerialDataType data_type, uint8_t update_rate_hz,uint8_t verbosity);
+
     void   SetDebugLevel(uint8_t level);
+    uint64_t GetSerialNumber();
     float  GetPitch();
     float  GetRoll();
     float  GetYaw();
@@ -185,7 +187,8 @@ public:
     double GetLastTimestamp();
 
 private:
-    void SerialInit(std::string serial_port_id, AHRS::SerialDataType data_type, uint8_t update_rate_hz);
+    uint64_t serial_number;
+    void SerialInit(std::string serial_port_id, AHRS::SerialDataType data_type, uint8_t update_rate_hz,uint8_t verbosity);
     void commonInit( uint8_t update_rate_hz );
     static void *ThreadFunc(void *threadarg);
 
