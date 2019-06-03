@@ -283,7 +283,8 @@ void SerialIO::Run()
         //std::cout << "Initial Write" << std::endl;
         serial_port->Write(stream_command, cmd_packet_length);
         port_reset_count++;
-        last_stream_command_sent_timestamp = time(0);
+        gettimeofday(&now,NULL);
+        last_stream_command_sent_timestamp = convert_timestamp(now);
     }
     catch (std::exception ex)
     {
@@ -337,7 +338,8 @@ void SerialIO::Run()
                 //std::cout << "Initial Write" << std::endl;
                 serial_port->Write(stream_command, cmd_packet_length);
                 port_reset_count++;
-                last_stream_command_sent_timestamp = time(0);
+                gettimeofday(&now,NULL);
+                last_stream_command_sent_timestamp = convert_timestamp(now);
             }
             catch (std::exception ex)
             {
@@ -449,7 +451,8 @@ void SerialIO::Run()
             }
             if (bytes_read > 0)
             {
-                last_data_received_timestamp = time(0);
+                gettimeofday(&now,NULL);
+                last_data_received_timestamp = convert_timestamp(now);
                 int i = 0;
                 // Scan the buffer looking for valid packets
                 while (i < bytes_read)
@@ -521,8 +524,12 @@ void SerialIO::Run()
                     if (packet_length > 0)
                     {
                         packets_received++;
-
-                        last_valid_packet_time = time(0);
+                        gettimeofday(&now,NULL);
+                        last_valid_packet_time = convert_timestamp(now);
+                        if (debug_level >= 3)
+                        {
+                            printf("[%4.2f] Time Update: %f\n", run_time,last_valid_packet_time);
+                        }
                         updates_in_last_second++;
                         if ((last_valid_packet_time - last_second_start_time) > 1.0)
                         {
@@ -719,13 +726,15 @@ void SerialIO::Run()
                 {
                     if (debug_level >= 1)
                     {
-                        printf("[%4.2f] No comms in %4.2f seconds.  Requesting Stream.\n",run_time,time(0) - last_stream_command_sent_timestamp);
+                        gettimeofday(&now,NULL);
+                        printf("[%4.2f] No comms in %4.2f seconds.  Requesting Stream.\n",run_time,convert_timestamp(now) - last_stream_command_sent_timestamp);
                     }
                     cmd_packet_length = IMUProtocol::encodeStreamCommand(stream_command, update_type, update_rate_hz);
                     try
                     {
                         ResetSerialPort();
-                        last_stream_command_sent_timestamp = time(0);
+                        gettimeofday(&now,NULL);
+                        last_stream_command_sent_timestamp = convert_timestamp(now);
                         //std::cout << "Retransmitting Stream Command!!!!" << std::endl;
                         serial_port->Write(stream_command, cmd_packet_length);
                         cmd_packet_length = AHRSProtocol::encodeDataGetRequest(stream_command, AHRS_DATA_TYPE::BOARD_IDENTITY, AHRS_TUNING_VAR_ID::UNSPECIFIED);
@@ -750,17 +759,18 @@ void SerialIO::Run()
                 /* the navX MXP may have been reset, but no exception has been detected.         */
                 /* In this case , trigger transmission of a new stream_command, to ensure the    */
                 /* streaming packet type is configured correctly.                                */
-
-                if ((time(0) - last_valid_packet_time) > 1.0)
+                gettimeofday(&now,NULL);
+                if ((convert_timestamp(now) - last_valid_packet_time) > 1.0)
                 {
-                    last_stream_command_sent_timestamp = time(0);
+                    last_stream_command_sent_timestamp = convert_timestamp(now);
                     stream_response_received = false;
                 }
             }
             else
             {
                 /* No data received this time around */
-                if (time(0) - last_data_received_timestamp > 1.0)
+                gettimeofday(&now,NULL);
+                if (convert_timestamp(now) - last_data_received_timestamp > 1.0)
                 {
                     ResetSerialPort();
                 }
@@ -783,7 +793,8 @@ void SerialIO::Run()
 
 bool SerialIO::IsConnected()
 {
-    double time_since_last_update = time(0) - this->last_valid_packet_time;
+    gettimeofday(&now,NULL);
+    double time_since_last_update = convert_timestamp(now) - this->last_valid_packet_time;
     return time_since_last_update <= IO_TIMEOUT_SECONDS;
 }
 
