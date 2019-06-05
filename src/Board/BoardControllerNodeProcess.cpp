@@ -620,7 +620,7 @@ bool BoardControllerNodeProcess::update_sensor(const eros::device::ConstPtr& boa
 		if((sensors.at(i).connected_board.DeviceName == board->DeviceName) and
 				(sensors.at(i).connected_pin.Name == pin->Name))
 		{
-			sensors.at(i).signal.tov = convert_time(tov);
+			sensors.at(i).signal.tov = tov;
 			sensors.at(i).signal.status = SIGNALSTATE_UPDATED;
 			if(sensors.at(i).convert == false)
 			{
@@ -795,7 +795,7 @@ bool BoardControllerNodeProcess::parse_sensorfile(TiXmlDocument doc,std::string 
 		TiXmlElement *l_pUnits = l_pRootElement->FirstChildElement( "Units" );
 		if(NULL != l_pUnits)
 		{
-			sensors.at(sensor_index).signal.units = l_pUnits->GetText();
+			sensors.at(sensor_index).signal.type = convert_signaltype(l_pUnits->GetText());
 		}
 		else { printf("Sensor: %s Element: Units not found.\n",sensors.at(sensor_index).name.c_str()); return false; }
 
