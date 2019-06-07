@@ -20,6 +20,7 @@ public:
 	{
 		uint8_t status;
 		bool initialized;
+		double conversion_factor;
 		std::string type;
 		std::string name;
 		std::string remapped_topicname;

@@ -624,14 +624,14 @@ bool BoardControllerNodeProcess::update_sensor(const eros::device::ConstPtr& boa
 			sensors.at(i).signal.status = SIGNALSTATE_UPDATED;
 			if(sensors.at(i).convert == false)
 			{
-				sensors.at(i).signal.value = value;
+				sensors.at(i).signal.value = value*sensors.at(i).conversion_factor;
 			}
 			else
 			{
-				sensors.at(i).signal.value = map_input_to_output(value,sensors.at(i).min_inputvalue,
-						sensors.at(i).max_inputvalue,
-						sensors.at(i).min_inputvalue,
-						sensors.at(i).max_outputvalue);
+				sensors.at(i).signal.value = map_input_to_output(value,sensors.at(i).min_inputvalue*sensors.at(i).conversion_factor,
+						sensors.at(i).max_inputvalue*sensors.at(i).conversion_factor,
+						sensors.at(i).min_inputvalue*sensors.at(i).conversion_factor,
+						sensors.at(i).max_outputvalue*sensors.at(i).conversion_factor);
 			}
 			return true;
 		}
@@ -795,7 +795,9 @@ bool BoardControllerNodeProcess::parse_sensorfile(TiXmlDocument doc,std::string 
 		TiXmlElement *l_pUnits = l_pRootElement->FirstChildElement( "Units" );
 		if(NULL != l_pUnits)
 		{
-			sensors.at(sensor_index).signal.type = convert_signaltype(l_pUnits->GetText());
+			double conversion_factor = 1.0;
+			sensors.at(sensor_index).signal.type = convert_signaltype(l_pUnits->GetText(),&conversion_factor);
+			sensors.at(sensor_index).conversion_factor = conversion_factor;
 		}
 		else { printf("Sensor: %s Element: Units not found.\n",sensors.at(sensor_index).name.c_str()); return false; }
 

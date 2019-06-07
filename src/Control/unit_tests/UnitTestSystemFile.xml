@@ -4,32 +4,32 @@
         <LeverArm>
             <Name>Encoder1</Name>
             <ReferenceLeverArm>BodyOrigin</ReferenceLeverArm>
-            <x units="meter">.1</x>
-            <y units="meter">0.2</y>
-            <z units="meter">0.3</z>
-            <roll units="degree">20.0</roll>
-            <pitch units="degree">30.0</pitch>
-            <yaw units="degree">80.0</yaw>
+            <x Units="meter">.1</x>
+            <y Units="meter">0.2</y>
+            <z Units="meter">0.3</z>
+            <roll Units="degree">20.0</roll>
+            <pitch Units="degree">30.0</pitch>
+            <yaw Units="degree">80.0</yaw>
         </LeverArm>
         <LeverArm>
             <Name>IMU1</Name>
             <ReferenceLeverArm>BodyOrigin</ReferenceLeverArm>
-            <x units="meter">.1</x>
-            <y units="meter">0.2</y>
-            <z units="meter">0.3</z>
-            <roll units="degree">20.0</roll>
-            <pitch units="degree">30.0</pitch>
-            <yaw units="degree">80.0</yaw>
+            <x Units="meter">.1</x>
+            <y Units="meter">0.2</y>
+            <z Units="meter">0.3</z>
+            <roll Units="degree">20.0</roll>
+            <pitch Units="degree">30.0</pitch>
+            <yaw Units="degree">80.0</yaw>
         </LeverArm>
         <LeverArm>
             <Name>IMU2</Name>
             <ReferenceLeverArm>BodyOrigin</ReferenceLeverArm>
-            <x units="meter">.1</x>
-            <y units="meter">0.2</y>
-            <z units="meter">0.3</z>
-            <roll units="degree">20.0</roll>
-            <pitch units="degree">30.0</pitch>
-            <yaw units="degree">80.0</yaw>
+            <x Units="meter">.1</x>
+            <y Units="meter">0.2</y>
+            <z Units="meter">0.3</z>
+            <roll Units="degree">20.0</roll>
+            <pitch Units="degree">30.0</pitch>
+            <yaw Units="degree">80.0</yaw>
         </LeverArm>
     </LeverArmList>
 </SystemFile>

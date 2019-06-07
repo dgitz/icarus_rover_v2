@@ -131,7 +131,7 @@ public:
 	std::vector<eros::diagnostic> run_unittest();
 	ros::Time convert_time(struct timeval t);
 	ros::Time convert_time(double t);
-	uint8_t convert_signaltype(std::string units);
+	uint8_t convert_signaltype(std::string units,double *conversion_factor);
 	//Printing Functions
 protected:
 	DiagnosticClass diagnostic_helper;

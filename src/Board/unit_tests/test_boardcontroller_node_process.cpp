@@ -368,7 +368,7 @@ void print_sensordata(std::vector<BoardControllerNodeProcess::Sensor> sensors)
 	for(std::size_t i = 0; i < sensors.size(); i++)
 	{
 		printf("[%d] Sensor: %s Type: %s TOV: %f Value: %f\n",
-				(int)i,sensors.at(i).name.c_str(),sensors.at(i).type.c_str(),sensors.at(i).signal.tov.toSec(),sensors.at(i).signal.value);
+				(int)i,sensors.at(i).name.c_str(),sensors.at(i).type.c_str(),sensors.at(i).signal.tov,sensors.at(i).signal.value);
 	}
 }
 

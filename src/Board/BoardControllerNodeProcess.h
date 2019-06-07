@@ -41,6 +41,7 @@ public:
 	struct Sensor
 	{
 		eros::signal signal;
+		double conversion_factor;
 		bool initialized;
 		std::string type;
 		std::string name;

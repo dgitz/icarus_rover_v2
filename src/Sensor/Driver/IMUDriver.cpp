@@ -226,18 +226,21 @@ IMUDriver::RawIMU IMUDriver::update()
 		status = false;
 		t_imu.serial_number = device->GetSerialNumber();
 		t_imu.tov = device->GetLastTimestamp();
-		last_sequence_number = imu_data.sequence_number;
+		
 		t_imu.sequence_number=device->GetUpdateCount();
-		t_imu.acc_x  = update_signal(t_imu.tov,imu_data.sequence_number,G*device->GetRawAccelX(),t_imu.acc_x);
-		t_imu.acc_y  = update_signal(t_imu.tov,imu_data.sequence_number,G*device->GetRawAccelY(),t_imu.acc_y);
-		t_imu.acc_z  = update_signal(t_imu.tov,imu_data.sequence_number,G*device->GetRawAccelZ(),t_imu.acc_z);
-		t_imu.gyro_x = update_signal(t_imu.tov,imu_data.sequence_number,device->GetRawGyroX(),t_imu.gyro_x);
-		t_imu.gyro_y = update_signal(t_imu.tov,imu_data.sequence_number,device->GetRawGyroY(),t_imu.gyro_y);
-		t_imu.gyro_z = update_signal(t_imu.tov,imu_data.sequence_number,device->GetRawGyroZ(),t_imu.gyro_z);
-		t_imu.mag_x = update_signal(t_imu.tov,imu_data.sequence_number,device->GetRawMagX(),t_imu.mag_x);
-		t_imu.mag_y = update_signal(t_imu.tov,imu_data.sequence_number,device->GetRawMagY(),t_imu.mag_y);
-		t_imu.mag_z = update_signal(t_imu.tov,imu_data.sequence_number,device->GetRawMagZ(),t_imu.mag_z);
-		t_imu.temperature = update_signal(t_imu.tov,imu_data.sequence_number,device->GetTempC(),t_imu.temperature);
+		t_imu.acc_x  = update_signal(t_imu.tov,t_imu.sequence_number,G*device->GetRawAccelX(),t_imu.acc_x);
+		//t_imu.signal_state = t_imu.acc_x.state;
+		//printf("state: %d\n",t_imu.signal_state);
+		t_imu.acc_y  = update_signal(t_imu.tov,t_imu.sequence_number,G*device->GetRawAccelY(),t_imu.acc_y);
+		t_imu.acc_z  = update_signal(t_imu.tov,t_imu.sequence_number,G*device->GetRawAccelZ(),t_imu.acc_z);
+		t_imu.gyro_x = update_signal(t_imu.tov,t_imu.sequence_number,device->GetRawGyroX(),t_imu.gyro_x);
+		t_imu.gyro_y = update_signal(t_imu.tov,t_imu.sequence_number,device->GetRawGyroY(),t_imu.gyro_y);
+		t_imu.gyro_z = update_signal(t_imu.tov,t_imu.sequence_number,device->GetRawGyroZ(),t_imu.gyro_z);
+		t_imu.mag_x = update_signal(t_imu.tov,t_imu.sequence_number,device->GetRawMagX(),t_imu.mag_x);
+		t_imu.mag_y = update_signal(t_imu.tov,t_imu.sequence_number,device->GetRawMagY(),t_imu.mag_y);
+		t_imu.mag_z = update_signal(t_imu.tov,t_imu.sequence_number,device->GetRawMagZ(),t_imu.mag_z);
+		t_imu.temperature = update_signal(t_imu.tov,t_imu.sequence_number,device->GetTempC(),t_imu.temperature);
+		
 		status = true;
 	}
 
@@ -274,6 +277,7 @@ IMUDriver::RawIMU IMUDriver::update()
 	}
 	t_imu.updated = true;
 	imu_data = t_imu;
+	last_sequence_number = t_imu.sequence_number;
 	return imu_data;
 }
 void IMUDriver::set_debugmode(uint8_t v)

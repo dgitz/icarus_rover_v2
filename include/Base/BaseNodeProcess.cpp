@@ -267,8 +267,9 @@ eros::diagnostic BaseNodeProcess::update_diagnostic(std::string device_name, uin
 		return diag;
 	}
 }
-uint8_t BaseNodeProcess::convert_signaltype(std::string units)
+uint8_t BaseNodeProcess::convert_signaltype(std::string units,double *conversion_factor)
 {
+	*conversion_factor = 1.0;
 	if(units == "m/s^2")
 	{
 		return SIGNALTYPE_ACCELERATION;
@@ -287,6 +288,11 @@ uint8_t BaseNodeProcess::convert_signaltype(std::string units)
 	}
 	else if(units == "meter")
 	{
+		return SIGNALTYPE_DISTANCE;
+	}
+	else if(units == "inch")
+	{
+		*conversion_factor = 0.0254;
 		return SIGNALTYPE_DISTANCE;
 	}
 	else if(units == "degree")

@@ -207,7 +207,7 @@ add_subdirectory(src/Control)
 add_subdirectory(src/Diagnostics)
 
 #Add CMakeLists for Pose
-#add_subdirectory(src/Pose)
+add_subdirectory(src/Pose)
 
 #Add CMakeLists for Sensors
 add_subdirectory(src/Sensor) 
