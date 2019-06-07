@@ -267,3 +267,40 @@ eros::diagnostic BaseNodeProcess::update_diagnostic(std::string device_name, uin
 		return diag;
 	}
 }
+uint8_t BaseNodeProcess::convert_signaltype(std::string units,double *conversion_factor)
+{
+	*conversion_factor = 1.0;
+	if(units == "m/s^2")
+	{
+		return SIGNALTYPE_ACCELERATION;
+	}
+	else if(units == "deg/s")
+	{
+		return SIGNALTYPE_ROTATION_RATE;
+	}
+	else if(units == "uT")
+	{
+		return SIGNALTYPE_MAGNETIC_FIELD;
+	}
+	else if(units == "C")
+	{
+		return SIGNALTYPE_TEMPERATURE;
+	}
+	else if(units == "meter")
+	{
+		return SIGNALTYPE_DISTANCE;
+	}
+	else if(units == "inch")
+	{
+		*conversion_factor = 0.0254;
+		return SIGNALTYPE_DISTANCE;
+	}
+	else if(units == "degree")
+	{
+		return SIGNALTYPE_ANGLE;
+	}
+	else
+	{
+		return SIGNALTYPE_UNDEFINED;
+	}
+}

@@ -398,18 +398,18 @@ bool HatControllerNodeProcess::update_sensor(const eros::device::ConstPtr& t_dev
 		if((sensors.at(i).connected_hat.DeviceName == t_device->DeviceName) and
 				(sensors.at(i).connected_pin.Name == t_pin->Name))
 		{
-			sensors.at(i).signal.tov = convert_time(tov);
+			sensors.at(i).signal.tov = tov;
 			sensors.at(i).signal.status = SIGNALSTATE_UPDATED;
 			if(sensors.at(i).convert == false)
 			{
-				sensors.at(i).signal.value = value;
+				sensors.at(i).signal.value = value*sensors.at(i).conversion_factor;
 			}
 			else
 			{
-				sensors.at(i).signal.value = map_input_to_output(value,sensors.at(i).min_inputvalue,
-						sensors.at(i).max_inputvalue,
-						sensors.at(i).min_inputvalue,
-						sensors.at(i).max_outputvalue);
+				sensors.at(i).signal.value = map_input_to_output(value,sensors.at(i).min_inputvalue*sensors.at(i).conversion_factor,
+						sensors.at(i).max_inputvalue*sensors.at(i).conversion_factor,
+						sensors.at(i).min_inputvalue*sensors.at(i).conversion_factor,
+						sensors.at(i).max_outputvalue*sensors.at(i).conversion_factor);
 			}
 			sensors.at(i).signal.rms = -1;
 			return true;
@@ -849,7 +849,9 @@ bool HatControllerNodeProcess::parse_sensorfile(TiXmlDocument doc,std::string na
 		TiXmlElement *l_pUnits = l_pRootElement->FirstChildElement( "Units" );
 		if(NULL != l_pUnits)
 		{
-			sensors.at(sensor_index).signal.units = l_pUnits->GetText();
+			double conversion_factor = 1.0;
+			sensors.at(sensor_index).signal.type = convert_signaltype(l_pUnits->GetText(),&conversion_factor);
+			sensors.at(sensor_index).conversion_factor = conversion_factor;
 		}
 		else { printf("Sensor: %s Element: Units not found.\n",sensors.at(sensor_index).name.c_str()); return false; }
 

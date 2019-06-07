@@ -21,16 +21,16 @@ eros::signal TimeCompensate::new_signal(ros::Time current_time,eros::signal inpu
 		if(buffer.size() == 0)
 		{
 			StorageBufferElement element;
-			element.timestamp = input.tov.toSec();
+			element.timestamp = input.tov;
 			element.state = SIGNALSTATE_INITIALIZING;
 			element.value = input.value;
 			buffer.push_back(element);
 			output = input;
 		}
-		else if(input.tov.toSec() > buffer.back().timestamp)
+		else if(input.tov > buffer.back().timestamp)
 		{
 			StorageBufferElement element;
-			element.timestamp = input.tov.toSec();
+			element.timestamp = input.tov;
 			element.state = input.status;
 			element.value = input.value;
 			output = input;
@@ -50,8 +50,8 @@ eros::signal TimeCompensate::new_signal(ros::Time current_time,eros::signal inpu
 			double B0 = ((buffer.back().timestamp - t_mean) * (buffer.back().value-value_mean))/(buffer.back().timestamp-(t_mean*t_mean));
 			double B1 = value_mean-B1*t_mean;
 			eros::signal out;
-			out.tov = current_time;
-			out.value = B0 + B1*out.tov.toSec();
+			out.tov = current_time.toSec();
+			out.value = B0 + B1*out.tov;
 			out.status = SIGNALSTATE_EXTRAPOLATED;
 			output = out;
 		}

@@ -7,23 +7,10 @@ IMUDriver::IMUDriver()
 	timesync_tx_count = 0;
 	supported_connection_methods.push_back("serial");
 	supported_connection_methods.push_back("AHRS");
-	imu_data.signal_state = SIGNALSTATE_INITIALIZING;
 	conn_fd = -1;
 	gettimeofday(&now,NULL);
 	gettimeofday(&last,NULL);
-	imu_data.sequence_number = 0;
-	imu_data.update_count = 0;
-	imu_data.update_rate = 0.0;
-	imu_data.tov = 0.0;
-	imu_data.acc_x = 0.0;
-	imu_data.acc_y = 0.0;
-	imu_data.acc_z = 0.0;
-	imu_data.gyro_x = 0.0;
-	imu_data.gyro_y = 0.0;
-	imu_data.gyro_z = 0.0;
-	imu_data.mag_x = 0.0;
-	imu_data.mag_y = 0.0;
-	imu_data.mag_z = 0.0;
+	imu_data = init_imusignals();
 }
 IMUDriver::~IMUDriver()
 {
@@ -209,16 +196,15 @@ IMUDriver::RawIMU IMUDriver::update()
 					t_imu.tov = std::atof(start.c_str());
 					last_sequence_number = imu_data.sequence_number;
 					t_imu.sequence_number = std::atoi(items.at(1).c_str());
-
-					t_imu.acc_x = std::atof(items.at(2).c_str());
-					t_imu.acc_y = std::atof(items.at(3).c_str());
-					t_imu.acc_z = std::atof(items.at(4).c_str());
-					t_imu.gyro_x = std::atof(items.at(5).c_str());
-					t_imu.gyro_y = std::atof(items.at(6).c_str());
-					t_imu.gyro_z = std::atof(items.at(7).c_str());
-					t_imu.mag_x = std::atof(items.at(8).c_str());
-					t_imu.mag_y = std::atof(items.at(9).c_str());
-					t_imu.mag_z = std::atof(end.c_str());
+					t_imu.acc_x =  update_signal(t_imu.tov,imu_data.sequence_number,std::atof(items.at(2).c_str()),t_imu.acc_x);
+					t_imu.acc_y =  update_signal(t_imu.tov,imu_data.sequence_number,std::atof(items.at(3).c_str()),t_imu.acc_y);
+					t_imu.acc_z =  update_signal(t_imu.tov,imu_data.sequence_number,std::atof(items.at(4).c_str()),t_imu.acc_z);
+					t_imu.gyro_x =  update_signal(t_imu.tov,imu_data.sequence_number,std::atof(items.at(5).c_str()),t_imu.gyro_x);
+					t_imu.gyro_y =  update_signal(t_imu.tov,imu_data.sequence_number,std::atof(items.at(6).c_str()),t_imu.gyro_y);
+					t_imu.gyro_z =  update_signal(t_imu.tov,imu_data.sequence_number,std::atof(items.at(7).c_str()),t_imu.gyro_z);
+					t_imu.mag_x =  update_signal(t_imu.tov,imu_data.sequence_number,std::atof(items.at(8).c_str()),t_imu.mag_x);
+					t_imu.mag_y =  update_signal(t_imu.tov,imu_data.sequence_number,std::atof(items.at(9).c_str()),t_imu.mag_y);
+					t_imu.mag_z =  update_signal(t_imu.tov,imu_data.sequence_number,std::atof(items.at(10).c_str()),t_imu.mag_z);
 					status = true;
 
 				}
@@ -240,19 +226,21 @@ IMUDriver::RawIMU IMUDriver::update()
 		status = false;
 		t_imu.serial_number = device->GetSerialNumber();
 		t_imu.tov = device->GetLastTimestamp();
-		last_sequence_number = imu_data.sequence_number;
+		
 		t_imu.sequence_number=device->GetUpdateCount();
-
-		t_imu.acc_x = G*device->GetRawAccelX();
-		t_imu.acc_y = G*device->GetRawAccelY();
-		t_imu.acc_z = G*device->GetRawAccelZ();
-		t_imu.gyro_x = device->GetRawGyroX();
-		t_imu.gyro_y = device->GetRawGyroY();
-		t_imu.gyro_z = device->GetRawGyroZ();
-		t_imu.mag_x = device->GetRawMagX();
-		t_imu.mag_y = device->GetRawMagY();
-		t_imu.mag_z = device->GetRawMagZ();
-		t_imu.temperature = device->GetTempC();
+		t_imu.acc_x  = update_signal(t_imu.tov,t_imu.sequence_number,G*device->GetRawAccelX(),t_imu.acc_x);
+		//t_imu.signal_state = t_imu.acc_x.state;
+		//printf("state: %d\n",t_imu.signal_state);
+		t_imu.acc_y  = update_signal(t_imu.tov,t_imu.sequence_number,G*device->GetRawAccelY(),t_imu.acc_y);
+		t_imu.acc_z  = update_signal(t_imu.tov,t_imu.sequence_number,G*device->GetRawAccelZ(),t_imu.acc_z);
+		t_imu.gyro_x = update_signal(t_imu.tov,t_imu.sequence_number,device->GetRawGyroX(),t_imu.gyro_x);
+		t_imu.gyro_y = update_signal(t_imu.tov,t_imu.sequence_number,device->GetRawGyroY(),t_imu.gyro_y);
+		t_imu.gyro_z = update_signal(t_imu.tov,t_imu.sequence_number,device->GetRawGyroZ(),t_imu.gyro_z);
+		t_imu.mag_x = update_signal(t_imu.tov,t_imu.sequence_number,device->GetRawMagX(),t_imu.mag_x);
+		t_imu.mag_y = update_signal(t_imu.tov,t_imu.sequence_number,device->GetRawMagY(),t_imu.mag_y);
+		t_imu.mag_z = update_signal(t_imu.tov,t_imu.sequence_number,device->GetRawMagZ(),t_imu.mag_z);
+		t_imu.temperature = update_signal(t_imu.tov,t_imu.sequence_number,device->GetTempC(),t_imu.temperature);
+		
 		status = true;
 	}
 
@@ -289,6 +277,7 @@ IMUDriver::RawIMU IMUDriver::update()
 	}
 	t_imu.updated = true;
 	imu_data = t_imu;
+	last_sequence_number = t_imu.sequence_number;
 	return imu_data;
 }
 void IMUDriver::set_debugmode(uint8_t v)
@@ -408,4 +397,81 @@ IMUDriver::PartNumber IMUDriver::map_pn_toenum(std::string v)
 	{
 		return UNKNOWN;
 	}
+}
+IMUDriver::RawIMU IMUDriver::init_imusignals()
+{
+	RawIMU data;
+	data.sequence_number = 0;
+	data.update_count = 0;
+	data.update_rate = 0.0;
+	data.tov = 0.0;
+	data.acc_x = init_signal(SIGNALTYPE_ACCELERATION);
+	data.acc_y = init_signal(SIGNALTYPE_ACCELERATION);
+	data.acc_z = init_signal(SIGNALTYPE_ACCELERATION);
+	data.gyro_x = init_signal(SIGNALTYPE_ROTATION_RATE);
+	data.gyro_y = init_signal(SIGNALTYPE_ROTATION_RATE);
+	data.gyro_z = init_signal(SIGNALTYPE_ROTATION_RATE);
+	data.mag_x = init_signal(SIGNALTYPE_MAGNETIC_FIELD);
+	data.mag_y = init_signal(SIGNALTYPE_MAGNETIC_FIELD);
+	data.mag_z = init_signal(SIGNALTYPE_MAGNETIC_FIELD);
+	return data;
+}
+IMUDriver::Signal IMUDriver::init_signal(uint8_t type)
+{
+	IMUDriver::Signal sig;
+	sig.type = type;
+	sig.value = 0.0;
+	sig.tov = 0.0;
+	sig.state = SIGNALSTATE_INITIALIZING;
+	return sig;
+}
+IMUDriver::Signal IMUDriver::update_signal(double tov,uint16_t sequence_number,double value,IMUDriver::Signal prev_signal)
+{
+	bool updated = true;
+	if(sequence_number == last_sequence_number)
+	{
+		updated = false;
+	}
+	IMUDriver::Signal newsig = prev_signal;
+	newsig.tov = tov;
+	newsig.value = value;
+	switch(partnumber)
+	{
+		case PN_110013:
+		{
+			if(updated == false)
+			{
+				newsig.state = SIGNALSTATE_HOLD;
+			}
+			else
+			{
+				newsig.state = SIGNALSTATE_UPDATED;
+			}
+		}
+		case PN_110015:
+			if(updated == false)
+			{
+				newsig.state = SIGNALSTATE_HOLD;
+			}
+			else if(prev_signal.type == SIGNALTYPE_MAGNETIC_FIELD)
+			{
+				double dv = fabs(newsig.value-prev_signal.value);
+				if(dv < .000001)
+				{
+					newsig.state = SIGNALSTATE_HOLD;
+				}
+				else
+				{
+					newsig.state = SIGNALSTATE_UPDATED;
+				}
+			}
+			else
+			{
+				newsig.state = SIGNALSTATE_UPDATED;
+			}
+		break;
+		default:
+		break;
+	}
+	return newsig;
 }

@@ -216,7 +216,7 @@ void print_imudata(std::string report,IMUDriver driver,IMUDriver::RawIMU imu_dat
 			imu_data.serial_number);
 	if((report == "stat") or (report == "all"))
 	{
-		sprintf(tempstr,"%s Delay=%4.2f Seq=%d T=%4.2f U=%ld R=%4.2fHz State: %s Temp: %4.2fC",
+		sprintf(tempstr,"%s Delay=%4.2f Seq=%d T=%4.2f U=%ld R=%4.2fHz State: %s Temp: %4.2f C",
 				tempstr,
 				driver.get_timedelay(),
 				imu_data.sequence_number,
@@ -224,32 +224,32 @@ void print_imudata(std::string report,IMUDriver driver,IMUDriver::RawIMU imu_dat
 				imu_data.update_count,
 				imu_data.update_rate,
 				driver.map_signalstate_tostring(imu_data.signal_state).c_str(),
-				imu_data.temperature);
+				imu_data.temperature.value);
 				
 	}
 	if((report == "acc") or (report == "all"))
 	{
-		sprintf(tempstr,"%s Acc: X=%4.2f Y=%4.2f Z=%4.2f",
+		sprintf(tempstr,"%s Acc: X=%4.2f/%d Y=%4.2f/%d Z=%4.2f/%d",
 				tempstr,
-				imu_data.acc_x,
-				imu_data.acc_y,
-				imu_data.acc_z);
+				imu_data.acc_x.value,imu_data.acc_x.state,
+				imu_data.acc_y.value,imu_data.acc_y.state,
+				imu_data.acc_z.value,imu_data.acc_z.state);
 	}
 	if((report == "gyro") or (report == "all"))
 	{
-		sprintf(tempstr,"%s Gyro: X=%4.2f Y=%4.2f Z=%4.2f",
+		sprintf(tempstr,"%s Gyro: X=%4.2f/%d Y=%4.2f/%d Z=%4.2f/%d",
 				tempstr,
-				imu_data.gyro_x,
-				imu_data.gyro_y,
-				imu_data.gyro_z);
+				imu_data.gyro_x.value,imu_data.gyro_x.state,
+				imu_data.gyro_y.value,imu_data.gyro_y.state,
+				imu_data.gyro_z.value,imu_data.gyro_z.state);
 	}
 	if((report == "mag") or (report == "all"))
 	{
-		sprintf(tempstr,"%s Mag: X=%4.2f Y=%4.2f Z=%4.2f",
+		sprintf(tempstr,"%s Mag: X=%4.2f/%d Y=%4.2f/%d Z=%4.2f/%d",
 				tempstr,
-				imu_data.mag_x,
-				imu_data.mag_y,
-				imu_data.mag_z);
+				imu_data.mag_x.value,imu_data.mag_x.state,
+				imu_data.mag_y.value,imu_data.mag_y.state,
+				imu_data.mag_z.value,imu_data.mag_z.state);
 	}
 	sprintf(tempstr,"%s%s\n",tempstr,end_color.c_str());
 	printf("%s",tempstr);

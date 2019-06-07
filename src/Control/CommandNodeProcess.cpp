@@ -46,7 +46,6 @@ eros::diagnostic CommandNodeProcess::update(double t_dt,double t_ros_time)
 		ready = true;
 
 	}
-	
 	diag = update_baseprocess(t_dt,t_ros_time);
 	if(ready == true)
 	{
@@ -58,17 +57,17 @@ eros::diagnostic CommandNodeProcess::update(double t_dt,double t_ros_time)
 	node_state = NODESTATE_RUNNING; //Hack
 	batterylevel_perc = 0.0;
 	bool temp = true;
-	char tempstr[512*(int)ReadyToArmList.size()];
+	char tempstr[512*(int)(ReadyToArmList.size()+1)];
 	memset(tempstr,0,strlen(tempstr));
 	if(ReadyToArmList.size() == 0)
 	{
-
 		disarmed_reason = "Ready To Arm List Size == 0";
 		temp = false;
 	}
+	
 	else
 	{
-		for(std::size_t i = 0; i < ReadyToArmList.size();i++)
+		for(std::size_t i = 0; i < ReadyToArmList.size();++i)
 		{
 			if(ReadyToArmList.at(i).ready_to_arm == false)
 			{
@@ -81,7 +80,6 @@ eros::diagnostic CommandNodeProcess::update(double t_dt,double t_ros_time)
 			disarmed_reason = std::string(tempstr);
 		}
 	}
-
 	ready_to_arm = temp;
 	if(ready_to_arm == false)
 	{

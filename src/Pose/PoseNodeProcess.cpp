@@ -67,9 +67,9 @@ eros::diagnostic PoseNodeProcess::new_devicemsg(const eros::device::ConstPtr& de
 		newimu.orientation_pitch.status = SIGNALSTATE_INITIALIZING;
 		newimu.orientation_roll.status = SIGNALSTATE_INITIALIZING;
 		newimu.orientation_yaw.status = SIGNALSTATE_INITIALIZING;
-		newimu.orientation_pitch.units = "radians";
-		newimu.orientation_roll.units = "radians";
-		newimu.orientation_yaw.units = "radians";
+		newimu.orientation_pitch.type = SIGNALTYPE_ANGLE;
+		newimu.orientation_roll.type = SIGNALTYPE_ANGLE;
+		newimu.orientation_yaw.type = SIGNALTYPE_ANGLE;
 		newimu.transform.setOrigin( tf::Vector3(0.0,0.0, 0.0) );
 		tf::Quaternion q;
 		q.setRPY(0.0,0.0,0.0);

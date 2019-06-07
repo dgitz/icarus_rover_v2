@@ -36,6 +36,13 @@ public:
 		PN_110013=1,
 		PN_110015=2
 	};
+	struct Signal
+	{
+		double tov;
+		uint8_t state;
+		double value;
+		uint8_t type;
+	};
 	struct RawIMU
 	{
 		uint64_t serial_number;
@@ -46,16 +53,16 @@ public:
 		double update_rate;
 		double tov;
 		uint16_t sequence_number;
-		double acc_x;
-		double acc_y;
-		double acc_z;
-		double gyro_x;
-		double gyro_y;
-		double gyro_z;
-		double mag_x;
-		double mag_y;
-		double mag_z;
-		double temperature;
+		Signal acc_x;
+		Signal acc_y;
+		Signal acc_z;
+		Signal gyro_x;
+		Signal gyro_y;
+		Signal gyro_z;
+		Signal mag_x;
+		Signal mag_y;
+		Signal mag_z;
+		Signal temperature;
 	};
 
 	IMUDriver();
@@ -77,6 +84,9 @@ public:
 	bool reset();
 
 private:
+	RawIMU init_imusignals();
+	Signal init_signal(uint8_t type);
+	Signal update_signal(double tov,uint16_t sequence_number,double value,Signal prev_signal);
 	std::string devicename;
 	PartNumber partnumber;
 	uint16_t last_sequence_number;

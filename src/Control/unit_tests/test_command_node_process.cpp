@@ -152,7 +152,6 @@ TEST(PeriodicCommands,TestA)
 
 TEST(ArmDisarm,TestA)
 {
-
 	eros::diagnostic diagnostic;
 	CommandNodeProcess* process = initializeprocess();
 	process = readyprocess(process);
@@ -239,6 +238,7 @@ TEST(Scripting,ScriptExecutor)
 		eros::diagnostic diagnostic = process->load_loadscriptingfiles("/home/robot/catkin_ws/src/icarus_rover_v2/src/Control/unit_tests/scriptfiles/Test1/");
 
 		process->print_scriptcommand_list();
+		
 		EXPECT_TRUE(diagnostic.Level <= NOTICE);
 		EXPECT_TRUE(process->get_scriptexecutiontime() > 0.0);
 		double script_execution_time = process->get_scriptexecutiontime();
@@ -277,7 +277,9 @@ TEST(Scripting,ScriptExecutor)
 			}
 
 			current_time += dt;
+			
 		}
+		
 		//Should not be anything left in the script queue now
 		while(process->get_runtime() < (2.0*script_execution_time))
 		{

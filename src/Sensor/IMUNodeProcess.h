@@ -126,6 +126,7 @@ public:
 	//Printing Functions
 protected:
 private:
+	eros::signal convert_signal(IMUDriver::Signal signal);
 	std::string map_signalstate_tostring(uint8_t v);
     bool load_sensorinfo(std::string devicename);
     bool set_imu_mounting_angles(std::string devicename,double roll_deg,double pitch_deg,double yaw_deg);

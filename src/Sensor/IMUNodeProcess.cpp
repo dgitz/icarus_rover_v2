@@ -117,7 +117,7 @@ eros::diagnostic IMUNodeProcess::update(double t_dt,double t_ros_time)
 	}
 	return diag;
 }
-eros::diagnostic IMUNodeProcess::new_imumsg(std::string devicename,IMUDriver::RawIMU imu_data,eros::imu &proc_imu,eros::signal &proc_imu_temperature)
+eros::diagnostic IMUNodeProcess::new_imumsg(std::string devicename,IMUDriver::RawIMU raw_data,eros::imu &imu_output,eros::signal &proc_imu_temperature)
 {
 	eros::diagnostic diag = root_diagnostic;
 	bool found = false;
@@ -126,9 +126,9 @@ eros::diagnostic IMUNodeProcess::new_imumsg(std::string devicename,IMUDriver::Ra
 		if(imus.at(i).devicename == devicename)
 		{
 
-			if((imu_data.signal_state == SIGNALSTATE_UPDATED) or 
-			   (imu_data.signal_state == SIGNALSTATE_EXTRAPOLATED) or
-			   (imu_data.signal_state == SIGNALSTATE_HOLD) 
+			if((raw_data.signal_state == SIGNALSTATE_UPDATED) or 
+			   (raw_data.signal_state == SIGNALSTATE_EXTRAPOLATED) or
+			   (raw_data.signal_state == SIGNALSTATE_HOLD) 
 			  )
 			  {
 				  imu_reset_inprogress = false;
@@ -137,18 +137,18 @@ eros::diagnostic IMUNodeProcess::new_imumsg(std::string devicename,IMUDriver::Ra
 			else
 			{
 				char tempstr[512];
-				sprintf(tempstr,"IMU State: %s",map_signalstate_tostring(imu_data.signal_state).c_str());
+				sprintf(tempstr,"IMU State: %s",map_signalstate_tostring(raw_data.signal_state).c_str());
 				diag = update_diagnostic(devicename,SENSORS,WARN,DROPPING_PACKETS,std::string(tempstr));
 				return diag;
 			}
-			if(imu_data.serial_number != 0)
+			if(raw_data.serial_number != 0)
 			{
 				if(imus.at(i).serial_number_checked == false)
 				{
-				if(imu_data.serial_number != imus.at(i).serial_number)
+				if(raw_data.serial_number != imus.at(i).serial_number)
 				{
 					char tempstr[512];
-					sprintf(tempstr,"Expected Id: %llu but Received: %llu",imus.at(i).serial_number,imu_data.serial_number);
+					sprintf(tempstr,"Expected Id: %llu but Received: %llu",imus.at(i).serial_number,raw_data.serial_number);
 					diag = update_diagnostic(imus.at(i).devicename,DATA_STORAGE,ERROR,DEVICE_NOT_AVAILABLE,std::string(tempstr));
 				}
 				else
@@ -159,157 +159,152 @@ eros::diagnostic IMUNodeProcess::new_imumsg(std::string devicename,IMUDriver::Ra
 				imus.at(i).serial_number_checked = true;
 			}
 			
-			proc_imu = imus.at(i).imu_data;
+			imu_output = imus.at(i).imu_data;
 			imus.at(i).packet_count++;
-			imus.at(i).sequence_number = imu_data.sequence_number;
-			imus.at(i).imu_data.tov = imu_data.tov;
-			proc_imu.tov = imu_data.tov;
-			proc_imu_temperature.tov = convert_time(imu_data.tov);
-			proc_imu_temperature.units = "C";
-			proc_imu_temperature.value = imu_data.temperature;
-			proc_imu_temperature.status = imu_data.signal_state;
-			proc_imu.sequence_number = imu_data.sequence_number;
+			imus.at(i).sequence_number = raw_data.sequence_number;
+			imus.at(i).imu_data.tov = raw_data.tov;
+			imu_output.tov = raw_data.tov;
+			proc_imu_temperature = convert_signal(raw_data.temperature);
+			imu_output.xacc = convert_signal(raw_data.acc_x);
+			imu_output.yacc = convert_signal(raw_data.acc_y);
+			imu_output.zacc = convert_signal(raw_data.acc_z);
+			imu_output.xgyro = convert_signal(raw_data.gyro_x);
+			imu_output.ygyro = convert_signal(raw_data.gyro_y);
+			imu_output.zgyro = convert_signal(raw_data.gyro_z);
+			imu_output.xmag = convert_signal(raw_data.mag_x);
+			imu_output.ymag = convert_signal(raw_data.mag_y);
+			imu_output.zmag = convert_signal(raw_data.mag_z);
+			imu_output.sequence_number = raw_data.sequence_number;
 			{
-				double x = imu_data.acc_x/imus.at(i).acc_scale_factor;
-				double y = imu_data.acc_y/imus.at(i).acc_scale_factor;
-				double z = imu_data.acc_z/imus.at(i).acc_scale_factor;
+				double x = raw_data.acc_x.value/imus.at(i).acc_scale_factor;
+				double y = raw_data.acc_y.value/imus.at(i).acc_scale_factor;
+				double z = raw_data.acc_z.value/imus.at(i).acc_scale_factor;
 				Eigen::RowVector3f v;
 				v << x,y,z;
 				Eigen::RowVector3f vp = imus.at(i).rotate_matrix.Rotation_Acc*v.transpose();
-				proc_imu.xacc.value = vp(0);
-				proc_imu.yacc.value = vp(1);
-				proc_imu.zacc.value = vp(2);
+				imu_output.xacc.value = vp(0);
+				imu_output.yacc.value = vp(1);
+				imu_output.zacc.value = vp(2);
 				if(imus.at(i).update_count == 0)
 				{
-					imus.at(i).xacc_rms_mean1 = pow(proc_imu.xacc.value,2.0);
+					imus.at(i).xacc_rms_mean1 = pow(imu_output.xacc.value,2.0);
 				}
 				else
 				{
-					imus.at(i).xacc_rms_mean1 += (pow(proc_imu.xacc.value,2.0)/(double)((imus.at(i).update_count+1))) - (imus.at(i).xacc_rms_mean1/(double)(imus.at(i).update_count+1));
+					imus.at(i).xacc_rms_mean1 += (pow(imu_output.xacc.value,2.0)/(double)((imus.at(i).update_count+1))) - (imus.at(i).xacc_rms_mean1/(double)(imus.at(i).update_count+1));
 				}
-				proc_imu.xacc.rms = pow(imus.at(i).xacc_rms_mean1,0.5);
+				imu_output.xacc.rms = pow(imus.at(i).xacc_rms_mean1,0.5);
 
 				if(imus.at(i).update_count == 0)
 				{
-					imus.at(i).yacc_rms_mean1 = pow(proc_imu.yacc.value,2.0);
+					imus.at(i).yacc_rms_mean1 = pow(imu_output.yacc.value,2.0);
 				}
 				else
 				{
-					imus.at(i).yacc_rms_mean1 += (pow(proc_imu.yacc.value,2.0)/(double)((imus.at(i).update_count+1))) - (imus.at(i).yacc_rms_mean1/(double)(imus.at(i).update_count+1));
+					imus.at(i).yacc_rms_mean1 += (pow(imu_output.yacc.value,2.0)/(double)((imus.at(i).update_count+1))) - (imus.at(i).yacc_rms_mean1/(double)(imus.at(i).update_count+1));
 				}
-				proc_imu.yacc.rms = pow(imus.at(i).yacc_rms_mean1,0.5);
+				imu_output.yacc.rms = pow(imus.at(i).yacc_rms_mean1,0.5);
 
 				if(imus.at(i).update_count == 0)
 				{
-					imus.at(i).zacc_rms_mean1 = pow(proc_imu.zacc.value,2.0);
+					imus.at(i).zacc_rms_mean1 = pow(imu_output.zacc.value,2.0);
 				}
 				else
 				{
-					imus.at(i).zacc_rms_mean1 += (pow(proc_imu.zacc.value,2.0)/(double)((imus.at(i).update_count+1))) - (imus.at(i).zacc_rms_mean1/(double)(imus.at(i).update_count+1));
+					imus.at(i).zacc_rms_mean1 += (pow(imu_output.zacc.value,2.0)/(double)((imus.at(i).update_count+1))) - (imus.at(i).zacc_rms_mean1/(double)(imus.at(i).update_count+1));
 				}
-				proc_imu.zacc.rms = pow(imus.at(i).zacc_rms_mean1,0.5);
+				imu_output.zacc.rms = pow(imus.at(i).zacc_rms_mean1,0.5);
 
 			}
 
 			{
-				double x = imu_data.gyro_x/imus.at(i).gyro_scale_factor;
-				double y = imu_data.gyro_y/imus.at(i).gyro_scale_factor;
-				double z = imu_data.gyro_z/imus.at(i).gyro_scale_factor;
+				double x = raw_data.gyro_x.value/imus.at(i).gyro_scale_factor;
+				double y = raw_data.gyro_y.value/imus.at(i).gyro_scale_factor;
+				double z = raw_data.gyro_z.value/imus.at(i).gyro_scale_factor;
 				Eigen::RowVector3f v;
 				v << x,y,z;
 				Eigen::RowVector3f vp = imus.at(i).rotate_matrix.Rotation_Gyro*v.transpose();
-				proc_imu.xgyro.value = vp(0);
-				proc_imu.ygyro.value = vp(1);
-				proc_imu.zgyro.value = vp(2);
+				imu_output.xgyro.value = vp(0);
+				imu_output.ygyro.value = vp(1);
+				imu_output.zgyro.value = vp(2);
 
 				if(imus.at(i).update_count == 0)
 				{
-					imus.at(i).xgyro_rms_mean1 = pow(proc_imu.xgyro.value,2.0);
+					imus.at(i).xgyro_rms_mean1 = pow(imu_output.xgyro.value,2.0);
 				}
 				else
 				{
-					imus.at(i).xgyro_rms_mean1 += (pow(proc_imu.xgyro.value,2.0)/(double)((imus.at(i).update_count+1))) - (imus.at(i).xgyro_rms_mean1/(double)(imus.at(i).update_count+1));
+					imus.at(i).xgyro_rms_mean1 += (pow(imu_output.xgyro.value,2.0)/(double)((imus.at(i).update_count+1))) - (imus.at(i).xgyro_rms_mean1/(double)(imus.at(i).update_count+1));
 				}
-				proc_imu.xgyro.rms = pow(imus.at(i).xgyro_rms_mean1,0.5);
+				imu_output.xgyro.rms = pow(imus.at(i).xgyro_rms_mean1,0.5);
 
 				if(imus.at(i).update_count == 0)
 				{
-					imus.at(i).ygyro_rms_mean1 = pow(proc_imu.ygyro.value,2.0);
+					imus.at(i).ygyro_rms_mean1 = pow(imu_output.ygyro.value,2.0);
 				}
 				else
 				{
-					imus.at(i).ygyro_rms_mean1 += (pow(proc_imu.ygyro.value,2.0)/(double)((imus.at(i).update_count+1))) - (imus.at(i).ygyro_rms_mean1/(double)(imus.at(i).update_count+1));
+					imus.at(i).ygyro_rms_mean1 += (pow(imu_output.ygyro.value,2.0)/(double)((imus.at(i).update_count+1))) - (imus.at(i).ygyro_rms_mean1/(double)(imus.at(i).update_count+1));
 				}
-				proc_imu.ygyro.rms = pow(imus.at(i).ygyro_rms_mean1,0.5);
+				imu_output.ygyro.rms = pow(imus.at(i).ygyro_rms_mean1,0.5);
 
 				if(imus.at(i).update_count == 0)
 				{
-					imus.at(i).zgyro_rms_mean1 = pow(proc_imu.zgyro.value,2.0);
+					imus.at(i).zgyro_rms_mean1 = pow(imu_output.zgyro.value,2.0);
 				}
 				else
 				{
-					imus.at(i).zgyro_rms_mean1 += (pow(proc_imu.zgyro.value,2.0)/(double)((imus.at(i).update_count+1))) - (imus.at(i).zgyro_rms_mean1/(double)(imus.at(i).update_count+1));
+					imus.at(i).zgyro_rms_mean1 += (pow(imu_output.zgyro.value,2.0)/(double)((imus.at(i).update_count+1))) - (imus.at(i).zgyro_rms_mean1/(double)(imus.at(i).update_count+1));
 				}
-				proc_imu.zgyro.rms = pow(imus.at(i).zgyro_rms_mean1,0.5);
+				imu_output.zgyro.rms = pow(imus.at(i).zgyro_rms_mean1,0.5);
 
 			}
 
 			{
-				double x = imu_data.mag_x/imus.at(i).mag_scale_factor;
-				double y = imu_data.mag_y/imus.at(i).mag_scale_factor;
-				double z = imu_data.mag_z/imus.at(i).mag_scale_factor;
+				double x = raw_data.mag_x.value/imus.at(i).mag_scale_factor;
+				double y = raw_data.mag_y.value/imus.at(i).mag_scale_factor;
+				double z = raw_data.mag_z.value/imus.at(i).mag_scale_factor;
 				Eigen::RowVector3f v;
 				v << x,y,z;
 				Eigen::RowVector3f vp = imus.at(i).rotate_matrix.Rotation_Mag*v.transpose();
-				proc_imu.xmag.value = vp(0);
-				proc_imu.ymag.value = vp(1);
-				proc_imu.zmag.value = vp(2);
+				imu_output.xmag.value = vp(0);
+				imu_output.ymag.value = vp(1);
+				imu_output.zmag.value = vp(2);
 
 				if(imus.at(i).update_count == 0)
 				{
-					imus.at(i).xmag_rms_mean1 = pow(proc_imu.xmag.value,2.0);
+					imus.at(i).xmag_rms_mean1 = pow(imu_output.xmag.value,2.0);
 				}
 				else
 				{
-					imus.at(i).xmag_rms_mean1 += (pow(proc_imu.xmag.value,2.0)/(double)((imus.at(i).update_count+1))) - (imus.at(i).xmag_rms_mean1/(double)(imus.at(i).update_count+1));
+					imus.at(i).xmag_rms_mean1 += (pow(imu_output.xmag.value,2.0)/(double)((imus.at(i).update_count+1))) - (imus.at(i).xmag_rms_mean1/(double)(imus.at(i).update_count+1));
 				}
-				proc_imu.xmag.rms = pow(imus.at(i).xmag_rms_mean1,0.5);
+				imu_output.xmag.rms = pow(imus.at(i).xmag_rms_mean1,0.5);
 
 				if(imus.at(i).update_count == 0)
 				{
-					imus.at(i).ymag_rms_mean1 = pow(proc_imu.ymag.value,2.0);
+					imus.at(i).ymag_rms_mean1 = pow(imu_output.ymag.value,2.0);
 				}
 				else
 				{
-					imus.at(i).ymag_rms_mean1 += (pow(proc_imu.ymag.value,2.0)/(double)((imus.at(i).update_count+1))) - (imus.at(i).ymag_rms_mean1/(double)(imus.at(i).update_count+1));
+					imus.at(i).ymag_rms_mean1 += (pow(imu_output.ymag.value,2.0)/(double)((imus.at(i).update_count+1))) - (imus.at(i).ymag_rms_mean1/(double)(imus.at(i).update_count+1));
 				}
-				proc_imu.ymag.rms = pow(imus.at(i).ymag_rms_mean1,0.5);
+				imu_output.ymag.rms = pow(imus.at(i).ymag_rms_mean1,0.5);
 
 				if(imus.at(i).update_count == 0)
 				{
-					imus.at(i).zmag_rms_mean1 = pow(proc_imu.zmag.value,2.0);
+					imus.at(i).zmag_rms_mean1 = pow(imu_output.zmag.value,2.0);
 				}
 				else
 				{
-					imus.at(i).zmag_rms_mean1 += (pow(proc_imu.zmag.value,2.0)/(double)((imus.at(i).update_count+1))) - (imus.at(i).zmag_rms_mean1/(double)(imus.at(i).update_count+1));
+					imus.at(i).zmag_rms_mean1 += (pow(imu_output.zmag.value,2.0)/(double)((imus.at(i).update_count+1))) - (imus.at(i).zmag_rms_mean1/(double)(imus.at(i).update_count+1));
 				}
-				proc_imu.zmag.rms = pow(imus.at(i).zmag_rms_mean1,0.5);
+				imu_output.zmag.rms = pow(imus.at(i).zmag_rms_mean1,0.5);
 			}
-
-
-			proc_imu.xacc.status = imu_data.signal_state;
-			proc_imu.yacc.status = imu_data.signal_state;
-			proc_imu.zacc.status = imu_data.signal_state;
-			proc_imu.xgyro.status = imu_data.signal_state;
-			proc_imu.ygyro.status = imu_data.signal_state;
-			proc_imu.zgyro.status = imu_data.signal_state;
-			proc_imu.xmag.status = imu_data.signal_state;
-			proc_imu.ymag.status = imu_data.signal_state;
-			proc_imu.zmag.status = imu_data.signal_state;
 			imus.at(i).lasttime_rx = run_time;
 			imus.at(i).update_count++;
 			imus.at(i).update_rate = (double)(imus.at(i).update_count)/run_time;
-			imus.at(i).imu_data = proc_imu;
+			imus.at(i).imu_data = imu_output;
 			found = true;
 		}
 	}
@@ -368,15 +363,6 @@ eros::diagnostic IMUNodeProcess::new_devicemsg(const eros::device::ConstPtr& dev
 			newimu.mounting_angle_offset_roll_deg = leverarm->roll.value;
 			newimu.mounting_angle_offset_yaw_deg = leverarm->yaw.value;
 			newimu.rotate_matrix = generate_rotation_matrix(newimu.mounting_angle_offset_roll_deg,newimu.mounting_angle_offset_pitch_deg,newimu.mounting_angle_offset_yaw_deg);
-			newimu.imu_data.xacc.units = "m/s^2";
-			newimu.imu_data.yacc.units = "m/s^2";
-			newimu.imu_data.zacc.units = "m/s^2";
-			newimu.imu_data.xgyro.units = "deg/s";
-			newimu.imu_data.ygyro.units = "deg/s";
-			newimu.imu_data.zgyro.units = "deg/s";
-			newimu.imu_data.xmag.units = "uT";
-			newimu.imu_data.ymag.units = "uT";
-			newimu.imu_data.zmag.units = "uT";
 			newimu.initialized = true;
 			imus.push_back(newimu);
 			ready = true;
@@ -420,15 +406,6 @@ eros::diagnostic IMUNodeProcess::new_devicemsg(const eros::device::ConstPtr& dev
 			newimu.mounting_angle_offset_roll_deg = leverarm->roll.value;
 			newimu.mounting_angle_offset_yaw_deg = leverarm->yaw.value;
 			newimu.rotate_matrix = generate_rotation_matrix(newimu.mounting_angle_offset_roll_deg,newimu.mounting_angle_offset_pitch_deg,newimu.mounting_angle_offset_yaw_deg);
-			newimu.imu_data.xacc.units = "m/s^2";
-			newimu.imu_data.yacc.units = "m/s^2";
-			newimu.imu_data.zacc.units = "m/s^2";
-			newimu.imu_data.xgyro.units = "deg/s";
-			newimu.imu_data.ygyro.units = "deg/s";
-			newimu.imu_data.zgyro.units = "deg/s";
-			newimu.imu_data.xmag.units = "uT";
-			newimu.imu_data.ymag.units = "uT";
-			newimu.imu_data.zmag.units = "uT";
 			newimu.initialized = true;
 			imus.push_back(newimu);
 			ready = true;
@@ -683,4 +660,13 @@ std::string IMUNodeProcess::map_signalstate_tostring(uint8_t v)
 		return "UNDEFINED";
 		break;
 	}
+}
+eros::signal IMUNodeProcess::convert_signal(IMUDriver::Signal signal)
+{
+	eros::signal new_sig;
+	new_sig.tov = signal.tov;
+	new_sig.type = signal.type;
+	new_sig.value = signal.value;
+	new_sig.status = signal.state;
+	return new_sig;
 }
