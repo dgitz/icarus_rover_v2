@@ -601,7 +601,6 @@ bool IMUNodeProcess::load_sensorinfo(std::string devicename)
 				return true;
 			}
 			TiXmlElement *l_pRootElement = doc.RootElement();
-			double mao_roll,mao_pitch,mao_yaw;
 			if(NULL != l_pRootElement)
 			{
 				/*

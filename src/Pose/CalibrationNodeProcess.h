@@ -40,8 +40,11 @@ public:
     //Printing Functions
 protected:
 private:
+	void set_calibration_mode(uint8_t mode);
 	/*! \brief Process Specific Implementation
 	 *
 	 */
 	std::vector<eros::diagnostic> check_programvariables();
+	uint8_t calibration_mode;
+	bool calibration_mode_changed;
 };

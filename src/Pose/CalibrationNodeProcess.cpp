@@ -2,6 +2,8 @@
 eros::diagnostic  CalibrationNodeProcess::finish_initialization()
 {
     eros::diagnostic diag = root_diagnostic;
+	calibration_mode_changed = false;
+	calibration_mode = ROVERCOMMAND_CALIBRATION_NONE;
     return diag;
 }
 eros::diagnostic CalibrationNodeProcess::update(double t_dt,double t_ros_time)
@@ -17,12 +19,25 @@ eros::diagnostic CalibrationNodeProcess::update(double t_dt,double t_ros_time)
 	{
 		diag = update_diagnostic(DATA_STORAGE,INFO,NOERROR,"No Error.");
 	}
+	if(calibration_mode_changed == true)
+	{
+		diag = update_diagnostic(SOFTWARE,WARN,DROPPING_PACKETS,"Calibration Mode Change not implemented yet.");
+		calibration_mode_changed = false;
+	}
+	switch(calibration_node)
+	{
+		case ROVERCOMMAND_CALIBRATION_MAGNETOMETER:
+		break;
+		default:
+		break;
+	}
 	if(diag.Level <= NOTICE)
 	{
 		diag = update_diagnostic(SOFTWARE,INFO,NOERROR,"Node Running.");
 		diag = update_diagnostic(SENSORS,NOTICE,DEVICE_NOT_AVAILABLE,"Not Implemented Yet.");
 
 	}
+	
 	return diag;
 }
 eros::diagnostic CalibrationNodeProcess::new_devicemsg(const eros::device::ConstPtr& device)
@@ -54,6 +69,10 @@ std::vector<eros::diagnostic> CalibrationNodeProcess::new_commandmsg(const eros:
 		{
 		}
 	}
+	else if(t_msg->Command == ROVERCOMMAND_CALIBRATION)
+	{
+		set_calibration_mode(t_msg->Option1);
+	}
 	return diaglist;
 }
 std::vector<eros::diagnostic> CalibrationNodeProcess::check_programvariables()
@@ -70,4 +89,12 @@ std::vector<eros::diagnostic> CalibrationNodeProcess::check_programvariables()
 		diaglist.push_back(diag);
 	}
 	return diaglist;
+}
+void CalibrationNodeProcess::set_calibration_mode(uint8_t mode)
+{
+	if(calibration_mode != mode)
+	{
+		calibration_mode_changed = true;
+		calibration_mode = mode;
+	}
 }

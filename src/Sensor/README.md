@@ -4,7 +4,6 @@ Support Programs
 A. Test IMU
 Nodes:
 A. imu_node
-TODO:
  
 Purpose:
 Reads IMU Data
