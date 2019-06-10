@@ -306,6 +306,7 @@ bool IMUNode::new_devicemsg(std::string query,eros::device t_device)
 	{
 		eros::device::ConstPtr device_ptr(new eros::device(t_device));
 		eros::diagnostic diag = process->new_devicemsg(device_ptr);
+		
 	}
 	return true;
 }

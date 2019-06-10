@@ -24,7 +24,7 @@ eros::diagnostic CalibrationNodeProcess::update(double t_dt,double t_ros_time)
 		diag = update_diagnostic(SOFTWARE,WARN,DROPPING_PACKETS,"Calibration Mode Change not implemented yet.");
 		calibration_mode_changed = false;
 	}
-	switch(calibration_node)
+	switch(calibration_mode)
 	{
 		case ROVERCOMMAND_CALIBRATION_MAGNETOMETER:
 		break;

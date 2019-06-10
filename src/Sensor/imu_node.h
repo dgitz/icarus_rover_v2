@@ -66,7 +66,6 @@ private:
 	void print_3x3_matricies(std::string devicename,IMUNodeProcess::RotationMatrix mat);
 
 
-
 	std::string base_node_name;
 	ros::Subscriber pps1_sub;
 	ros::Subscriber command_sub;

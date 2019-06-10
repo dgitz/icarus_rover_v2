@@ -1,6 +1,7 @@
 #include "../include/Base/BaseNodeProcess.cpp"
 //C System Files
 //C++ System Files
+#include <iostream>
 //ROS Base Functionality
 //ROS Messages
 
@@ -8,13 +9,16 @@
 #include <tinyxml.h>
 #define RMS_BUFFER_LIMIT 200
 #define COMM_TIMEOUT_THRESHOLD 10.0f
+#define GRAVITATIONAL_ACCELERATION 9.81f
 #include <eigen3/Eigen/Dense>
 
 #include "Driver/IMUDriver.h"
 /*! \class IMUNodeProcess IMUNodeProcess.h "IMUNodeProcess.h"
  *  \brief This is a IMUNodeProcess class.  Used for the imu_node node.
  *
+ * 
  */
+using namespace std;
 class IMUNodeProcess: public BaseNodeProcess {
 public:
 	//Constants
@@ -86,6 +90,7 @@ public:
 	eros::diagnostic update(double t_dt,double t_ros_time);
 
 	//Attribute Functions
+	 bool set_imu_mounting_angles(std::string devicename,double roll_deg,double pitch_deg,double yaw_deg);
 	double get_commtimeout_threshold() { return IMU_INVALID_TIME_THRESHOLD; }
 	std::vector<IMU> get_imus() { return imus; }
 	IMU get_imu(std::string devicename);
@@ -129,7 +134,7 @@ private:
 	eros::signal convert_signal(IMUDriver::Signal signal);
 	std::string map_signalstate_tostring(uint8_t v);
     bool load_sensorinfo(std::string devicename);
-    bool set_imu_mounting_angles(std::string devicename,double roll_deg,double pitch_deg,double yaw_deg);
+   
 	/*! \brief Process Specific Implementation
 	 *
 	 */
