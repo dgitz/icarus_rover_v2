@@ -174,6 +174,13 @@ eros::diagnostic IMUNodeProcess::new_imumsg(std::string devicename,IMUDriver::Ra
 			imu_output.xmag = convert_signal(raw_data.mag_x);
 			imu_output.ymag = convert_signal(raw_data.mag_y);
 			imu_output.zmag = convert_signal(raw_data.mag_z);
+			Eigen::Vector3f mag(3);
+			mag << imu_output.xmag.value,imu_output.ymag.value,imu_output.zmag.value;
+			mag = imus.at(i).MagnetometerEllipsoidFit_RotationMatrix*(imus.at(i).MagnetometerEllipsoidFit_Bias);
+			imu_output.xmag.value = mag(0);
+			imu_output.xmag.value = mag(1);
+			imu_output.xmag.value = mag(2);
+
 			imu_output.sequence_number = raw_data.sequence_number;
 			{
 				double x = raw_data.acc_x.value/imus.at(i).acc_scale_factor;
@@ -324,7 +331,7 @@ eros::diagnostic IMUNodeProcess::new_devicemsg(const eros::device::ConstPtr& dev
 	diag = update_diagnostic(DATA_STORAGE,ERROR,INITIALIZING_ERROR,std::string(tempstr));
 	return diag;
 }
-eros::diagnostic IMUNodeProcess::new_devicemsg(const eros::device::ConstPtr& device,const eros::leverarm::ConstPtr& leverarm)
+eros::diagnostic IMUNodeProcess::new_devicemsg(const eros::device::ConstPtr& device,const eros::leverarm::ConstPtr& leverarm,bool override_config=false,std::string override_config_path="")
 {
 	eros::diagnostic diag = root_diagnostic;
 	if(device->DeviceType == "IMU")
@@ -346,7 +353,6 @@ eros::diagnostic IMUNodeProcess::new_devicemsg(const eros::device::ConstPtr& dev
 			newimu.packet_count = 0;
 			newimu.update_rate = 0.0;
 			newimu.lasttime_rx = 0.0;
-			newimu.sensor_info_path = "/home/robot/config/sensors/" + device->DeviceName + "/" + device->DeviceName + ".xml";
 			newimu.diagnostic.DeviceName = device->DeviceName;
 			newimu.serial_number = (uint64_t)device->ID;
 			newimu.diagnostic.Node_Name = diag.Node_Name;
@@ -364,7 +370,18 @@ eros::diagnostic IMUNodeProcess::new_devicemsg(const eros::device::ConstPtr& dev
 			newimu.mounting_angle_offset_yaw_deg = leverarm->yaw.value;
 			newimu.rotate_matrix = generate_rotation_matrix(newimu.mounting_angle_offset_roll_deg,newimu.mounting_angle_offset_pitch_deg,newimu.mounting_angle_offset_yaw_deg);
 			newimu.initialized = true;
+
+			if(override_config == true)
+			{
+				newimu.sensor_info_path = override_config_path;
+			}
+			else
+			{
+				newimu.sensor_info_path = "/home/robot/config/sensors/" + device->PartNumber + "-" + std::to_string(device->ID) + "/" + device->PartNumber + "-" + std::to_string(device->ID) + ".xml";
+			}
 			imus.push_back(newimu);
+						diag = load_sensorinfo(device->DeviceName);
+						if(diag.Level > WARN) { return diag; }
 			ready = true;
 			imus_initialized = true;
 			diag = update_diagnostic(SENSORS,INFO,NOERROR,"Sensors Initialized.");
@@ -390,7 +407,7 @@ eros::diagnostic IMUNodeProcess::new_devicemsg(const eros::device::ConstPtr& dev
 			newimu.packet_count = 0;
 			newimu.update_rate = 0.0;
 			newimu.lasttime_rx = 0.0;
-			newimu.sensor_info_path = "/home/robot/config/sensors/" + device->DeviceName + "/" + device->DeviceName + ".xml";
+
 			newimu.diagnostic.DeviceName = device->DeviceName;
 			newimu.diagnostic.Node_Name = diag.Node_Name;
 			newimu.diagnostic.System = diag.System;
@@ -407,7 +424,18 @@ eros::diagnostic IMUNodeProcess::new_devicemsg(const eros::device::ConstPtr& dev
 			newimu.mounting_angle_offset_yaw_deg = leverarm->yaw.value;
 			newimu.rotate_matrix = generate_rotation_matrix(newimu.mounting_angle_offset_roll_deg,newimu.mounting_angle_offset_pitch_deg,newimu.mounting_angle_offset_yaw_deg);
 			newimu.initialized = true;
+
+			if(override_config == true)
+			{
+				newimu.sensor_info_path = override_config_path;
+			}
+			else
+			{
+				newimu.sensor_info_path = "/home/robot/config/sensors/" + device->PartNumber + "-" + std::to_string(device->ID) + "/" + device->PartNumber + "-" + std::to_string(device->ID) + ".xml";
+			}
 			imus.push_back(newimu);
+			diag = load_sensorinfo(device->DeviceName);
+			if(diag.Level > WARN) { return diag; }
 			ready = true;
 			imus_initialized = true;
 			diag = update_diagnostic(SENSORS,INFO,NOERROR,"Sensors Initialized.");
@@ -438,18 +466,6 @@ bool IMUNodeProcess::set_imu_running(std::string devicename)
 		{
 			imus.at(i).running = true;
 			imus_running = true;
-			return true;
-		}
-	}
-	return false;
-}
-bool IMUNodeProcess::set_imu_info_path(std::string devicename,std::string path)
-{
-	for(std::size_t i = 0; i < imus.size(); ++i)
-	{
-		if(imus.at(i).devicename == devicename)
-		{
-			imus.at(i).sensor_info_path = path;
 			return true;
 		}
 	}
@@ -515,6 +531,30 @@ std::vector<eros::diagnostic> IMUNodeProcess::new_commandmsg(const eros::command
 			{
 				imu_reset_trigger = true;
 				imu_reset_inprogress = true;
+			}
+		}
+	}
+	else if(t_msg->Command == ROVERCOMMAND_CALIBRATION)
+	{
+		if(t_msg->Option1 == ROVERCOMMAND_CALIBRATION_MAGNETOMETER)
+		{
+			for(std::size_t i = 0; i < imus.size(); ++i)
+			{
+				imus.at(i).MagnetometerEllipsoidFit_RotationMatrix = Eigen::Matrix3f::Identity(3,3);
+				imus.at(i).MagnetometerEllipsoidFit_Bias = Eigen::Vector3f::Zero(3);
+			}
+		}
+		else if(t_msg->Option1 == ROVERCOMMAND_CALIBRATION_MOUNTINGANGLEOFFSET)
+		{
+			for(std::size_t i = 0; i < imus.size(); ++i)
+			{
+				imus.at(i).mounting_angle_offset_roll_deg = 0.0;
+				imus.at(i).mounting_angle_offset_pitch_deg = 0.0;
+				imus.at(i).mounting_angle_offset_yaw_deg = 0.0;
+				imus.at(i).rotate_matrix = generate_rotation_matrix(
+						imus.at(i).mounting_angle_offset_roll_deg,
+						imus.at(i).mounting_angle_offset_pitch_deg,
+						imus.at(i).mounting_angle_offset_yaw_deg);
 			}
 		}
 	}
@@ -586,22 +626,120 @@ IMUNodeProcess::RotationMatrix IMUNodeProcess::generate_rotation_matrix(double m
 }
 /*! \brief Load Sensor Info from Config
  */
-bool IMUNodeProcess::load_sensorinfo(std::string devicename)
+eros::diagnostic IMUNodeProcess::load_sensorinfo(std::string devicename)
 {
+	eros::diagnostic diag = root_diagnostic;
 	for(std::size_t i = 0; i < imus.size(); ++i)
 	{
 		if(imus.at(i).devicename == devicename)
 		{
+			uint16_t load_count = 0;
+			uint16_t items_to_load = 2;
 			TiXmlDocument doc(imus.at(i).sensor_info_path);
 			bool loaded = doc.LoadFile();
 			if(loaded == false)
 			{
-				printf("[%s]: Unable to load Sensor Config at: %s, but not required Yet.\n",devicename.c_str(),imus.at(i).sensor_info_path.c_str());
-				return true;
+				char tempstr[512];
+				sprintf(tempstr,"[%s]: Unable to load Sensor Config at: %s",devicename.c_str(),imus.at(i).sensor_info_path.c_str());
+				diag = update_diagnostic(DATA_STORAGE,ERROR,INITIALIZING_ERROR,std::string(tempstr));
+				return diag;
 			}
 			TiXmlElement *l_pRootElement = doc.RootElement();
 			if(NULL != l_pRootElement)
 			{
+				TiXmlElement *l_pStatistics = l_pRootElement->FirstChildElement("Statistics");
+
+				if (NULL != l_pStatistics)
+				{
+					//General Tag
+					TiXmlElement *l_pGeneral = l_pStatistics->FirstChildElement("General");
+					if (NULL != l_pGeneral)
+					{
+
+					}
+
+					//Accelerometer Tag
+					TiXmlElement *l_pAccelerometer = l_pStatistics->FirstChildElement("Accelerometer");
+					if (NULL != l_pAccelerometer)
+					{
+
+					}
+					//Gyroscope Tag
+					TiXmlElement *l_pGyroscope = l_pStatistics->FirstChildElement("Gyroscope");
+					if (NULL != l_pGyroscope)
+					{
+
+					}
+					//Magnetometer Tag
+					TiXmlElement *l_pMagnetometer = l_pStatistics->FirstChildElement("Magnetometer");
+					if (NULL != l_pMagnetometer)
+					{
+						//EllipsoidFit Tag
+						TiXmlElement *l_pEllipsoidFit = l_pMagnetometer->FirstChildElement("EllipsoidFit");
+						if (NULL != l_pEllipsoidFit)
+						{
+							TiXmlElement *l_pRotationMatrix = l_pEllipsoidFit->FirstChildElement("RotationMatrix");
+							if(NULL != l_pRotationMatrix)
+							{
+								std::string mat_string = l_pRotationMatrix->GetText();
+								std::vector<std::string> elements;
+								boost::split(elements, mat_string, boost::is_any_of(" "));
+								if(elements.size() != 9)
+								{
+									char tempstr[512];
+									sprintf(tempstr,"[%s]: Not all data found in Magnetometer->EllipsoidFit->RotationMatrix Tag",devicename.c_str());
+									diag = update_diagnostic(DATA_STORAGE,ERROR,INITIALIZING_ERROR,std::string(tempstr));
+									return diag;
+								}
+								int j = 0;
+								int k = 0;
+								Eigen::Matrix3f rotate;
+								for(std::size_t i = 0; i < elements.size(); ++i)
+								{
+									rotate(j,k) = std::atof(elements.at(i).c_str());
+									j++;
+									if(j == 3)
+									{
+										k++;
+										j=0;
+									}
+								}
+								imus.at(i).MagnetometerEllipsoidFit_RotationMatrix = rotate;
+								load_count++;
+							}
+							TiXmlElement *l_pBias = l_pEllipsoidFit->FirstChildElement("Bias");
+							if(NULL != l_pBias)
+							{
+								std::string mat_string = l_pBias->GetText();
+								std::vector<std::string> elements;
+								boost::split(elements, mat_string, boost::is_any_of(" "));
+								if(elements.size() != 3)
+								{
+									char tempstr[512];
+									sprintf(tempstr,"[%s]: Not all data found in Magnetometer->EllipsoidFit->Bias Tag",devicename.c_str());
+									diag = update_diagnostic(DATA_STORAGE,ERROR,INITIALIZING_ERROR,std::string(tempstr));
+									return diag;
+								}
+								Eigen::Vector3f bias;
+								for(std::size_t i = 0; i < elements.size(); ++i)
+								{
+									bias((int)i) = std::atof(elements.at(i).c_str());
+								}
+								imus.at(i).MagnetometerEllipsoidFit_Bias = bias;
+								load_count++;
+							}
+						}
+					}
+				}
+
+				if(load_count != items_to_load)
+				{
+					char tempstr[512];
+					sprintf(tempstr,"[%s]: Not all data present in: %s",devicename.c_str(),imus.at(i).sensor_info_path.c_str());
+					diag = update_diagnostic(DATA_STORAGE,ERROR,INITIALIZING_ERROR,std::string(tempstr));
+					return diag;
+				}
+
 				/*
 				TiXmlElement *l_proll_mao = l_pRootElement->FirstChildElement("MountingAngleRoll");
 				if(NULL != l_proll_mao)
@@ -626,11 +764,23 @@ bool IMUNodeProcess::load_sensorinfo(std::string devicename)
 				 */
 
 			}
-			else { return false;}
-			return true;
+			else
+			{
+				char tempstr[512];
+				sprintf(tempstr,"[%s]: Unable to parse Sensor Config at: %s",devicename.c_str(),imus.at(i).sensor_info_path.c_str());
+				diag = update_diagnostic(DATA_STORAGE,ERROR,INITIALIZING_ERROR,std::string(tempstr));
+				return diag;
+			}
+			char tempstr[512];
+			sprintf(tempstr,"[%s]: Loaded and Parsed Sensor Config at: %s",devicename.c_str(),imus.at(i).sensor_info_path.c_str());
+			diag = update_diagnostic(DATA_STORAGE,INFO,INITIALIZING,std::string(tempstr));
+			return diag;
 		}
 	}
-	return false;
+	char tempstr[512];
+	sprintf(tempstr,"[%s]: Unable to find Sensor Config.",devicename.c_str());
+	diag = update_diagnostic(DATA_STORAGE,ERROR,INITIALIZING_ERROR,std::string(tempstr));
+	return diag;
 }
 std::string IMUNodeProcess::map_signalstate_tostring(uint8_t v)
 {

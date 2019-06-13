@@ -76,6 +76,8 @@ public:
 		double zmag_rms_mean1;
 		RotationMatrix rotate_matrix;
 		double lasttime_rx;
+		Eigen::Matrix3f MagnetometerEllipsoidFit_RotationMatrix;
+		Eigen::Vector3f MagnetometerEllipsoidFit_Bias;
 
 	};
 	///Initialization Functions
@@ -96,7 +98,6 @@ public:
 	IMU get_imu(std::string devicename);
 	bool set_imu_running(std::string devicename);
 
-    bool set_imu_info_path(std::string devicename,std::string path); //Only used for Unit Testing
 	bool get_imus_initialized() { return imus_initialized; }
 	bool get_imus_running() { return imus_running; }
 	bool get_imureset_trigger() 
@@ -123,7 +124,7 @@ public:
 	 */
 	std::vector<eros::diagnostic> new_commandmsg(const eros::command::ConstPtr& t_msg);
 	eros::diagnostic new_devicemsg(const eros::device::ConstPtr& device);
-	eros::diagnostic new_devicemsg(const eros::device::ConstPtr& device,const eros::leverarm::ConstPtr& leverarm);
+	eros::diagnostic new_devicemsg(const eros::device::ConstPtr& device,const eros::leverarm::ConstPtr& leverarm,bool override_config,std::string override_config_path);
 	eros::diagnostic new_imumsg(std::string devicename,IMUDriver::RawIMU imu_data,eros::imu &proc_imu,eros::signal &proc_imu_temperature);
 
 	//Support Functions
@@ -133,7 +134,7 @@ protected:
 private:
 	eros::signal convert_signal(IMUDriver::Signal signal);
 	std::string map_signalstate_tostring(uint8_t v);
-    bool load_sensorinfo(std::string devicename);
+	eros::diagnostic load_sensorinfo(std::string devicename);
    
 	/*! \brief Process Specific Implementation
 	 *

@@ -1,3 +1,73 @@
 <?xml version="1.0" ?>
 <SensorConfigFile>
+    <PartNumber>110015</PartNumber>
+    <DeviceType>IMU</DeviceType>
+    <ID>3551284</ID>
+    <Statistics>
+        <General>
+        </General>
+        <Accelerometer> <!-- Reference: https://github.com/kauailabs/navxmxp/blob/master/stm32/MPU9250/mpucontroller.h -->
+            <UpdateRate>50.0</UpdateRate>
+            <FullScaleRange units="G">2.0</FullScaleRange> 
+            <NoiseType>GaussianQuantized</NoiseType>
+            <X>
+                <Mean>0.0</Mean>
+                <StdDev></StdDev>
+                <Precision>0.000598755</Precision>  <!-- (2*9.81)/(2^15), verify with analysis -->
+            </X>
+            <Y>
+                <Mean>0.0</Mean>
+                <StdDev></StdDev>
+                <Precision>0.000598755</Precision> <!-- (2*9.81)/(2^15), verify with analysis -->
+            </Y>
+            <Z>
+                <Mean>0.0</Mean>
+                <StdDev></StdDev>
+                <Precision>0.000598755</Precision> <!-- (2*9.81)/(2^15), verify with analysis -->
+            </Z>
+        </Accelerometer>
+        <Gyroscope> 
+            <UpdateRate>50.0</UpdateRate>
+            <FullScaleRange units="deg/s">2000.0</FullScaleRange> <!-- Reference: https://github.com/kauailabs/navxmxp/blob/master/stm32/MPU9250/mpucontroller.h -->
+            <X>
+                <Mean></Mean>
+                <StdDev></StdDev>
+                <Precision>0.122070313</Precision>  <!-- 2000/(2^14), verify with analysis -->
+            </X>
+            <Y>
+                <Mean></Mean>
+                <StdDev></StdDev>
+                <Precision>0.122070313</Precision>   <!-- 2000/(2^14), verify with analysis -->
+            </Y>
+            <Z>
+                <Mean></Mean>
+                <StdDev></StdDev>
+                <Precision>0.122070313</Precision>   <!-- 2000/(2^14), verify with analysis -->
+            </Z>
+        </Gyroscope>
+        <Magnetometer>
+            <UpdateRate>2.0</UpdateRate>
+            <X>
+                <Mean></Mean>
+                <StdDev></StdDev>
+                <Precision>4.882</Precision>  <!-- 10000/(2^11), empirically collected based on analysis.  Needs verification. -->
+            </X>
+            <Y>
+                <Mean></Mean>
+                <StdDev></StdDev>
+                <Precision>4.882</Precision>  <!-- 10000/(2^11), empirically collected based on analysis.  Needs verification. -->
+            </Y>
+            <Z>
+                <Mean></Mean>
+                <StdDev></StdDev>
+                <Precision>4.882</Precision>  <!-- 10000/(2^11), empirically collected based on analysis.  Needs verification. -->
+            </Z>
+            <EllipsoidFit>
+                <RotationMatrix>3.0 0.0 0.0 0.0 2.0 0.0 0.0 0.0 1.0
+                </RotationMatrix>
+                <Bias>0.0 1.0 2.0
+                </Bias>
+            </EllipsoidFit>
+        </Magnetometer>
+    </Statistics>
 </SensorConfigFile>
