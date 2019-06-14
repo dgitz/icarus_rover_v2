@@ -128,7 +128,7 @@ TEST(Template,Process_Initialization)
 TEST(Template,Process_Msg)
 {
 	uint64_t id = 0;
-	IMUNodeProcess* process = initializeprocess("IMU1","110012",&id,"/home/robot/catkin_ws/src/icarus_rover_v2/src/Sensor/unit_tests/IMU1.xml");
+	IMUNodeProcess* process = initializeprocess("IMU1","110015",&id,"/home/robot/catkin_ws/src/icarus_rover_v2/src/Sensor/unit_tests/IMU1.xml");
 	double time_to_run = 20.0;
 	double dt = 0.001;
 	double current_time = 0.0;
@@ -186,9 +186,9 @@ TEST(Template,Process_Msg)
 				raw_imudata.gyro_x.value = 4.0;
 				raw_imudata.gyro_y.value = 5.0;
 				raw_imudata.gyro_z.value = 6.0;
-				raw_imudata.mag_x.value = 7.0;
-				raw_imudata.mag_y.value = 8.0;
-				raw_imudata.mag_z.value = 9.0;
+				raw_imudata.mag_x.value =  -3386.66650391;
+				raw_imudata.mag_y.value = -146.666656494;
+				raw_imudata.mag_z.value = 2039.99987793;
 				eros::imu processed_imudata;
 				eros::signal processed_imudata_temperature;
 				diag = process->new_imumsg(imus.at(i).devicename,raw_imudata,processed_imudata,processed_imudata_temperature);
@@ -200,9 +200,6 @@ TEST(Template,Process_Msg)
 				EXPECT_TRUE((fabs((raw_imudata.gyro_x.value/imus.at(i).gyro_scale_factor)-processed_imudata.xgyro.value) < .0001));
 				EXPECT_TRUE((fabs((raw_imudata.gyro_y.value/imus.at(i).gyro_scale_factor)-processed_imudata.ygyro.value) < .0001));
 				EXPECT_TRUE((fabs((raw_imudata.gyro_z.value/imus.at(i).gyro_scale_factor)-processed_imudata.zgyro.value) < .0001));
-				EXPECT_TRUE((fabs((raw_imudata.mag_x.value/imus.at(i).mag_scale_factor)-processed_imudata.xmag.value) < .0001));
-				EXPECT_TRUE((fabs((raw_imudata.mag_y.value/imus.at(i).mag_scale_factor)-processed_imudata.ymag.value) < .0001));
-				EXPECT_TRUE((fabs((raw_imudata.mag_z.value/imus.at(i).mag_scale_factor)-processed_imudata.zmag.value) < .0001));
 				
 			}
 
@@ -229,9 +226,8 @@ TEST(Template,Process_Msg)
 
 TEST(Template,Process_BadMsg)
 {
-	return;
 	uint64_t id = 0;
-	IMUNodeProcess* process = initializeprocess("IMU1","110012",&id,"/home/robot/catkin_ws/src/icarus_rover_v2/src/Sensor/unit_tests/IMU1.xml");
+	IMUNodeProcess* process = initializeprocess("IMU1","110015",&id,"/home/robot/catkin_ws/src/icarus_rover_v2/src/Sensor/unit_tests/IMU1.xml");
 	double time_to_run = 1.0;
 	double dt = 0.001;
 	double current_time = 0.0;
@@ -283,9 +279,9 @@ TEST(Template,Process_BadMsg)
 				raw_imudata.gyro_x.value = 4.0;
 				raw_imudata.gyro_y.value = 5.0;
 				raw_imudata.gyro_z.value = 6.0;
-				raw_imudata.mag_x.value = 7.0;
-				raw_imudata.mag_y.value = 8.0;
-				raw_imudata.mag_z.value = 9.0;
+				raw_imudata.mag_x.value =  -3386.66650391;
+				raw_imudata.mag_y.value = -146.666656494;
+				raw_imudata.mag_z.value = 2039.99987793;
 				eros::imu processed_imudata;
 				eros::signal processed_imudata_temperature;
 				EXPECT_TRUE(process->new_imumsg(imus.at(i).devicename,raw_imudata,processed_imudata,processed_imudata_temperature).Level > NOTICE);
@@ -336,9 +332,8 @@ TEST(Template,Process_BadMsg)
 
 TEST(Template,Process_Command)
 {
-	return;
 	uint64_t id = 0;
-	IMUNodeProcess* process = initializeprocess("IMU1","110012",&id,"/home/robot/catkin_ws/src/icarus_rover_v2/src/Sensor/unit_tests/IMU1.xml");
+	IMUNodeProcess* process = initializeprocess("IMU1","110015",&id,"/home/robot/catkin_ws/src/icarus_rover_v2/src/Sensor/unit_tests/IMU1.xml");
 	double time_to_run = 20.0;
 	double dt = 0.001;
 	double current_time = 0.0;
@@ -443,9 +438,9 @@ TEST(Template,Process_Command)
 				raw_imudata.gyro_x.value = 4.0;
 				raw_imudata.gyro_y.value = 5.0;
 				raw_imudata.gyro_z.value = 6.0;
-				raw_imudata.mag_x.value = 7.0;
-				raw_imudata.mag_y.value = 8.0;
-				raw_imudata.mag_z.value = 9.0;
+				raw_imudata.mag_x.value =  -3386.66650391;
+				raw_imudata.mag_y.value = -146.666656494;
+				raw_imudata.mag_z.value = 2039.99987793;
 				eros::imu processed_imudata;
 				eros::signal processed_imudata_temperature;
 				diag = process->new_imumsg(imus.at(i).devicename,raw_imudata,processed_imudata,processed_imudata_temperature);
@@ -482,10 +477,8 @@ TEST(Template,Process_Command)
 	}
 	EXPECT_TRUE(process->get_runtime() >= time_to_run);
 }
-
 TEST(Template,Rotation_Computation)
 {
-	return;
 	{
 		uint64_t id = 0;
 		IMUNodeProcess* process = initializeprocess("IMU1","110015",&id,"/home/robot/catkin_ws/src/icarus_rover_v2/src/Sensor/unit_tests/IMU1.xml");
@@ -527,9 +520,9 @@ TEST(Template,Rotation_Computation)
 				raw_imudata.gyro_x.value = 0.0;
 				raw_imudata.gyro_y.value = 0.0;
 				raw_imudata.gyro_z.value = 0.0;
-				raw_imudata.mag_x.value = 0.0;
-				raw_imudata.mag_y.value = 0.0;
-				raw_imudata.mag_z.value = 0.0;
+				raw_imudata.mag_x.value =  -3386.66650391;
+				raw_imudata.mag_y.value = -146.666656494;
+				raw_imudata.mag_z.value = 2039.99987793;
 				eros::imu processed_imudata;
 				eros::signal processed_imudata_temperature;
 				EXPECT_TRUE(process->new_imumsg(imu1.devicename,raw_imudata,processed_imudata,processed_imudata_temperature).Level <= NOTICE);
@@ -550,7 +543,6 @@ TEST(Template,Rotation_Computation)
 
 TEST(Template,RMS_Computation)
 {
-	return;
 	std::map<long,double> rms_checkpoints;
 	//Read these values manually from included spreadsheet
 	rms_checkpoints.insert(std::make_pair(0,0.0));
@@ -562,7 +554,7 @@ TEST(Template,RMS_Computation)
 
 	//Test Identity Matrix
 	uint64_t id = 0;
-	IMUNodeProcess* process = initializeprocess("IMU1","110012",&id,"/home/robot/catkin_ws/src/icarus_rover_v2/src/Sensor/unit_tests/IMU1.xml");
+	IMUNodeProcess* process = initializeprocess("IMU1","110015",&id,"/home/robot/catkin_ws/src/icarus_rover_v2/src/Sensor/unit_tests/IMU1.xml");
 	IMUNodeProcess::IMU imu1 = process->get_imu("IMU1");
 
 
@@ -599,9 +591,9 @@ TEST(Template,RMS_Computation)
 			raw_imudata.gyro_x.value = (double)(counter % 11)*imu1.gyro_scale_factor;
 			raw_imudata.gyro_y.value = (double)(counter % 11)*imu1.gyro_scale_factor;
 			raw_imudata.gyro_z.value = (double)(counter % 11)*imu1.gyro_scale_factor;
-			raw_imudata.mag_x.value = (double)(counter % 11)*imu1.mag_scale_factor;
-			raw_imudata.mag_y.value = (double)(counter % 11)*imu1.mag_scale_factor;
-			raw_imudata.mag_z.value = (double)(counter % 11)*imu1.mag_scale_factor;
+			raw_imudata.mag_x.value =  -3386.66650391;
+			raw_imudata.mag_y.value = -146.666656494;
+			raw_imudata.mag_z.value = 2039.99987793;
 			eros::imu processed_imudata;
 			eros::signal processed_imudata_temperature;
 			EXPECT_TRUE(process->new_imumsg(imus.at(i).devicename,raw_imudata,processed_imudata,processed_imudata_temperature).Level <= NOTICE);
@@ -624,9 +616,8 @@ TEST(Template,RMS_Computation)
 }
 TEST(Template,IMUReset_Auto)
 {
-	return;
 	uint64_t id = 0;
-	IMUNodeProcess* process = initializeprocess("IMU1","110012",&id,"/home/robot/catkin_ws/src/icarus_rover_v2/src/Sensor/unit_tests/IMU1.xml");
+	IMUNodeProcess* process = initializeprocess("IMU1","110015",&id,"/home/robot/catkin_ws/src/icarus_rover_v2/src/Sensor/unit_tests/IMU1.xml");
 	IMUNodeProcess::IMU imu1 = process->get_imu("IMU1");
 	double time_to_run = 100.0;
 	double dt = 0.001;
@@ -689,9 +680,9 @@ TEST(Template,IMUReset_Auto)
 					raw_imudata.gyro_x.value = (double)(counter % 11)*imu1.gyro_scale_factor;
 					raw_imudata.gyro_y.value = (double)(counter % 11)*imu1.gyro_scale_factor;
 					raw_imudata.gyro_z.value = (double)(counter % 11)*imu1.gyro_scale_factor;
-					raw_imudata.mag_x.value = (double)(counter % 11)*imu1.mag_scale_factor;
-					raw_imudata.mag_y.value = (double)(counter % 11)*imu1.mag_scale_factor;
-					raw_imudata.mag_z.value = (double)(counter % 11)*imu1.mag_scale_factor;
+					raw_imudata.mag_x.value =  -3386.66650391;
+					raw_imudata.mag_y.value = -146.666656494;
+					raw_imudata.mag_z.value = 2039.99987793;
 					eros::imu processed_imudata;
 					eros::signal processed_imudata_temperature;
 					EXPECT_TRUE(process->new_imumsg(imus.at(i).devicename,raw_imudata,processed_imudata,processed_imudata_temperature).Level <= NOTICE);
@@ -736,9 +727,8 @@ TEST(Template,IMUReset_Auto)
 }
 TEST(Template,IMUReset_Manual)
 {
-	return;
 	uint64_t id = 0;
-	IMUNodeProcess* process = initializeprocess("IMU1","110012",&id,"/home/robot/catkin_ws/src/icarus_rover_v2/src/Sensor/unit_tests/IMU1.xml");
+	IMUNodeProcess* process = initializeprocess("IMU1","110015",&id,"/home/robot/catkin_ws/src/icarus_rover_v2/src/Sensor/unit_tests/IMU1.xml");
 	IMUNodeProcess::IMU imu1 = process->get_imu("IMU1");
 	double time_to_run = 100.0;
 	double dt = 0.001;
@@ -801,9 +791,9 @@ TEST(Template,IMUReset_Manual)
 					raw_imudata.gyro_x.value = (double)(counter % 11)*imu1.gyro_scale_factor;
 					raw_imudata.gyro_y.value = (double)(counter % 11)*imu1.gyro_scale_factor;
 					raw_imudata.gyro_z.value = (double)(counter % 11)*imu1.gyro_scale_factor;
-					raw_imudata.mag_x.value = (double)(counter % 11)*imu1.mag_scale_factor;
-					raw_imudata.mag_y.value = (double)(counter % 11)*imu1.mag_scale_factor;
-					raw_imudata.mag_z.value = (double)(counter % 11)*imu1.mag_scale_factor;
+					raw_imudata.mag_x.value =  -3386.66650391;
+				raw_imudata.mag_y.value = -146.666656494;
+				raw_imudata.mag_z.value = 2039.99987793;
 					eros::imu processed_imudata;
 					eros::signal processed_imudata_temperature;
 					EXPECT_TRUE(process->new_imumsg(imus.at(i).devicename,raw_imudata,processed_imudata,processed_imudata_temperature).Level <= NOTICE);

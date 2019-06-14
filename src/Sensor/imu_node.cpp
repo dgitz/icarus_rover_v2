@@ -49,7 +49,7 @@ eros::diagnostic IMUNode::finish_initialization()
 {
 	eros::diagnostic diag = diagnostic;
 	pps1_sub = n->subscribe<std_msgs::Bool>("/1PPS",1,&IMUNode::PPS1_Callback,this);
-	command_sub = n->subscribe<eros::command>("/command",1,&IMUNode::Command_Callback,this);
+	command_sub = n->subscribe<eros::command>("/command",10,&IMUNode::Command_Callback,this);
 	std::string device_topic = "/" + std::string(host_name) + "_master_node/srv_device";
 	srv_device = n->serviceClient<eros::srv_device>(device_topic);
 	std::string leverarm_topic = "/" + std::string(host_name) + "_master_node/srv_leverarm";
@@ -164,6 +164,10 @@ bool IMUNode::run_1hz()
 				{
 					eros::srv_leverarm la_srv;
 					la_srv.request.name = dev_srv.response.data.at(i).DeviceName;
+					char tempstr[512];
+					sprintf(tempstr,"Received Device Info for: %s",dev_srv.response.data.at(i).DeviceName.c_str());
+					eros::diagnostic diag = process->update_diagnostic(DATA_STORAGE,INFO,INITIALIZING,std::string(tempstr));
+					logger->log_diagnostic(diag);
 					if(srv_leverarm.call(la_srv) == true)
 					{
 						new_devicemsg(dev_srv.request.query,dev_srv.response.data.at(i),la_srv.response.lever);
@@ -333,6 +337,10 @@ bool IMUNode::new_devicemsg(std::string query,eros::device t_device,eros::levera
 		eros::device::ConstPtr device_ptr(new eros::device(t_device));
 		eros::leverarm::ConstPtr leverarm_ptr(new eros::leverarm(t_leverarm));
 		eros::diagnostic diag = process->new_devicemsg(device_ptr,leverarm_ptr);
+		if(diag.Level > NOTICE)
+		{
+			logger->log_diagnostic(diag);
+		}
 	}
 	return true;
 }
@@ -353,10 +361,10 @@ void IMUNode::print_imustats(IMUNodeProcess::IMU imu)
 		}
 		{
 			char tempstr[1024];
-			sprintf(tempstr,"Magnetometer Ellipsoid Fit Rotation Matrix:\n,"
-					"%4.4f %4.4f %4.4f\n"
-					"%4.4f %4.4f %4.4f\n"
-					"%4.4f %4.4f %4.4f",
+			sprintf(tempstr,"Magnetometer Ellipsoid Fit Rotation Matrix:\n"
+					"%4.8f %4.8f %4.8f\n"
+					"%4.8f %4.8f %4.8f\n"
+					"%4.8f %4.8f %4.8f",
 					imu.MagnetometerEllipsoidFit_RotationMatrix(0,0),
 					imu.MagnetometerEllipsoidFit_RotationMatrix(0,1),
 					imu.MagnetometerEllipsoidFit_RotationMatrix(0,2),
@@ -370,7 +378,7 @@ void IMUNode::print_imustats(IMUNodeProcess::IMU imu)
 		}
 		{
 			char tempstr[1024];
-			sprintf(tempstr,"Magnetometer Ellipsoid Fit Bias Vector:\n,"
+			sprintf(tempstr,"Magnetometer Ellipsoid Fit Bias Vector:\n"
 					"%4.4f %4.4f %4.4f",
 					imu.MagnetometerEllipsoidFit_Bias(0),
 					imu.MagnetometerEllipsoidFit_Bias(1),

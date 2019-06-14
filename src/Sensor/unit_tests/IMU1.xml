@@ -63,9 +63,9 @@
                 <Precision>4.882</Precision>  <!-- 10000/(2^11), empirically collected based on analysis.  Needs verification. -->
             </Z>
             <EllipsoidFit>
-                <RotationMatrix>3.0 0.0 0.0 0.0 2.0 0.0 0.0 0.0 1.0
+                <RotationMatrix>3.10657235218255e-04 -1.51824181957543e-04 1.52464453329694e-04 0.00000000000000e+00 1.93636441383719e-04 1.24332300414422e-04 0.00000000000000e+00 0.00000000000000e+00 1.46734749435902e-04
                 </RotationMatrix>
-                <Bias>0.0 1.0 2.0
+                <Bias>20.5998478312694 48.6730326824790 -16.7855942479236
                 </Bias>
             </EllipsoidFit>
         </Magnetometer>

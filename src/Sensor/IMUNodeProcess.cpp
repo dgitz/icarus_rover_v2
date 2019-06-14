@@ -148,7 +148,7 @@ eros::diagnostic IMUNodeProcess::new_imumsg(std::string devicename,IMUDriver::Ra
 				if(raw_data.serial_number != imus.at(i).serial_number)
 				{
 					char tempstr[512];
-					sprintf(tempstr,"Expected Id: %llu but Received: %llu",imus.at(i).serial_number,raw_data.serial_number);
+					sprintf(tempstr,"Expected Id: %llu but Received: %llu",(long long unsigned)imus.at(i).serial_number,(long long unsigned)raw_data.serial_number);
 					diag = update_diagnostic(imus.at(i).devicename,DATA_STORAGE,ERROR,DEVICE_NOT_AVAILABLE,std::string(tempstr));
 				}
 				else
@@ -176,11 +176,10 @@ eros::diagnostic IMUNodeProcess::new_imumsg(std::string devicename,IMUDriver::Ra
 			imu_output.zmag = convert_signal(raw_data.mag_z);
 			Eigen::Vector3f mag(3);
 			mag << imu_output.xmag.value,imu_output.ymag.value,imu_output.zmag.value;
-			mag = imus.at(i).MagnetometerEllipsoidFit_RotationMatrix*(imus.at(i).MagnetometerEllipsoidFit_Bias);
+			mag = imus.at(i).MagnetometerEllipsoidFit_RotationMatrix*(mag-imus.at(i).MagnetometerEllipsoidFit_Bias);
 			imu_output.xmag.value = mag(0);
-			imu_output.xmag.value = mag(1);
-			imu_output.xmag.value = mag(2);
-
+			imu_output.ymag.value = mag(1);
+			imu_output.zmag.value = mag(2);
 			imu_output.sequence_number = raw_data.sequence_number;
 			{
 				double x = raw_data.acc_x.value/imus.at(i).acc_scale_factor;
@@ -268,12 +267,20 @@ eros::diagnostic IMUNodeProcess::new_imumsg(std::string devicename,IMUDriver::Ra
 			}
 
 			{
-				double x = raw_data.mag_x.value/imus.at(i).mag_scale_factor;
-				double y = raw_data.mag_y.value/imus.at(i).mag_scale_factor;
-				double z = raw_data.mag_z.value/imus.at(i).mag_scale_factor;
+				double x = imu_output.xmag.value/imus.at(i).mag_scale_factor;
+				double y = imu_output.ymag.value/imus.at(i).mag_scale_factor;
+				double z = imu_output.zmag.value/imus.at(i).mag_scale_factor;
 				Eigen::RowVector3f v;
 				v << x,y,z;
 				Eigen::RowVector3f vp = imus.at(i).rotate_matrix.Rotation_Mag*v.transpose();
+				double abs_v = sqrt((vp(0)*vp(0))+(vp(1)*vp(1))+(vp(2)*vp(2)));
+				if((abs_v > MAGNETOMETER_MAGNITUDE_UPPERBOUND) or 
+				   (abs_v < MAGNETOMETER_MAGNITUDE_LOWERBOUND))
+				{
+					char tempstr[512];
+					sprintf(tempstr,"Magnetometer absolute value: %4.4f, likely requires calibration.",abs_v);
+					diag = update_diagnostic(imus.at(i).devicename,SENSORS,NOTICE,DIAGNOSTIC_FAILED,std::string(tempstr));
+				}
 				imu_output.xmag.value = vp(0);
 				imu_output.ymag.value = vp(1);
 				imu_output.zmag.value = vp(2);
@@ -380,8 +387,9 @@ eros::diagnostic IMUNodeProcess::new_devicemsg(const eros::device::ConstPtr& dev
 				newimu.sensor_info_path = "/home/robot/config/sensors/" + device->PartNumber + "-" + std::to_string(device->ID) + "/" + device->PartNumber + "-" + std::to_string(device->ID) + ".xml";
 			}
 			imus.push_back(newimu);
-						diag = load_sensorinfo(device->DeviceName);
-						if(diag.Level > WARN) { return diag; }
+			diag = load_sensorinfo(device->DeviceName);
+			diag = update_diagnostic(diag);
+			if(diag.Level > WARN) { return diag; }
 			ready = true;
 			imus_initialized = true;
 			diag = update_diagnostic(SENSORS,INFO,NOERROR,"Sensors Initialized.");

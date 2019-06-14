@@ -10,7 +10,7 @@
 #define END_COLOR "\033[0m"
 using namespace std;
 
-static void show_usage(std::string name)
+static void show_usage()
 {
 	std::cerr << "Usage: Test IMU. Options:\n"
 			<< "\t-h,--help\t\tShow this help message\n"
@@ -27,7 +27,6 @@ int main(int argc, char* argv[])
 {
 	std::string mode = "monitor";
 	int delay = 100000;
-	double rate = 50.0;
 	std::string port = "/dev/ttyAMA0";
 	std::string partnumber = "";
 	std::string report = "all";
@@ -38,7 +37,7 @@ int main(int argc, char* argv[])
 	gettimeofday(&start_time,NULL);
 	IMUDriver::RawIMU imu_data;
 	if (argc < 2) {
-		show_usage(argv[0]);
+		show_usage();
 		return 1;
 	}
 	for (int i = 1; i < argc; ++i)
@@ -46,7 +45,7 @@ int main(int argc, char* argv[])
 		std::string arg = argv[i];
 		if ((arg == "-h") || (arg == "--help"))
 		{
-			show_usage(argv[0]);
+			show_usage();
 			return 0;
 		}
 		else if ((arg == "-m") || (arg == "--mode"))
@@ -152,7 +151,6 @@ int main(int argc, char* argv[])
 		return 0;
 	}
 	double run_time = 0.0;
-	bool reset = false;
 	while(1)
 	{
 		if(mode == "monitor")
@@ -171,7 +169,7 @@ int main(int argc, char* argv[])
 		}
 		else if(mode == "query")
 		{
-			printf("SN: %llu\n",imu.update().serial_number);
+			printf("SN: %llu\n",(long long unsigned)imu.update().serial_number);
 		}
 		usleep(delay);
 		run_time += (double)(delay)/1000000.0;
@@ -213,18 +211,18 @@ void print_imudata(std::string report,IMUDriver driver,IMUDriver::RawIMU imu_dat
 	char tempstr[1024];
 	sprintf(tempstr,"%s[IMU]:%llu ",
 			start_color.c_str(),
-			imu_data.serial_number);
+			(long long unsigned)imu_data.serial_number);
 	if((report == "stat") or (report == "all"))
 	{
-		sprintf(tempstr,"%s Delay=%4.2f Seq=%d T=%4.2f U=%ld R=%4.2fHz State: %s Temp: %4.2f C",
+		sprintf(tempstr,"%s Delay=%4.2f Seq=%d T=%4.2f U=%llu R=%4.2fHz State: %s Temp: %4.2f C",
 				tempstr,
 				driver.get_timedelay(),
 				imu_data.sequence_number,
 				imu_data.tov,
-				imu_data.update_count,
+				(long long unsigned)imu_data.update_count,
 				imu_data.update_rate,
 				driver.map_signalstate_tostring(imu_data.signal_state).c_str(),
-				imu_data.temperature.value);
+				(double)imu_data.temperature.value);
 				
 	}
 	if((report == "acc") or (report == "all"))

@@ -1,7 +1,9 @@
 #include "../include/Base/BaseNodeProcess.cpp"
 //C System Files
+#include <math.h>       /* sqrt */
 //C++ System Files
 #include <iostream>
+
 //ROS Base Functionality
 //ROS Messages
 
@@ -10,6 +12,8 @@
 #define RMS_BUFFER_LIMIT 200
 #define COMM_TIMEOUT_THRESHOLD 10.0f
 #define GRAVITATIONAL_ACCELERATION 9.81f
+#define MAGNETOMETER_MAGNITUDE_LOWERBOUND 0.5f
+#define MAGNETOMETER_MAGNITUDE_UPPERBOUND 2.0f
 #include <eigen3/Eigen/Dense>
 
 #include "Driver/IMUDriver.h"
