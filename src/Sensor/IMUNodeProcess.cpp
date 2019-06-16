@@ -592,39 +592,39 @@ IMUNodeProcess::RotationMatrix IMUNodeProcess::generate_rotation_matrix(double m
 	RotationMatrix R;
 
 	R.Rotation_Acc_X.row(0) << 1.0,0.0,0.0;
-	R.Rotation_Acc_X.row(1) << 0.0,cos(roll),-sin(roll);
-	R.Rotation_Acc_X.row(2) << 0.0,sin(roll),cos(roll);
+	R.Rotation_Acc_X.row(1) << 0.0,cos(roll),sin(roll);
+	R.Rotation_Acc_X.row(2) << 0.0,-sin(roll),cos(roll);
 
 	R.Rotation_Acc_Y.row(0) << cos(pitch),0.0,sin(pitch);
 	R.Rotation_Acc_Y.row(1) << 0.0,1.0,0.0;
 	R.Rotation_Acc_Y.row(2) << -sin(pitch),0.0,cos(pitch);
 
-	R.Rotation_Acc_Z.row(0) << cos(yaw),-sin(yaw),0.0;
-	R.Rotation_Acc_Z.row(1) << sin(yaw),cos(yaw),0.0;
+	R.Rotation_Acc_Z.row(0) << cos(yaw),sin(yaw),0.0;
+	R.Rotation_Acc_Z.row(1) << -sin(yaw),cos(yaw),0.0;
 	R.Rotation_Acc_Z.row(2) << 0.0,0.0,1.0;
 
 	R.Rotation_Gyro_X.row(0) << 1.0,0.0,0.0;
-	R.Rotation_Gyro_X.row(1) << 0.0,cos(roll),-sin(roll);
-	R.Rotation_Gyro_X.row(2) << 0.0,sin(roll),cos(roll);
+	R.Rotation_Gyro_X.row(1) << 0.0,cos(roll),sin(roll);
+	R.Rotation_Gyro_X.row(2) << 0.0,-sin(roll),cos(roll);
 
 	R.Rotation_Gyro_Y.row(0) << cos(pitch),0.0,sin(pitch);
 	R.Rotation_Gyro_Y.row(1) << 0.0,1.0,0.0;
 	R.Rotation_Gyro_Y.row(2) << -sin(pitch),0.0,cos(pitch);
 
-	R.Rotation_Gyro_Z.row(0) << cos(yaw),-sin(yaw),0.0;
-	R.Rotation_Gyro_Z.row(1) << sin(yaw),cos(yaw),0.0;
+	R.Rotation_Gyro_Z.row(0) << cos(yaw),sin(yaw),0.0;
+	R.Rotation_Gyro_Z.row(1) << -sin(yaw),cos(yaw),0.0;
 	R.Rotation_Gyro_Z.row(2) << 0.0,0.0,1.0;
 
 	R.Rotation_Mag_X.row(0) << 1.0,0.0,0.0;
-	R.Rotation_Mag_X.row(1) << 0.0,cos(roll),-sin(rollh);
-	R.Rotation_Mag_X.row(2) << 0.0,sin(roll),cos(roll);
+	R.Rotation_Mag_X.row(1) << 0.0,cos(roll),sin(roll);
+	R.Rotation_Mag_X.row(2) << 0.0,-sin(roll),cos(roll);
 
 	R.Rotation_Mag_Y.row(0) << cos(pitch),0.0,sin(pitch);
 	R.Rotation_Mag_Y.row(1) << 0.0,1.0,0.0;
 	R.Rotation_Mag_Y.row(2) << -sin(pitch),0.0,cos(pitch);
 
-	R.Rotation_Mag_Z.row(0) << cos(yaw),-sin(yaw),0.0;
-	R.Rotation_Mag_Z.row(1) << sin(yaw),cos(yaw),0.0;
+	R.Rotation_Mag_Z.row(0) << cos(yaw),sin(yaw),0.0;
+	R.Rotation_Mag_Z.row(1) << -sin(yaw),cos(yaw),0.0;
 	R.Rotation_Mag_Z.row(2) << 0.0,0.0,1.0;
 
 	R.Rotation_Acc = R.Rotation_Acc_Z*R.Rotation_Acc_Y*R.Rotation_Acc_X;
