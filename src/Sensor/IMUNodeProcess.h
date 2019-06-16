@@ -1,6 +1,9 @@
 #include "../include/Base/BaseNodeProcess.cpp"
 //C System Files
+#include <math.h>       /* sqrt */
 //C++ System Files
+#include <iostream>
+
 //ROS Base Functionality
 //ROS Messages
 
@@ -8,13 +11,18 @@
 #include <tinyxml.h>
 #define RMS_BUFFER_LIMIT 200
 #define COMM_TIMEOUT_THRESHOLD 10.0f
+#define GRAVITATIONAL_ACCELERATION 9.81f
+#define MAGNETOMETER_MAGNITUDE_LOWERBOUND 0.5f
+#define MAGNETOMETER_MAGNITUDE_UPPERBOUND 5.0f
 #include <eigen3/Eigen/Dense>
 
 #include "Driver/IMUDriver.h"
 /*! \class IMUNodeProcess IMUNodeProcess.h "IMUNodeProcess.h"
  *  \brief This is a IMUNodeProcess class.  Used for the imu_node node.
  *
+ * 
  */
+using namespace std;
 class IMUNodeProcess: public BaseNodeProcess {
 public:
 	//Constants
@@ -72,6 +80,8 @@ public:
 		double zmag_rms_mean1;
 		RotationMatrix rotate_matrix;
 		double lasttime_rx;
+		Eigen::Matrix3f MagnetometerEllipsoidFit_RotationMatrix;
+		Eigen::Vector3f MagnetometerEllipsoidFit_Bias;
 
 	};
 	///Initialization Functions
@@ -86,12 +96,12 @@ public:
 	eros::diagnostic update(double t_dt,double t_ros_time);
 
 	//Attribute Functions
+	 bool set_imu_mounting_angles(std::string devicename,double roll_deg,double pitch_deg,double yaw_deg);
 	double get_commtimeout_threshold() { return IMU_INVALID_TIME_THRESHOLD; }
 	std::vector<IMU> get_imus() { return imus; }
 	IMU get_imu(std::string devicename);
 	bool set_imu_running(std::string devicename);
 
-    bool set_imu_info_path(std::string devicename,std::string path); //Only used for Unit Testing
 	bool get_imus_initialized() { return imus_initialized; }
 	bool get_imus_running() { return imus_running; }
 	bool get_imureset_trigger() 
@@ -118,7 +128,7 @@ public:
 	 */
 	std::vector<eros::diagnostic> new_commandmsg(const eros::command::ConstPtr& t_msg);
 	eros::diagnostic new_devicemsg(const eros::device::ConstPtr& device);
-	eros::diagnostic new_devicemsg(const eros::device::ConstPtr& device,const eros::leverarm::ConstPtr& leverarm);
+	eros::diagnostic new_devicemsg(const eros::device::ConstPtr& device,const eros::leverarm::ConstPtr& leverarm,bool override_config,std::string override_config_path);
 	eros::diagnostic new_imumsg(std::string devicename,IMUDriver::RawIMU imu_data,eros::imu &proc_imu,eros::signal &proc_imu_temperature);
 
 	//Support Functions
@@ -128,8 +138,8 @@ protected:
 private:
 	eros::signal convert_signal(IMUDriver::Signal signal);
 	std::string map_signalstate_tostring(uint8_t v);
-    bool load_sensorinfo(std::string devicename);
-    bool set_imu_mounting_angles(std::string devicename,double roll_deg,double pitch_deg,double yaw_deg);
+	eros::diagnostic load_sensorinfo(std::string devicename);
+   
 	/*! \brief Process Specific Implementation
 	 *
 	 */

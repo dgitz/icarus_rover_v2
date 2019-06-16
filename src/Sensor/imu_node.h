@@ -63,9 +63,8 @@ private:
 	//Support Functions
 
 	//Printing Functions
-	void print_3x3_matricies(std::string devicename,IMUNodeProcess::RotationMatrix mat);
-
-
+	void print_3x3_matricies(IMUNodeProcess::RotationMatrix mat);
+	void print_imustats(IMUNodeProcess::IMU imu);
 
 	std::string base_node_name;
 	ros::Subscriber pps1_sub;

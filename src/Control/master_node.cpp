@@ -501,7 +501,7 @@ void MasterNode::print_deviceinfo()
 		eros::leverarm la;
 		if(process->get_leverarm(&la,process->get_childdevices().at(i).DeviceName) == true)
 		{
-			sprintf(tempstr,"%s  LeverArm: Reference: %s X:%4.2f (m) Y:%4.2f (m) Z:%4.2f (m) Roll:%4.2f (deg) Pitch: %4.2f (deg) Yaw: %4.2f (deg)",
+			sprintf(tempstr,"%s  LeverArm: Reference: %s X:%4.2f (m) Y:%4.2f (m) Z:%4.2f (m) Roll:%4.4f (deg) Pitch: %4.4f (deg) Yaw: %4.4f (deg)\n",
 					tempstr,
 					la.reference.c_str(),
 					la.x.value,la.y.value,la.z.value,

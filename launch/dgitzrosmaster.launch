@@ -7,11 +7,11 @@
         <param name="loop1_rate"            value="1"/> <!-- device,resource available, -->    
         <param name="loop2_rate"            value="10"/> <!-- process update, -->  
 </node>
-<node name="$(env ROS_HOSTNAME)_sample_node" pkg="icarus_rover_v2" type="sample_node"  output="screen" clear_params="true" respawn="true">
-        
-    <param name="verbosity_level"       value="NOTICE"/>
+<node name="$(env ROS_HOSTNAME)_datalogger_node" pkg="icarus_rover_v2" type="datalogger_node"  output="screen" clear_params="true">
+        <param name="startup_delay"       value="30.0"/>
+        <param name="verbosity_level"       value="NOTICE"/>
         <param name="require_pps_to_start"  value="true"/> 
-        <param name="loop1_rate"            value="20.0"/> <!-- Process Update -->  
-        <param name="loop2_rate"            value="5.0"/> <!-- Publish -->
+        <param name="LogFile_Duration"      value="1800.0"/>
+        <param name="LogFile_Directory"     value="/media/robot/ICARUS/dataLogs/"/>
 </node>
 </launch>

@@ -49,7 +49,7 @@ eros::diagnostic IMUNode::finish_initialization()
 {
 	eros::diagnostic diag = diagnostic;
 	pps1_sub = n->subscribe<std_msgs::Bool>("/1PPS",1,&IMUNode::PPS1_Callback,this);
-	command_sub = n->subscribe<eros::command>("/command",1,&IMUNode::Command_Callback,this);
+	command_sub = n->subscribe<eros::command>("/command",10,&IMUNode::Command_Callback,this);
 	std::string device_topic = "/" + std::string(host_name) + "_master_node/srv_device";
 	srv_device = n->serviceClient<eros::srv_device>(device_topic);
 	std::string leverarm_topic = "/" + std::string(host_name) + "_master_node/srv_leverarm";
@@ -115,8 +115,8 @@ bool IMUNode::run_1hz()
 						char tempstr[512];
 						sprintf(tempstr,"IMU Driver Started: %s",imus.at(i).devicename.c_str());
 						logger->log_notice(tempstr);
-
-						print_3x3_matricies(imus.at(i).devicename,process->get_imu(imus.at(i).devicename).rotate_matrix);
+						IMUNodeProcess::IMU imu = process->get_imu(imus.at(i).devicename);
+						print_imustats(imu);
 					}
 					else
 					{
@@ -164,6 +164,10 @@ bool IMUNode::run_1hz()
 				{
 					eros::srv_leverarm la_srv;
 					la_srv.request.name = dev_srv.response.data.at(i).DeviceName;
+					char tempstr[512];
+					sprintf(tempstr,"Received Device Info for: %s",dev_srv.response.data.at(i).DeviceName.c_str());
+					eros::diagnostic diag = process->update_diagnostic(DATA_STORAGE,INFO,INITIALIZING,std::string(tempstr));
+					logger->log_diagnostic(diag);
 					if(srv_leverarm.call(la_srv) == true)
 					{
 						new_devicemsg(dev_srv.request.query,dev_srv.response.data.at(i),la_srv.response.lever);
@@ -289,6 +293,22 @@ void IMUNode::Command_Callback(const eros::command::ConstPtr& t_msg)
 			}
 		}
 	}
+	else if(t_msg->Command == ROVERCOMMAND_CALIBRATION)
+	{
+		if(t_msg->Option1 == ROVERCOMMAND_CALIBRATION_MAGNETOMETER)
+		{
+			logger->log_notice("Resetting Magnetometer Calibration Data.");
+		}
+		if(t_msg->Option1 == ROVERCOMMAND_CALIBRATION_MOUNTINGANGLEOFFSET)
+		{
+			logger->log_notice("Resetting Mounting Angle Offset Data.");
+		}
+		std::vector<IMUNodeProcess::IMU> imus = process->get_imus();
+		for(std::size_t i = 0; i < imus.size(); ++i)
+		{
+			print_imustats(imus.at(i));
+		}
+	}
 	new_commandmsg_result(t_msg,diaglist);
 }
 bool IMUNode::new_devicemsg(std::string query,eros::device t_device)
@@ -306,6 +326,7 @@ bool IMUNode::new_devicemsg(std::string query,eros::device t_device)
 	{
 		eros::device::ConstPtr device_ptr(new eros::device(t_device));
 		eros::diagnostic diag = process->new_devicemsg(device_ptr);
+		
 	}
 	return true;
 }
@@ -316,18 +337,63 @@ bool IMUNode::new_devicemsg(std::string query,eros::device t_device,eros::levera
 		eros::device::ConstPtr device_ptr(new eros::device(t_device));
 		eros::leverarm::ConstPtr leverarm_ptr(new eros::leverarm(t_leverarm));
 		eros::diagnostic diag = process->new_devicemsg(device_ptr,leverarm_ptr);
+		if(diag.Level > NOTICE)
+		{
+			logger->log_diagnostic(diag);
+		}
 	}
 	return true;
 }
-void IMUNode::print_3x3_matricies(std::string devicename,IMUNodeProcess::RotationMatrix mat)
+void IMUNode::print_imustats(IMUNodeProcess::IMU imu)
+{
+		{
+			char tempstr[256];
+			sprintf(tempstr,"IMU Stats-%s",imu.devicename.c_str());
+			logger->log_notice(std::string(tempstr));
+		}
+		{
+			char tempstr[256];
+			sprintf(tempstr,"Sensor Info File Path: %s\n",imu.sensor_info_path.c_str());
+			logger->log_notice(std::string(tempstr));
+		}
+		{
+			print_3x3_matricies(imu.rotate_matrix);
+		}
+		{
+			char tempstr[1024];
+			sprintf(tempstr,"Magnetometer Ellipsoid Fit Rotation Matrix:\n"
+					"%4.8f %4.8f %4.8f\n"
+					"%4.8f %4.8f %4.8f\n"
+					"%4.8f %4.8f %4.8f",
+					imu.MagnetometerEllipsoidFit_RotationMatrix(0,0),
+					imu.MagnetometerEllipsoidFit_RotationMatrix(0,1),
+					imu.MagnetometerEllipsoidFit_RotationMatrix(0,2),
+					imu.MagnetometerEllipsoidFit_RotationMatrix(1,0),
+					imu.MagnetometerEllipsoidFit_RotationMatrix(1,1),
+					imu.MagnetometerEllipsoidFit_RotationMatrix(1,2),
+					imu.MagnetometerEllipsoidFit_RotationMatrix(2,0),
+					imu.MagnetometerEllipsoidFit_RotationMatrix(2,1),
+					imu.MagnetometerEllipsoidFit_RotationMatrix(2,2));
+			logger->log_notice(std::string(tempstr));
+		}
+		{
+			char tempstr[1024];
+			sprintf(tempstr,"Magnetometer Ellipsoid Fit Bias Vector:\n"
+					"%4.4f %4.4f %4.4f",
+					imu.MagnetometerEllipsoidFit_Bias(0),
+					imu.MagnetometerEllipsoidFit_Bias(1),
+					imu.MagnetometerEllipsoidFit_Bias(2));
+			logger->log_notice(std::string(tempstr));
+		}
+}
+void IMUNode::print_3x3_matricies(IMUNodeProcess::RotationMatrix mat)
 {
 	{
 		char tempstr[1024];
-		sprintf(tempstr,"%s-Rotation Matrix Acc:\n"
+		sprintf(tempstr,"Rotation Matrix Acc:\n"
 				"%4.4f %4.4f %4.4f\n"
 				"%4.4f %4.4f %4.4f\n"
 				"%4.4f %4.4f %4.4f",
-				devicename.c_str(),
 				mat.Rotation_Acc(0,0),
 				mat.Rotation_Acc(0,1),
 				mat.Rotation_Acc(0,2),
@@ -337,15 +403,14 @@ void IMUNode::print_3x3_matricies(std::string devicename,IMUNodeProcess::Rotatio
 				mat.Rotation_Acc(2,0),
 				mat.Rotation_Acc(2,1),
 				mat.Rotation_Acc(2,2));
-		logger->log_debug(std::string(tempstr));
+		logger->log_notice(std::string(tempstr));
 	}
 	{
 		char tempstr[1024];
-		sprintf(tempstr,"%s-Rotation Matrix Gyro:\n"
+		sprintf(tempstr,"Rotation Matrix Gyro:\n"
 				"%4.4f %4.4f %4.4f\n"
 				"%4.4f %4.4f %4.4f\n"
 				"%4.4f %4.4f %4.4f",
-				devicename.c_str(),
 				mat.Rotation_Gyro(0,0),
 				mat.Rotation_Gyro(0,1),
 				mat.Rotation_Gyro(0,2),
@@ -355,15 +420,14 @@ void IMUNode::print_3x3_matricies(std::string devicename,IMUNodeProcess::Rotatio
 				mat.Rotation_Gyro(2,0),
 				mat.Rotation_Gyro(2,1),
 				mat.Rotation_Gyro(2,2));
-		logger->log_debug(std::string(tempstr));
+		logger->log_notice(std::string(tempstr));
 	}
 	{
 		char tempstr[1024];
-		sprintf(tempstr,"%s-Rotation Matrix Mag:\n"
+		sprintf(tempstr,"Rotation Matrix Mag:\n"
 				"%4.4f %4.4f %4.4f\n"
 				"%4.4f %4.4f %4.4f\n"
 				"%4.4f %4.4f %4.4f",
-				devicename.c_str(),
 				mat.Rotation_Mag(0,0),
 				mat.Rotation_Mag(0,1),
 				mat.Rotation_Mag(0,2),
@@ -373,7 +437,7 @@ void IMUNode::print_3x3_matricies(std::string devicename,IMUNodeProcess::Rotatio
 				mat.Rotation_Mag(2,0),
 				mat.Rotation_Mag(2,1),
 				mat.Rotation_Mag(2,2));
-		logger->log_debug(std::string(tempstr));
+		logger->log_notice(std::string(tempstr));
 	}
 }
 void IMUNode::thread_loop()
