@@ -19,7 +19,6 @@ find_package(catkin REQUIRED COMPONENTS
   cv_bridge
   roslib
   tf
-  #eros
   rosbag
 )
 
