@@ -5,8 +5,6 @@ A. Test IMU
 Nodes:
 A. imu_node
 TODO
-- LeverArm Orientation is wrong: Somewhere in Master Node and IMU Node.
-- Validate LeverArm Orientation against Orientation spreadsheet
 Purpose:
 Reads IMU Data
 Instructions:
