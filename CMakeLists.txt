@@ -185,34 +185,4 @@ include_directories(include ${catkin_INCLUDE_DIRS} ${roscpp_INCLUDE_DIRS})
 add_library(resourcemonitor util/resourcemonitor.cpp)
 
 #Libraries-Communications
-add_library(udpmessage util/udpmessage.cpp)
-add_library(serialmessage util/serialmessage.cpp)
-add_library(spimessage util/spimessage.cpp)
-add_library(i2cmessage util/i2cmessage.cpp)
 
-#Add CMakeLists for Templates
-add_subdirectory(src_templates)
-
-#Add CMakeLists for Board
-add_subdirectory(src/Board)
-
-#Add CMakeLists for Communication
-add_subdirectory(src/Communication)
-
-#Add CMakeLists for Control
-add_subdirectory(src/Control)
-
-#Add CMakeLists for Diagnostics
-add_subdirectory(src/Diagnostics)
-
-#Add CMakeLists for Pose
-add_subdirectory(src/Pose)
-
-#Add CMakeLists for Sensors
-add_subdirectory(src/Sensor) 
-
-#Add CMakeLists for Timing
-add_subdirectory(src/Timing)
-
-#Add CMakeLists for User Control
-add_subdirectory(src/User_Control)
