@@ -134,6 +134,10 @@ eros::diagnostic BoardControllerNodeProcess::new_devicemsg(const eros::device::C
 								new_sensor.connected_board = board_device;
 								new_sensor.connected_pin = t_newdevice->pins.at(i);
 								new_sensor.signal.status = SIGNALSTATE_UNDEFINED;
+								if(t_newdevice->pins.at(i).Function == "QuadratureEncoderInput")
+								{
+									new_sensor.signal.type = SIGNALTYPE_TICKSPEED;
+								}
 								diag = update_diagnostic(new_sensor.name,DATA_STORAGE,NOTICE,NOERROR,"Sensor Initialized.");
 								sensors.push_back(new_sensor);
 								if(load_sensorinfo(new_sensor.name) == false)
