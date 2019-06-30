@@ -44,6 +44,11 @@ public:
 		Eigen::Matrix3f Rotation_Mag_Z;
 		Eigen::Matrix3f Rotation_Mag;
 	};
+	struct RMS
+	{
+		double value;
+		double mean;
+	};
 	struct IMU
 	{
 		std::string partnumber;
@@ -69,6 +74,16 @@ public:
 		double mounting_angle_offset_roll_deg;
 		double mounting_angle_offset_pitch_deg;
 		double mounting_angle_offset_yaw_deg;
+		RMS xacc_rms;
+		RMS yacc_rms;
+		RMS zacc_rms;
+		RMS xgyro_rms;
+		RMS ygyro_rms;
+		RMS zgyro_rms;
+		RMS xmag_rms;
+		RMS ymag_rms;
+		RMS zmag_rms;
+		/*
 		double xacc_rms_mean1;
 		double yacc_rms_mean1;
 		double zacc_rms_mean1;
@@ -78,6 +93,7 @@ public:
 		double xmag_rms_mean1;
 		double ymag_rms_mean1;
 		double zmag_rms_mean1;
+		*/
 		RotationMatrix rotate_matrix;
 		double lasttime_rx;
 		Eigen::Matrix3f MagnetometerEllipsoidFit_RotationMatrix;
@@ -139,6 +155,7 @@ private:
 	eros::signal convert_signal(IMUDriver::Signal signal);
 	std::string map_signalstate_tostring(uint8_t v);
 	eros::diagnostic load_sensorinfo(std::string devicename);
+	RMS compute_rms(RMS rms,double value,uint64_t update_count);
    
 	/*! \brief Process Specific Implementation
 	 *
