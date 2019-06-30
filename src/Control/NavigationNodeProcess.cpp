@@ -399,5 +399,4 @@ double NavigationNodeProcess::scale_value(double input_perc,double y1,double neu
 		out = out_lower;
 	}
 	return out;
-
 }
