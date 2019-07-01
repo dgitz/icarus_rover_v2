@@ -154,24 +154,46 @@ bool DiagnosticNode::run_1hz()
 	}
 	else if((process->is_ready() == false) and (process->is_initialized() == true))
 	{
-		eros::srv_device srv;
-		srv.request.query = "DeviceType=LCD";
-		if(srv_device.call(srv) == true)
 		{
-			if(srv.response.data.size() == 0)
+			eros::srv_device srv;
+			srv.request.query = "DeviceType=LCD";
+			if(srv_device.call(srv) == true)
 			{
-				process->no_connectedlcd();
+				if(srv.response.data.size() == 0)
+				{
+					process->no_connectedlcd();
+				}
+				else
+				{
+					for(std::size_t i = 0; i < srv.response.data.size(); i++)
+					{
+						new_devicemsg(srv.request.query,srv.response.data.at(i));
+					}
+				}
 			}
 			else
 			{
-				for(std::size_t i = 0; i < srv.response.data.size(); i++)
-				{
-					new_devicemsg(srv.request.query,srv.response.data.at(i));
-				}
 			}
 		}
-		else
 		{
+			eros::srv_device srv;
+			srv.request.query = "DeviceType=Battery";
+			if(srv_device.call(srv) == true)
+			{
+				if(srv.response.data.size() == 0)
+				{
+				}
+				else
+				{
+					for(std::size_t i = 0; i < srv.response.data.size(); i++)
+					{
+						new_devicemsg(srv.request.query,srv.response.data.at(i));
+					}
+				}
+			}
+			else
+			{
+			}
 		}
 	}
 	else if(process->is_initialized() == false)
@@ -246,7 +268,12 @@ void DiagnosticNode::PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
 	new_ppsmsg(msg);
 }
-
+void DiagnosticNode::Battery_Callback(const eros::battery::ConstPtr& msg)
+{
+	printf("got bat\n");
+	process->set_batterylevel(msg->level_perc);
+	process->set_batteryvoltage(msg->voltage);
+}
 void DiagnosticNode::Command_Callback(const eros::command::ConstPtr& t_msg)
 {
 	std::vector<eros::diagnostic> diaglist = process->new_commandmsg(t_msg);
@@ -261,6 +288,11 @@ bool DiagnosticNode::new_devicemsg(std::string query,eros::device t_device)
 			set_mydevice(t_device);
 			process->set_mydevice(t_device);
 		}
+	}
+	else if(t_device.DeviceType == "Battery")
+	{
+		std::string topic = "/" + t_device.DeviceName;
+		battery_sub = n->subscribe<eros::battery>(topic,1,&DiagnosticNode::Battery_Callback,this);
 	}
 	else
 	{

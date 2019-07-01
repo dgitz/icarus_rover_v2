@@ -65,6 +65,7 @@ private:
 	void resource_Callback(const eros::resource::ConstPtr& msg,const std::string &topicname);
 	void diagnostic_Callback(const eros::diagnostic::ConstPtr& msg,const std::string &topicname);
 	void ArmedState_Callback(const std_msgs::UInt8::ConstPtr& msg);
+	void Battery_Callback(const eros::battery::ConstPtr& msg);
 	//Support Functions
     /*! \brief  Log RAM and CPU Usage */
 	bool log_resources();
@@ -79,6 +80,7 @@ private:
 	ofstream cpu_used_file;
 	ofstream ram_free_file;
 	ofstream cpu_free_file;
+	ros::Subscriber battery_sub;
 	std::vector<ros::Subscriber> resource_subs;
 	std::vector<ros::Subscriber> diagnostic_subs;
 	std::vector<ros::Subscriber> heartbeat_subs;

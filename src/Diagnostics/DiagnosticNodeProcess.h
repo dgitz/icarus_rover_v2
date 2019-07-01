@@ -3,6 +3,7 @@
 //C++ System Files
 //ROS Base Functionality
 //ROS Messages
+#include <eros/battery.h>
 //Project
 #include "../../../eROS/include/DiagnosticClass.h"
 /*! \class DiagnosticNodeProcess DiagnosticNodeProcess.h "DiagnosticNodeProcess.h"
