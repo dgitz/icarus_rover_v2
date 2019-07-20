@@ -22,7 +22,36 @@ find_package(catkin REQUIRED COMPONENTS
   rosbag
 )
 
-## System dependencies are found with CMake's conventions
+## Setup FuzzyLite Library
+set(FL_SYSTEM_LIBRARY FALSE) #Finds the library installed in the system
+set(FL_LIBRARY_DIR)
+
+if (NOT FL_SYSTEM_LIBRARY)
+    #it is possible to find the FuzzyLiteLibrary locally as follows,
+    #assuming the submodule of fuzzylite is added to the ${PROJECT_SOURCE_DIR}:
+    set(FL_HOME /home/robot/other_packages/fuzzylite-6.0/fuzzylite/)
+    set(FL_INCLUDE_DIR ${FL_HOME})
+    if (FL_DEBUG)
+        set(FL_LIBRARY_DIR ${FL_HOME}/debug/bin)
+    else()
+        set(FL_LIBRARY_DIR ${FL_HOME}/release/bin)
+    endif()
+    message("Finding FuzzyLiteLibrary locally at ${FL_LIBRARY_DIR}")
+
+    include_directories(${FL_INCLUDE_DIR})
+endif()
+
+set(FL_POSTFIX)
+if (FL_STATIC)
+    set(FL_POSTFIX "-static")
+endif()
+if (FL_DEBUG)
+    set(FL_POSTFIX "${FL_POSTFIX}-debug")
+endif()
+
+set(FL_LIBRARY_NAME  fuzzylite${FL_POSTFIX})
+find_library (FuzzyLiteLibrary ${FL_LIBRARY_NAME} HINTS ${FL_LIBRARY_DIR})
+
 find_package(Boost REQUIRED COMPONENTS system thread)
 find_package(TinyXML REQUIRED)
 find_package(OpenCV)

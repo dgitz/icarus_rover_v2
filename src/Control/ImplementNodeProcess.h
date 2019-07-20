@@ -6,15 +6,31 @@
 //Project
 #include <tinyxml.h>
 #include "fl/Headers.h"
-/*! \class SampleNodeProcess SampleNodeProcess.h "SampleNodeProcess.h"
- *  \brief This is a SampleNodeProcess class.  Used for the implement_node node.
+/*! \class ImplementNodeProcess ImplementNodeProcess.h "ImplementNodeProcess.h"
+ *  \brief This is a ImplementNodeProcess class.  Used for the implement_node node.
  *
  */
-class SampleNodeProcess: public BaseNodeProcess {
+class ImplementNodeProcess: public BaseNodeProcess {
 public:
     //Constants
     //Enums
     //Structs
+	class FuzzyController
+	{
+		public:
+		bool initialize(std::string name)
+		{
+			engine = new fl::Engine;
+			engine->setName(name);
+		}
+		std::string getName()
+		{
+			return engine->getName();
+		}
+		private:
+
+			fl::Engine* engine;
+	};
 	///Initialization Functions
 	/*! \brief NodeProcess specific Initialization
 	 *
@@ -47,8 +63,6 @@ private:
 	eros::diagnostic load_configfile(std::string path);
 	std::vector<eros::diagnostic> check_programvariables();
 	std::string config_filepath;
-
-
-    fl::Engine* fuzzylogic_engine;  
+	FuzzyController bucket_cylinder_controller;
 
 };
