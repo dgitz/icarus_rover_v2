@@ -1,0 +1,24 @@
+<?xml version="1.0" ?>
+<SnapshotConfigFile>
+    <SnapshotConfig>
+        <SystemSnapshotPath>/home/robot/storage/SNAPSHOT/UNITTEST/SYSTEMSNAPSHOT/</SystemSnapshotPath>
+        <Architecture type="x86_64">
+            <DeviceSnapshotPath>/home/robot/storage/SNAPSHOT/UNITTEST/DEVICESNAPSHOT/</DeviceSnapshotPath>
+            <Command file="ps_log">ps aux</Command>
+            <Command file="ifconfig_log">ifconfig</Command>
+            <Folder>/home/robot/logs/output/</Folder>
+            <File>/var/log/syslog</File>
+            <File>/var/log/boot.log</File>
+            <File>/var/log/kern.log</File>
+        </Architecture>
+        <Architecture type="armv7l">
+            <DeviceSnapshotPath>/home/robot/storage/SNAPSHOT/UNITTEST/DEVICESNAPSHOT/</DeviceSnapshotPath>
+            <Command file="ps_log">ps aux</Command>
+            <Command file="ifconfig_log">ifconfig</Command>
+            <Folder>/home/robot/logs/output/</Folder>
+            <File>/var/log/syslog</File>
+            <File>/var/log/bootstrap.log</File>
+            <File>/var/log/kern.log</File>
+        </Architecture>
+    </SnapshotConfig>
+</SnapshotConfigFile>

@@ -1,9 +1,9 @@
 #include <gtest/gtest.h>
 #include "ros/ros.h"
 #include "ros/time.h"
-#include "../SampleNodeProcess.h"
+#include "../ImplementNodeProcess.h"
 
-std::string Node_Name = "/unittest_sample_node_process";
+std::string Node_Name = "/unittest_implement_node_process";
 std::string Host_Name = "unittest";
 std::string ros_DeviceName = Host_Name;
 #define DIAGNOSTIC_TYPE_COUNT 3
@@ -15,7 +15,7 @@ void print_diagnostic(uint8_t level,eros::diagnostic diagnostic)
 			  		diagnostic.Level,diagnostic.DeviceName.c_str(),diagnostic.Description.c_str());
 	}
 }
-SampleNodeProcess *initializeprocess()
+ImplementNodeProcess *initializeprocess()
 {
 	eros::device device;
 	device.DeviceName = ros_DeviceName;
@@ -24,9 +24,9 @@ SampleNodeProcess *initializeprocess()
 	device.DeviceParent = "None";
 	device.Architecture = "x86_64";
 
-	SampleNodeProcess *process;
-	process = new SampleNodeProcess;
-	process->initialize("sample_node", Node_Name, Host_Name, ROVER, ROBOT_CONTROLLER, CONTROLLER_NODE);
+	ImplementNodeProcess *process;
+	process = new ImplementNodeProcess;
+	process->initialize("implement_node", Node_Name, Host_Name, ROVER, ROBOT_CONTROLLER, CONTROLLER_NODE);
 	process->set_config_filepaths("/home/robot/catkin_ws/src/icarus_rover_v2/src_templates/unit_tests/SampleConfig.xml");
 	std::vector<uint8_t> diagnostic_types;
 	diagnostic_types.push_back(SOFTWARE);
@@ -40,7 +40,7 @@ SampleNodeProcess *initializeprocess()
 	EXPECT_TRUE(process->get_mydevice().DeviceName == device.DeviceName);
 	return process;
 }
-SampleNodeProcess *readyprocess(SampleNodeProcess *process)
+ImplementNodeProcess *readyprocess(ImplementNodeProcess *process)
 {
 	eros::diagnostic diag = process->update(0.0, 0.0);
 	EXPECT_TRUE(diag.Level <= NOTICE);
@@ -57,13 +57,13 @@ SampleNodeProcess *readyprocess(SampleNodeProcess *process)
 }
 TEST(Template, Process_Initialization)
 {
-	SampleNodeProcess *process = initializeprocess();
+	ImplementNodeProcess *process = initializeprocess();
 	EXPECT_TRUE(process->is_initialized() == true);
 }
 
 TEST(Template, Process_Command)
 {
-	SampleNodeProcess *process = initializeprocess();
+	ImplementNodeProcess *process = initializeprocess();
 	process = readyprocess(process);
 	double time_to_run = 20.0;
 	double dt = 0.001;

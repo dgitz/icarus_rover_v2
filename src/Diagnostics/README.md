@@ -29,3 +29,17 @@ Purpose:
 
 1.  Process Unit Tests:
   >>catkin_make run_tests_icarus_rover_v2_gtest_test_safety_node_process
+
+C. snapshot_node
+TODO:
+- Transfer snapshots to requestor
+Usage: An instance of this node should be run on every device.  One instance should be a MASTER and the rest should be a SLAVE.  Preferably the device that is running the datalogger_node would be the same one running this node as a MASTER.
+Purpose:
+1. Create device snapshots for each device
+
+1. Process Unit Tests:
+  >>catkin_make run_tests_icarus_rover_v2_gtest_test_snapshot_node_process
+
+  Development History:
+  20-July-2019 David Gitz
+  Created Node.
