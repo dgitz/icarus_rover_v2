@@ -76,6 +76,7 @@ private:
 	void ArmedState_Callback(const std_msgs::UInt8::ConstPtr& msg);
 	void device_callback(std::vector<eros::device> devicelist);
 	void subsystem_diagnostic_Callback(const eros::subsystem_diagnostic::ConstPtr& msg);
+	void systemSnapshotState_Callback(const eros::systemsnapshot_state::ConstPtr& msg);
 	//Support Functions
 	eros::diagnostic rescan_topics();
 
@@ -109,5 +110,6 @@ private:
 	ros::Publisher estop_pub;
 	ros::Publisher user_command_pub;
 	ros::Publisher ready_to_arm_pub;
+	ros::Subscriber systemsnapshot_state_sub;
 
 };

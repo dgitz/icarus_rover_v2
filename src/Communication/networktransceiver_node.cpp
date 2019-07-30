@@ -90,6 +90,9 @@ eros::diagnostic NetworkTransceiverNode::finish_initialization()
 	srv_device = n->serviceClient<eros::srv_device>(device_topic);
 	std::string subsystem_diagnostic_topic = "/System/Diagnostic/State";
 	subsystem_diagnostic_sub = n->subscribe<eros::subsystem_diagnostic>(subsystem_diagnostic_topic,1,&NetworkTransceiverNode::subsystem_diagnostic_Callback,this);
+	std::string systemsnapshot_state_topic = "/System/Snapshot/State";
+	systemsnapshot_state_sub = n->subscribe<eros::systemsnapshot_state>(systemsnapshot_state_topic,1,&NetworkTransceiverNode::systemSnapshotState_Callback,this);
+	
 	if(process->get_UIMode()=="Diagnostics_GUI")
 	{
 		std::string joystick_topic = "/" + process->get_UIMode() + "/joystick";
@@ -452,6 +455,15 @@ void NetworkTransceiverNode::resource_Callback(const eros::resource::ConstPtr& m
 			msg->RAM_MB,
 			msg->CPU_Perc);
 	process->push_sendqueue(RESOURCE_ID,send_string);
+}
+void NetworkTransceiverNode::systemSnapshotState_Callback(const eros::systemsnapshot_state::ConstPtr& msg)
+{
+	std::string send_string = udpmessagehandler->encode_SystemSnapshotStateUDP(msg->state,
+		msg->percent_complete,
+		msg->systemsnapshot_count,
+		msg->source_device,
+		msg->snapshot_path);
+	process->push_sendqueue(SYSTEMSNAPSHOTSTATE_ID,send_string);
 }
 bool NetworkTransceiverNode::initialize_recvsocket()
 {

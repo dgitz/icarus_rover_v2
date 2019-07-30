@@ -31,6 +31,13 @@ endif ()
 catkin_add_gtest(test_datalogger_node_process unit_tests/test_datalogger_node_process.cpp)
 target_link_libraries(test_datalogger_node_process  ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} datalogger_node_process logger rosbag)
 
-
+#Snapshot Node
+file(MAKE_DIRECTORY /home/robot/catkin_ws/build/test_results/icarus_rover_v2/snapshot_node)
+add_library(snapshot_node_process SnapshotNodeProcess.cpp)
+target_link_libraries(snapshot_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} )
+add_executable(snapshot_node snapshot_node.cpp)
+target_link_libraries(snapshot_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} logger resourcemonitor snapshot_node_process)
+catkin_add_gtest(test_snapshot_node_process unit_tests/test_snapshot_node_process.cpp)
+target_link_libraries(test_snapshot_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} snapshot_node_process logger)
 
 

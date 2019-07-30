@@ -5,6 +5,7 @@
 //C++ System Files
 #include <boost/algorithm/string.hpp>
 #include <boost/lexical_cast.hpp>
+#include "boost/date_time/posix_time/posix_time.hpp"
 //ROS Base Functionality
 #include "ros/time.h"
 //ROS Messages
@@ -29,6 +30,7 @@
 #include <eros/srv_device.h>
 #include <eros/srv_connection.h>
 #include <eros/srv_leverarm.h>
+#include <eros/srv_snapshotstate.h>
 #include <eros/subsystem_diagnostic.h>
 //Project
 #include "../Definitions.h"
@@ -119,6 +121,7 @@ public:
 	bool is_ready() { return ready; }
 	bool get_ready_to_arm() { return ready_to_arm; }
 	std::vector<eros::diagnostic> get_diagnostics() { return diagnostics; }
+	double getROSTime() { return ros_time; }
 
 	//Message Functions
 	virtual eros::diagnostic new_devicemsg(const eros::device::ConstPtr& t_device) = 0;
@@ -131,6 +134,7 @@ public:
 	std::vector<eros::diagnostic> run_unittest();
 	ros::Time convert_time(struct timeval t);
 	ros::Time convert_time(double t);
+	std::string convert_time_tostr(double t);
 	uint8_t convert_signaltype(std::string units,double *conversion_factor);
 	//Printing Functions
 protected:

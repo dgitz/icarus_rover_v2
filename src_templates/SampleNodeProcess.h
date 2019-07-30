@@ -5,9 +5,8 @@
 //ROS Messages
 //Project
 #include <tinyxml.h>
-#include "fl/Headers.h"
 /*! \class SampleNodeProcess SampleNodeProcess.h "SampleNodeProcess.h"
- *  \brief This is a SampleNodeProcess class.  Used for the implement_node node.
+ *  \brief This is a SampleNodeProcess class.  Used for the sample_node node.
  *
  */
 class SampleNodeProcess: public BaseNodeProcess {
@@ -47,8 +46,5 @@ private:
 	eros::diagnostic load_configfile(std::string path);
 	std::vector<eros::diagnostic> check_programvariables();
 	std::string config_filepath;
-
-
-    fl::Engine* fuzzylogic_engine;  
 
 };
