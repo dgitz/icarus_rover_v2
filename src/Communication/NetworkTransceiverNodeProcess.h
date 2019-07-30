@@ -3,6 +3,7 @@
 //C++ System Files
 //ROS Base Functionality
 //ROS Messages
+#include <eros/systemsnapshot_state.h>
 //Project
 /*! \class NetworkTransceiverNodeProcess NetworkTransceiverNodeProcess.h "NetworkTransceiverNodeProcess.h"
  *  \brief This is a NetworkTransceiverNodeProcess class.  Used for the networktransceiver_node node.

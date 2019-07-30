@@ -327,7 +327,6 @@ void BaseNode::new_commandmsg_result(const eros::command::ConstPtr& t_msg,std::v
 }
 void BaseNode::base_cleanup()
 {
-	printf("sending\n");
 	heartbeat.TaskState = TASKSTATE_STOPPED;
 	heartbeat.stamp = ros::Time::now();
 	heartbeat_pub.publish(heartbeat);

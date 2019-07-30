@@ -59,6 +59,8 @@ private:
 	void PPS1_Callback(const std_msgs::Bool::ConstPtr& t_msg);
 	void Command_Callback(const eros::command::ConstPtr& t_msg);
 	bool new_devicemsg(std::string query,eros::device t_device);
+	bool snapshot_service(eros::srv_snapshotstate::Request &req,
+					eros::srv_snapshotstate::Response &res);
 	//Support Functions
 
 
@@ -66,9 +68,13 @@ private:
 	std::string base_node_name;
 	ros::Subscriber pps1_sub;
 	ros::Subscriber command_sub;
+	ros::ServiceServer snapshot_srv;
 	ros::ServiceClient srv_device;
+	ros::Publisher snapshotstate_pub;
 	SnapshotNodeProcess *process;
 	SnapshotNodeProcess::SnapshotState prev_snapshot_state;
 	SnapshotNodeProcess::SnapshotState snapshot_state;
+	ros::ServiceClient srv_snapshotstate;
+	ros::Publisher datalogger_snapshot_pub;
 
 };

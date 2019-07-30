@@ -43,14 +43,7 @@ std::string exec(const char *cmd, bool wait_for_result)
 	}
 	return result;
 }
-int count_files_indirectory(std::string directory,std::string filter)
-{
-	char tempstr[512];
-	sprintf(tempstr,"ls %s%s | wc -l",directory.c_str(),filter.c_str());
-	std::string return_v = exec(tempstr,true);
-	boost::trim_right(return_v);
-	return std::atoi(return_v.c_str());
-}
+
 SnapshotNodeProcess *initializeprocess(std::string devicename,std::string mode)
 {
 	std::string myarchitecture = exec("arch",true);
@@ -126,6 +119,7 @@ TEST(Template, Process_Command_GenerateDeviceSnapshot)
 		while (snapshot_index < snapshots_totake)
 		{
 			eros::diagnostic diag = process->update(dt, current_time);
+			print_diagnostic(NOTICE,diag);
 			EXPECT_TRUE(diag.Level <= NOTICE);
 
 			int current_time_ms = (int)(current_time * 1000.0);
@@ -200,14 +194,14 @@ TEST(Template, Process_Command_GenerateDeviceSnapshot)
 				}
 				EXPECT_TRUE(diaglist.size() > 0);
 				std::string snapshot_path,snapshot_name;
-				EXPECT_TRUE(process->isSnapshotComplete(snapshot_path,snapshot_name));
+				EXPECT_TRUE(process->isDeviceSnapshotComplete(snapshot_path,snapshot_name));
+				process->resetDeviceSnapshotState();
 				snapshot_index++;
 			}
 			usleep((int)(dt * 10000.0));
 			current_time += dt;
 		}
 		EXPECT_TRUE(process->get_runtime() >= time_to_run);
-		EXPECT_TRUE(snapshots_totake == count_files_indirectory(process->getDeviceSnapshotPath(),"*.zip"));
 	}
 	{
 		SnapshotNodeProcess *process = initializeprocess("MasterDevice","MASTER");
@@ -303,15 +297,19 @@ TEST(Template, Process_Command_GenerateDeviceSnapshot)
 					EXPECT_TRUE(diaglist.at(i).Level <= NOTICE);
 				}
 				EXPECT_TRUE(diaglist.size() > 0);
-				std::string snapshot_path,snapshot_name;
-				EXPECT_TRUE(process->isSnapshotComplete(snapshot_path,snapshot_name));
+				{
+					process->update(SYSTEMSNAPSHOT_TIMEOUT*2.0,current_time+(SYSTEMSNAPSHOT_TIMEOUT*2.0));
+				}
+				eros::diagnostic snap_diag;
+				bool v = process->isSystemSnapshotComplete(snap_diag);
+				EXPECT_TRUE(v);
+				process->resetDeviceSnapshotState();
 				snapshot_index++;
 			}
 			usleep((int)(dt * 10000.0));
 			current_time += dt;
 		}
 		EXPECT_TRUE(process->get_runtime() >= time_to_run);
-		EXPECT_TRUE(snapshots_totake == count_files_indirectory(process->getDeviceSnapshotPath(),"*.zip"));
 	}
 }
 TEST(Template, Process_Command_GenerateSystemSnapshot)
@@ -346,7 +344,7 @@ TEST(Template, Process_Command_GenerateSystemSnapshot)
 			}
 			EXPECT_TRUE(diaglist.size() > 0);
 			std::string snapshot_path,snapshot_name;
-			EXPECT_TRUE(slave_process->isSnapshotComplete(snapshot_path,snapshot_name));
+			EXPECT_TRUE(slave_process->isDeviceSnapshotComplete(snapshot_path,snapshot_name));
 		}
 		{
 			std::vector<eros::diagnostic> diaglist = master_process->new_commandmsg(cmd_ptr);
@@ -356,9 +354,13 @@ TEST(Template, Process_Command_GenerateSystemSnapshot)
 			}
 			EXPECT_TRUE(diaglist.size() > 0);
 			std::string snapshot_path,snapshot_name;
-			EXPECT_TRUE(master_process->isSnapshotComplete(snapshot_path,snapshot_name));
+			{
+				master_process->update(SYSTEMSNAPSHOT_TIMEOUT*2.0,(SYSTEMSNAPSHOT_TIMEOUT*2.0));
+			}
+			eros::diagnostic snap_diag;
+			bool v = master_process->isSystemSnapshotComplete(snap_diag);
+			EXPECT_TRUE(v);
 		}
-		EXPECT_TRUE(2 == count_files_indirectory(slave_process->getDeviceSnapshotPath(),"*.zip"));
 	}
 	/*
 	{
@@ -456,7 +458,7 @@ TEST(Template, Process_Command_GenerateSystemSnapshot)
 				}
 				EXPECT_TRUE(diaglist.size() > 0);
 				std::string snapshot_path,snapshot_name;
-				EXPECT_TRUE(process->isSnapshotComplete(snapshot_path,snapshot_name));
+				EXPECT_TRUE(process->isDeviceSnapshotComplete(snapshot_path,snapshot_name));
 				snapshot_index++;
 			}
 			usleep((int)(dt * 10000.0));
@@ -559,7 +561,7 @@ TEST(Template, Process_Command_GenerateSystemSnapshot)
 				}
 				EXPECT_TRUE(diaglist.size() > 0);
 				std::string snapshot_path,snapshot_name;
-				EXPECT_TRUE(process->isSnapshotComplete(snapshot_path,snapshot_name));
+				EXPECT_TRUE(process->isDeviceSnapshotComplete(snapshot_path,snapshot_name));
 				snapshot_index++;
 			}
 			usleep((int)(dt * 10000.0));

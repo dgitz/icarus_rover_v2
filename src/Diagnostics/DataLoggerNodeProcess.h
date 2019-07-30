@@ -45,6 +45,8 @@ public:
     }
 	bool is_logging_enabled() { return logging_enabled; }
 	std::string get_logdirectory() { return log_directory; }
+	bool getSnapshotMode() { return snapshot_mode; }
+	void setSnapshotMode(bool v) { snapshot_mode = v; }
 
 	//Message Functions
 	/*! \brief  Process Command Message.  All implementation should use at least the code in this Sample Function.
@@ -66,6 +68,7 @@ private:
 	bool log_directory_available;
     double logfile_duration;
 	bool logging_enabled;
+	bool snapshot_mode;
 
 
 };

@@ -10,6 +10,7 @@ eros::diagnostic SnapshotNodeProcess::setInstanceMode(std::string t_mode)
 {
 	systemsnapshot_state = SnapshotState::NOTRUNNING;
 	devicesnapshot_state = SnapshotState::NOTRUNNING;
+	eros_systemsnapshot_state.state = map_state_tostring(systemsnapshot_state);
 	snapshot_name = "";
 	eros::diagnostic diag = root_diagnostic;
 	if(t_mode == "MASTER")
@@ -54,13 +55,43 @@ eros::diagnostic SnapshotNodeProcess::load_configfile(std::string path)
 		TiXmlElement *l_pSnapshotConfig = l_pRootElement->FirstChildElement( "SnapshotConfig" );
 		if(NULL != l_pSnapshotConfig)
 		{
+		
+			TiXmlElement *l_pDataLog = l_pSnapshotConfig->FirstChildElement("DataLog");
+			if(NULL != l_pDataLog )
+			{
+				TiXmlElement *l_pDevice = l_pDataLog->FirstChildElement("Device");
+				if(NULL != l_pDevice)
+				{
+					datalog_device = l_pDevice->GetText();
+				}
+				else
+				{
+					diag = update_diagnostic(DATA_STORAGE,ERROR,INITIALIZING_ERROR,"Device Config Missing from SnapshotConfig.xml.");
+					return diag;				
+				}
+
+				TiXmlElement *l_pStorageDirectory = l_pDataLog->FirstChildElement("StorageDirectory");
+				if(NULL != l_pStorageDirectory)
+				{
+					datalog_directory = l_pStorageDirectory->GetText();
+				}
+				else
+				{
+					diag = update_diagnostic(DATA_STORAGE,ERROR,INITIALIZING_ERROR,"StorageDirectory Config Missing from SnapshotConfig.xml.");
+					return diag;
+				}				
+			}
+			else
+			{
+				diag = update_diagnostic(DATA_STORAGE,ERROR,INITIALIZING_ERROR,"DataLog Config Section Missing from SnapshotConfig.xml.");
+				return diag;
+			}
 			TiXmlElement *l_pSystemSnapshotDestinationPath = l_pSnapshotConfig->FirstChildElement( "SystemSnapshotPath" );
 			if(NULL != l_pSystemSnapshotDestinationPath)
 			{
 				systemdestination_path_found = true;
 				systemsnapshot_directory = l_pSystemSnapshotDestinationPath->GetText();
 			}
-
 			TiXmlElement *l_pArchitecture = l_pSnapshotConfig->FirstChildElement( "Architecture" );
 			if(NULL != l_pArchitecture)
 			{
@@ -81,7 +112,7 @@ eros::diagnostic SnapshotNodeProcess::load_configfile(std::string path)
 						atleast_one_entity_found = true;
 						while( l_pFolder )
 						{
-
+							std::string folder = l_pFolder->GetText();
 							config.folders.push_back(std::string(l_pFolder->GetText()));
 							l_pFolder = l_pFolder->NextSiblingElement( "Folder" );
 						}
@@ -133,9 +164,18 @@ eros::diagnostic SnapshotNodeProcess::load_configfile(std::string path)
 }
 void SnapshotNodeProcess::clear_allsnapshots()
 {
-	char tempstr[256];
-	sprintf(tempstr, "rm -r -f %s/*.zip", snapshot_config.destination_path.c_str());
-	exec(tempstr, true); 
+	{
+		devicesnapshot_state = SnapshotState::NOTRUNNING;
+		systemsnapshot_state = SnapshotState::NOTRUNNING;
+		char tempstr[256];
+		sprintf(tempstr, "rm -r -f %s/*.zip", snapshot_config.destination_path.c_str());
+		exec(tempstr, true); 
+	}
+	{
+		char tempstr[256];
+		sprintf(tempstr, "rm -r -f %s/*.zip", systemsnapshot_directory.c_str());
+		exec(tempstr, true); 
+	}
 	//Do noting for now
 }
 void SnapshotNodeProcess::print_snapshotconfig(SnapshotNodeProcess::SnapshotConfig config)
@@ -149,6 +189,10 @@ void SnapshotNodeProcess::print_snapshotconfig(SnapshotNodeProcess::SnapshotConf
 	{
 		printf("\t[%d] File: %s\n",(int)i,config.files.at(i).c_str());
 	}
+	for(std::size_t i = 0; i < config.commands.size(); ++i)
+	{
+		printf("\t[%d] Command: %s\n",(int)i,config.commands.at(i).command.c_str());
+	}
 }
 eros::diagnostic  SnapshotNodeProcess::finish_initialization()
 {
@@ -157,11 +201,28 @@ eros::diagnostic  SnapshotNodeProcess::finish_initialization()
 	diag = update_diagnostic(diag);
     return diag;
 }
+eros::diagnostic SnapshotNodeProcess::update_slow()
+{
+	eros::diagnostic diag = root_diagnostic;
+	int v = count_files_indirectory(systemsnapshot_directory,"*.zip");
+	eros_systemsnapshot_state.systemsnapshot_count = (uint16_t)v;
+	if(systemsnapshot_state == SnapshotState::NOTRUNNING)
+	{
+		eros_systemsnapshot_state.percent_complete = 0;
+	}
+	return diag;
+}
 eros::diagnostic SnapshotNodeProcess::update(double t_dt,double t_ros_time)
 {
 	eros::diagnostic diag = root_diagnostic;
 	if((initialized == true) and (ready == false))
 	{
+		if(mydevice.DeviceName != datalog_device)
+		{
+			std::string tempstr = "SnapshotConfig DataLog Device Mis-Match: " + mydevice.DeviceName + " Did not match: " + datalog_device;
+			//diag = update_diagnostic(DATA_STORAGE,ERROR,INITIALIZING_ERROR,tempstr);
+			//return diag;
+		}
 		bool found = false;
 		for(std::size_t i = 0; i < snapshot_configlist.size(); ++i)
 		{
@@ -182,17 +243,57 @@ eros::diagnostic SnapshotNodeProcess::update(double t_dt,double t_ros_time)
 
 	}
 	diag = update_baseprocess(t_dt,t_ros_time);
+	if(getInstanceMode() == InstanceMode::MASTER)
+	{
+		if(run_systemsnapshot_timeout_timer == true)
+		{
+			systemsnapshot_timeout_timer += t_dt;
+		}
+		else
+		{
+			systemsnapshot_timeout_timer = 0.0;
+		}
+		if((systemsnapshot_state == SnapshotState::RUNNING) and (systemsnapshot_timeout_timer >= SYSTEMSNAPSHOT_TIMEOUT))
+		{
+			missing_snapshots = filtered_snapshot_devices;
+			filtered_snapshot_devices.clear(); //Does this cause a seg fault?
+			systemsnapshot_state = SnapshotState::INCOMPLETE;
+			systemsnapshot_info.state = systemsnapshot_state;
+			eros_systemsnapshot_state.percent_complete = 100;
+			diag = finishSystemSnapshot();
+		}
+		else if((systemsnapshot_state == SnapshotState::COMPLETE))
+		{
+			systemsnapshot_info.state = systemsnapshot_state;
+			filtered_snapshot_devices.clear();
+			diag = finishSystemSnapshot();
+		}
+		if((systemsnapshot_state == SnapshotState::INCOMPLETE) or (systemsnapshot_state == SnapshotState::COMPLETE) or (systemsnapshot_state == SnapshotState::READY))
+		{
+			systemsnapshot_timeout_timer = 0.0;
+			run_systemsnapshot_timeout_timer = false;
+		}
+	}
+	
 	if(diag.Level <= NOTICE)
 	{
-		diag = update_diagnostic(DATA_STORAGE,INFO,NOERROR,"No Error.");
 		diag = update_diagnostic(SOFTWARE,INFO,NOERROR,"Node Running");
 		
 	}
+	eros_systemsnapshot_state.state = map_state_tostring(systemsnapshot_state);
 	return diag;
 }
 eros::diagnostic SnapshotNodeProcess::new_devicemsg(const eros::device::ConstPtr& device)
 {
 	eros::diagnostic diag = update_diagnostic(SOFTWARE,INFO,NOERROR,"Updated Device");
+	if(device->DeviceName != mydevice.DeviceName)
+	{
+		if((device->DeviceType == "ControlModule") or (device->DeviceType == "ComputeModule"))
+		{
+			all_snapshot_devices.push_back(device->DeviceName);
+		}
+	}
+	
 	return diag;
 }
 std::vector<eros::diagnostic> SnapshotNodeProcess::new_commandmsg(const eros::command::ConstPtr& t_msg)
@@ -223,12 +324,11 @@ std::vector<eros::diagnostic> SnapshotNodeProcess::new_commandmsg(const eros::co
 	{
 		if(t_msg->Option1 == ROVERCOMMAND_SNAPSHOT_CLEARALL)
 		{
-			printf("[%s]SNAPSHOT-Clearing Snapshots.\n",node_name.c_str());
 			clear_allsnapshots();
 		}
 		else if(t_msg->Option1 == ROVERCOMMAND_SNAPSHOT_NEWSNAPSHOT)
 		{
-			diaglist = createnew_snapshot();
+			diaglist = createnew_snapshot(t_msg->Option2,t_msg->CommandText,t_msg->Description);
 		}
 	}
 	for(std::size_t i = 0; i < diaglist.size(); ++i)
@@ -252,18 +352,148 @@ std::vector<eros::diagnostic> SnapshotNodeProcess::check_programvariables()
 	}
 	return diaglist;
 }
-std::vector<eros::diagnostic> SnapshotNodeProcess::createnew_snapshot()
+eros::diagnostic SnapshotNodeProcess::finishSystemSnapshot()
+{
+	eros::diagnostic diag = root_diagnostic;
+	systemsnapshot_info.rostime_stop = getROSTime();
+	std::string infotext = generate_systemsnapshotinfo(systemsnapshot_info);
+	std::string info_filepath = systemsnapshot_path + "/SystemSnapshotInfo.txt";
+	std::ofstream info_fd (info_filepath.c_str(), std::ofstream::out);
+	if(info_fd.is_open() == false)
+	{
+		char tempstr[512];
+		sprintf(tempstr,"Unable to create System Info File: %s",info_filepath.c_str());
+		diag = update_diagnostic(DATA_STORAGE,WARN,DROPPING_PACKETS,std::string(tempstr));
+		return diag;
+	}
+	info_fd << infotext;
+	info_fd.close();
+	//Look for bag file
+	{
+		bool bagfile_ready = false;
+		double dt = 0.1;
+		double etime = 0.0;
+		while(etime < SYSTEMSNAPSHOT_TIMEOUT)
+		{
+			int file_founds = count_files_indirectory(datalog_directory,"*.bag");
+			if(file_founds >= 1)
+			{
+				char tempstr[1024];
+				sprintf(tempstr, "mv %s*.bag %s",  datalog_directory.c_str(),systemsnapshot_path.c_str());
+				exec(tempstr, true); 
+				bagfile_ready = true;
+				break;
+			}
+			etime += dt;
+		}
+		if(bagfile_ready == false)
+		{
+			diag = update_diagnostic(DATA_STORAGE,WARN,DROPPING_PACKETS,"DataLog BAG file missing.");			
+		}
+	}
+	//Zip it up
+	if(1)
+	{
+		char tempstr[1024];
+		sprintf(tempstr, "cd %s && zip -r %s.zip %s/*", systemsnapshot_directory.c_str(),systemsnapshot_path.c_str(),systemsnapshot_name.c_str());
+		active_systemsnapshot_completepath = systemsnapshot_directory + systemsnapshot_name + ".zip";
+		exec(tempstr, true); 
+	}
+	//Make sure it's actually there
+	{
+		int file_found = count_files_indirectory(systemsnapshot_directory,systemsnapshot_name+".zip");
+		if(file_found != 1)
+		{
+			char tempstr[1024];
+			sprintf(tempstr,"System Snapshot not created: %s",systemsnapshot_name.c_str());
+			diag = update_diagnostic(DATA_STORAGE,ERROR,DROPPING_PACKETS,std::string(tempstr));
+			return diag;
+		}
+	}
+	
+	//Clean up folder
+	{
+		char tempstr[1024];
+		sprintf(tempstr, "rm -r -f %s",  systemsnapshot_path.c_str());
+		exec(tempstr, true); 
+	}
+	char tempstr[512];
+	if(systemsnapshot_state == SnapshotState::COMPLETE)
+	{
+		sprintf(tempstr,"System Snapshot: %s Generated Completely.",systemsnapshot_name.c_str());
+		diag = update_diagnostic(DATA_STORAGE,NOTICE,NOERROR,std::string(tempstr));
+		systemsnapshot_state = SnapshotState::READY;
+		
+	}
+	else if(systemsnapshot_state == SnapshotState::INCOMPLETE)
+	{
+		std::string tempstr2;
+		for(std::size_t i = 0; i < missing_snapshots.size(); ++i)
+		{
+			tempstr2 += missing_snapshots.at(i);
+			if(i < (missing_snapshots.size() -1))
+			{
+				tempstr2 += ",";
+			}
+		}
+		sprintf(tempstr,"System Snapshot: %s Generated but is missing snapshots from: %s.",systemsnapshot_name.c_str(),tempstr2.c_str());
+		diag = update_diagnostic(DATA_STORAGE,WARN,DROPPING_PACKETS,std::string(tempstr));
+		systemsnapshot_state = SnapshotState::READY;
+	}
+	if(systemsnapshot_state == SnapshotState::READY)
+	{
+		eros_systemsnapshot_state.source_device = mydevice.DeviceName;
+		eros_systemsnapshot_state.snapshot_path = active_systemsnapshot_completepath;
+	}
+	return diag;
+}
+bool SnapshotNodeProcess::received_snapshot_fromdevice(std::string devicename)
+{
+	bool found = false;
+	int index = -1;
+	eros::diagnostic diag = root_diagnostic;
+	for(std::size_t i = 0; i < filtered_snapshot_devices.size(); ++i )
+	{
+		
+		if(filtered_snapshot_devices.at(i) == devicename)
+		{
+			index = i;
+			found = true;
+		}
+	}
+	if(found == true)
+	{
+		filtered_snapshot_devices.erase(filtered_snapshot_devices.begin() + index);
+		double v = 1.0/(double)((uint32_t)all_snapshot_devices.size()+1);
+		eros_systemsnapshot_state.percent_complete+= (uint8_t)(100.0*v);
+		systemsnapshot_info.devices.push_back(devicename);
+	}
+	if(filtered_snapshot_devices.size() == 0)
+	{
+		systemsnapshot_state = SnapshotState::COMPLETE;
+		eros_systemsnapshot_state.percent_complete = 100;
+	}
+	return found;
+}
+std::vector<eros::diagnostic> SnapshotNodeProcess::createnew_snapshot(uint8_t snapshot_mode,std::string command_text,std::string command_description)
 {
 	std::vector<eros::diagnostic> diaglist;
 	eros::diagnostic diag = root_diagnostic;
-	if((devicesnapshot_state == SnapshotState::RUNNING) or (devicesnapshot_state == SnapshotState::READY))
+	if((devicesnapshot_state == SnapshotState::RUNNING) or (devicesnapshot_state == SnapshotState::READY) or (systemsnapshot_state == SnapshotState::RUNNING))
 	{
 		diag = update_diagnostic(DATA_STORAGE,DROPPING_PACKETS,WARN,"Snapshot is still being generated.");
 		diaglist.push_back(diag);
 		return diaglist;
 	}
+	systemsnapshot_info.rostime_start = getROSTime();
 	
+	filtered_snapshot_devices = all_snapshot_devices;
 	devicesnapshot_state = SnapshotState::RUNNING;
+	eros_systemsnapshot_state.percent_complete = 0;
+	systemsnapshot_info.devices.clear();
+	systemsnapshot_info.generate_commandtext = command_text;
+	systemsnapshot_info.generate_commanddescription = command_description;
+	systemsnapshot_info.snapshot_mode = snapshot_mode;
 	time_t rawtime;
 	struct tm * timeinfo;
 	char buffer[80];
@@ -302,22 +532,72 @@ std::vector<eros::diagnostic> SnapshotNodeProcess::createnew_snapshot()
 		exec(tempstr, true); 
 	}
 	//Zip it up
+	if(1)
 	{
 		char tempstr[1024];
-		sprintf(tempstr, "cd %s && zip %s.zip %s/*",  snapshot_config.destination_path.c_str(),snapshot_path.c_str(),snapshot_name.c_str());
+		sprintf(tempstr, "cd %s && zip -r %s.zip %s/*",  snapshot_config.destination_path.c_str(),snapshot_path.c_str(),snapshot_name.c_str());
+		active_snapshot_completepath = snapshot_config.destination_path + snapshot_name + ".zip";
 		exec(tempstr, true); 
 	}
+	//Make sure it's actually there
+	{
+		int file_found = count_files_indirectory(snapshot_config.destination_path,snapshot_name+".zip");
+		if(file_found != 1)
+		{
+			char tempstr[1024];
+			sprintf(tempstr,"Device Snapshot not created: %s",snapshot_name.c_str());
+			diag = update_diagnostic(DATA_STORAGE,ERROR,DROPPING_PACKETS,std::string(tempstr));
+			diaglist.push_back(diag);
+			return diaglist;
+		}
+	}
 	//Clean up folder
+	if(1)
 	{
 		char tempstr[1024];
 		sprintf(tempstr, "rm -r -f %s",  snapshot_path.c_str());
 		exec(tempstr, true); 
 	}
 	char tempstr[512];
-	sprintf(tempstr,"Snapshot Created at: %s",snapshot_path.c_str());
+	sprintf(tempstr,"Device Snapshot Created at: %s",snapshot_path.c_str());
 	diag = update_diagnostic(DATA_STORAGE,INFO,NOERROR,std::string(tempstr));
 	diaglist.push_back(diag);
 	devicesnapshot_state = SnapshotState::READY;
+	if(getInstanceMode() == InstanceMode::MASTER)
+	{
+		run_systemsnapshot_timeout_timer = true;
+		time_t rawtime2;
+		struct tm * timeinfo2;
+		char buffer2[80];
+		time (&rawtime2);
+		timeinfo2 = localtime(&rawtime2);
+
+		strftime(buffer2,sizeof(buffer2),"SystemSnapshot_%Y_%m_%d_%H_%M_%S",timeinfo2);
+		std::string str(buffer2);
+		systemsnapshot_name = str;
+		systemsnapshot_path = systemsnapshot_directory + systemsnapshot_name;
+		if (mkdir(systemsnapshot_path.c_str(), 0777) == -1) 
+		{
+			char tempstr2[512];
+			sprintf(tempstr2,"Unable to create System Snapshot folder: %s",systemsnapshot_path.c_str());
+			diag = update_diagnostic(DATA_STORAGE,ERROR,INITIALIZING_ERROR,std::string(tempstr2));
+			diaglist.push_back(diag);
+			return diaglist;
+		}
+		//Move Device Snap to System Snap Directory
+		{
+			char tempstr[1024];
+			sprintf(tempstr, "mv %s %s",  active_snapshot_completepath.c_str(),systemsnapshot_path.c_str());
+			exec(tempstr, true); 
+		}
+		systemsnapshot_info.devices.push_back(mydevice.DeviceName);
+		double v = 1.0/(double)((uint32_t)all_snapshot_devices.size()+1);
+		eros_systemsnapshot_state.percent_complete+= (uint8_t)(100.0*v);
+
+		devicesnapshot_state = SnapshotState::NOTRUNNING;
+		systemsnapshot_state = SnapshotState::RUNNING;
+	}
+	diaglist.push_back(diag);
 	return diaglist;
 }
 std::string SnapshotNodeProcess::exec(const char *cmd, bool wait_for_result)
@@ -347,6 +627,24 @@ std::string SnapshotNodeProcess::exec(const char *cmd, bool wait_for_result)
 	}
 	return result;
 }
+std::string SnapshotNodeProcess::map_snapshotmode_tostring(uint8_t t_mode)
+{
+	switch(t_mode)
+	{
+		case ROVERCOMMAND_SNAPSHOTMODE_UNDEFINED:
+			return "UNKNOWN";
+			break;
+		case ROVERCOMMAND_SNAPSHOTMODE_MANUAL:
+			return "MANUAL";
+			break;
+		case ROVERCOMMAND_SNAPSHOTMODE_AUTO:
+			return "AUTO";
+			break;
+		default:
+			return "UNKNOWN";
+			break;
+	}
+}
 std::string SnapshotNodeProcess::map_state_tostring(SnapshotState t_state)
 {
 	switch(t_state)
@@ -363,8 +661,48 @@ std::string SnapshotNodeProcess::map_state_tostring(SnapshotState t_state)
 		case SnapshotState::READY:
 			return "READY";
 			break;
+		case SnapshotState::COMPLETE:
+			return "COMPLETE";
+			break;
+		case SnapshotState::INCOMPLETE:
+			return "INCOMPLETE";
+			break;
 		default:
 			return "UNKNOWN";
 			break;
 	}
+}
+int SnapshotNodeProcess::count_files_indirectory(std::string directory,std::string filter)
+{
+	try
+	{
+	
+		char tempstr[1024];
+		sprintf(tempstr,"ls %s%s 2>/dev/null | wc -l",directory.c_str(),filter.c_str());
+		std::string return_v = exec(tempstr,true);
+		boost::trim_right(return_v);
+		return std::atoi(return_v.c_str());
+	}
+	catch(const std::exception& e)
+	{
+		return 0;
+	}
+}
+std::string SnapshotNodeProcess::generate_systemsnapshotinfo(SystemSnapshotInfo info)
+{
+	std::string tempstr;
+	tempstr = "Snapshot Start: " + std::to_string(info.rostime_start) + "\r\n";
+	tempstr += "Start DateTime: " + convert_time_tostr(info.rostime_start) + "\r\n";
+	tempstr += "Snapshot Stop: " + std::to_string(info.rostime_stop) + "\r\n";
+	tempstr += "Stop DateTime: " + convert_time_tostr(info.rostime_stop) + "\r\n";
+	tempstr += "Snapshot State: " + map_state_tostring(info.state) + "\r\n";
+	tempstr += "Mode: " + map_snapshotmode_tostring(info.snapshot_mode) + "\r\n";
+	tempstr += "Command Text: " + info.generate_commandtext + "\r\n";
+	tempstr += "Command Description: " + info.generate_commanddescription + "\r\n";
+	tempstr += "Snapshot Contains Device Snapshot from the following Devices: \r\n";
+	for(std::size_t i = 0; i < info.devices.size(); ++i)
+	{
+		tempstr += "\t[" + std::to_string(i) + "] Device: " + info.devices.at(i) + "\r\n";
+	}
+	return tempstr;
 }

@@ -32,7 +32,16 @@ Purpose:
 
 C. snapshot_node
 TODO:
-- Transfer snapshots to requestor
+- Transfer snapshots to master node (DONE)
+- Add any other logging/files to put in snapshot (core files)
+- Update UDP message spec (DONE)
+- Add in a few more pieces of info the Snapshot Info file
+- Fix unit test (DONE)
+- Check that snapshot runs on regular startup (DONE)
+- Publish SnapshotState (DONE)
+- Update Node Documentation
+- Datalog dump/snapshot (rosbag snapshot works, just need to move .bag file into system snapshot folder)
+
 Usage: An instance of this node should be run on every device.  One instance should be a MASTER and the rest should be a SLAVE.  Preferably the device that is running the datalogger_node would be the same one running this node as a MASTER.
 Purpose:
 1. Create device snapshots for each device

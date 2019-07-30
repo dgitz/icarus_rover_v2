@@ -19,6 +19,11 @@ ros::Time BaseNodeProcess::convert_time(struct timeval t_)
 	t.nsec = t_.tv_usec * 1000;
 	return t;
 }
+std::string BaseNodeProcess::convert_time_tostr(double t_)
+{
+	boost::posix_time::ptime my_posix_time = convert_time(t_).toBoost();
+	return boost::posix_time::to_iso_extended_string(my_posix_time);
+}
 ros::Time BaseNodeProcess::convert_time(double t_)
 {
 	ros::Time t;

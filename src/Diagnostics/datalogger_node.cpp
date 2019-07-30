@@ -76,6 +76,24 @@ eros::diagnostic DataLoggerNode::finish_initialization()
 		diag = process->update_diagnostic(DATA_STORAGE,WARN,DEVICE_NOT_AVAILABLE,std::string(tempstr));
 		logger->log_diagnostic(diag);
     }
+	std::string param_snapshot_mode = node_name +"/SnapshotMode";
+    bool snapshot_mode;
+	if(n->getParam(param_snapshot_mode,snapshot_mode) == false)
+	{
+		diag = process->update_diagnostic(DATA_STORAGE,WARN,NOERROR,"Missing Parameter: SnapshotMode.");
+		logger->log_diagnostic(diag);
+	}
+    process->setSnapshotMode(snapshot_mode);
+	if(snapshot_mode == true)
+	{
+		diag = process->update_diagnostic(DATA_STORAGE,WARN,NOERROR,"SnapshotMode Disabled.  Logging Everything.");
+		logger->log_diagnostic(diag);
+	}
+	else
+	{
+		diag = process->update_diagnostic(DATA_STORAGE,NOTICE,NOERROR,"SnapshotMode Enabled.  All logs stored in RAM until Snapshot is triggered.");
+		logger->log_diagnostic(diag);
+	}
 	get_logger()->log_notice("Configuration Files Loaded.");
 	return diagnostic;
 }
@@ -230,6 +248,7 @@ void DataLoggerNode::run_logger(DataLoggerNode *node)
 		opts.append_date = true;
 		opts.max_duration = ros::Duration(node->get_process()->get_logfile_duration()); //30 minutes
 		opts.split = true;
+		opts.snapshot = node->get_process()->getSnapshotMode();
 		rosbag::Recorder recorder(opts);
 		recorder.run();
 		node->get_logger()->log_info("Logger Finished.");

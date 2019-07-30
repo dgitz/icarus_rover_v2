@@ -426,6 +426,14 @@ void NetworkTransceiverNodeProcess::init_messages()
 	}
 	{
 		Message newmessage;
+		newmessage.id = SYSTEMSNAPSHOTSTATE_ID;
+		newmessage.name = "SystemSnapshotState";
+		newmessage.priority_level = PriorityLevel::LOW;
+		newmessage.target_sendrate = 1.0;
+		messages.push_back(newmessage);
+	}
+	{
+		Message newmessage;
 		newmessage.id = REMOTECONTROL_ID;
 		newmessage.name = "Remote Control";
 		newmessage.priority_level = PriorityLevel::HIGH;
@@ -464,6 +472,7 @@ void NetworkTransceiverNodeProcess::init_messages()
 		newmessage.target_sendrate = 5.0;
 		messages.push_back(newmessage);
 	}
+	
 	for(std::size_t i = 0; i < messages.size(); i++)
 	{
 		messages.at(i).sent_counter = 0;

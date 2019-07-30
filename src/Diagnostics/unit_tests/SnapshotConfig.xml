@@ -1,6 +1,10 @@
 <?xml version="1.0" ?>
 <SnapshotConfigFile>
     <SnapshotConfig>
+        <DataLog>
+            <StorageDirectory>/home/robot/storage/DATALOGS</StorageDirectory>
+            <Device>dgitzdev</Device>
+        </DataLog>
         <SystemSnapshotPath>/home/robot/storage/SNAPSHOT/UNITTEST/SYSTEMSNAPSHOT/</SystemSnapshotPath>
         <Architecture type="x86_64">
             <DeviceSnapshotPath>/home/robot/storage/SNAPSHOT/UNITTEST/DEVICESNAPSHOT/</DeviceSnapshotPath>
