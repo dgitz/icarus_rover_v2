@@ -244,7 +244,7 @@ eros::diagnostic TimeSlaveNodeProcess::update_timeserver(std::string name)
 	{
 		char tempstr[512];
 		sprintf(tempstr,"ntpq -p | grep %s",name.c_str());
-		exec_result = exec(tempstr);
+		exec_result = exec(tempstr,true);
 	}
 	std::vector<std::string> items;
 	boost::split(items,exec_result,boost::is_any_of("\t "),boost::token_compress_on);
@@ -324,20 +324,4 @@ eros::diagnostic TimeSlaveNodeProcess::update_timeserver(std::string name)
 
 
 	return diag;
-}
-std::string TimeSlaveNodeProcess::exec(const char* cmd) {
-	char buffer[128];
-	std::string result = "";
-	FILE* pipe = popen(cmd, "r");
-	if (!pipe) throw std::runtime_error("popen() failed!");
-	try {
-		while (fgets(buffer, sizeof buffer, pipe) != NULL) {
-			result += buffer;
-		}
-	} catch (...) {
-		pclose(pipe);
-		throw;
-	}
-	pclose(pipe);
-	return result;
 }

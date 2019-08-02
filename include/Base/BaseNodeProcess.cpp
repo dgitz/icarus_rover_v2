@@ -214,6 +214,33 @@ eros::imu BaseNodeProcess::convert_fromptr(const eros::imu::ConstPtr &t_ptr)
 	imu.zmag = t_ptr->zmag;
 	return imu;
 }
+std::string BaseNodeProcess::exec(const char *cmd, bool wait_for_result)
+{
+	char buffer[512];
+	std::string result = "";
+	FILE *pipe = popen(cmd, "r");
+	if (wait_for_result == false)
+	{
+		pclose(pipe);
+		return "";
+	}
+	if (!pipe)
+		throw std::runtime_error("popen() failed!");
+	try
+	{
+		while (!feof(pipe))
+		{
+			if (fgets(buffer, 512, pipe) != NULL)
+				result += buffer;
+		}
+	}
+	catch (...)
+	{
+		pclose(pipe);
+		throw std::runtime_error("popen() failed!");
+	}
+	return result;
+}
 eros::diagnostic BaseNodeProcess::update_diagnostic(uint8_t diagnostic_type, uint8_t level, uint8_t message, std::string description)
 {
 	return update_diagnostic(host_name,diagnostic_type,level,message,description);

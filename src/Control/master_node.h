@@ -76,6 +76,8 @@ private:
 	std::string base_node_name;
 	ros::Subscriber pps1_sub;
 	ros::Publisher device_resourceavail_pub;
+	ros::Publisher loadfactor_pub;
+	ros::Publisher uptime_pub;
 
 	ros::Subscriber command_sub;
 	MasterNodeProcess *process;

@@ -92,6 +92,10 @@ eros::diagnostic MasterNode::finish_initialization()
 	leverarm_srv = n->advertiseService(srv_leverarm_topic,&MasterNode::leverarm_service,this);
 	std::string device_resourceavail_topic = "/" + process->get_mydevice().DeviceName + "/resource_available";
 	device_resourceavail_pub = n->advertise<eros::resource>(device_resourceavail_topic,1);
+	std::string loadfactor_topic = "/" + process->get_mydevice().DeviceName + "/loadfactor";
+	loadfactor_pub = n->advertise<eros::loadfactor>(loadfactor_topic,1);
+	std::string uptime_topic = "/" + process->get_mydevice().DeviceName + "/uptime";
+	uptime_pub = n->advertise<std_msgs::Float32>(uptime_topic,1);
 
 	return diagnostic;
 }
@@ -101,6 +105,17 @@ bool MasterNode::run_001hz()
 }
 bool MasterNode::run_01hz()
 {
+	eros::diagnostic diag = process->slowupdate();
+	if(diag.Level <= NOTICE)
+	{
+		loadfactor_pub.publish(process->getLoadFactor());
+		uptime_pub.publish(process->getUptime());
+	}
+	else
+	{
+		get_logger()->log_diagnostic(diag);
+		diagnostic_pub.publish(diag);
+	}
 	return true;
 }
 bool MasterNode::run_01hz_noisy()

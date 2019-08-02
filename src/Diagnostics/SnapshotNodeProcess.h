@@ -166,7 +166,7 @@ public:
 	//Support Functions
 	std::string map_state_tostring(SnapshotState t_state);
 	std::string map_snapshotmode_tostring(uint8_t t_mode);
-	std::string exec(const char* cmd,bool wait_for_result);
+	
 	int count_files_indirectory(std::string directory,std::string filter);
     //Printing Functions
 	void print_snapshotconfig(SnapshotNodeProcess::SnapshotConfig config);

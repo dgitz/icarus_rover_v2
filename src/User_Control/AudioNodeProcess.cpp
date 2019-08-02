@@ -501,30 +501,3 @@ bool AudioNodeProcess::new_audioplaytrigger(std::string trigger, bool bypass)
 	}
 	return false;
 }
-std::string AudioNodeProcess::exec(const char *cmd, bool wait_for_result)
-{
-	char buffer[512];
-	std::string result = "";
-	FILE *pipe = popen(cmd, "r");
-	if (wait_for_result == false)
-	{
-		pclose(pipe);
-		return "";
-	}
-	if (!pipe)
-		throw std::runtime_error("popen() failed!");
-	try
-	{
-		while (!feof(pipe))
-		{
-			if (fgets(buffer, 512, pipe) != NULL)
-				result += buffer;
-		}
-	}
-	catch (...)
-	{
-		pclose(pipe);
-		throw;
-	}
-	return result;
-}

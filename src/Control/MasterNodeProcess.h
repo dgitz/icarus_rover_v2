@@ -69,8 +69,17 @@ public:
 	//Update Functions
 	/*! \brief Implementation of the update function */
 	eros::diagnostic update(double t_dt,double t_ros_time);
-
+	eros::diagnostic slowupdate();
+	eros::diagnostic process_loadfactormsg(std::string cmd);
+	eros::diagnostic process_uptimemsg(std::string cmd);
 	//Attribute Functions
+	eros::loadfactor getLoadFactor() { return load_factor; }
+	std_msgs::Float64 getUptime() 
+	{
+		std_msgs::Float64 v;
+		v.data = uptime;
+		return v; 
+	}
 	std::vector<std::string> get_allserialbaudrates() { return serialport_baudrates; }
 	std::vector<SerialPort> get_serialports() { return serialports; }
 	std::vector<eros::device> get_alldevices() { return allDevices; }
@@ -130,5 +139,7 @@ private:
 	std::string system_filepath;
 	double device_temperature;
 	std::vector<eros::device> devices_to_publish;
+	eros::loadfactor load_factor;
+	double uptime;
 };
 #endif
