@@ -44,6 +44,9 @@ eros::diagnostic SampleNodeProcess::load_configfile(std::string path)
 eros::diagnostic  SampleNodeProcess::finish_initialization()
 {
     eros::diagnostic diag = root_diagnostic;
+	sample_map[(uint8_t)SampleEnum::UNKNOWN] = "UNKNOWN";
+	sample_map[(uint8_t)SampleEnum::ENUMTYPEA] = "ENUM TYPE A";
+	sample_map[(uint8_t)SampleEnum::ENUMTYPEB] = "ENUM TYPE B";
 	diag = load_configfile(config_filepath);
 	diag = update_diagnostic(diag);
     return diag;
@@ -64,7 +67,7 @@ eros::diagnostic SampleNodeProcess::update(double t_dt,double t_ros_time)
 	}
 	return diag;
 }
-eros::diagnostic SampleNodeProcess::new_devicemsg(const eros::device::ConstPtr& device)
+eros::diagnostic SampleNodeProcess::new_devicemsg(__attribute__((unused)) const eros::device::ConstPtr& device)
 {
 	eros::diagnostic diag = update_diagnostic(SOFTWARE,INFO,NOERROR,"Updated Device");
 	return diag;
@@ -113,4 +116,41 @@ std::vector<eros::diagnostic> SampleNodeProcess::check_programvariables()
 		diaglist.push_back(diag);
 	}
 	return diaglist;
+}
+uint8_t SampleNodeProcess::map_sampledatatype_ToInt(std::string data)
+{
+	std::map<std::string,uint8_t> reverse_map;
+	std::map<std::string,uint8_t>::iterator it = reverse_map.begin();
+
+	for (auto& x: sample_map)
+	{
+		reverse_map.insert (it, std::pair<std::string,uint8_t>(x.second,x.first));
+	}
+	it = reverse_map.find(data);
+	if (it != reverse_map.end())
+	{
+		return it->second;
+	}
+	return (uint8_t)SampleEnum::UNKNOWN;
+}
+std::string SampleNodeProcess::map_sampledatatype_ToString(uint8_t data)
+{
+	std::map<uint8_t,std::string>::iterator it;
+	it = sample_map.find(data);
+	if (it != sample_map.end())
+	{
+		return it->second;
+	}
+	return "UNDEFINED";
+}
+bool SampleNodeProcess::process_jsonmsg(json msg)
+{
+	for (json::iterator it = msg.begin(); it != msg.end(); ++it)
+	{
+		if(it.key() == "Key1")
+		{
+			return true;
+		}
+	}
+	return false;
 }
