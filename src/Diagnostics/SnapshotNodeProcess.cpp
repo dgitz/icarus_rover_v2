@@ -600,33 +600,6 @@ std::vector<eros::diagnostic> SnapshotNodeProcess::createnew_snapshot(uint8_t sn
 	diaglist.push_back(diag);
 	return diaglist;
 }
-std::string SnapshotNodeProcess::exec(const char *cmd, bool wait_for_result)
-{
-	char buffer[512];
-	std::string result = "";
-	FILE *pipe = popen(cmd, "r");
-	if (wait_for_result == false)
-	{
-		pclose(pipe);
-		return "";
-	}
-	if (!pipe)
-		throw std::runtime_error("popen() failed!");
-	try
-	{
-		while (!feof(pipe))
-		{
-			if (fgets(buffer, 512, pipe) != NULL)
-				result += buffer;
-		}
-	}
-	catch (...)
-	{
-		pclose(pipe);
-		throw;
-	}
-	return result;
-}
 std::string SnapshotNodeProcess::map_snapshotmode_tostring(uint8_t t_mode)
 {
 	switch(t_mode)

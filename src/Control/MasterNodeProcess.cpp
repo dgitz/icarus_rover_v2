@@ -19,6 +19,10 @@ eros::diagnostic MasterNodeProcess::finish_initialization()
 	device_temperature = -100.0;
 	diag = load_devicefile(device_filepath);
 	diag = update_diagnostic(diag);
+	load_factor.loadfactor.push_back(-1.0);
+	load_factor.loadfactor.push_back(-1.0);
+	load_factor.loadfactor.push_back(-1.0);
+	uptime = -1.0;
 	if (diag.Level > NOTICE)
 	{
 		return diag;
@@ -30,6 +34,93 @@ eros::diagnostic MasterNodeProcess::finish_initialization()
 		return diag;
 	}
 	return diag;
+}
+eros::diagnostic MasterNodeProcess::process_loadfactormsg(std::string cmd)
+{
+	eros::diagnostic diag = root_diagnostic;
+	{//Process Load Factor
+		std::vector<std::string> items;
+		boost::split(items, cmd, boost::is_any_of(" "));
+		if(items.size() < 3)
+		{
+			char output[512];
+			sprintf(output,"Unable to process load factor: %s",cmd.c_str());
+			diag = update_diagnostic(SOFTWARE,ERROR,DROPPING_PACKETS,std::string(output));
+			return diag;
+		}
+		for(std::size_t i = 0; i < 3; ++i)
+		{
+			try
+			{
+				double v = std::atof(items.at(i).c_str());
+				if(v == 0.0)
+				{
+					char output[512];
+					sprintf(output,"Unable to process load factor: %s",cmd.c_str());
+					diag = update_diagnostic(SOFTWARE,ERROR,DROPPING_PACKETS,std::string(output));
+					return diag;
+				}
+				load_factor.loadfactor[i] = v;
+			}
+			catch(const std::exception& e)
+			{
+				diag = update_diagnostic(SOFTWARE,ERROR,DROPPING_PACKETS,e.what());
+				return diag;
+			}			
+		}
+	}
+	diag = update_diagnostic(SOFTWARE,INFO,NOERROR,"Load Factor Updated.");
+	return diag;
+}
+eros::diagnostic MasterNodeProcess::process_uptimemsg(std::string cmd)
+{
+	eros::diagnostic diag = root_diagnostic;
+	{//Process Uptime
+		std::vector<std::string> items;
+		boost::split(items, cmd, boost::is_any_of(" "));
+		if(items.size() != 2)
+		{
+			char output[512];
+			sprintf(output,"Unable to process uptime: %s",cmd.c_str());
+			diag = update_diagnostic(SOFTWARE,ERROR,DROPPING_PACKETS,std::string(output));
+			return diag;
+		}
+		try
+		{
+			double v = std::atof(items.at(0).c_str());
+			if(v == 0.0)
+			{
+				char output[512];
+				sprintf(output,"Unable to process uptime: %s",cmd.c_str());
+				diag = update_diagnostic(SOFTWARE,ERROR,DROPPING_PACKETS,std::string(output));
+				return diag;
+			}
+			uptime = v;
+		}
+		catch(const std::exception& e)
+		{
+			diag = update_diagnostic(SOFTWARE,ERROR,DROPPING_PACKETS,e.what());
+			return diag;
+		}
+	}
+	diag = update_diagnostic(SOFTWARE,INFO,NOERROR,"Uptime Updated.");
+	return diag;
+}
+eros::diagnostic MasterNodeProcess::slowupdate()
+{	
+	eros::diagnostic diag = root_diagnostic;
+	{
+		std::string tempstr = exec("cat /proc/loadavg",true);
+		boost::trim_right(tempstr);
+		diag =  process_loadfactormsg(tempstr);
+	}
+	{
+		std::string tempstr = exec("cat /proc/uptime",true);
+		boost::trim_right(tempstr);
+		diag =  process_uptimemsg(tempstr);
+	}
+	return diag;
+		
 }
 eros::diagnostic MasterNodeProcess::update(double t_dt, double t_ros_time)
 {

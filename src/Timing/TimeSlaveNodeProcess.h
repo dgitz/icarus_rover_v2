@@ -67,7 +67,6 @@ public:
     //Printing Functions
 protected:
 private:
-	std::string exec(const char* cmd);
 	/*! \brief Process Specific Implementation
 	 *
 	 */

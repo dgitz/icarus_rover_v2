@@ -91,7 +91,6 @@ private:
 	 */
 	std::vector<eros::diagnostic> check_programvariables();
     void init_audioplayfiles();
-    std::string exec(const char* cmd,bool wait_for_result);
     
     std::string audiostorage_directory;
     std::string audioarchive_directory;

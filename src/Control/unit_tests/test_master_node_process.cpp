@@ -13,7 +13,22 @@ double MEDIUM_RATE = 1.0f;
 double FAST_RATE = 10.0f;
 int DeviceID = 123;
 #define DIAGNOSTIC_TYPE_COUNT 5
-
+bool isEqual(double a, double b)
+{
+	a = fabs(a);
+	b = fabs(b);
+	double v = fabs(a-b);
+	if(v < .0001)
+	{
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+	
+	
+}
 MasterNodeProcess *initializeprocess(std::string devicepath, std::string systempath)
 {
 
@@ -63,7 +78,37 @@ TEST(Template, Process_Initialization)
 	initializeprocess("/home/robot/catkin_ws/src/icarus_rover_v2/src/Control/unit_tests/UnitTestDeviceFile.xml",
 					  "/home/robot/catkin_ws/src/icarus_rover_v2/src/Control/unit_tests/UnitTestSystemFile.xml");
 }
+TEST(Update,UptimeLoadfactor)
+{
+	MasterNodeProcess *process =initializeprocess("/home/robot/catkin_ws/src/icarus_rover_v2/src/Control/unit_tests/UnitTestDeviceFile.xml",
+					  "/home/robot/catkin_ws/src/icarus_rover_v2/src/Control/unit_tests/UnitTestSystemFile.xml");
+	process = readyprocess(process);
+	eros::diagnostic diag = process->slowupdate();
+	EXPECT_TRUE(diag.Level <= NOTICE);
 
+	{//Check Load Factor
+		diag = process->process_loadfactormsg("1.44 1.49 1.52 2/1358 19366");
+		EXPECT_TRUE(diag.Level <= NOTICE);
+		eros::loadfactor load = process->getLoadFactor();
+		EXPECT_TRUE(isEqual(1.44,(double)load.loadfactor[0]));
+		EXPECT_TRUE(isEqual(1.49,(double)load.loadfactor[1]));
+		EXPECT_TRUE(isEqual(1.52,(double)load.loadfactor[2]));
+
+		diag = process->process_loadfactormsg("short fail");
+		EXPECT_TRUE(diag.Level > NOTICE);
+
+		diag = process->process_loadfactormsg("a very bad string that should fail");
+		EXPECT_TRUE(diag.Level > NOTICE);
+	}
+	{//Check uptime
+		diag = process->process_uptimemsg("1064176.56 2571857.17");
+		EXPECT_TRUE(diag.Level <= NOTICE);
+		EXPECT_TRUE(isEqual(1064176.56,(double)process->getUptime().data));
+
+		diag = process->process_uptimemsg("bad string");
+		EXPECT_TRUE(diag.Level > NOTICE);
+	}
+}
 TEST(Template, Process_Command)
 {
 	std::vector<std::string> devicepathlist;

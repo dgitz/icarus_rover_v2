@@ -13,6 +13,7 @@
 #include "sensor_msgs/Joy.h"
 #include "std_msgs/UInt8.h"
 #include "std_msgs/Float32.h"
+#include "std_msgs/Float64.h"
 #include <sensor_msgs/JointState.h>
 #include <eros/diagnostic.h>
 #include <eros/firmware.h>
@@ -32,6 +33,7 @@
 #include <eros/srv_leverarm.h>
 #include <eros/srv_snapshotstate.h>
 #include <eros/subsystem_diagnostic.h>
+#include <eros/loadfactor.h>
 //Project
 #include "../Definitions.h"
 #include "../../../eROS/include/DiagnosticClass.h"
@@ -136,6 +138,7 @@ public:
 	ros::Time convert_time(double t);
 	std::string convert_time_tostr(double t);
 	uint8_t convert_signaltype(std::string units,double *conversion_factor);
+	std::string exec(const char* cmd,bool wait_for_result);
 	//Printing Functions
 protected:
 	DiagnosticClass diagnostic_helper;
@@ -146,6 +149,7 @@ protected:
 	eros::command convert_fromptr(const eros::command::ConstPtr& t_ptr);
 	eros::diagnostic convert_fromptr(const eros::diagnostic::ConstPtr& t_ptr);
 	eros::imu convert_fromptr(const eros::imu::ConstPtr& t_ptr);
+
 
 	bool initialized;
 	bool ready;
