@@ -124,6 +124,9 @@ public:
 	bool get_ready_to_arm() { return ready_to_arm; }
 	std::vector<eros::diagnostic> get_diagnostics() { return diagnostics; }
 	double getROSTime() { return ros_time; }
+	uint8_t get_component() { return component; }
+	std::string get_basenodename() { return base_node_name; }
+	std::string get_nodename() { return node_name; }
 
 	//Message Functions
 	virtual eros::diagnostic new_devicemsg(const eros::device::ConstPtr& t_device) = 0;

@@ -162,9 +162,6 @@ void SampleNode::PPS1_Callback(const std_msgs::Bool::ConstPtr &msg)
 void SampleNode::Command_Callback(const eros::command::ConstPtr &t_msg)
 {
 	std::vector<eros::diagnostic> diaglist = process->new_commandmsg(t_msg);
-	if(t_msg->Command == ROVERCOMMAND_SETDEBUGLEVEL)
-	{
-	}
 	new_commandmsg_result(t_msg, diaglist);
 }
 bool SampleNode::new_devicemsg(std::string query, eros::device t_device)

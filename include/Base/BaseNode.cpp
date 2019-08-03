@@ -307,21 +307,48 @@ void BaseNode::new_ppsmsg(const std_msgs::Bool::ConstPtr& t_msg)
 
 void BaseNode::new_commandmsg_result(const eros::command::ConstPtr& t_msg,std::vector<eros::diagnostic> t_diaglist)
 {
-	if((t_msg->Option1 >= LEVEL3) and (t_diaglist.size() == 1) and (t_diaglist.at(0).Diagnostic_Message == DIAGNOSTIC_PASSED))
+	if (t_msg->Command == ROVERCOMMAND_RUNDIAGNOSTIC)
 	{
-		get_logger()->log_diagnostic(t_diaglist.at(0));
-		diagnostic_pub.publish(t_diaglist.at(0));
-
-	}
-	else
-	{
-		for(std::size_t i = 0; i < t_diaglist.size(); i++)
+		if((t_msg->Option1 >= LEVEL3) and (t_diaglist.size() == 1) and (t_diaglist.at(0).Diagnostic_Message == DIAGNOSTIC_PASSED))
 		{
-			if(t_diaglist.at(i).Level >= NOTICE)
+			get_logger()->log_diagnostic(t_diaglist.at(0));
+			diagnostic_pub.publish(t_diaglist.at(0));
+
+		}
+		else
+		{
+			for(std::size_t i = 0; i < t_diaglist.size(); i++)
 			{
-				get_logger()->log_diagnostic(t_diaglist.at(i));
-				diagnostic_pub.publish(t_diaglist.at(i));
+				if(t_diaglist.at(i).Level >= NOTICE)
+				{
+					get_logger()->log_diagnostic(t_diaglist.at(i));
+					diagnostic_pub.publish(t_diaglist.at(i));
+				}
 			}
+		}
+	}
+	else if(t_msg->Command == ROVERCOMMAND_SETLOGLEVEL)
+	{
+		bool change_log_level = false;
+		if(t_msg->Option1 == ENTIRE_SUBSYSTEM)
+		{
+			change_log_level = true;
+		}
+		else if(t_msg->Option1 == diagnostic.Component)
+		{
+			change_log_level = true;
+		}
+		else if(get_basenodename().find(t_msg->CommandText) != std::string::npos)
+		{
+			change_log_level = true;
+		}
+		else if(get_nodename().find(t_msg->CommandText) != std::string::npos)
+		{
+			change_log_level = true;
+		}
+		if(change_log_level)
+		{
+			get_logger()->set_logverbosity(t_msg->Option2);
 		}
 	}
 }

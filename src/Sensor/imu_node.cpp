@@ -280,9 +280,9 @@ void IMUNode::PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 void IMUNode::Command_Callback(const eros::command::ConstPtr& t_msg)
 {
 	std::vector<eros::diagnostic> diaglist = process->new_commandmsg(t_msg);
-	if(t_msg->Command == ROVERCOMMAND_SETDEBUGLEVEL)
+	if(t_msg->Command == ROVERCOMMAND_SETLOGLEVEL)
 	{
-		if(t_msg->Option1 == SENSORS)
+		if(t_msg->Option1 == POSE_NODE)
 		{
 			char tempstr[128];
 			sprintf(tempstr,"Setting Debug Level: %d",t_msg->Option2);
