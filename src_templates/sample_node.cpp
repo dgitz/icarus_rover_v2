@@ -74,6 +74,9 @@ bool SampleNode::run_01hz_noisy()
 		get_logger()->log_diagnostic(diaglist.at(i));
 		diagnostic_pub.publish(diaglist.at(i));
 	}
+	eros::diagnostic diag = rescan_topics();
+	get_logger()->log_diagnostic(diag);
+	diagnostic_pub.publish(diag);
 	return true;
 }
 bool SampleNode::run_1hz()
@@ -159,6 +162,9 @@ void SampleNode::PPS1_Callback(const std_msgs::Bool::ConstPtr &msg)
 void SampleNode::Command_Callback(const eros::command::ConstPtr &t_msg)
 {
 	std::vector<eros::diagnostic> diaglist = process->new_commandmsg(t_msg);
+	if(t_msg->Command == ROVERCOMMAND_SETDEBUGLEVEL)
+	{
+	}
 	new_commandmsg_result(t_msg, diaglist);
 }
 bool SampleNode::new_devicemsg(std::string query, eros::device t_device)
@@ -178,6 +184,40 @@ bool SampleNode::new_devicemsg(std::string query, eros::device t_device)
 		eros::diagnostic diag = process->new_devicemsg(device_ptr);
 	}
 	return true;
+}
+eros::diagnostic SampleNode::rescan_topics()
+{
+	eros::diagnostic diag = diagnostic;
+	int found_new_topics = 0;
+
+	ros::master::V_TopicInfo master_topics;
+	ros::master::getTopics(master_topics);
+	for (ros::master::V_TopicInfo::iterator it = master_topics.begin() ; it != master_topics.end(); it++)
+	{
+		const ros::master::TopicInfo& info = *it;
+		if(info.datatype == "eros/command")
+		{
+			found_new_topics++;
+			char tempstr[255];
+			sprintf(tempstr,"Subscribing to command topic: %s",info.name.c_str());
+			logger->log_info(tempstr);
+			ros::Subscriber sub = n->subscribe<eros::command>(info.name,20,&SampleNode::Command_Callback,this);
+			multiple_subs.push_back(sub);
+		}
+	}
+
+	char tempstr[255];
+	if(found_new_topics > 0)
+	{
+		sprintf(tempstr,"Rescanned and found %d new topics.",found_new_topics);
+	}
+	else
+	{
+		sprintf(tempstr,"Rescanned and found no new topics.");
+	}
+	diag = process->update_diagnostic(SOFTWARE,INFO,NOERROR,std::string(tempstr));
+	logger->log_info(tempstr);
+	return diag;
 }
 void SampleNode::thread_loop()
 {

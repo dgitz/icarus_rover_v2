@@ -1,5 +1,6 @@
 Author: David Gitz
 Task: Templates
+
 Nodes:
 A. sample_node
 Purpose:
@@ -30,3 +31,14 @@ Node Initialization should perform the following in order:
 	8.  process->set_diagnostic(diagnostic);
 	9.  diagnostic = finish_initialization();
 
+Example code for:
+* Service
+* XML File Loading
+* Diagnostic Updates
+* Command Parsing
+* Diagnostic Printing
+* Map Lookup
+* CMAKE build instructions specifically for Raspberry Pi, x86/X64
+* Rescan for new topics
+* Driver
+* JSON Parsing

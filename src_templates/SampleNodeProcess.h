@@ -12,8 +12,36 @@
 class SampleNodeProcess: public BaseNodeProcess {
 public:
     //Constants
+	const uint8_t SAMPLE_CONSTANT = 0;
     //Enums
+	enum class SampleEnum 
+	{
+		UNKNOWN=0,
+		ENUMTYPEA=1,
+		ENUMTYPEB=2,
+	};
     //Structs
+	struct SampleStruct
+	{
+		std::string field;
+	};
+	//Sub-Classes
+	class SampleSubClass
+	{
+		public:
+		bool initialize(std::string t_name)
+		{
+			name = t_name;
+			return true;
+		}
+		std::string getName()
+		{
+			return name;
+		}
+		private:
+
+			std::string name;
+	};
 	///Initialization Functions
 	/*! \brief NodeProcess specific Initialization
 	 *
@@ -36,6 +64,9 @@ public:
 	eros::diagnostic new_devicemsg(const eros::device::ConstPtr& device);
 
 	//Support Functions
+	uint8_t map_sampledatatype_ToInt(std::string data);
+	std::string map_sampledatatype_ToString(uint8_t data);
+	bool process_jsonmsg(json msg);
 
     //Printing Functions
 protected:
@@ -46,5 +77,7 @@ private:
 	eros::diagnostic load_configfile(std::string path);
 	std::vector<eros::diagnostic> check_programvariables();
 	std::string config_filepath;
+
+	std::map<uint8_t,std::string> sample_map;
 
 };
