@@ -77,14 +77,14 @@ eros::diagnostic DataLoggerNode::finish_initialization()
 		logger->log_diagnostic(diag);
     }
 	std::string param_snapshot_mode = node_name +"/SnapshotMode";
-    bool snapshot_mode;
+    bool snapshot_mode = false;
 	if(n->getParam(param_snapshot_mode,snapshot_mode) == false)
 	{
 		diag = process->update_diagnostic(DATA_STORAGE,WARN,NOERROR,"Missing Parameter: SnapshotMode.");
 		logger->log_diagnostic(diag);
 	}
     process->setSnapshotMode(snapshot_mode);
-	if(snapshot_mode == true)
+	if(snapshot_mode == false)
 	{
 		diag = process->update_diagnostic(DATA_STORAGE,WARN,NOERROR,"SnapshotMode Disabled.  Logging Everything.");
 		logger->log_diagnostic(diag);

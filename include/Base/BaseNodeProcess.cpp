@@ -214,32 +214,56 @@ eros::imu BaseNodeProcess::convert_fromptr(const eros::imu::ConstPtr &t_ptr)
 	imu.zmag = t_ptr->zmag;
 	return imu;
 }
+void BaseNodeProcess::print_message(std::string level,std::string time_str,std::string filename,int line_number,std::string msg)
+{
+	printf("[%s] %s %s(%d) %s\n",
+		level.c_str(),
+		time_str.c_str(),
+		filename.c_str(),
+		line_number,
+		msg.c_str());
+}
 std::string BaseNodeProcess::exec(const char *cmd, bool wait_for_result)
 {
 	char buffer[512];
 	std::string result = "";
-	FILE *pipe = popen(cmd, "r");
-	if (wait_for_result == false)
-	{
-		pclose(pipe);
-		return "";
-	}
-	if (!pipe)
-		throw std::runtime_error("popen() failed!");
 	try
 	{
-		while (!feof(pipe))
+		FILE *pipe = popen(cmd, "r");
+		if (wait_for_result == false)
 		{
-			if (fgets(buffer, 512, pipe) != NULL)
-				result += buffer;
+			pclose(pipe);
+			return "";
 		}
+		if (!pipe)
+		{
+			std::string tempstr = "Node: " + node_name + " popen() failed with command: " + cmd;
+			print_message("ERROR",convert_time_tostr(ros_time),__FILE__,__LINE__,tempstr);
+			return "";
+		}
+		try
+		{
+			while (!feof(pipe))
+			{
+				if (fgets(buffer, 512, pipe) != NULL)
+					result += buffer;
+			}
+		}
+		catch (std::exception e)
+		{
+			pclose(pipe);
+			std::string tempstr = "Node: " + node_name + " popen() failed with command: " + cmd + " and exception: " + e.what();
+			print_message("ERROR",convert_time_tostr(ros_time),__FILE__,__LINE__,tempstr);
+			return "";
+		}
+		return result;
 	}
-	catch (...)
+	catch(std::exception e)
 	{
-		pclose(pipe);
-		throw std::runtime_error("popen() failed!");
+		std::string tempstr = "Node: " + node_name + " popen() failed with command: " + cmd + " and exception: " + e.what();
+		print_message("ERROR",convert_time_tostr(ros_time),__FILE__,__LINE__,tempstr);
+		return "";
 	}
-	return result;
 }
 eros::diagnostic BaseNodeProcess::update_diagnostic(uint8_t diagnostic_type, uint8_t level, uint8_t message, std::string description)
 {

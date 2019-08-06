@@ -83,6 +83,7 @@ TEST(Update,UptimeLoadfactor)
 	MasterNodeProcess *process =initializeprocess("/home/robot/catkin_ws/src/icarus_rover_v2/src/Control/unit_tests/UnitTestDeviceFile.xml",
 					  "/home/robot/catkin_ws/src/icarus_rover_v2/src/Control/unit_tests/UnitTestSystemFile.xml");
 	process = readyprocess(process);
+	process->set_processorcount(1);
 	eros::diagnostic diag = process->slowupdate();
 	EXPECT_TRUE(diag.Level <= NOTICE);
 

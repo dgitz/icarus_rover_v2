@@ -10,7 +10,7 @@ ResourceMonitor::ResourceMonitor(eros::diagnostic diag,std::string device_archit
 	Device_Architecture = device_architecture;
 	if(Device_Architecture == "x86_64")
 	{
-		CPU_Used_Column = 9;
+		CPU_Used_Column = 8;
 		RAM_Used_Column = 5;
 	}
 	else if(Device_Architecture == "armv7l")
@@ -32,6 +32,11 @@ ResourceMonitor::ResourceMonitor(eros::diagnostic diag,std::string device_archit
 	RAMUsed_kB = -1;
 	shortterm_buffer_index = 0;
 	diagnostic = diag;
+	diagnostic.Diagnostic_Type = SYSTEM_RESOURCE;
+	std::string tempstr = exec("nproc",true);
+	boost::trim_right(tempstr);
+	processor_count = std::atoi(tempstr.c_str());
+	diagnostic = update();
 }
 void ResourceMonitor::init(eros::diagnostic diag,std::string device_architecture,std::string host_name,std::string task_name)
 {
@@ -61,83 +66,103 @@ void ResourceMonitor::init(eros::diagnostic diag,std::string device_architecture
 	RAMUsed_kB = -1;
 	shortterm_buffer_index = 0;
 	diagnostic = diag;
+	diagnostic.Diagnostic_Type = SYSTEM_RESOURCE;
+	std::string tempstr = exec("nproc",true);
+	boost::trim_right(tempstr);
+	processor_count = std::atoi(tempstr.c_str());
+	diagnostic = update();
 }
 ResourceMonitor::~ResourceMonitor()
 {
 }
 int ResourceMonitor::get_CPUFree_perc()
 {
-	std::string resource_filename;
-	resource_filename = "/home/robot/logs/output/RESOURCE/top";
-	char tempstr[512];
-	sprintf(tempstr,"top -bn1 > %s",resource_filename.c_str());
-	//printf("Command: %s\r\n",tempstr);
-	system(tempstr); //RAM used is column 6 (RES), in KB.  CPU used is column 8, in percentage.
-	ifstream myfile;
-	myfile.open(resource_filename.c_str());
-	if(myfile.is_open())
+	std::string tempstr = exec("top -b -n 2 -d.2 | grep \"Cpu(s)\" | tail -n+2 2>&1",true);
+	std::vector <string> fields;
+	boost::split(fields,tempstr,boost::is_any_of("\t "),boost::token_compress_on);
+	if(fields.size() < 9)
 	{
-		std::string line;
-		while(getline(myfile,line))
-		{
-			//printf("Line:%s\r\n",line.c_str());
-			std::vector <string> fields;
-			boost::split(fields,line,boost::is_any_of("\t "),boost::token_compress_on);
-			if(fields.size() >= 8)
-			{
-				if(fields.at(0) == "%Cpu(s):")
-				{
-					CPUFree_perc =  (int)(atof(fields.at(7).c_str()));
-					break;
-				}
-			}
-		}
+		diagnostic.Level = ERROR;
+		diagnostic.Diagnostic_Message = DROPPING_PACKETS;
+		diagnostic.Description = "Unable to process Free CPU.";
+		CPUFree_perc = -1;
+		return CPUFree_perc;
 	}
-	myfile.close();
-	return CPUFree_perc;
+
+	if(std::string::npos != fields.at(8).find("id,"))
+	{
+		CPUFree_perc = (int)(std::atof(fields.at(7).c_str()));
+		return CPUFree_perc;
+	}
+	else
+	{
+		diagnostic.Level = ERROR;
+		diagnostic.Diagnostic_Message = DROPPING_PACKETS;
+		diagnostic.Description = "Unable to process Free CPU.";
+		CPUFree_perc = -1;
+		return CPUFree_perc;
+	}
 }
 int ResourceMonitor::get_RAMFree_kB()
 {
-	ifstream myfile;
-	myfile.open("/proc/meminfo");
 	int memfree = 0;
 	int memavail = 0;
     int membuffer = 0;
     int memcached = 0;
-	if(myfile.is_open())
+	std::ifstream file( "/proc/meminfo" );
+	if(!file)
 	{
-		std::string line;
-		while(getline(myfile,line))
+		diagnostic.Level = ERROR;
+		diagnostic.Diagnostic_Message = DROPPING_PACKETS;
+		diagnostic.Description = "Unable to read /proc/meminfo";
+		RAMFree_kB = -1;
+		return RAMFree_kB;
+	}
+	int found_entry_count = 0;
+	for( std::string line; getline( file, line ); )
+	{
+		std::vector <string> fields;
+		boost::split(fields,line,boost::is_any_of("\t "),boost::token_compress_on);
+		std::string value = "";
+		if(fields.size() != 3)
 		{
-			//printf("Line:%s\r\n",line.c_str());
-			std::vector <string> fields;
-			boost::split(fields,line,boost::is_any_of("\t "),boost::token_compress_on);
-			if(fields.size() >= 2)
-			{
-				if(fields.at(0) == "MemFree:")
-				{
-					memfree =  atoi(fields.at(1).c_str());
-				}
-				if(fields.at(0) == "MemAvailable:")
-				{
-					memavail =  atoi(fields.at(1).c_str());
-				}
-                if(fields.at(0) == "Buffers:")
-                {
-                    membuffer = atoi(fields.at(1).c_str());
-                }
-                if(fields.at(0) == "Cached:")
-                {
-                    memcached = atoi(fields.at(1).c_str());
-                }
-			}
-
+			continue;
+		}
+		if(std::string::npos == fields.at(2).find("kB"))
+		{
+			continue;
+		}
+		if(std::string::npos != fields.at(0).find("MemFree:"))
+		{
+			memfree = std::atoi(fields.at(1).c_str());
+			found_entry_count++;
+		}
+		if(std::string::npos != fields.at(0).find("MemAvailable:"))
+		{
+			memavail = std::atoi(fields.at(1).c_str());
+			found_entry_count++;
+		}
+		if(std::string::npos != fields.at(0).find("Buffers:"))
+		{
+			membuffer = std::atoi(fields.at(1).c_str());
+			found_entry_count++;
+		}
+		if((std::string::npos != fields.at(0).find("Cached:")) and (std::string::npos == fields.at(0).find("SwapCached:")))
+		{
+			memcached = std::atoi(fields.at(1).c_str());
+			found_entry_count++;
 		}
 	}
-	myfile.close();
+	if(found_entry_count != 4)
+	{
+		diagnostic.Level = ERROR;
+		diagnostic.Diagnostic_Message = DROPPING_PACKETS;
+		diagnostic.Description = "Unable to read all entries for /proc/meminfo.";
+		return -1;
+	}
 	if(Device_Architecture == "x86_64")
 	{
-		RAMFree_kB = memfree + memavail;
+		RAMFree_kB = memavail;
 	}
 	else if(Device_Architecture == "armv7l")
 	{
@@ -172,6 +197,10 @@ eros::resource ResourceMonitor::get_resourceused()
 }
 eros::diagnostic ResourceMonitor::update()
 {
+	if(diagnostic.Level >= WARN)
+	{
+		return diagnostic;
+	}
 	if((CPU_Used_Column == -1) || (RAM_Used_Column == -1))
 	{
 		diagnostic.Level = ERROR;
@@ -185,138 +214,62 @@ eros::diagnostic ResourceMonitor::update()
 	{
 		int id = -1;
 		std::string local_node_name;
-		local_node_name = Task_Name.substr(1,Task_Name.size());
+		local_node_name = Task_Name.substr(0,Task_Name.size());
 		boost::replace_all(local_node_name,"/","-");
-		std::string simplename = boost::replace_all_copy(Task_Name, "/", "_");
-		std::string pid_filename;
-		pid_filename = "/home/robot/logs/output/PID/" + simplename;
 		char tempstr1[512];
-		//sprintf(tempstr1,"ps aux | grep __name:=%s > %s",local_node_name.c_str(),pid_filename.c_str());
-		sprintf(tempstr1,"ps aux | grep \"%s\" > %s",local_node_name.c_str(),pid_filename.c_str());
-		system(tempstr1);
-		ifstream myfile1;
-		myfile1.open(pid_filename.c_str());
-		if(myfile1.is_open())
+		sprintf(tempstr1,"ps aux | grep \"%s\" 2>&1",local_node_name.c_str());
+		std::string res = exec(tempstr1,true);
+		std::vector <string> lines;
+		boost::split(lines,res,boost::is_any_of("\n"),boost::token_compress_on);
+		bool found_process = false;
+		for(std::size_t i = 0; i < lines.size(); ++i)
 		{
-			std::string line;
-			getline(myfile1,line);
-			std::string find_string = boost::replace_all_copy(generic_node_name,"/","-");
-			std::size_t found_node = line.find(find_string);
-			std::size_t bad_find1 = line.find("sh -c");
-			std::size_t bad_find2 = line.find("grep");
-			if((found_node != std::string::npos) && (bad_find1 == std::string::npos) && (bad_find2 == std::string::npos))
+			
+			if((std::string::npos == lines.at(i).find("sh -c")) and
+			   (std::string::npos == lines.at(i).find("grep")) and
+			   (std::string::npos == lines.at(i).find("python")))
 			{
+				
 				std::vector <string> fields;
-				boost::split(fields,line,boost::is_any_of("\t "),boost::token_compress_on);
+				boost::split(fields,lines.at(i),boost::is_any_of("\t "),boost::token_compress_on);
 				if(fields.size() >= 2)
 				{
 					id =  atoi(fields.at(1).c_str());
+					found_process = true;
 				}
-			}
 
+			}
+			if(found_process == true)
+			{
+				break;
+			}
 		}
-		else
+		if(found_process == false)
 		{
-			id = -1;
 			diagnostic.Level = ERROR;
 			diagnostic.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
-			char tempstr[512];
-			sprintf(tempstr,"Unable to open PID File, trying to use: %s",pid_filename.c_str());
-			diagnostic.Description = tempstr;
+			diagnostic.Description = "Cannot find PID For Process.";
 			return diagnostic;
 		}
-		myfile1.close();
 		PID = id;
-		if(id <= 0)
-		{
-			myfile1.open(pid_filename.c_str());
-			if(myfile1.is_open())
-			{
-				std::string line;
-				getline(myfile1,line);
-				std::string find_string = boost::replace_all_copy(generic_node_name,"/","-");
-				std::size_t found_node = line.find(find_string);
-				std::size_t bad_find1 = line.find("sh -c");
-				std::size_t bad_find2 = line.find("grep");
-				if((found_node != std::string::npos) && (bad_find1 == std::string::npos) && (bad_find2 == std::string::npos))
-				{
-					std::vector <string> fields;
-					boost::split(fields,line,boost::is_any_of("\t "),boost::token_compress_on);
-					if(fields.size() >= 2)
-					{
-						//id =  atoi(fields.at(1).c_str());
-					}
-				}
-
-			}
-			else
-			{
-				diagnostic.Level = ERROR;
-				diagnostic.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
-				char tempstr[512];
-				sprintf(tempstr,"Unable to open Node PID File, using: %s",pid_filename.c_str());
-				diagnostic.Description = tempstr;
-				return diagnostic;
-			}
-			myfile1.close();
-			diagnostic.Level = ERROR;
-			diagnostic.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
-			char tempstr[512];
-			sprintf(tempstr,"Unable to lookup Node PID, using: %s",tempstr1);
-			diagnostic.Description = tempstr;
-
-			return diagnostic;
-		}
 	}
-	std::string resource_filename;
-	std::string simplename = boost::replace_all_copy(Task_Name, "/", "_");
-	resource_filename = "/home/robot/logs/output/RESOURCE/" + simplename;
-	char tempstr2[512];
-	sprintf(tempstr2,"top -bn1 | grep %d > %s",PID,resource_filename.c_str());
-	//printf("Command: %s\r\n",tempstr);
-	system(tempstr2); //RAM used is column 6 (RES), in KB.  CPU used is column 8, in percentage.
-	ifstream myfile2;
-	myfile2.open(resource_filename.c_str());
-	bool found = false;
-	if(myfile2.is_open())
+	char tempstr[512];
+	sprintf(tempstr,"top -bn1 | grep %d 2>&1",PID);
+	std::string res = exec(tempstr,true);
+	std::vector<std::string> fields;
+	boost::split(fields,res,boost::is_any_of(" \t"),boost::token_compress_on);
+	int size_required = std::max(CPU_Used_Column,RAM_Used_Column)+1;
+	if((int)fields.size() >= size_required )
 	{
-		std::string line;
-		getline(myfile2,line);
-		std::vector<std::string> strs;
-		boost::split(strs,line,boost::is_any_of(" \t"),boost::token_compress_on);
-		//for(int i = 0; i < strs.size();i++)
-		//{
-		//	printf("Task: %s i: %d s: %s\n",Task_Name.c_str(),i,strs.at(i).c_str());
-		//}
-		int size_required = std::max(CPU_Used_Column,RAM_Used_Column)+1;
-		if(strs.size() >= size_required )
-		{
-			CPUUsed_perc = (int)(atof(strs.at(CPU_Used_Column).c_str()));
-			RAMUsed_kB = atoi(strs.at(RAM_Used_Column).c_str());
-			found = true;
-		}
-
+		CPUUsed_perc = (int)((atof(fields.at(CPU_Used_Column).c_str()))/(double)processor_count);
+		RAMUsed_kB = atoi(fields.at(RAM_Used_Column).c_str());
 	}
 	else
 	{
 		diagnostic.Level = ERROR;
 		diagnostic.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
-		char tempstr[512];
-		sprintf(tempstr,"Unable to open Resource File, trying to use: %s",resource_filename.c_str());
-		diagnostic.Description = tempstr;
-		return diagnostic;
+		diagnostic.Description = "Unable to look up resources for Process.";
 	}
-	myfile2.close();
-	if(found == false)
-	{
-		diagnostic.Level = ERROR;
-		diagnostic.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
-		char tempstr[512];
-		sprintf(tempstr,"Unable to lookup Node Resources Used, Using PID: %d",PID);
-		diagnostic.Description = tempstr;
-		return diagnostic;
-	}
-
 	shortterm_buffer_RamUsed_kB.push_back(RAMUsed_kB);
 	shortterm_buffer_index++;
 	if(shortterm_buffer_RamUsed_kB.size() > SHORTTERM_BUFFER_SIZE)
@@ -325,8 +278,6 @@ eros::diagnostic ResourceMonitor::update()
 	}
 	double sum = std::accumulate(shortterm_buffer_RamUsed_kB.begin(),shortterm_buffer_RamUsed_kB.end(),0.0);
 	double mean = sum/shortterm_buffer_RamUsed_kB.size();
-	//printf("Task: %s Found: %d Short Term avg RAM Used (kB): %f Size: %d\n",Task_Name.c_str(),found,mean,shortterm_buffer_RamUsed_kB.size());
-
 	if(shortterm_buffer_index > SHORTTERM_BUFFER_SIZE)
 	{
 		shortterm_buffer_index = 0;
@@ -336,9 +287,7 @@ eros::diagnostic ResourceMonitor::update()
 			longterm_buffer_RamUsed_kB.erase(longterm_buffer_RamUsed_kB.begin());
 		}
 	}
-	//printf("Task: %s Size: %d\n",
-	//				Task_Name.c_str(),
-	//				longterm_buffer_RamUsed_kB.size());
+
 	if(longterm_buffer_RamUsed_kB.size() == LONGTERM_BUFFER_SIZE)
 	{
 		bool increasing = true;
@@ -396,4 +345,50 @@ eros::diagnostic ResourceMonitor::update()
 	diagnostic.Diagnostic_Message = NOERROR;
 	diagnostic.Description = "Resource Usage Normal";
 	return diagnostic;
+}
+std::string ResourceMonitor::exec(const char *cmd, bool wait_for_result)
+{
+	char buffer[512];
+	std::string result = "";
+	try
+	{
+		FILE *pipe = popen(cmd, "r");
+	
+		if (wait_for_result == false)
+		{
+			pclose(pipe);
+			return "";
+		}
+		if (pipe == NULL)
+		{
+			printf("%s Node: %s popen() failed with command: %s at line: %d\n",__FILE__,Task_Name.c_str(),cmd,__LINE__);
+			return "";
+		}
+		try
+		{
+			while (!feof(pipe))
+			{
+				if (fgets(buffer, 512, pipe) != NULL)
+				{
+					result += buffer;
+				}
+			}
+		}
+		catch (...)
+		{
+			pclose(pipe);
+			printf("%s Node: %s popen() failed with command: %s at line: %d\n",__FILE__,Task_Name.c_str(),cmd,__LINE__);
+			return "";
+		}
+		return result;
+	}
+	catch(std::exception e)
+	{
+		printf("%s Node: %s open() failed with command: %s and error: %s at line: %d\n",__FILE__,
+			Task_Name.c_str(),
+			cmd,
+			e.what(),
+			__LINE__);
+		return "";
+	}
 }

@@ -72,7 +72,9 @@ public:
 	eros::diagnostic slowupdate();
 	eros::diagnostic process_loadfactormsg(std::string cmd);
 	eros::diagnostic process_uptimemsg(std::string cmd);
+	eros::diagnostic process_cpucount(std::string cmd);
 	//Attribute Functions
+	void set_processorcount(uint8_t v) { processor_count = v; } //Override
 	eros::loadfactor getLoadFactor() { return load_factor; }
 	std_msgs::Float64 getUptime() 
 	{
@@ -141,5 +143,6 @@ private:
 	std::vector<eros::device> devices_to_publish;
 	eros::loadfactor load_factor;
 	double uptime;
+	uint8_t processor_count;
 };
 #endif

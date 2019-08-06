@@ -7,7 +7,7 @@ eros::diagnostic MasterNodeProcess::set_filepaths(std::string t_system_filepath,
 	diag = update_diagnostic(DATA_STORAGE, INFO, INITIALIZING, "Config File Paths Set");
 	return diag;
 }
-eros::diagnostic MasterNodeProcess::new_devicemsg(const eros::device::ConstPtr &device)
+eros::diagnostic MasterNodeProcess::new_devicemsg(__attribute__((unused)) const eros::device::ConstPtr &device)
 {
 	eros::diagnostic diag = root_diagnostic;
 	return diag;
@@ -19,10 +19,15 @@ eros::diagnostic MasterNodeProcess::finish_initialization()
 	device_temperature = -100.0;
 	diag = load_devicefile(device_filepath);
 	diag = update_diagnostic(diag);
+	load_factor.stamp = ros::Time::now();
 	load_factor.loadfactor.push_back(-1.0);
 	load_factor.loadfactor.push_back(-1.0);
 	load_factor.loadfactor.push_back(-1.0);
 	uptime = -1.0;
+	std::string tempstr = exec("nproc",true);
+	boost::trim_right(tempstr);
+	diag = process_cpucount(tempstr);
+	diag = update_diagnostic(diag);
 	if (diag.Level > NOTICE)
 	{
 		return diag;
@@ -33,6 +38,13 @@ eros::diagnostic MasterNodeProcess::finish_initialization()
 	{
 		return diag;
 	}
+	return diag;
+}
+eros::diagnostic MasterNodeProcess::process_cpucount(std::string cmd)
+{
+	eros::diagnostic diag = root_diagnostic;
+	processor_count = std::atoi(cmd.c_str());
+	diag = update_diagnostic(SOFTWARE,INFO,NOERROR,"Processor Count Updated.");
 	return diag;
 }
 eros::diagnostic MasterNodeProcess::process_loadfactormsg(std::string cmd)
@@ -52,6 +64,7 @@ eros::diagnostic MasterNodeProcess::process_loadfactormsg(std::string cmd)
 		{
 			try
 			{
+				load_factor.stamp = ros::Time::now();
 				double v = std::atof(items.at(i).c_str());
 				if(v == 0.0)
 				{
@@ -60,7 +73,7 @@ eros::diagnostic MasterNodeProcess::process_loadfactormsg(std::string cmd)
 					diag = update_diagnostic(SOFTWARE,ERROR,DROPPING_PACKETS,std::string(output));
 					return diag;
 				}
-				load_factor.loadfactor[i] = v;
+				load_factor.loadfactor[i] = v/(double)processor_count;
 			}
 			catch(const std::exception& e)
 			{

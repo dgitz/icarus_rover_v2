@@ -90,6 +90,7 @@ eros::diagnostic MasterNode::finish_initialization()
 	connection_srv = n->advertiseService(srv_connection_topic,&MasterNode::connection_service,this);
 	std::string srv_leverarm_topic = "/" + node_name + "/srv_leverarm";
 	leverarm_srv = n->advertiseService(srv_leverarm_topic,&MasterNode::leverarm_service,this);
+	//Commenting out publish for BUG: Resource Monitor Available Resource Unstable #208
 	std::string device_resourceavail_topic = "/" + process->get_mydevice().DeviceName + "/resource_available";
 	device_resourceavail_pub = n->advertise<eros::resource>(device_resourceavail_topic,1);
 	std::string loadfactor_topic = "/" + process->get_mydevice().DeviceName + "/loadfactor";
@@ -130,7 +131,7 @@ bool MasterNode::run_01hz_noisy()
 }
 bool MasterNode::run_1hz()
 {
-
+	//Commenting out publish for BUG: Resource Monitor Available Resource Unstable #208
 	eros::resource device_resource_available;
 	device_resource_available.stamp = ros::Time::now();
 	device_resource_available.Node_Name = process->get_mydevice().DeviceName;

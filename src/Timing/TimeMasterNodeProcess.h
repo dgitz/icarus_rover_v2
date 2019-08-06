@@ -29,12 +29,6 @@ public:
 	//Attribute Functions
 	bool set_ppssource(std::string v);
 	bool publish_1pps();
-	std_msgs::Float32 get_uptime()
-	{
-		std_msgs::Float32 msg;
-		msg.data = run_time;
-		return msg;
-	}
 
 	//Message Functions
 	/*! \brief  Process Command Message.  All implementation should use at least the code in this Sample Function.

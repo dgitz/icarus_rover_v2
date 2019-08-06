@@ -13,6 +13,7 @@
 #include <eros/diagnostic.h>
 #include <numeric>
 #include <boost/algorithm/string/replace.hpp>
+#include <sys/resource.h>
 
 #define SHORTTERM_BUFFER_SIZE 10
 #define LONGTERM_BUFFER_MINSIZE 30
@@ -35,6 +36,7 @@ public:
     ~ResourceMonitor();
     std::string get_DeviceArchitecture() { return Device_Architecture; }
 private:
+std::string exec(const char* cmd,bool wait_for_result);
     eros::diagnostic diagnostic;
     std::string Device_Architecture;
     std::string Task_Name;
@@ -47,6 +49,7 @@ private:
     int RAM_Used_Column;
     int RAMFree_kB;
     int CPUFree_perc;
+    uint8_t processor_count;
 
     std::vector<double> shortterm_buffer_RamUsed_kB;
     int shortterm_buffer_index;
