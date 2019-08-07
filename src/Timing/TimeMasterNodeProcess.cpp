@@ -31,7 +31,7 @@ eros::diagnostic TimeMasterNodeProcess::update(double t_dt, double t_ros_time)
 	}
 	return diag;
 }
-eros::diagnostic TimeMasterNodeProcess::new_devicemsg(const eros::device::ConstPtr &device)
+eros::diagnostic TimeMasterNodeProcess::new_devicemsg(__attribute__((unused)) const eros::device::ConstPtr &device)
 {
 	eros::diagnostic diag = root_diagnostic;
 	return diag;

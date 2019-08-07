@@ -7,7 +7,7 @@ eros::diagnostic MasterNodeProcess::set_filepaths(std::string t_system_filepath,
 	diag = update_diagnostic(DATA_STORAGE, INFO, INITIALIZING, "Config File Paths Set");
 	return diag;
 }
-eros::diagnostic MasterNodeProcess::new_devicemsg(const eros::device::ConstPtr &device)
+eros::diagnostic MasterNodeProcess::new_devicemsg(__attribute__((unused)) const eros::device::ConstPtr &device)
 {
 	eros::diagnostic diag = root_diagnostic;
 	return diag;
@@ -19,10 +19,15 @@ eros::diagnostic MasterNodeProcess::finish_initialization()
 	device_temperature = -100.0;
 	diag = load_devicefile(device_filepath);
 	diag = update_diagnostic(diag);
+	load_factor.stamp = convert_time(ros_time);
 	load_factor.loadfactor.push_back(-1.0);
 	load_factor.loadfactor.push_back(-1.0);
 	load_factor.loadfactor.push_back(-1.0);
-	uptime = -1.0;
+	uptime.stamp = convert_time(ros_time);
+	std::string tempstr = exec("nproc",true);
+	boost::trim_right(tempstr);
+	diag = process_cpucount(tempstr);
+	diag = update_diagnostic(diag);
 	if (diag.Level > NOTICE)
 	{
 		return diag;
@@ -35,80 +40,142 @@ eros::diagnostic MasterNodeProcess::finish_initialization()
 	}
 	return diag;
 }
-eros::diagnostic MasterNodeProcess::process_loadfactormsg(std::string cmd)
+eros::diagnostic MasterNodeProcess::process_cpucount(std::string cmd)
 {
 	eros::diagnostic diag = root_diagnostic;
-	{//Process Load Factor
-		std::vector<std::string> items;
-		boost::split(items, cmd, boost::is_any_of(" "));
-		if(items.size() < 3)
-		{
-			char output[512];
-			sprintf(output,"Unable to process load factor: %s",cmd.c_str());
-			diag = update_diagnostic(SOFTWARE,ERROR,DROPPING_PACKETS,std::string(output));
-			return diag;
-		}
-		for(std::size_t i = 0; i < 3; ++i)
-		{
-			try
-			{
-				double v = std::atof(items.at(i).c_str());
-				if(v == 0.0)
-				{
-					char output[512];
-					sprintf(output,"Unable to process load factor: %s",cmd.c_str());
-					diag = update_diagnostic(SOFTWARE,ERROR,DROPPING_PACKETS,std::string(output));
-					return diag;
-				}
-				load_factor.loadfactor[i] = v;
-			}
-			catch(const std::exception& e)
-			{
-				diag = update_diagnostic(SOFTWARE,ERROR,DROPPING_PACKETS,e.what());
-				return diag;
-			}			
-		}
-	}
-	diag = update_diagnostic(SOFTWARE,INFO,NOERROR,"Load Factor Updated.");
+	processor_count = std::atoi(cmd.c_str());
+	diag = update_diagnostic(SOFTWARE,INFO,NOERROR,"Processor Count Updated.");
 	return diag;
 }
-eros::diagnostic MasterNodeProcess::process_uptimemsg(std::string cmd)
+eros::diagnostic MasterNodeProcess::process_loadfactor()
 {
 	eros::diagnostic diag = root_diagnostic;
-	{//Process Uptime
-		std::vector<std::string> items;
-		boost::split(items, cmd, boost::is_any_of(" "));
-		if(items.size() != 2)
+	{
+		std::ifstream file( "/proc/loadavg" );
+		if(!file)
 		{
-			char output[512];
-			sprintf(output,"Unable to process uptime: %s",cmd.c_str());
-			diag = update_diagnostic(SOFTWARE,ERROR,DROPPING_PACKETS,std::string(output));
+			diag.Level = ERROR;
+			diag.Diagnostic_Message = DROPPING_PACKETS;
+			diag.Description = "Unable to read /proc/loadavg";
+			diag = update_diagnostic(diag);
+			return diag;
+		}
+		std::string line;
+		getline(file,line);
+		std::vector <std::string> fields;
+		boost::split(fields,line,boost::is_any_of("\t "),boost::token_compress_on);
+		if(fields.size() != 5)
+		{
+			diag.Level = ERROR;
+			diag.Diagnostic_Message = DROPPING_PACKETS;
+			diag.Description = "Unable to process /prod/loadavg with: " + line;
+			diag = update_diagnostic(diag);
 			return diag;
 		}
 		try
 		{
-			double v = std::atof(items.at(0).c_str());
-			if(v == 0.0)
+			load_factor.stamp = convert_time(ros_time);
+			for(std::size_t i = 0; i < 3; ++i)
 			{
-				char output[512];
-				sprintf(output,"Unable to process uptime: %s",cmd.c_str());
-				diag = update_diagnostic(SOFTWARE,ERROR,DROPPING_PACKETS,std::string(output));
-				return diag;
+				double v = std::atof(fields.at(i).c_str());
+				if(v == 0.0)
+				{
+					char output[512];
+					sprintf(output,"Unable to process load factor: %s",line.c_str());
+					diag = update_diagnostic(SOFTWARE,ERROR,DROPPING_PACKETS,std::string(output));
+					return diag;
+				}
+				load_factor.loadfactor[i] = v/(double)processor_count;
 			}
-			uptime = v;
 		}
-		catch(const std::exception& e)
+		catch(std::exception e)
 		{
-			diag = update_diagnostic(SOFTWARE,ERROR,DROPPING_PACKETS,e.what());
+			diag.Level = ERROR;
+			diag.Diagnostic_Message = DROPPING_PACKETS;
+			diag.Description = "Unable to process /prod/loadavg with line: " + line + " exception: " + e.what();
+			diag = update_diagnostic(diag);
+			return diag;
+		}
+	}	
+	diag = update_diagnostic(SOFTWARE,INFO,NOERROR,"Load Factor Updated.");
+	return diag;
+}
+eros::diagnostic MasterNodeProcess::process_uptime()
+{
+	eros::diagnostic diag = root_diagnostic;
+	{
+		std::ifstream file( "/proc/uptime" );
+		if(!file)
+		{
+			diag.Level = ERROR;
+			diag.Diagnostic_Message = DROPPING_PACKETS;
+			diag.Description = "Unable to read /proc/uptime";
+			diag = update_diagnostic(diag);
+			return diag;
+		}
+		std::string line;
+		getline(file,line);
+		std::vector <std::string> fields;
+		boost::split(fields,line,boost::is_any_of("\t "),boost::token_compress_on);
+		if(fields.size() != 2)
+		{
+			diag.Level = ERROR;
+			diag.Diagnostic_Message = DROPPING_PACKETS;
+			diag.Description = "Unable to process /proc/uptime with: " + line;
+			diag = update_diagnostic(diag);
+			return diag;
+		}
+		try
+		{
+			uptime.uptime = (double)(std::atof(fields.at(0).c_str()));
+			uptime.stamp = convert_time(ros_time);
+			uptime.runtime = run_time;
+			diag = update_diagnostic(SOFTWARE,INFO,NOERROR,"Uptime Updated.");
+		}
+		catch(std::exception e)
+		{
+			diag.Level = ERROR;
+			diag.Diagnostic_Message = DROPPING_PACKETS;
+			diag.Description = "Unable to process /proc/uptime with: " + line + " and exception: " + e.what();
+			diag = update_diagnostic(diag);
 			return diag;
 		}
 	}
-	diag = update_diagnostic(SOFTWARE,INFO,NOERROR,"Uptime Updated.");
 	return diag;
 }
 eros::diagnostic MasterNodeProcess::slowupdate()
 {	
 	eros::diagnostic diag = root_diagnostic;
+	{
+		diag = process_loadfactor();
+		if(diag.Level > WARN)
+		{
+			return diag;
+		}
+		diag = process_uptime();
+		if(diag.Level > WARN)
+		{
+			return diag;
+		}
+	}
+	return diag;
+	/*
+	std::ifstream file( "/proc/meminfo" );
+	if(!file)
+	{
+		diagnostic.Level = ERROR;
+		diagnostic.Diagnostic_Message = DROPPING_PACKETS;
+		diagnostic.Description = "Unable to read /proc/meminfo";
+		RAMFree_kB = -1;
+		return RAMFree_kB;
+	}
+	int found_entry_count = 0;
+	for( std::string line; getline( file, line ); )
+	{
+		std::vector <string> fields;
+	
+	 */
+	/*
 	{
 		std::string tempstr = exec("cat /proc/loadavg",true);
 		boost::trim_right(tempstr);
@@ -119,6 +186,7 @@ eros::diagnostic MasterNodeProcess::slowupdate()
 		boost::trim_right(tempstr);
 		diag =  process_uptimemsg(tempstr);
 	}
+	*/
 	return diag;
 		
 }

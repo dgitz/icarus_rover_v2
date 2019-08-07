@@ -34,6 +34,7 @@
 #include <eros/srv_snapshotstate.h>
 #include <eros/subsystem_diagnostic.h>
 #include <eros/loadfactor.h>
+#include <eros/uptime.h>
 //Project
 #include "../Definitions.h"
 #include "../../../eROS/include/DiagnosticClass.h"
@@ -143,6 +144,7 @@ public:
 	uint8_t convert_signaltype(std::string units,double *conversion_factor);
 	std::string exec(const char* cmd,bool wait_for_result);
 	//Printing Functions
+	void print_message(std::string level,std::string time_str,std::string filename,int line_number,std::string msg);
 protected:
 	DiagnosticClass diagnostic_helper;
 	std::vector<eros::diagnostic> diagnostics;

@@ -92,6 +92,11 @@ bool SnapshotNode::run_01hz()
 }
 bool SnapshotNode::run_01hz_noisy()
 {
+	process->update_slow();
+	if(process->getInstanceMode() == SnapshotNodeProcess::InstanceMode::MASTER)
+	{
+		snapshotstate_pub.publish(process->getROSSnapshotState());
+	}
 	std::vector<eros::diagnostic> diaglist = process->get_diagnostics();
 	for (std::size_t i = 0; i < diaglist.size(); ++i)
 	{
@@ -156,11 +161,7 @@ bool SnapshotNode::run_1hz()
 			diagnostic_pub.publish(diaglist.at(i));
 		}
 	}
-	process->update_slow();
-	if(process->getInstanceMode() == SnapshotNodeProcess::InstanceMode::MASTER)
-	{
-		snapshotstate_pub.publish(process->getROSSnapshotState());
-	}
+	
 	return true;
 }
 bool SnapshotNode::run_10hz()
