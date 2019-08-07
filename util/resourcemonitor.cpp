@@ -77,7 +77,7 @@ ResourceMonitor::~ResourceMonitor()
 }
 int ResourceMonitor::get_CPUFree_perc()
 {
-	std::string tempstr = exec("top -b -n 2 -d.2 | grep \"Cpu(s)\" | tail -n+2 2>&1",true);
+	std::string tempstr = exec("top -bn2 -d1 | grep \"Cpu(s)\" | tail -1",true);
 	std::vector <string> fields;
 	boost::split(fields,tempstr,boost::is_any_of("\t "),boost::token_compress_on);
 	if(fields.size() < 9)

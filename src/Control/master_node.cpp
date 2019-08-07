@@ -96,7 +96,7 @@ eros::diagnostic MasterNode::finish_initialization()
 	std::string loadfactor_topic = "/" + process->get_mydevice().DeviceName + "/loadfactor";
 	loadfactor_pub = n->advertise<eros::loadfactor>(loadfactor_topic,1);
 	std::string uptime_topic = "/" + process->get_mydevice().DeviceName + "/uptime";
-	uptime_pub = n->advertise<std_msgs::Float64>(uptime_topic,1);
+	uptime_pub = n->advertise<eros::uptime>(uptime_topic,1);
 
 	return diagnostic;
 }

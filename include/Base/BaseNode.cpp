@@ -234,7 +234,7 @@ bool BaseNode::update()
 				logger->log_diagnostic(resource_diagnostic);
 				diagnostic_pub.publish(resource_diagnostic);
 			}
-			else if(resource_diagnostic.Level <= NOTICE)
+			else
 			{
 				resource_pub.publish(resource);
 			}

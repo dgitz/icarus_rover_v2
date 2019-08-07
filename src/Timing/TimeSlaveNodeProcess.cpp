@@ -240,11 +240,12 @@ eros::diagnostic TimeSlaveNodeProcess::update_timeserver(std::string name)
 {
 	eros::diagnostic diag = root_diagnostic;
 	TimeSlaveNodeProcess::TimeServer server = get_timeserver(name);
+	char cmd[512];
 	if(unittesting_enabled == false)
 	{
-		char tempstr[512];
-		sprintf(tempstr,"ntpq -p | grep %s",name.c_str());
-		exec_result = exec(tempstr,true);
+		char unittesting_enabled[512];
+		sprintf(cmd,"ntpq -p | grep %s",name.c_str());
+		exec_result = exec(cmd,true);
 	}
 	std::vector<std::string> items;
 	boost::split(items,exec_result,boost::is_any_of("\t "),boost::token_compress_on);
@@ -266,7 +267,7 @@ eros::diagnostic TimeSlaveNodeProcess::update_timeserver(std::string name)
 	else
 	{
 		char tempstr[1024];
-		sprintf(tempstr,"Improperly formatted NTP Command:\n%s\n",exec_result.c_str());
+		sprintf(tempstr,"Improperly formatted NTP Command:\n%s\n Result: %s\n",cmd,exec_result.c_str());
 		diag = update_diagnostic(TIMING,ERROR,DIAGNOSTIC_FAILED,std::string(tempstr));
 		return diag;
 

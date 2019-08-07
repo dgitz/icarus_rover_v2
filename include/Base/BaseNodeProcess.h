@@ -34,6 +34,7 @@
 #include <eros/srv_snapshotstate.h>
 #include <eros/subsystem_diagnostic.h>
 #include <eros/loadfactor.h>
+#include <eros/uptime.h>
 //Project
 #include "../Definitions.h"
 #include "../../../eROS/include/DiagnosticClass.h"
