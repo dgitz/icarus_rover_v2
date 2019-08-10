@@ -437,7 +437,7 @@ eros::diagnostic SnapshotNodeProcess::finishSystemSnapshot()
 			}
 		}
 		sprintf(tempstr,"System Snapshot: %s Generated but is missing snapshots from: %s.",systemsnapshot_name.c_str(),tempstr2.c_str());
-		diag = update_diagnostic(DATA_STORAGE,WARN,DROPPING_PACKETS,std::string(tempstr));
+		diag = update_diagnostic(DATA_STORAGE,NOTICE,DROPPING_PACKETS,std::string(tempstr));
 		systemsnapshot_state = SnapshotState::READY;
 	}
 	if(systemsnapshot_state == SnapshotState::READY)
@@ -516,20 +516,44 @@ std::vector<eros::diagnostic> SnapshotNodeProcess::createnew_snapshot(uint8_t sn
 		char tempstr[1024];
 		sprintf(tempstr,"%s > %s/%s",snapshot_config.commands.at(i).command.c_str(),
 								   snapshot_path.c_str(),snapshot_config.commands.at(i).output_file.c_str());
-		exec(tempstr,true);
+		try
+		{
+			exec(tempstr,true);
+		}
+		catch(std::exception e)
+		{
+			std::string tempstr = "Command Exec failed with error: " + std::string(e.what());
+			diag = update_diagnostic(DATA_STORAGE,WARN,DROPPING_PACKETS,tempstr);
+		}
 	}
 	//Copy all folders into new snapshot 
 	for(std::size_t i = 0; i < snapshot_config.folders.size(); ++i)
 	{
 		char tempstr[1024];
 		sprintf(tempstr, "cp -r %s %s/",  snapshot_config.folders.at(i).c_str(),snapshot_path.c_str());
-		exec(tempstr, true); 
+		try
+		{
+			exec(tempstr, true); 
+		}
+		catch(std::exception e)
+		{
+			std::string tempstr = "Folder Copy failed with error: " + std::string(e.what());
+			diag = update_diagnostic(DATA_STORAGE,WARN,DROPPING_PACKETS,tempstr);
+		}
 	}
 	for(std::size_t i = 0; i < snapshot_config.files.size(); ++i)
 	{
 		char tempstr[1024];
 		sprintf(tempstr, "cp %s %s/",  snapshot_config.files.at(i).c_str(),snapshot_path.c_str());
-		exec(tempstr, true); 
+		try
+		{
+			exec(tempstr, true); 
+		}
+		catch(std::exception e)
+		{
+			std::string tempstr = "File Copy failed with error: " + std::string(e.what());
+			diag = update_diagnostic(DATA_STORAGE,WARN,DROPPING_PACKETS,tempstr);
+		}
 	}
 	//Zip it up
 	if(1)
