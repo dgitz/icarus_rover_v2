@@ -93,10 +93,6 @@ bool SnapshotNode::run_01hz()
 bool SnapshotNode::run_01hz_noisy()
 {
 	process->update_slow();
-	if(process->getInstanceMode() == SnapshotNodeProcess::InstanceMode::MASTER)
-	{
-		snapshotstate_pub.publish(process->getROSSnapshotState());
-	}
 	std::vector<eros::diagnostic> diaglist = process->get_diagnostics();
 	for (std::size_t i = 0; i < diaglist.size(); ++i)
 	{
@@ -107,6 +103,10 @@ bool SnapshotNode::run_01hz_noisy()
 }
 bool SnapshotNode::run_1hz()
 {
+	if(process->getInstanceMode() == SnapshotNodeProcess::InstanceMode::MASTER)
+	{
+		snapshotstate_pub.publish(process->getROSSnapshotState());
+	}
 	process->update_diagnostic(get_resource_diagnostic());
 	if ((process->is_initialized() == true) and (process->is_ready() == true))
 	{
@@ -285,6 +285,13 @@ void SnapshotNode::Command_Callback(const eros::command::ConstPtr &t_msg)
 					}
 				else
 				{
+					if(process->getInstanceMode() == SnapshotNodeProcess::InstanceMode::MASTER)
+					{
+						eros::systemsnapshot_state faststate = process->getROSSnapshotState();
+						faststate.state = "RUNNING";
+						snapshotstate_pub.publish(faststate);
+						logger->log_warn("Publishing Snapshot State quickly.");
+					}
 					std_msgs::Empty empty_msg;
 					datalogger_snapshot_pub.publish(empty_msg);
 				}

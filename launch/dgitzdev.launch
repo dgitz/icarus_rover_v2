@@ -37,7 +37,7 @@
         <param name="Mode"                  value="MASTER"/>
 </node>
 <node name="$(env ROS_HOSTNAME)_datalogger_node" pkg="icarus_rover_v2" type="datalogger_node"  output="screen" clear_params="true">
-        <param name="startup_delay"       value="5.0"/>
+        <param name="startup_delay"       value="10.0"/>
         <param name="verbosity_level"       value="NOTICE"/>
         <param name="require_pps_to_start"  value="false"/> 
         <param name="LogFile_Duration"      value="600.0"/>

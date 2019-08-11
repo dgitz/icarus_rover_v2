@@ -285,6 +285,7 @@ TEST(Template, Process_Command_GenerateDeviceSnapshot)
 				EXPECT_TRUE(diagnostics.size() >= DIAGNOSTIC_TYPE_COUNT);
 				for (std::size_t i = 0; i < diagnostics.size(); ++i)
 				{
+					print_diagnostic(WARN,diagnostics.at(i));
 					EXPECT_TRUE(diagnostics.at(i).Level <= NOTICE);
 				}
 

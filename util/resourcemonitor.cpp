@@ -5,59 +5,12 @@ ResourceMonitor::ResourceMonitor()
 }
 ResourceMonitor::ResourceMonitor(eros::diagnostic diag,std::string device_architecture,std::string host_name,std::string task_name)
 {  
-	CPU_Used_Column = -1;
-	RAM_Used_Column = -1;
-	Device_Architecture = device_architecture;
-	if(Device_Architecture == "x86_64")
-	{
-		CPU_Used_Column = 8;
-		RAM_Used_Column = 5;
-	}
-	else if(Device_Architecture == "armv7l")
-	{
-		CPU_Used_Column = 9;
-		RAM_Used_Column = 5;
-	}
-    else if(Device_Architecture == "arm_64")
-    {
-        CPU_Used_Column = 9;
-        RAM_Used_Column = 5;
-    }
-
-	Task_Name = task_name.substr(1,task_name.size());
-	Host_Name = host_name;
-	generic_node_name = Task_Name.substr(Host_Name.length()+2,Task_Name.size());
-	PID = -1;
-	CPUUsed_perc = -1;
-	RAMUsed_kB = -1;
-	shortterm_buffer_index = 0;
-	diagnostic = diag;
-	diagnostic.Diagnostic_Type = SYSTEM_RESOURCE;
-	std::string tempstr = exec("nproc",true);
-	boost::trim_right(tempstr);
-	processor_count = std::atoi(tempstr.c_str());
-	diagnostic = update();
+	init(diag,device_architecture,host_name,task_name);
 }
 void ResourceMonitor::init(eros::diagnostic diag,std::string device_architecture,std::string host_name,std::string task_name)
 {
-	CPU_Used_Column = -1;
-	RAM_Used_Column = -1;
+	ramfree_initialized = false;
 	Device_Architecture = device_architecture;
-	if(Device_Architecture == "x86_64")
-	{
-		CPU_Used_Column = 9;
-		RAM_Used_Column = 5;
-	}
-	else if(Device_Architecture == "armv7l")
-	{
-		CPU_Used_Column = 9;
-		RAM_Used_Column = 5;
-	}
-    else if(Device_Architecture == "arm_64")
-    {
-        CPU_Used_Column = 9;
-        RAM_Used_Column = 5;
-    }
 	Task_Name = task_name;
 	Host_Name = host_name;
 	generic_node_name = Task_Name;
@@ -70,10 +23,59 @@ void ResourceMonitor::init(eros::diagnostic diag,std::string device_architecture
 	std::string tempstr = exec("nproc",true);
 	boost::trim_right(tempstr);
 	processor_count = std::atoi(tempstr.c_str());
+
+
 	diagnostic = update();
 }
 ResourceMonitor::~ResourceMonitor()
 {
+}
+int ResourceMonitor::get_RAMFree_perc()
+{
+	if(ramfree_initialized == false)
+	{
+		std::ifstream file( "/proc/meminfo" );
+		if(!file)
+		{
+			diagnostic.Level = ERROR;
+			diagnostic.Diagnostic_Message = DROPPING_PACKETS;
+			diagnostic.Description = "Unable to read /proc/meminfo";
+		}
+		int found_entry_count = 0;
+		for( std::string line; getline( file, line ); )
+		{
+			std::vector <string> fields;
+			boost::split(fields,line,boost::is_any_of("\t "),boost::token_compress_on);
+			std::string value = "";
+			if(fields.size() != 3)
+			{
+				continue;
+			}
+			if(std::string::npos == fields.at(2).find("kB"))
+			{
+				continue;
+			}
+			if(std::string::npos != fields.at(0).find("MemTotal:"))
+			{
+				RAMTotal_kb = std::atoi(fields.at(1).c_str());
+				found_entry_count++;
+			}
+		}
+		file.close();
+		if(found_entry_count == 0)
+		{
+			diagnostic.Level = ERROR;
+			diagnostic.Diagnostic_Message = DROPPING_PACKETS;
+			diagnostic.Description = "Unable to process /proc/meminfo";
+		}
+		else
+		{
+			ramfree_initialized = true;
+		}
+	}
+	double num = (double)get_RAMFree_kB();
+	double den = (double)RAMTotal_kb;
+	return (int)(100.0*num/den);
 }
 int ResourceMonitor::get_CPUFree_perc()
 {
@@ -153,6 +155,7 @@ int ResourceMonitor::get_RAMFree_kB()
 			found_entry_count++;
 		}
 	}
+	file.close();
 	if(found_entry_count != 4)
 	{
 		diagnostic.Level = ERROR;
@@ -195,19 +198,46 @@ eros::resource ResourceMonitor::get_resourceused()
 	newresource.RAM_MB = (double)(RAMUsed_kB/1000.0);
 	return newresource;
 }
+int ResourceMonitor::get_DISKFree_perc()
+{
+	char tempstr[128];
+	sprintf(tempstr,"df -h");
+	std::string res = exec(tempstr,true);
+	std::vector <string> lines;
+	boost::split(lines,res,boost::is_any_of("\n"),boost::token_compress_on);
+	for(std::size_t i = 0; i < lines.size(); ++i)
+	{
+		std::vector <string> fields;
+		boost::split(fields,lines.at(i),boost::is_any_of(" "),boost::token_compress_on);
+		std::string mount_point = fields.at(fields.size()-1);
+		if(mount_point == "/")
+		{
+			try
+			{	
+				std::string tempstr1 = fields.at(fields.size()-2);
+				std::size_t length = tempstr1.size();
+				std::string disk_used = tempstr1.substr(0,length-1);
+				int disk_free = 100 - std::atoi(disk_used.c_str());
+				return disk_free;
+			}
+			catch(std::exception e)
+			{
+				diagnostic.Level = ERROR;
+				diagnostic.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
+				diagnostic.Description = "Cannot parse Disk Usage with Command: " + std::string(tempstr) + " and result: " + res + " and exception: " + e.what();
+			}
+		}
+	}
+	diagnostic.Level = ERROR;
+	diagnostic.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
+	diagnostic.Description = "Cannot find Disk Usage with Command: " + std::string(tempstr) + " and result: " + res;
+
+	return -1;
+}
 eros::diagnostic ResourceMonitor::update()
 {
 	if(diagnostic.Level >= WARN)
 	{
-		return diagnostic;
-	}
-	if((CPU_Used_Column == -1) || (RAM_Used_Column == -1))
-	{
-		diagnostic.Level = ERROR;
-		diagnostic.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
-		char tempstr[256];
-		sprintf(tempstr,"Device Architecture: %s not Supported.",Device_Architecture.c_str());
-		diagnostic.Description = std::string(tempstr);
 		return diagnostic;
 	}
 	if(PID == -1)
@@ -215,7 +245,7 @@ eros::diagnostic ResourceMonitor::update()
 		int id = -1;
 		std::string local_node_name;
 		local_node_name = Task_Name.substr(0,Task_Name.size());
-		boost::replace_all(local_node_name,"/","-");
+		boost::replace_all(local_node_name,"/","");
 		char tempstr1[512];
 		sprintf(tempstr1,"ps aux | grep \"%s\" 2>&1",local_node_name.c_str());
 		std::string res = exec(tempstr1,true);
@@ -244,31 +274,38 @@ eros::diagnostic ResourceMonitor::update()
 				break;
 			}
 		}
-		if(found_process == false)
+		if((found_process == false) or (id == 0))
 		{
 			diagnostic.Level = ERROR;
 			diagnostic.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
-			diagnostic.Description = "Cannot find PID For Process.";
+			diagnostic.Description = "Cannot find PID For Process: " + Task_Name + " by executing: " + std::string(tempstr1);
 			return diagnostic;
 		}
 		PID = id;
 	}
 	char tempstr[512];
-	sprintf(tempstr,"top -bn1 | grep %d 2>&1",PID);
+	sprintf(tempstr,"ps -p %d -o %%cpu,vsz 2>&1",PID);
 	std::string res = exec(tempstr,true);
 	std::vector<std::string> fields;
-	boost::split(fields,res,boost::is_any_of(" \t"),boost::token_compress_on);
-	int size_required = std::max(CPU_Used_Column,RAM_Used_Column)+1;
-	if((int)fields.size() >= size_required )
-	{
-		CPUUsed_perc = (int)((atof(fields.at(CPU_Used_Column).c_str()))/(double)processor_count);
-		RAMUsed_kB = atoi(fields.at(RAM_Used_Column).c_str());
-	}
-	else
+	boost::split(fields,res,boost::is_any_of(" \n"),boost::token_compress_on);
+	if((int)fields.size() != 5 )
 	{
 		diagnostic.Level = ERROR;
 		diagnostic.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
-		diagnostic.Description = "Unable to look up resources for Process.";
+		diagnostic.Description = "Unable to process command: " + std::string(tempstr) + " with result: " + res;
+		return diagnostic;
+	}
+	try
+	{
+		CPUUsed_perc = (int)((atof(fields.at(2).c_str()))/(double)processor_count);
+		RAMUsed_kB = atoi(fields.at(3).c_str());
+	}
+	catch(std::exception e)
+	{
+		diagnostic.Level = ERROR;
+		diagnostic.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
+		diagnostic.Description = "Unable to process command: " + std::string(tempstr) + " with result: " + res + " and generated exception: " + e.what();
+		return diagnostic;
 	}
 	shortterm_buffer_RamUsed_kB.push_back(RAMUsed_kB);
 	shortterm_buffer_index++;
@@ -361,6 +398,7 @@ std::string ResourceMonitor::exec(const char *cmd, bool wait_for_result)
 		}
 		if (pipe == NULL)
 		{
+			pclose(pipe);
 			printf("%s Node: %s popen() failed with command: %s at line: %d\n",__FILE__,Task_Name.c_str(),cmd,__LINE__);
 			return "";
 		}
@@ -380,6 +418,7 @@ std::string ResourceMonitor::exec(const char *cmd, bool wait_for_result)
 			printf("%s Node: %s popen() failed with command: %s at line: %d\n",__FILE__,Task_Name.c_str(),cmd,__LINE__);
 			return "";
 		}
+		pclose(pipe);
 		return result;
 	}
 	catch(std::exception e)

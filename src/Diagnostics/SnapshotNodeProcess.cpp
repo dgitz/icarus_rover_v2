@@ -438,9 +438,9 @@ eros::diagnostic SnapshotNodeProcess::finishSystemSnapshot()
 		}
 		sprintf(tempstr,"System Snapshot: %s Generated but is missing snapshots from: %s.",systemsnapshot_name.c_str(),tempstr2.c_str());
 		diag = update_diagnostic(DATA_STORAGE,NOTICE,DROPPING_PACKETS,std::string(tempstr));
-		systemsnapshot_state = SnapshotState::READY;
+		//systemsnapshot_state = SnapshotState::READY;
 	}
-	if(systemsnapshot_state == SnapshotState::READY)
+	if((systemsnapshot_state == SnapshotState::READY) or (systemsnapshot_state == SnapshotState::INCOMPLETE))
 	{
 		eros_systemsnapshot_state.source_device = mydevice.DeviceName;
 		eros_systemsnapshot_state.snapshot_path = active_systemsnapshot_completepath;

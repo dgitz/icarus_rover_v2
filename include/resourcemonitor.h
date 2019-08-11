@@ -32,6 +32,8 @@ public:
     int get_TaskPID(); //Helper function, not needed in application.
     int get_CPUFree_perc();
     int get_RAMFree_kB();
+    int get_RAMFree_perc();
+    int get_DISKFree_perc();
     eros::resource get_resourceused();
     ~ResourceMonitor();
     std::string get_DeviceArchitecture() { return Device_Architecture; }
@@ -45,11 +47,13 @@ std::string exec(const char* cmd,bool wait_for_result);
     int PID;
     int CPUUsed_perc;
     int RAMUsed_kB;
-    int CPU_Used_Column;
-    int RAM_Used_Column;
     int RAMFree_kB;
     int CPUFree_perc;
+    int RAMFree_perc;
+    uint64_t RAMTotal_kb;
     uint8_t processor_count;
+    bool ramfree_initialized;
+
 
     std::vector<double> shortterm_buffer_RamUsed_kB;
     int shortterm_buffer_index;
