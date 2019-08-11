@@ -239,6 +239,7 @@ std::string BaseNodeProcess::exec(const char *cmd, bool wait_for_result)
 		{
 			std::string tempstr = "Node: " + node_name + " popen() failed with command: " + cmd;
 			print_message("ERROR",convert_time_tostr(ros_time),__FILE__,__LINE__,tempstr);
+			pclose(pipe);
 			return "";
 		}
 		try
@@ -256,6 +257,7 @@ std::string BaseNodeProcess::exec(const char *cmd, bool wait_for_result)
 			print_message("ERROR",convert_time_tostr(ros_time),__FILE__,__LINE__,tempstr);
 			return "";
 		}
+		pclose(pipe);
 		return result;
 	}
 	catch(std::exception e)

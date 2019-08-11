@@ -106,6 +106,17 @@ bool MasterNode::run_001hz()
 }
 bool MasterNode::run_01hz()
 {
+	//Commenting out publish for BUG: Resource Monitor Available Resource Unstable #208
+	eros::resource device_resource_available;
+	device_resource_available.stamp = ros::Time::now();
+	device_resource_available.Node_Name = process->get_mydevice().DeviceName;
+	device_resource_available.PID = 0;
+	device_resource_available.CPU_Perc = resourcemonitor->get_CPUFree_perc();
+	device_resource_available.RAM_MB = (double)(resourcemonitor->get_RAMFree_kB()/1000.0);
+	device_resource_available.RAM_Perc = resourcemonitor->get_RAMFree_perc();
+	device_resource_available.DISK_Perc = resourcemonitor->get_DISKFree_perc();
+	device_resourceavail_pub.publish(device_resource_available);
+	process->update_diagnostic(get_resource_diagnostic());
 	eros::diagnostic diag = process->slowupdate();
 	if(diag.Level <= NOTICE)
 	{
@@ -131,15 +142,7 @@ bool MasterNode::run_01hz_noisy()
 }
 bool MasterNode::run_1hz()
 {
-	//Commenting out publish for BUG: Resource Monitor Available Resource Unstable #208
-	eros::resource device_resource_available;
-	device_resource_available.stamp = ros::Time::now();
-	device_resource_available.Node_Name = process->get_mydevice().DeviceName;
-	device_resource_available.PID = 0;
-	device_resource_available.CPU_Perc = resourcemonitor->get_CPUFree_perc();
-	device_resource_available.RAM_MB = (double)(resourcemonitor->get_RAMFree_kB()/1000.0);
-	device_resourceavail_pub.publish(device_resource_available);
-	process->update_diagnostic(get_resource_diagnostic());
+
 	if(process->get_mydevice().Architecture == "armv7l")
 	{
 		process->set_devicetemperature(read_device_temperature());

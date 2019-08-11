@@ -80,7 +80,7 @@ public:
 				return true;
 				break;
 			case SnapshotState::INCOMPLETE:
-				diag = update_diagnostic(DATA_STORAGE,WARN,DROPPING_PACKETS,"System Snapshot Ready But Incomplete.");
+				diag = update_diagnostic(DATA_STORAGE,NOTICE,DROPPING_PACKETS,"System Snapshot Ready But Incomplete.");
 				return true;
 				break;
 			case SnapshotState::NOTRUNNING:
