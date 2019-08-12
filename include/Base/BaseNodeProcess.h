@@ -32,6 +32,7 @@
 #include <eros/srv_connection.h>
 #include <eros/srv_leverarm.h>
 #include <eros/srv_snapshotstate.h>
+#include <eros/srv_sql.h>
 #include <eros/subsystem_diagnostic.h>
 #include <eros/loadfactor.h>
 #include <eros/uptime.h>

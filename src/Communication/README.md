@@ -28,4 +28,13 @@ Purpose:
  * sensor_msgs::Joy.button -> icarus_rover_v2::pin.Value
 3. Uses an OptionMode (optional) to map input topics to multiple output topics
 
+C. database_node
+ToDo:
+Usage: This node should be run on one device on the Robot.
+Purpose:
+References:
+https://www.tutorialspoint.com/sqlite/sqlite_installation.htm
 
+Documentation History:
+12-Aug-2019 David Gitz
+Created Node.
