@@ -28,4 +28,24 @@ Purpose:
  * sensor_msgs::Joy.button -> icarus_rover_v2::pin.Value
 3. Uses an OptionMode (optional) to map input topics to multiple output topics
 
+C. database_node
+ToDo:
+Usage: This node should be run on one device on the Robot.
+Purpose:  Connects to a SQLite Database and provides a SQL Query Service.
+References:
+https://www.tutorialspoint.com/sqlite/sqlite_installation.htm
 
+Instructions:
+* Create Database
+1. Export Access Database to CSV's:  Open Database and click "Export" on Switchboard.
+2. On Linux, run the command:
+  >>./csv_to_sqldb.py -c ~/Dropbox/FASTRobotics/FASTDatabase/ ~/config/configdatabase.db
+
+* Manually run a SQL command
+1. Run the database_node and master_node
+2. Execute the following command:
+  >>rosservice call /ConfigDatabase/srv_sql '{type: 3,cmd: SELECT * FROM FASTDatabaseTable_Item}'
+
+Documentation History:
+12-Aug-2019 David Gitz
+Created Node.

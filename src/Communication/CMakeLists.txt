@@ -16,3 +16,11 @@ target_link_libraries(topicremapper_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} 
 catkin_add_gtest(test_topicremapper_node_process unit_tests/test_topicremapper_node_process.cpp)
 target_link_libraries(test_topicremapper_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} topicremapper_node_process logger)
 
+#Database Node
+file(MAKE_DIRECTORY /home/robot/catkin_ws/build/test_results/icarus_rover_v2/database_node)
+add_library(database_node_process DatabaseNodeProcess.cpp)
+target_link_libraries(database_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} sqlite3 )
+add_executable(database_node database_node.cpp)
+target_link_libraries(database_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} sqlite3 logger resourcemonitor database_node_process)
+catkin_add_gtest(test_database_node_process unit_tests/test_database_node_process.cpp)
+target_link_libraries(test_database_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} database_node_process logger)
