@@ -18,11 +18,9 @@ bool DatabaseNode::start(int argc, char **argv)
 	}
 
 	process->initialize(get_basenodename(), get_nodename(), get_hostname(), DIAGNOSTIC_SYSTEM, DIAGNOSTIC_SUBSYSTEM, DIAGNOSTIC_COMPONENT);
-	//process->set_config_filepaths("/home/robot/catkin_ws/src/icarus_rover_v2/src_templates/unit_tests/SampleConfig.xml");
 	std::vector<uint8_t> diagnostic_types;
 	diagnostic_types.push_back(SOFTWARE);
 	diagnostic_types.push_back(DATA_STORAGE);
-	diagnostic_types.push_back(SYSTEM_RESOURCE);
 	process->enable_diagnostics(diagnostic_types);
 	process->finish_initialization();
 	diagnostic = finish_initialization();
@@ -100,9 +98,6 @@ bool DatabaseNode::run_01hz_noisy()
 		get_logger()->log_diagnostic(diaglist.at(i));
 		diagnostic_pub.publish(diaglist.at(i));
 	}
-	eros::diagnostic diag = rescan_topics();
-	get_logger()->log_diagnostic(diag);
-	diagnostic_pub.publish(diag);
 	return true;
 }
 bool DatabaseNode::run_1hz()
@@ -184,12 +179,12 @@ bool DatabaseNode::sql_service(eros::srv_sql::Request &req,
 {
 	eros::diagnostic diag = diagnostic;
 	char *zErrMsg = 0;
-	Records records;  
+	RecordList recordlist;  
 	std::string tempstr;
 	switch(req.type)
 	{
 		case SQLCOMMANDTYPE_DATAQUERY:
-			db_fd = sqlite3_exec(db, req.cmd.c_str(), DatabaseNode::database_query, &records, &zErrMsg);
+			db_fd = sqlite3_exec(db, req.cmd.c_str(), DatabaseNode::database_query, &recordlist, &zErrMsg);
 			if( db_fd != SQLITE_OK ) 
 			{
 				res.status = -1;
@@ -197,13 +192,14 @@ bool DatabaseNode::sql_service(eros::srv_sql::Request &req,
 			} 
 			else 
 			{
+				res.fields = recordlist.fields;
 				std::vector<std::string> list;
-				for(std::size_t i = 0; i < records.size(); ++i)
+				for(std::size_t i = 0; i < recordlist.records.size(); ++i)
 				{
 					tempstr = "";
-					for(std::size_t j = 0; j < records.at(i).size(); ++j)
+					for(std::size_t j = 0; j < recordlist.records.at(i).size(); ++j)
 					{
-						tempstr += records.at(i).at(j) + ",";
+						tempstr += recordlist.records.at(i).at(j) + ",";
 					}
 					list.push_back(tempstr);
 				}
@@ -229,12 +225,14 @@ bool DatabaseNode::sql_service(eros::srv_sql::Request &req,
 	
 	return true;
 }
-int DatabaseNode::database_query(void *p_data, int num_fields, char **p_fields, __attribute__((unused)) char **p_col_names)
+int DatabaseNode::database_query(void *p_data, int num_fields, char **p_fields,  char **p_col_names)
 {
-   	Records* records = static_cast<Records*>(p_data);
+   	RecordList* recordlist = static_cast<RecordList*>(p_data);
 	try
 	{
-		records->emplace_back(p_fields, p_fields + num_fields);
+		std::vector<std::string> fields(p_col_names, p_col_names + (num_fields)*sizeof(p_col_names)/(sizeof p_col_names[0]));
+		recordlist->fields = fields;
+		recordlist->records.emplace_back(p_fields,p_fields + num_fields);
 	}
 	catch (std::exception e) 
 	{
@@ -270,42 +268,6 @@ bool DatabaseNode::new_devicemsg(std::string query, eros::device t_device)
 		eros::diagnostic diag = process->new_devicemsg(device_ptr);
 	}
 	return true;
-}
-eros::diagnostic DatabaseNode::rescan_topics()
-{
-	eros::diagnostic diag = diagnostic;
-	/*
-	int found_new_topics = 0;
-
-	ros::master::V_TopicInfo master_topics;
-	ros::master::getTopics(master_topics);
-	for (ros::master::V_TopicInfo::iterator it = master_topics.begin() ; it != master_topics.end(); it++)
-	{
-		const ros::master::TopicInfo& info = *it;
-		if(info.datatype == "eros/command")
-		{
-			found_new_topics++;
-			char tempstr[255];
-			sprintf(tempstr,"Subscribing to command topic: %s",info.name.c_str());
-			logger->log_info(tempstr);
-			ros::Subscriber sub = n->subscribe<eros::command>(info.name,20,&SampleNode::Command_Callback,this);
-			multiple_subs.push_back(sub);
-		}
-	}
-
-	char tempstr[255];
-	if(found_new_topics > 0)
-	{
-		sprintf(tempstr,"Rescanned and found %d new topics.",found_new_topics);
-	}
-	else
-	{
-		sprintf(tempstr,"Rescanned and found no new topics.");
-	}
-	diag = process->update_diagnostic(SOFTWARE,INFO,NOERROR,std::string(tempstr));
-	logger->log_info(tempstr);
-	*/
-	return diag;
 }
 void DatabaseNode::thread_loop()
 {

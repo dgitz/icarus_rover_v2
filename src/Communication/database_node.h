@@ -11,9 +11,6 @@
  *  \brief This is a DatabaseNode class.  Used for the database_node node.
  *
  */
-//static int callback(void *data, int argc, char **argv, char **azColName);
-using Record = std::vector<std::string>;
-using Records = std::vector<Record>;
 class DatabaseNode: public BaseNode {
 public:
 
@@ -27,6 +24,11 @@ public:
 	const uint8_t DIAGNOSTIC_SYSTEM = ROVER;
 	const uint8_t DIAGNOSTIC_SUBSYSTEM = ROBOT_CONTROLLER;
 	const uint8_t DIAGNOSTIC_COMPONENT = COMMUNICATION_NODE;
+	struct RecordList
+	{
+		std::vector<std::string> fields;
+		std::vector<std::vector<std::string> > records;
+	};
 	~DatabaseNode()
 	{
 	}
@@ -45,7 +47,6 @@ private:
 	 *
 	 */
 	eros::diagnostic read_launchparameters();
-	eros::diagnostic rescan_topics();
 	/*! \brief Setup other pubs/subs, other node specific init stuff
 	 *
 	 */
