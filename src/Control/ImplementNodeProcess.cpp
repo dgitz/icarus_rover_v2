@@ -51,6 +51,7 @@ eros::diagnostic  ImplementNodeProcess::finish_initialization()
 		bucket_cylinder_controller.initialize("BucketCylinder");
 		printf("Name: %s\n",bucket_cylinder_controller.getName().c_str());
 	}
+	diag = controlgroup.init(diag,ControlGroup::Mode::PID);
     return diag;
 }
 eros::diagnostic ImplementNodeProcess::update(double t_dt,double t_ros_time)

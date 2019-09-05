@@ -6,6 +6,8 @@
 //Project
 #include <tinyxml.h>
 #include "fl/Headers.h"
+#include "../../include/controlgroup.h"
+
 /*! \class ImplementNodeProcess ImplementNodeProcess.h "ImplementNodeProcess.h"
  *  \brief This is a ImplementNodeProcess class.  Used for the implement_node node.
  *
@@ -62,6 +64,7 @@ private:
 	 */
 	eros::diagnostic load_configfile(std::string path);
 	std::vector<eros::diagnostic> check_programvariables();
+	ControlGroup controlgroup;
 	std::string config_filepath;
 	FuzzyController bucket_cylinder_controller;
 

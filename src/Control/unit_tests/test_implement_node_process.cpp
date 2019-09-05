@@ -33,7 +33,8 @@ ImplementNodeProcess *initializeprocess()
 	diagnostic_types.push_back(DATA_STORAGE);
 	diagnostic_types.push_back(SYSTEM_RESOURCE);
 	process->enable_diagnostics(diagnostic_types);
-	process->finish_initialization();
+	eros::diagnostic diag = process->finish_initialization();
+	EXPECT_TRUE(diag.Level <= NOTICE);
 	EXPECT_TRUE(process->is_initialized() == false);
 	process->set_mydevice(device);
 	EXPECT_TRUE(process->is_initialized() == true);

@@ -99,7 +99,6 @@ private:
 	ros::Publisher joy_pub;
 	ros::Publisher arm1_joy_pub;
 	ros::Publisher arm2_joy_pub;
-	ros::Publisher controlgroup_pub;
 	std::vector<ros::Subscriber> device_subs;
 	std::vector<ros::Subscriber> resource_subs;
 	std::vector<ros::Subscriber> diagnostic_subs;

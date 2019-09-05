@@ -118,10 +118,6 @@ eros::diagnostic NetworkTransceiverNode::finish_initialization()
 
 		std::string user_command_topic = "/" + process->get_UIMode() + "/user_command";
 		user_command_pub = n->advertise<eros::command>(user_command_topic,1);
-
-		std::string controlgroup_topic = "/" + process->get_UIMode() + "/controlgroup";
-		controlgroup_pub = n->advertise<eros::controlgroup>(controlgroup_topic,1);
-
 	}
 	udpmessagehandler = new UDPMessageHandler();
 	if(initialize_sendsocket() == false)
@@ -628,27 +624,6 @@ void NetworkTransceiverNode::thread_loop()
 					newjoy.buttons.push_back(button5);
 					newjoy.buttons.push_back(button6);
 					arm1_joy_pub.publish(newjoy);
-				}
-				else
-				{
-					printf("Couldn't decode message.\n");
-				}
-				break;
-			case UDPMessageHandler::UDP_TuneControlGroup_ID:
-				success = udpmessagehandler->decode_TuneControlGroupUDP(items,&tempstr1,&tempstr2,&v1,&v2,&v3,&int_1,&int_2,&int_3);
-				if(success == 1)
-				{
-					eros::controlgroup cg;
-					cg.name = tempstr1;
-					cg.type = tempstr2;
-					cg.value1 = v1;
-					cg.value2 = v2;
-					cg.value3 = v3;
-					cg.maxvalue = int_1;
-					cg.minvalue = int_2;
-					cg.defaultvalue = int_3;
-					controlgroup_pub.publish(cg);
-
 				}
 				else
 				{
