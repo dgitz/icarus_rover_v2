@@ -27,7 +27,7 @@ eros::diagnostic TopicRemapperNodeProcess::update(double t_dt,double t_ros_time)
 	}
 	return diag;
 }
-eros::diagnostic TopicRemapperNodeProcess::new_devicemsg(const eros::device::ConstPtr& device)
+eros::diagnostic TopicRemapperNodeProcess::new_devicemsg(__attribute__((unused)) const eros::device::ConstPtr& device)
 {
 	eros::diagnostic diag = root_diagnostic;
 	return diag;
@@ -449,7 +449,6 @@ eros::diagnostic TopicRemapperNodeProcess::new_joymsg(sensor_msgs::Joy msg,std::
 							newpin.ParentDevice = ch.parentdevice;
 							newpin.DefaultValue = (int)ch.neutralvalue;
 							newpin.Function = ch.function;
-							newpin.Number = ch.pinnumber;
 							newpin.Value = (int)out;
 							//p_pwmoutputs.pins.push_back(newpin);
 							map.outs.at(j).value = newpin.Value;
@@ -515,7 +514,6 @@ eros::diagnostic TopicRemapperNodeProcess::new_joymsg(sensor_msgs::Joy msg,std::
                 			newpin.ParentDevice = ch.parentdevice;
                 			newpin.DefaultValue = (int)ch.neutralvalue;
                 			newpin.Function = ch.function;
-                			newpin.Number = ch.pinnumber;
                 			newpin.Value = map.outs.at(j).value;
                 			//map.pubs.at(j).publish(newpin);
                 		}
@@ -579,7 +577,6 @@ eros::diagnostic TopicRemapperNodeProcess::new_joymsg(sensor_msgs::Joy msg,std::
 					newpin.stamp = msg.header.stamp;
 					newpin.ParentDevice = ch.parentdevice;
 					newpin.Function = ch.function;
-					newpin.Number = ch.pinnumber;
 					newpin.Value = msg.buttons[map.in.index];
 					//p_digitaloutputs.pins.push_back(newpin);
 					//map.pubs.at(j).publish(newpin);
@@ -606,7 +603,6 @@ std::vector<eros::pin> TopicRemapperNodeProcess::get_outputs_pins()
                 OutputChannel ch = TopicMaps.at(i).outs.at(j);
                 out.ParentDevice = ch.parentdevice;
                 out.Function = ch.function;
-                out.Number = ch.pinnumber;
                 out.Value = ch.value;
                 outs.push_back(out);
             }

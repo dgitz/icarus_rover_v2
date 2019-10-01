@@ -169,23 +169,6 @@ eros::diagnostic SafetyNodeProcess::set_terminalhat_initialized()
 	}
 	return diag;
 }
-int SafetyNodeProcess::get_pinnumber(std::string name)
-{
-	for(std::size_t i = 0; i < hats.size(); i++)
-	{
-		if((hats.at(i).DeviceType == "TerminalHat"))
-		{
-			for(std::size_t j = 0; j < hats.at(i).pins.size(); j++)
-			{
-				if((hats.at(i).pins.at(j).Name == name))
-				{
-					return hats.at(i).pins.at(j).Number;
-				}
-			}
-		}
-	}
-	return -1;
-}
 bool SafetyNodeProcess::set_pinvalue(std::string name,int v)
 {
 	eros::diagnostic diag = root_diagnostic;

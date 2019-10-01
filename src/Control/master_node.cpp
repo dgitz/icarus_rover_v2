@@ -86,6 +86,8 @@ eros::diagnostic MasterNode::finish_initialization()
 	command_sub = n->subscribe<eros::command>("/command",1,&MasterNode::Command_Callback,this);
 	std::string srv_device_topic = "/" + node_name + "/srv_device";
 	device_srv = n->advertiseService(srv_device_topic,&MasterNode::device_service,this);
+	std::string srv_pin_topic = "/" + node_name + "/srv_pin";
+	pin_srv = n->advertiseService(srv_pin_topic,&MasterNode::pin_service,this);
 	std::string srv_connection_topic = "/" + node_name + "/srv_connection";
 	connection_srv = n->advertiseService(srv_connection_topic,&MasterNode::connection_service,this);
 	std::string srv_leverarm_topic = "/" + node_name + "/srv_leverarm";
@@ -437,6 +439,23 @@ bool MasterNode::connection_service(eros::srv_connection::Request &req,
 	}
 	return false;
 }
+bool MasterNode::pin_service(eros::srv_pin::Request &req,
+		eros::srv_pin::Response &res)
+{
+	std::vector<eros::device> alldevices = process->get_alldevices();
+	for(std::size_t i = 0; i < alldevices.size(); i++)
+	{
+		for(std::size_t j = 0; j < alldevices.at(i).pins.size(); ++j)
+		{
+			if((alldevices.at(i).pins.at(j).ConnectedDevice == req.query) ||
+			   (alldevices.at(i).pins.at(j).ConnectedSensor == req.query))
+			{
+				res.pins.push_back(alldevices.at(i).pins.at(j));
+			}
+		}
+	}
+	return true;
+}
 bool MasterNode::device_service(eros::srv_device::Request &req,
 		eros::srv_device::Response &res)
 {
@@ -528,7 +547,7 @@ void MasterNode::print_deviceinfo()
 		}
 		for(std::size_t j = 0; j < process->get_childdevices().at(i).pins.size(); ++j)
 		{
-			sprintf(tempstr,"%s  [%d] Pin: %s:%d\n",tempstr,(int)j,process->get_childdevices().at(i).pins.at(j).Name.c_str(),process->get_childdevices().at(i).pins.at(j).Number);
+			sprintf(tempstr,"%s  [%d] Pin: %s\n",tempstr,(int)j,process->get_childdevices().at(i).pins.at(j).Name.c_str());
 		}
 	}
 	logger->log_notice(std::string(tempstr));

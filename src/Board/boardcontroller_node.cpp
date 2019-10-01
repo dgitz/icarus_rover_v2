@@ -196,7 +196,6 @@ bool BoardControllerNode::run_loop3()
 			int success;
 			unsigned char v1,v2,v3,v4,v5,v6,v7,v8,v9,v10,v11,v12;
 			uint16_t a1,a2,a3,a4,a5,a6;
-			int16_t b1,b2;
 
 			switch(querymessages_tosend.at(i).id)
 			{
@@ -218,7 +217,7 @@ bool BoardControllerNode::run_loop3()
 				if(success == 1)
 				{
 					process->new_message_recv(querymessages_tosend.at(i).id);
-					diag = process->new_message_GetANAPort1(BOARD_ID,ros::Time::now().toSec(),a1,a2,a3,a4,a5,a6);
+					diag = process->new_message_GetANAPort1("ArduinoBoard",BOARD_ID,ros::Time::now().toSec(),a1,a2,a3,a4,a5,a6);
 					if(diag.Level >= WARN)
 					{
 						diagnostic_pub.publish(diag);
@@ -231,7 +230,7 @@ bool BoardControllerNode::run_loop3()
 				if(success == 1)
 				{
 					process->new_message_recv(querymessages_tosend.at(i).id);
-					diag = process->new_message_GetDIOPort1(BOARD_ID,ros::Time::now().toSec(),
+					diag = process->new_message_GetDIOPort1("ArduinoBoard",BOARD_ID,ros::Time::now().toSec(),
 							a1-BYTE2_OFFSET,a2-BYTE2_OFFSET);
 					if(diag.Level >= WARN)
 					{
@@ -272,27 +271,39 @@ bool BoardControllerNode::run_loop3()
 	uint8_t armed_state = process->get_armed_state();
 	for(std::size_t i = 0; i < commandmessages_tosend.size(); i++)
 	{
-		int success;
 		int length;
 		unsigned char outputbuffer[12];
 		unsigned char v1,v2,v3;
+		int success = true;
 		switch(commandmessages_tosend.at(i).id)
 		{
 		case SPIMessageHandler::SPI_LEDStripControl_ID:
 			diag = process->get_LEDStripControlParameters(v1,v2,v3);
 			success = spimessagehandler->encode_LEDStripControlSPI(outputbuffer,&length,v1,v2,v3);
+			if(success == false)
+			{
+				process->update_diagnostic(COMMUNICATIONS,WARN,DROPPING_PACKETS,"Unable to decode Msg: " + std::to_string(commandmessages_tosend.at(i).id));
+			}
 			sendMessageCommand(commandmessages_tosend.at(i).id,outputbuffer);
 			process->new_message_sent(SPIMessageHandler::SPI_LEDStripControl_ID);
 			break;
 		case SPIMessageHandler::SPI_Command_ID:
 
 			success = spimessagehandler->encode_CommandSPI(outputbuffer,&length,cmd.Command,cmd.Option1,cmd.Option2,cmd.Option3);
+			if(success == false)
+			{
+				process->update_diagnostic(COMMUNICATIONS,WARN,DROPPING_PACKETS,"Unable to decode Msg: " + std::to_string(commandmessages_tosend.at(i).id));
+			}
 			sendMessageCommand(commandmessages_tosend.at(i).id,outputbuffer);
 			process->new_message_sent(SPIMessageHandler::SPI_Command_ID);
 			break;
 		case SPIMessageHandler::SPI_Arm_Status_ID:
 
 			success = spimessagehandler->encode_Arm_StatusSPI(outputbuffer,&length,armed_state);
+			if(success == false)
+			{
+				process->update_diagnostic(COMMUNICATIONS,WARN,DROPPING_PACKETS,"Unable to decode Msg: " + std::to_string(commandmessages_tosend.at(i).id));
+			}
 			sendMessageCommand(commandmessages_tosend.at(i).id,outputbuffer);
 			process->new_message_sent(SPIMessageHandler::SPI_Arm_Status_ID);
 			break;
@@ -300,6 +311,7 @@ bool BoardControllerNode::run_loop3()
 		default:
 			break;
 		}
+		
 
 	}
 	return true;
@@ -458,7 +470,7 @@ void BoardControllerNode::cleanup()
 /*! \brief Attempts to kill a node when an interrupt is received.
  *
  */
-void signalinterrupt_handler(int sig)
+void signalinterrupt_handler(__attribute__((unused))int sig)
 {
 	kill_node = true;
 	exit(0);

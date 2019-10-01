@@ -72,3 +72,24 @@ void ServoHatDriver::resetAllPWM(int on, int off)
     wiringPiI2CWriteReg8(ServoHatfd, __ALL_LED_OFF_L, off & 0xFF);
     wiringPiI2CWriteReg8(ServoHatfd, __ALL_LED_OFF_H, off >> 8);
 }
+int ServoHatDriver::map_channelname_topin(std::string name)
+{
+    if(name == "") { return -1; }
+    else if(name == "CH0") { return 0; }
+    else if(name == "CH1") { return 1; }
+    else if(name == "CH2") { return 2; }
+    else if(name == "CH3") { return 3; }
+    else if(name == "CH4") { return 4; }
+    else if(name == "CH5") { return 5; }
+    else if(name == "CH6") { return 6; }
+    else if(name == "CH7") { return 7; }
+    else if(name == "CH8") { return 8; }
+    else if(name == "CH9") { return 9; }
+    else if(name == "CH10") { return 10; }
+    else if(name == "CH11") { return 11; }
+    else if(name == "CH12") { return 12; }
+    else if(name == "CH13") { return 13; }
+    else if(name == "CH14") { return 14; }
+    else if(name == "CH15") { return 15; }
+    else { return -1; }
+}

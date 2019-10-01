@@ -263,7 +263,7 @@ void TopicRemapperNode::cleanup()
 /*! \brief Attempts to kill a node when an interrupt is received.
  *
  */
-void signalinterrupt_handler(int sig)
+void signalinterrupt_handler(__attribute__((unused)) int sig)
 {
 	kill_node = true;
 	exit(0);

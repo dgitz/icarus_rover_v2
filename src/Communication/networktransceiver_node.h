@@ -99,7 +99,6 @@ private:
 	ros::Publisher joy_pub;
 	ros::Publisher arm1_joy_pub;
 	ros::Publisher arm2_joy_pub;
-	ros::Publisher controlgroup_pub;
 	std::vector<ros::Subscriber> device_subs;
 	std::vector<ros::Subscriber> resource_subs;
 	std::vector<ros::Subscriber> diagnostic_subs;
@@ -111,5 +110,6 @@ private:
 	ros::Publisher user_command_pub;
 	ros::Publisher ready_to_arm_pub;
 	ros::Subscriber systemsnapshot_state_sub;
+	ros::Publisher tune_controlgroup_pub;
 
 };

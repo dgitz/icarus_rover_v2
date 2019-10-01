@@ -5,6 +5,7 @@
 #include <wiringPiI2C.h>
 #include <time.h>
 #include <math.h>
+#include <string>
 
 class ServoHatDriver
 {
@@ -39,12 +40,36 @@ public:
 	~ServoHatDriver();
 	int init(int address = 0x40);
 	void setPWMFreq(int freq);
+	
+	void setPWM(std::string pin_name, int on, int off)
+	{
+		int pin_number = map_channelname_topin(pin_name);
+		if(pin_number == -1)
+		{
+			printf("[ERROR]: PinName: %s is not available!\n",pin_name.c_str());
+			return;
+		}
+		setPWM(pin_number,on,off);
+	}
+	void setServoValue(std::string pin_name, int v)
+	{
+		int pin_number = map_channelname_topin(pin_name);
+		if(pin_number == -1)
+		{
+			printf("[ERROR]: PinName: %s is not available!\n",pin_name.c_str());
+			return;
+		}
+		setServoValue(pin_number,v);
+	}
 	void setPWM(int channel, int on, int off);
-	void resetAllPWM(int on, int off);
 	void setServoValue(int channel, int v);
+	void resetAllPWM(int on, int off);
+	
 	void resetAllServo();
 	int get_address() { return address; }
+	int map_channelname_topin(std::string name);
 private:
+	
 	int address;
 	int ServoHatfd;
 };

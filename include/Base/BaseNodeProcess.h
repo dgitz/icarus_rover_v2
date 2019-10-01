@@ -23,7 +23,6 @@
 #include <eros/resource.h>
 #include <eros/pin.h>
 #include <eros/leverarm.h>
-#include <eros/controlgroup.h>
 #include <eros/iopins.h>
 #include <eros/signal.h>
 #include <eros/timesyncinfo.h>
@@ -33,9 +32,11 @@
 #include <eros/srv_leverarm.h>
 #include <eros/srv_snapshotstate.h>
 #include <eros/srv_sql.h>
+#include <eros/srv_pin.h>
 #include <eros/subsystem_diagnostic.h>
 #include <eros/loadfactor.h>
 #include <eros/uptime.h>
+#include <eros/tune_controlgroup.h>
 //Project
 #include "../Definitions.h"
 #include "../../../eROS/include/DiagnosticClass.h"
@@ -155,7 +156,7 @@ protected:
 	eros::command convert_fromptr(const eros::command::ConstPtr& t_ptr);
 	eros::diagnostic convert_fromptr(const eros::diagnostic::ConstPtr& t_ptr);
 	eros::imu convert_fromptr(const eros::imu::ConstPtr& t_ptr);
-
+	eros::signal convert_fromptr(const eros::signal::ConstPtr& t_ptr);
 
 	bool initialized;
 	bool ready;

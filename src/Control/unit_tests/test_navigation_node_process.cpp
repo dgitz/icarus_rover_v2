@@ -63,7 +63,6 @@ NavigationNodeProcess *initializeprocess(std::string controlgroup_filepath)
 	{ //PIN1
 		eros::pin newpin;
 		newpin.ConnectedDevice = "LeftMotorController";
-		newpin.Number = 0;
 		newpin.DefaultValue = LEFTDRIVE_DEFAULT;
 		newpin.MaxValue = LEFTDRIVE_MAX;
 		newpin.MinValue = LEFTDRIVE_MIN;
@@ -74,7 +73,6 @@ NavigationNodeProcess *initializeprocess(std::string controlgroup_filepath)
 	{ //PIN2
 		eros::pin newpin;
 		newpin.ConnectedDevice = "RightMotorController";
-		newpin.Number = 1;
 		newpin.DefaultValue = RIGHTDRIVE_DEFAULT;
 		newpin.MaxValue = RIGHTDRIVE_MAX;
 		newpin.MinValue = RIGHTDRIVE_MIN;
@@ -104,8 +102,6 @@ NavigationNodeProcess *readyprocess(NavigationNodeProcess *process)
 	process->print_controlgroups();
 	std::vector<NavigationNodeProcess::ControlGroup> controlgroups = process->get_controlgroups();
 	EXPECT_TRUE(controlgroups.size() > 0);
-	EXPECT_TRUE(controlgroups.at(0).outputs.at(0).pin.Number == 0); //PIN1
-	EXPECT_TRUE(controlgroups.at(0).outputs.at(1).pin.Number == 1); //PIN2
 	{
 		std::vector<eros::diagnostic> diagnostics = process->get_diagnostics();
 		EXPECT_TRUE(diagnostics.size() == DIAGNOSTIC_TYPE_COUNT);

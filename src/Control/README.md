@@ -57,3 +57,21 @@ Created Process, Node and Unit Test.  Tested on Rover with an AutoSteer applicat
 Finalized node, process and unit test for initial command.
 
 
+E: Control Group Node
+Usage: 
+This Node should be run on 1 device only.
+Purpose: 
+- Executes Control Loops on configured Input Signals and Output Pins based on configurable Gains
+Stats:
+- Loop Time with 1 ControlGroup and setting 2 Inputs: 7.3705 nS (x86_64)  12.7 nS (armv7l)
+ToDo:
+- PID Output Updates and unit test results (DONE)
+- Initialization: What happens when any input signal is not received (DONE)
+- Output Pin (DONE)
+- Add query/response message for Pin Definitions to Master Node (DONE)
+- Hook Class to Node (DONE)
+- Determine timing rates on ControlModules (DONE)
+- Hook up DriverStation GUI Calibration Mode to Node (DONE)
+Documentation History:
+30-Sep-2019 David Gitz
+Work Complete on this Node.

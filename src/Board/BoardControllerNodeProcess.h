@@ -55,12 +55,26 @@ public:
 		double min_outputvalue;
 		double max_outputvalue;
 	};
+	struct PinDefinition
+	{
+		std::string PinName;
+		uint8_t port_id;
+		uint8_t port_pinnumber;
+	};
+	struct BoardMap
+	{
+		std::string DeviceType;
+		std::string FAST_PN;
+		std::vector<PinDefinition> PinMap;
+	};
 	///Initialization Functions
 	/*! \brief NodeProcess specific Initialization  */
 	eros::diagnostic finish_initialization();
+	bool initialize_supportedboards();
 	//Update Functions
 	/*! \brief Implementation of the update function */
 	eros::diagnostic update(double t_dt,double t_ros_time);
+	eros::diagnostic update_pin(std::string device_type,uint8_t device_id,std::string pin_name,eros::pin new_pin);
 	//Attribute Functions
 	double get_boardcomm_timeout_warn_threshold() { return BOARDCOMM_TIMEOUT_WARN; }
 	double get_boardcomm_timeout_error_threshold() { return BOARDCOMM_TIMEOUT_ERROR; }
@@ -90,8 +104,8 @@ public:
 	eros::diagnostic new_message_TestMessageCounter(uint8_t boardid,unsigned char v1,unsigned char v2,unsigned char v3,unsigned char v4,
 			unsigned char v5,unsigned char v6,unsigned char v7,unsigned char v8,
 			unsigned char v9,unsigned char v10,unsigned char v11,unsigned char v12);
-	eros::diagnostic new_message_GetDIOPort1(uint8_t boardid,double tov,int16_t v1,int16_t v2);
-	eros::diagnostic new_message_GetANAPort1(uint8_t boardid,double tov,uint16_t v1,uint16_t v2,uint16_t v3,
+	eros::diagnostic new_message_GetDIOPort1(std::string device_type,uint8_t boardid,double tov,int16_t v1,int16_t v2);
+	eros::diagnostic new_message_GetANAPort1(std::string device_type,uint8_t boardid,double tov,uint16_t v1,uint16_t v2,uint16_t v3,
 			uint16_t v4,uint16_t v5,uint16_t v6);
 	eros::diagnostic new_message_Diagnostic(uint8_t boardid,unsigned char System,unsigned char SubSystem,
 			unsigned char Component,unsigned char Diagnostic_Type,
@@ -103,12 +117,21 @@ public:
 	bool update_sensorinfo(Sensor sensor);
 	std::vector<Sensor> get_sensordata() { return sensors; }
 	std::vector<Board> get_boarddata() { return boards; }
-
+	std::vector<BoardMap> get_allsupportedboards() { return supported_boards; }
+	BoardMap get_boardmap_bypartnumber(std::string partnumber);
 	//Printing Functions
 protected:
 private:
 	/*! \brief Process Specific Implementation */
 	std::vector<eros::diagnostic> check_programvariables();
+	PinDefinition create_pindefinition(std::string pinname,uint8_t port_id,uint8_t port_pinnumber)
+	{
+		PinDefinition pin_def;
+		pin_def.PinName = pinname;
+		pin_def.port_id = port_id;
+		pin_def.port_pinnumber = port_pinnumber;
+		return pin_def;
+	}
 	void init_messages();
 	std::string map_PinFunction_ToString(int function);
 	double map_input_to_output(double input_value,double min_input,double max_input,double min_output,double max_output);
@@ -118,8 +141,8 @@ private:
 	bool load_sensorinfo(std::string name);
 	bool parse_sensorfile(TiXmlDocument doc,std::string name);
 	eros::device find_board(uint8_t boardid);
-	eros::pin find_pin(const eros::device::ConstPtr& t_board,std::string pinfunction,uint8_t pinnumber);
 	eros::pin find_pin(const eros::device::ConstPtr& t_board,std::string pinname);
+	eros::pin find_pin(const eros::device::ConstPtr& t_device,uint8_t port_id,uint8_t port_pinnumber);
 
 	std::vector<Message> messages;
 	std::vector<Board> boards;
@@ -130,4 +153,6 @@ private:
 	uint8_t encoder_count;
 	eros::command current_command;
 	uint8_t armed_state;
+
+	std::vector<BoardMap> supported_boards;
 };

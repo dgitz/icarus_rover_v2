@@ -1,36 +1,36 @@
 // Derived class
-#include "ImplementNodeProcess.cpp"
+#include "ControlGroupNodeProcess.cpp"
 #include "../include/Base/BaseNode.cpp"
 //C System Files
 //C++ System Files
 //ROS Base Functionality
 //ROS Messages
 //Project
-/*! \class ImplementNode ImplementNode.h "implement_node.h"
- *  \brief This is a ImplementNode class.  Used for the implement_node.
+/*! \class ControlGroupNode controlgroup_node.h "controlgroup_node.h"
+ *  \brief This is a ControlGroupNode class.  Used for the controlgroup_node.
  *
  */
-class ImplementNode: public BaseNode {
+class ControlGroupNode: public BaseNode {
 public:
 
-	const string BASE_NODE_NAME = "implement_node";
+	const string BASE_NODE_NAME = "controlgroup_node";
 
 	const uint8_t MAJOR_RELEASE_VERSION = 0;
 	const uint8_t MINOR_RELEASE_VERSION = 0;
-	const uint8_t BUILD_NUMBER = 0;
-	const string FIRMWARE_DESCRIPTION = "Latest Rev: 18-July-2019";
+	const uint8_t BUILD_NUMBER = 1;
+	const string FIRMWARE_DESCRIPTION = "Latest Rev: 29-Sep-2019";
 
 	const uint8_t DIAGNOSTIC_SYSTEM = ROVER;
 	const uint8_t DIAGNOSTIC_SUBSYSTEM = ROBOT_CONTROLLER;
 	const uint8_t DIAGNOSTIC_COMPONENT = CONTROLLER_NODE;
-	~ImplementNode()
+	~ControlGroupNode()
 	{
 	}
 	/*! \brief Initialize
 	 *
 	 */
 	bool start(int argc,char **argv);
-	ImplementNodeProcess* get_process() { return process; }
+	ControlGroupNodeProcess* get_process() { return process; }
 	void thread_loop();
 
 	//Cleanup
@@ -58,6 +58,8 @@ private:
 	//Message Functions
 	void PPS1_Callback(const std_msgs::Bool::ConstPtr& t_msg);
 	void Command_Callback(const eros::command::ConstPtr& t_msg);
+	void Signal_Callback(const eros::signal::ConstPtr& t_msg);
+	void TuneControlGroup_Callback(const eros::tune_controlgroup::ConstPtr& t_msg);
 	bool new_devicemsg(std::string query,eros::device t_device);
 	//Support Functions
 
@@ -66,7 +68,12 @@ private:
 	std::string base_node_name;
 	ros::Subscriber pps1_sub;
 	ros::Subscriber command_sub;
+	ros::Subscriber tune_controlgroup_sub;
 	ros::ServiceClient srv_device;
-	ImplementNodeProcess *process;
+	ros::ServiceClient srv_pin;
+	ControlGroupNodeProcess *process;
+
+	std::vector<ros::Publisher> outputs;
+	std::vector<ros::Subscriber> inputs;
 
 };

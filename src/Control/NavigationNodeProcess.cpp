@@ -277,8 +277,8 @@ void NavigationNodeProcess::print_controlgroups()
 			printf("\t[%d] Output: %s Type:%s\n",(uint16_t)j,cg.outputs.at(j).name.c_str(),map_ControlGroupOutputType_ToString(cg.outputs.at(j).type).c_str());
 			eros::pin pin = cg.outputs.at(j).pin;
 
-			printf("\t\tPin Number: %d Value: %d Max Value: %d Min Value: %d Default Value: %d\n",
-					pin.Number,pin.Value,pin.MaxValue,pin.MinValue,pin.DefaultValue);
+			printf("\t\tPin Name: %s Value: %d Max Value: %d Min Value: %d Default Value: %d\n",
+					pin.Name.c_str(),pin.Value,pin.MaxValue,pin.MinValue,pin.DefaultValue);
 		}
 	}
 

@@ -45,7 +45,6 @@ SafetyNodeProcess* initializeprocess()
 	hat1.SensorCount = 0;
 	hat1.pins.clear();
 	eros::pin newpin;
-	newpin.Number = 16;
 	newpin.Function = "DigitalInput-Safety";
 	newpin.Name = "ArmSwitch";
 	newpin.DefaultValue = 0;
@@ -74,7 +73,6 @@ SafetyNodeProcess* initializeprocess()
 	diagnostic = process->update(0.02,0.04);
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 	EXPECT_TRUE(process->get_ready_to_arm() == false);
-	EXPECT_TRUE(process->get_pinnumber(newpin.Name) == newpin.Number);
 	EXPECT_TRUE(process->set_pinvalue(newpin.Name,0));
 	diagnostic = process->update(0.02,0.06);
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
