@@ -658,13 +658,6 @@ eros::diagnostic MasterNodeProcess::load_devicefile(std::string path)
 					{
 						newpin.Name = l_pPinName->GetText();
 					}
-
-					TiXmlElement *l_pPinNumber = l_pPin->FirstChildElement("Number");
-					if (NULL != l_pPinNumber)
-					{
-						newpin.Number = atoi(l_pPinNumber->GetText());
-					}
-
 					TiXmlElement *l_pPinFunction = l_pPin->FirstChildElement("Function");
 					if (NULL != l_pPinFunction)
 					{

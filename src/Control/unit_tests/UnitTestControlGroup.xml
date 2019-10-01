@@ -2,23 +2,33 @@
 <ControlGroupFile>
   <ControlGroupList>
         <ControlGroup>
-            <Name>ArcadeDrive</Name>
-            <Mode>Arcade</Mode>
+            <Name>ImplementCylinderExtensionControl</Name>
+            <Mode>PID</Mode>
+            <Gains>
+                <P>1.0</P>
+                <I>0.1</I>
+                <D>0.01</D>
+            </Gains>
+            <Limits>
+                <Output>
+                    <Max>1000.0</Max>
+                    <Min>-1000.0</Min>
+                    <Delta>100000.0</Delta>
+                </Output>
+            </Limits>
             <Input>
-                <Type>Throttle</Type>
-                <Name>ForwardVelocityPerc</Name>
+                <Class>Signal</Class>
+                <Name>CurrentPosition</Name>
+                <Units>m</Units>
             </Input>
             <Input>
-                <Type>Steer</Type>
-                <Name>RotateZAxisPerc</Name>
+                <Class>Signal</Class>
+                <Name>CommandPosition</Name>
+                <Units>m</Units>
             </Input>
             <Output>
-                <Type>LeftDrive</Type>
-                <Name>LeftMotorController</Name>
-            </Output>
-            <Output>
-                <Type>RightDrive</Type>
-                <Name>RightMotorController</Name>
+                <Class>Pin</Class>
+                <ConnectedDevice>ImplementCylinderCommand</ConnectedDevice>
             </Output>
         </ControlGroup>
   </ControlGroupList>

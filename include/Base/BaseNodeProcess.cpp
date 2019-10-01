@@ -165,7 +165,6 @@ eros::pin BaseNodeProcess::convert_fromptr(const eros::pin::ConstPtr &t_ptr)
 	pin.MaxValue = t_ptr->MaxValue;
 	pin.MinValue = t_ptr->MinValue;
 	pin.Name = t_ptr->Name;
-	pin.Number = t_ptr->Number;
 	pin.ParentDevice = t_ptr->ParentDevice;
 	pin.ScaleFactor = t_ptr->ScaleFactor;
 	pin.Value = t_ptr->Value;
@@ -196,6 +195,17 @@ eros::diagnostic BaseNodeProcess::convert_fromptr(const eros::diagnostic::ConstP
 	diag.SubSystem = t_ptr->SubSystem;
 	diag.System = t_ptr->System;
 	return diag;
+}
+eros::signal BaseNodeProcess::convert_fromptr(const eros::signal::ConstPtr& t_ptr)
+{
+	eros::signal signal;
+	signal.name = t_ptr->name;
+	signal.tov = t_ptr->tov;
+	signal.type = t_ptr->type;
+	signal.value = t_ptr->value;
+	signal.status = t_ptr->status;
+	signal.rms = t_ptr->rms;
+	return signal;
 }
 eros::imu BaseNodeProcess::convert_fromptr(const eros::imu::ConstPtr &t_ptr)
 {
@@ -356,6 +366,11 @@ uint8_t BaseNodeProcess::convert_signaltype(std::string units,double *conversion
 	else if(units == "degree")
 	{
 		return SIGNALTYPE_ANGLE;
+	}
+	else if(units == "")
+	{
+		*conversion_factor = 1.0;
+		return SIGNALTYPE_UNITLESS;
 	}
 	else
 	{

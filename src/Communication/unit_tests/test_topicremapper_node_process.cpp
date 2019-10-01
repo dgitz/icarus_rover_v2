@@ -51,6 +51,8 @@ TopicRemapperNodeProcess *readyprocess(TopicRemapperNodeProcess *process)
 TEST(Template, Process_Initialization)
 {
 	TopicRemapperNodeProcess *process = initializeprocess();
+	eros::diagnostic diagnostic = process->update(0.1,0.1);
+	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 }
 
 TEST(Template, Process_Command)

@@ -101,11 +101,11 @@ bool SafetyNode::run_1hz()
 				std::vector<eros::pin> pins = process->get_terminalhatpins("");
 				for(std::size_t i = 0; i < pins.size(); i++)
 				{
-					if(TerminalHat.configure_pin(pins.at(i).Number,pins.at(i).Function) == false)
+					if(TerminalHat.configure_pin(pins.at(i).Name,pins.at(i).Function) == false)
 					{
 						any_error = true;
 						char tempstr[512];
-						sprintf(tempstr,"[TerminalHat] Could not configure Pin: %d with Function: %s",pins.at(i).Number,pins.at(i).Function.c_str());
+						sprintf(tempstr,"[TerminalHat] Could not configure Pin: %s with Function: %s",pins.at(i).Name.c_str(),pins.at(i).Function.c_str());
 						diag = process->update_diagnostic(DATA_STORAGE,ERROR,INITIALIZING_ERROR,std::string(tempstr));
 						logger->log_error(std::string(tempstr));
 						kill_node = 1;
@@ -164,7 +164,7 @@ bool SafetyNode::run_10hz()
 	}
 	if(process->is_hat_running("TerminalHat",0) == true)
 	{
-		int pin_value = TerminalHat.read_pin(process->get_pinnumber("ArmSwitch"));
+		int pin_value = TerminalHat.read_pin("ArmSwitch");
 		bool v = process->set_pinvalue("ArmSwitch",pin_value);
 		if(v == false)
 		{

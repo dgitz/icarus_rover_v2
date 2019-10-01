@@ -1,4 +1,68 @@
 #include "HatControllerNodeProcess.h"
+bool HatControllerNodeProcess::initialize_supportedhats()
+{
+	{ //HAT: GPIOHAT PN: 1000007
+		HatControllerNodeProcess::HatMap hat;
+		hat.FAST_PN = "100007";
+		hat.DeviceType = "GPIOHat";
+		//DIO PORT1 MAX SIZE=4
+		hat.PinMap.push_back(create_pindefinition("PC6",PORT_DIGIPORT_1,0));
+		hat.PinMap.push_back(create_pindefinition("PE6",PORT_DIGIPORT_1,1));
+		hat.PinMap.push_back(create_pindefinition("PB4",PORT_DIGIPORT_1,2));
+		hat.PinMap.push_back(create_pindefinition("PB7",PORT_DIGIPORT_1,3));
+
+		//ANA PORT1 MAX SIZE=6
+		hat.PinMap.push_back(create_pindefinition("PF7",PORT_ANAPORT_1,0));
+		hat.PinMap.push_back(create_pindefinition("PF6",PORT_ANAPORT_1,1));
+		hat.PinMap.push_back(create_pindefinition("PF5",PORT_ANAPORT_1,2));
+		hat.PinMap.push_back(create_pindefinition("PF4",PORT_ANAPORT_1,3));
+		hat.PinMap.push_back(create_pindefinition("PF1",PORT_ANAPORT_1,4));
+		hat.PinMap.push_back(create_pindefinition("PF0",PORT_ANAPORT_1,5));
+
+		//ANA PORT2 MAX SIZE=6
+		hat.PinMap.push_back(create_pindefinition("PD4",PORT_ANAPORT_2,0));
+		hat.PinMap.push_back(create_pindefinition("PB5",PORT_ANAPORT_2,1));
+		hat.PinMap.push_back(create_pindefinition("PB6",PORT_ANAPORT_2,2));
+		hat.PinMap.push_back(create_pindefinition("PD6",PORT_ANAPORT_2,3));
+		supported_hats.push_back(hat);
+	}
+	{ //HAT: SERVOHAT PN: 625004
+		HatControllerNodeProcess::HatMap hat;
+		hat.FAST_PN = "625004";
+		hat.DeviceType = "ServoHat";
+		//DIO PORT1 MAX SIZE=16
+		hat.PinMap.push_back(create_pindefinition("CH0",PORT_DIGOPORT_1,0));
+		hat.PinMap.push_back(create_pindefinition("CH1",PORT_DIGOPORT_1,1));
+		hat.PinMap.push_back(create_pindefinition("CH2",PORT_DIGOPORT_1,2));
+		hat.PinMap.push_back(create_pindefinition("CH3",PORT_DIGOPORT_1,3));
+		hat.PinMap.push_back(create_pindefinition("CH4",PORT_DIGOPORT_1,4));
+		hat.PinMap.push_back(create_pindefinition("CH5",PORT_DIGOPORT_1,5));
+		hat.PinMap.push_back(create_pindefinition("CH6",PORT_DIGOPORT_1,6));
+		hat.PinMap.push_back(create_pindefinition("CH7",PORT_DIGOPORT_1,7));
+		hat.PinMap.push_back(create_pindefinition("CH8",PORT_DIGOPORT_1,8));
+		hat.PinMap.push_back(create_pindefinition("CH9",PORT_DIGOPORT_1,9));
+		hat.PinMap.push_back(create_pindefinition("CH10",PORT_DIGOPORT_1,10));
+		hat.PinMap.push_back(create_pindefinition("CH11",PORT_DIGOPORT_1,11));
+		hat.PinMap.push_back(create_pindefinition("CH12",PORT_DIGOPORT_1,12));
+		hat.PinMap.push_back(create_pindefinition("CH13",PORT_DIGOPORT_1,13));
+		hat.PinMap.push_back(create_pindefinition("CH14",PORT_DIGOPORT_1,14));
+		hat.PinMap.push_back(create_pindefinition("CH15",PORT_DIGOPORT_1,15));
+
+		supported_hats.push_back(hat);
+	}
+	{ //HAT: TERMINALHAT PN: 625005
+		HatControllerNodeProcess::HatMap hat;
+		hat.FAST_PN = "625005";
+		hat.DeviceType = "TerminalHat";
+		//DIO PORT1 MAX SIZE=4
+		hat.PinMap.push_back(create_pindefinition("GPIO21",PORT_DIGIPORT_1,0));
+		hat.PinMap.push_back(create_pindefinition("GPIO23",PORT_DIGIPORT_1,1));
+		hat.PinMap.push_back(create_pindefinition("GPIO25",PORT_DIGIPORT_1,2));
+
+		supported_hats.push_back(hat);
+	}
+	return true;
+}
 eros::diagnostic  HatControllerNodeProcess::finish_initialization()
 {
 	eros::diagnostic diag = root_diagnostic;
@@ -10,6 +74,16 @@ eros::diagnostic  HatControllerNodeProcess::finish_initialization()
 	pps_counter = 0;
 	analyze_timing = false;
 	timing_diff.clear();
+	bool status = initialize_supportedhats();
+	if(status == false)
+	{
+		diag = update_diagnostic(DATA_STORAGE,ERROR,INITIALIZING_ERROR,"Unable to initialize Supported Hats.");
+	}
+	else
+	{
+		diag = update_diagnostic(DATA_STORAGE,INFO,NOERROR,"No Error.");
+	}
+	
 	diag = update_diagnostic(COMMUNICATIONS,INFO,NOERROR,"No Error.");
 	diag = update_diagnostic(SENSORS,INFO,NOERROR,"No Error.");
 	return diag;
@@ -199,7 +273,16 @@ eros::diagnostic HatControllerNodeProcess::new_devicemsg(const eros::device::Con
 					{
 						for(std::size_t i = 0; i < t_newdevice->pins.size(); i++)
 						{
-							if(t_newdevice->pins.at(i).Function == map_PinFunction_ToString(PINMODE_ULTRASONIC_INPUT))
+							int function = map_PinFunction_ToInt(t_newdevice->pins.at(i).Function);
+							if(function == PINMODE_UNDEFINED)
+							{
+								char tempstr[512];
+								sprintf(tempstr,"Hat Type: %s Pin Function: %s Not supported.",
+										t_newdevice->DeviceType.c_str(),t_newdevice->pins.at(i).Function.c_str());
+								diag = update_diagnostic(DATA_STORAGE,ERROR,INITIALIZING_ERROR,std::string(tempstr));
+								return diag;
+							}
+							else if(function == PINMODE_ULTRASONIC_INPUT)
 							{
 								Sensor new_sensor;
 								new_sensor.initialized = false;
@@ -217,7 +300,18 @@ eros::diagnostic HatControllerNodeProcess::new_devicemsg(const eros::device::Con
 									diag = update_diagnostic(new_sensor.name,SENSORS,ERROR,INITIALIZING_ERROR,std::string(tempstr));
 									return diag;
 								}
-
+							}
+							else if((function == PINMODE_DIGITAL_OUTPUT) ||
+									(function == PINMODE_DIGITAL_INPUT) ||
+									(function == PINMODE_ANALOG_INPUT) ||
+									(function == PINMODE_QUADRATUREENCODER_INPUT) ||
+									(function == PINMODE_PWM_OUTPUT) ||
+									(function == PINMODE_DIGITAL_OUTPUT_NON_ACTUATOR) ||
+									(function == PINMODE_PWM_OUTPUT_NON_ACTUATOR) ||
+									(function == PINMODE_ARMCOMMAND_OUTPUT) ||
+									(function == PINMODE_ARMCOMMAND_INPUT) ||
+									(function == PINMODE_NOCHANGE))
+							{
 							}
 							else
 							{
@@ -239,7 +333,7 @@ eros::diagnostic HatControllerNodeProcess::new_devicemsg(const eros::device::Con
 					diag = update_diagnostic(device.DeviceName,COMMUNICATIONS,NOTICE,NOERROR,"No Error.");
 					hats.push_back(device);
 					hats_running.push_back(false);
-					if(hats.size() == mydevice.HatCount)
+					if((int)hats.size() == mydevice.HatCount)
 					{
 						ready = true;
 					}
@@ -250,7 +344,7 @@ eros::diagnostic HatControllerNodeProcess::new_devicemsg(const eros::device::Con
 		{
 		}
 	}
-	if((hats.size() == mydevice.HatCount) and
+	if(((int)hats.size() == mydevice.HatCount) and
 			(sensors_initialized() == true))
 	{
 		diag = update_diagnostic(DATA_STORAGE,INFO,NOERROR,"No Error.");
@@ -276,7 +370,7 @@ eros::diagnostic HatControllerNodeProcess::new_pinmsg(const eros::pin::ConstPtr&
 			found = 0;
 			for(std::size_t j = 0; j < hats.at(i).pins.size(); j++)
 			{
-				if(hats.at(i).pins.at(j).Number == t_msg->Number)
+				if(hats.at(i).pins.at(j).Name == t_msg->Name)
 				{
 					found = 1;
 					eros::pin pin = convert_fromptr(t_msg);
@@ -292,7 +386,7 @@ eros::diagnostic HatControllerNodeProcess::new_pinmsg(const eros::pin::ConstPtr&
 	if(found == 0)
 	{
 		char tempstr[512];
-		sprintf(tempstr,"Pin Msg for My Hat but Pin not found: %s:%d",t_msg->ParentDevice.c_str(),t_msg->Number);
+		sprintf(tempstr,"Pin Msg for My Hat but Pin not found: %s:%s",t_msg->ParentDevice.c_str(),t_msg->Name.c_str());
 		diag = update_diagnostic(t_msg->ParentDevice,COMMUNICATIONS,WARN,DEVICE_NOT_AVAILABLE,std::string(tempstr));
 	}
 	else
@@ -306,7 +400,7 @@ eros::diagnostic HatControllerNodeProcess::new_pinmsg(const eros::pin::ConstPtr&
 			}
 		}
 		char tempstr[512];
-		sprintf(tempstr,"Updated Pin %s:%d to value: %d.",t_msg->ParentDevice.c_str(),t_msg->Number,t_msg->Value);
+		sprintf(tempstr,"Updated Pin %s:%s to value: %d.",t_msg->ParentDevice.c_str(),t_msg->Name.c_str(),t_msg->Value);
 		diag = update_diagnostic(t_msg->ParentDevice,COMMUNICATIONS,INFO,NOERROR,std::string(tempstr));
 
 	}
@@ -327,11 +421,32 @@ eros::device HatControllerNodeProcess::find_hat(uint8_t hatid)
 	empty_device.DeviceType = "";
 	return empty_device;
 }
-eros::pin HatControllerNodeProcess::find_pin(const eros::device::ConstPtr& hat,std::string pinfunction,uint8_t pinnumber)
+eros::pin HatControllerNodeProcess::find_pin(const eros::device::ConstPtr& t_device,uint8_t port_id,uint8_t port_pinnumber)
+{
+	for(std::size_t i = 0; i < supported_hats.size(); ++i)
+	{
+		if(t_device->PartNumber == supported_hats.at(i).FAST_PN)
+		{
+			for(std::size_t j = 0; j < supported_hats.at(i).PinMap.size(); ++j)
+			{
+				if((supported_hats.at(i).PinMap.at(j).port_id == port_id) &&
+				    (supported_hats.at(i).PinMap.at(j).port_pinnumber == port_pinnumber))
+				{
+					return find_pin(t_device,supported_hats.at(i).PinMap.at(j).PinName);
+				}
+			}
+		}
+	}
+	eros::pin empty_pin;
+	empty_pin.Name = "";
+	empty_pin.Function = "";
+	return empty_pin;
+}
+eros::pin HatControllerNodeProcess::find_pin(const eros::device::ConstPtr& hat,std::string pin_name)
 {
 	for(std::size_t i = 0; i < hat->pins.size(); i++)
 	{
-		if((hat->pins.at(i).Function == pinfunction) and (hat->pins.at(i).Number == pinnumber))
+		if((hat->pins.at(i).Name == pin_name))
 		{
 			return hat->pins.at(i);
 		}
@@ -341,18 +456,28 @@ eros::pin HatControllerNodeProcess::find_pin(const eros::device::ConstPtr& hat,s
 	empty_pin.Function = "";
 	return empty_pin;
 }
-eros::diagnostic HatControllerNodeProcess::new_message_GetDIOPort1(uint8_t hatid,double tov,uint16_t v1,uint16_t v2,uint16_t v3,uint16_t v4)
+eros::diagnostic HatControllerNodeProcess::new_message_GetANAPort1(std::string device_type,uint8_t hatid,double tov,uint16_t v1,uint16_t v2,uint16_t v3,uint16_t v4,uint16_t v5, uint16_t v6)
 {
-	bool any_error = false;
-	uint16_t v[6] = {v1,v2,v3,v4};
+	uint16_t port_width = 6;
 	eros::diagnostic diag = root_diagnostic;
+	if((device_type == "GPIOHat"))
+	{
+
+	}
+	else
+	{
+		diag = update_diagnostic(COMMUNICATIONS,ERROR,DROPPING_PACKETS,"DeviceType: " + device_type + " Not Supported.");
+		return diag;
+	}
+	uint16_t v[port_width] = {v1,v2,v3,v4,v5,v6};
+	
 	eros::device hat = find_hat(hatid);
 	if(hat.DeviceName == "")
 	{
 		char tempstr[1024];
 		sprintf(tempstr,"Hat ID: %d Not Found.  Defined Hats: ",hatid);
 		char tempstr2[512];
-		for(int j = 0; j < hats.size(); j++)
+		for(std::size_t j = 0; j < hats.size(); ++j)
 		{
 			sprintf(tempstr2,"%s:%ld,",hats.at(j).DeviceName.c_str(),hats.at(j).ID);
 		}
@@ -360,34 +485,151 @@ eros::diagnostic HatControllerNodeProcess::new_message_GetDIOPort1(uint8_t hatid
 		diag = update_diagnostic(COMMUNICATIONS,ERROR,DROPPING_PACKETS,std::string(tempstr));
 		return diag;
 	}
-	for(uint8_t i = 0; i < 4; i++)
+	for(uint8_t i = 0; i < port_width; i++)
 	{
 		eros::device::ConstPtr hat_ptr(new eros::device(hat));
-		eros::pin pin = find_pin(hat_ptr,"UltraSonicSensorInput",i);
+		eros::pin pin = find_pin(hat_ptr,PORT_ANAPORT_1,i);
 		eros::pin::ConstPtr pin_ptr(new eros::pin(pin));
-		if(pin.Name != "")
+		if(pin.ConnectedSensor != "")
 		{
 			if(update_sensor(hat_ptr,pin_ptr,tov,(double)v[i]) == false)
 			{
-				any_error = true;
-				char tempstr[255];
-				sprintf(tempstr,"Unable to Update Pin: UltraSonicSensorInput:%d",i);
-				diag = update_diagnostic(hat_ptr->DeviceName,COMMUNICATIONS,WARN,DROPPING_PACKETS,std::string(tempstr));
+				diag = update_diagnostic(hat_ptr->DeviceName,COMMUNICATIONS,WARN,DROPPING_PACKETS,"Unable to Update Pin: " + pin.ConnectedSensor);
 			}
 		}
-		else
+		if(pin.Name != "")
 		{
-			any_error = true;
-			char tempstr[255];
-			sprintf(tempstr,"Unable to Find Pin: UltraSonicSensorInput:%d",i);
-			diag = update_diagnostic(hat_ptr->DeviceName,COMMUNICATIONS,WARN,DROPPING_PACKETS,std::string(tempstr));
+			pin.Value = v[i];
+			
+			diag = update_pin(device_type,hatid,pin.Name,pin);
+			diag = update_diagnostic(diag);
 		}
 	}
-	if(any_error == false)
+	return diag;
+}
+eros::diagnostic HatControllerNodeProcess::new_message_GetANAPort2(std::string device_type,uint8_t hatid,double tov,uint16_t v1,uint16_t v2,uint16_t v3,uint16_t v4,uint16_t v5, uint16_t v6)
+{
+	uint16_t port_width = 6;
+	eros::diagnostic diag = root_diagnostic;
+	if((device_type == "GPIOHat"))
 	{
-		char tempstr[255];
-		sprintf(tempstr,"Updated");
-		diag = update_diagnostic(hat.DeviceName,COMMUNICATIONS,INFO,NOERROR,"Updated.");
+
+	}
+	else
+	{
+		diag = update_diagnostic(COMMUNICATIONS,ERROR,DROPPING_PACKETS,"DeviceType: " + device_type + " Not Supported.");
+		return diag;
+	}
+	uint16_t v[port_width] = {v1,v2,v3,v4,v5,v6};
+	
+	eros::device hat = find_hat(hatid);
+	if(hat.DeviceName == "")
+	{
+		char tempstr[1024];
+		sprintf(tempstr,"Hat ID: %d Not Found.  Defined Hats: ",hatid);
+		char tempstr2[512];
+		for(std::size_t j = 0; j < hats.size(); ++j)
+		{
+			sprintf(tempstr2,"%s:%ld,",hats.at(j).DeviceName.c_str(),hats.at(j).ID);
+		}
+		sprintf(tempstr,"%s%s\n",tempstr,tempstr2);
+		diag = update_diagnostic(COMMUNICATIONS,ERROR,DROPPING_PACKETS,std::string(tempstr));
+		return diag;
+	}
+	for(uint8_t i = 0; i < port_width; i++)
+	{
+		eros::device::ConstPtr hat_ptr(new eros::device(hat));
+		eros::pin pin = find_pin(hat_ptr,PORT_ANAPORT_2,i);
+		eros::pin::ConstPtr pin_ptr(new eros::pin(pin));
+		if(pin.ConnectedSensor != "")
+		{
+			if(update_sensor(hat_ptr,pin_ptr,tov,(double)v[i]) == false)
+			{
+				diag = update_diagnostic(hat_ptr->DeviceName,COMMUNICATIONS,WARN,DROPPING_PACKETS,"Unable to Update Pin: " + pin.ConnectedSensor);
+			}
+		}
+		if(pin.Name != "")
+		{
+			pin.Value = v[i];
+			
+			diag = update_pin(device_type,hatid,pin.Name,pin);
+			diag = update_diagnostic(diag);
+		}
+	}
+	return diag;
+}
+eros::diagnostic HatControllerNodeProcess::new_message_GetDIOPort1(std::string device_type,uint8_t hatid,double tov,uint16_t v1,uint16_t v2,uint16_t v3,uint16_t v4)
+{
+	uint16_t port_width = 4;
+	eros::diagnostic diag = root_diagnostic;
+	if((device_type == "GPIOHat"))
+	{
+
+	}
+	else
+	{
+		diag = update_diagnostic(COMMUNICATIONS,ERROR,DROPPING_PACKETS,"DeviceType: " + device_type + " Not Supported.");
+		return diag;
+	}
+	uint16_t v[port_width] = {v1,v2,v3,v4};
+	
+	eros::device hat = find_hat(hatid);
+	if(hat.DeviceName == "")
+	{
+		char tempstr[1024];
+		sprintf(tempstr,"Hat ID: %d Not Found.  Defined Hats: ",hatid);
+		char tempstr2[512];
+		for(std::size_t j = 0; j < hats.size(); ++j)
+		{
+			sprintf(tempstr2,"%s:%ld,",hats.at(j).DeviceName.c_str(),hats.at(j).ID);
+		}
+		sprintf(tempstr,"%s%s\n",tempstr,tempstr2);
+		diag = update_diagnostic(COMMUNICATIONS,ERROR,DROPPING_PACKETS,std::string(tempstr));
+		return diag;
+	}
+	for(uint8_t i = 0; i < port_width; ++i)
+	{
+		eros::device::ConstPtr hat_ptr(new eros::device(hat));
+		eros::pin pin = find_pin(hat_ptr,PORT_DIGIPORT_1,i);
+		eros::pin::ConstPtr pin_ptr(new eros::pin(pin));
+		if(pin.ConnectedSensor != "")
+		{
+			if(update_sensor(hat_ptr,pin_ptr,tov,(double)v[i]) == false)
+			{
+				diag = update_diagnostic(hat_ptr->DeviceName,COMMUNICATIONS,WARN,DROPPING_PACKETS,"Unable to Update Pin: " + pin.ConnectedSensor);
+			}
+		}
+		pin.Value = v[i];
+		diag = update_pin(device_type,hatid,pin.Name,pin);
+		diag = update_diagnostic(diag);
+	}
+	return diag;
+}
+eros::diagnostic HatControllerNodeProcess::update_pin(std::string device_type,uint8_t device_id,std::string pin_name,eros::pin new_pin)
+{
+	eros::diagnostic diag = root_diagnostic;
+	bool found = false;
+	for(std::size_t i = 0; i < hats.size(); ++i)
+	{
+		if((hats.at(i).DeviceType == device_type) && (hats.at(i).ID == device_id))
+		{
+			for(std::size_t j = 0; j < hats.at(i).pins.size(); ++j)
+			{
+				if(hats.at(i).pins.at(j).Name == pin_name)
+				{
+					found = true;
+					hats.at(i).pins.at(j) = new_pin;
+				}
+			}
+		}
+	}
+	if(found == false)
+	{
+		diag = update_diagnostic(COMMUNICATIONS,WARN,DROPPING_PACKETS,"Unable to find Pin " + pin_name + " in Hat: " + device_type + " ID: " + std::to_string(device_id));
+	}
+	else
+	{
+		diag = update_diagnostic(COMMUNICATIONS,INFO,NOERROR,"Updated Pin: " + pin_name);
 	}
 	return diag;
 }
@@ -431,67 +673,6 @@ double HatControllerNodeProcess::get_timedelay()
 	}
 	return t/(double)(temp.size());
 }
-eros::diagnostic HatControllerNodeProcess::new_pinsmsg(const eros::iopins::ConstPtr& t_msg)
-{
-	eros::diagnostic diag = root_diagnostic;
-	int found = -1;
-	for(std::size_t k = 0; k < t_msg->pins.size(); k++)
-	{
-		for(std::size_t i = 0; i < hats.size(); i++)
-		{
-			if(hats.at(i).DeviceName == t_msg->pins.at(k).ParentDevice)
-			{
-				found = 0;
-				for(std::size_t j = 0; j < hats.at(i).pins.size(); j++)
-				{
-					if(hats.at(i).pins.at(j).Number == t_msg->pins.at(k).Number)
-					{
-						found = 1;
-						hats.at(i).pins.at(j) = t_msg->pins.at(k);
-						found = true;
-						break;
-					}
-				}
-			}
-		}
-	}
-	/*
-    if(found == -1)
-    {
-        diag.Level = INFO;
-        diag.Diagnostic_Type = COMMUNICATIONS;
-        diag.Diagnostic_Message = NOERROR;
-        char tempstr[512];
-        sprintf(tempstr,"Pin Msg for Device: %s but not for me.",msg.ParentDevice.c_str());
-        diag.Description = std::string(tempstr);
-    }
-    else if(found == 0)
-    {
-        diag.Level = WARN;
-        diag.Diagnostic_Type = COMMUNICATIONS;
-        diag.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
-        char tempstr[512];
-        sprintf(tempstr,"Pin Msg for My Hat but Pin not found: %s:%d",msg.ParentDevice.c_str(),msg.Number);
-        diag.Description = std::string(tempstr);
-    }
-    else
-    {
-        diag.Level = INFO;
-        diag.Diagnostic_Type = COMMUNICATIONS;
-        diag.Diagnostic_Message = NOERROR;
-        char tempstr[512];
-        sprintf(tempstr,"Updated Pin %s:%d to value: %d.",msg.ParentDevice.c_str(),msg.Number,msg.Value);
-        diag.Description = std::string(tempstr);
-    }
-	 */
-	char tempstr[512];
-	sprintf(tempstr,"Updated Pins %d",(int)t_msg->pins.size());
-	diag = update_diagnostic(COMMUNICATIONS,INFO,NOERROR,std::string(tempstr));
-	return diag;
-
-}
-
-
 eros::diagnostic HatControllerNodeProcess::new_armedstatemsg(uint8_t msg)
 {
 	eros::diagnostic diag = root_diagnostic;
@@ -503,12 +684,10 @@ eros::diagnostic HatControllerNodeProcess::new_armedstatemsg(uint8_t msg)
 }
 bool HatControllerNodeProcess::is_hat_running(std::string devicetype,uint16_t id)
 {
-	bool found = false;
 	for(std::size_t i = 0; i < hats.size(); i++)
 	{
 		if((hats.at(i).DeviceType == devicetype) and (hats.at(i).ID == id))
 		{
-			found = true;
 			if(hats_running.at(i) == true)
 			{
 				return true;
@@ -540,7 +719,7 @@ eros::diagnostic HatControllerNodeProcess::set_hat_running(std::string devicetyp
 		char tempstr[512];
 		sprintf(tempstr,"Hat ID: %d Not Found.  Defined Hats: ",id);
 		char tempstr2[512];
-		for(int j = 0; j < hats.size(); j++)
+		for(std::size_t j = 0; j < hats.size(); ++j)
 		{
 			sprintf(tempstr2,"%s:%ld,",hats.at(j).DeviceName.c_str(),hats.at(j).ID);
 		}
@@ -559,7 +738,7 @@ eros::diagnostic HatControllerNodeProcess::set_terminalhat_initialized()
 {
 	eros::diagnostic diag = root_diagnostic;
 	bool found = false;
-	for(std::size_t i = 0; i < hats.size(); i++)
+	for(std::size_t i = 0; i < hats.size(); ++i)
 	{
 		if((hats.at(i).DeviceType == "TerminalHat"))
 		{
@@ -627,6 +806,19 @@ bool HatControllerNodeProcess::set_terminalhatpinvalue(std::string name,int v)
 	}
 	return found;
 }
+std::vector<eros::pin> HatControllerNodeProcess::get_terminalhatpins()
+{
+	std::vector<eros::pin> pins;
+	pins.clear();
+	for(std::size_t i = 0; i < hats.size(); i++)
+	{
+		if((hats.at(i).DeviceType == "TerminalHat"))
+		{
+			return hats.at(i).pins;
+		}
+	}
+	return pins;
+}
 std::vector<eros::pin> HatControllerNodeProcess::get_terminalhatpins(std::string Function,bool match_exact)
 {
 	std::vector<eros::pin> pins;
@@ -664,22 +856,7 @@ std::vector<eros::pin> HatControllerNodeProcess::get_gpiohatpins(uint16_t id)
 	{
 		if((hats.at(i).DeviceType == "GPIOHat") and (hats.at(i).ID == id))
 		{
-			for(std::size_t j = 0; j < hats.at(i).pins.size(); j++)
-			{
-				eros::pin pin;
-				if(hats.at(i).pins.at(j).Function == "UltraSonicSensorInput")
-				{
-					pin = hats.at(i).pins.at(j);
-					pins.push_back(pin);
-
-				}
-				else
-				{
-					pin = hats.at(i).pins.at(j);
-					pin.Value = hats.at(i).pins.at(j).DefaultValue;
-					pins.push_back(pin);
-				}
-			}
+			return hats.at(i).pins;
 		}
 	}
 	return pins;
@@ -691,36 +868,7 @@ std::vector<eros::pin> HatControllerNodeProcess::get_servohatpins(uint16_t id)
 	{
 		if((hats.at(i).DeviceType == "ServoHat") and (hats.at(i).ID == id))
 		{
-			for(std::size_t j = 0; j < hats.at(i).pins.size(); j++)
-			{
-				eros::pin pin;
-				if(hats.at(i).pins.at(j).Function == "PWMOutput-NonActuator")
-				{
-					pin = hats.at(i).pins.at(j);
-					pins.push_back(pin);
-
-				}
-				else if(armed_state == ARMEDSTATUS_ARMED)
-				{
-					if(hats.at(i).pins.at(j).Function == "PWMOutput")
-					{
-						pin = hats.at(i).pins.at(j);
-						pins.push_back(pin);
-					}
-					else
-					{
-						pin = hats.at(i).pins.at(j);
-						pin.Value = hats.at(i).pins.at(j).DefaultValue;
-						pins.push_back(pin);
-					}
-				}
-				else
-				{
-					pin = hats.at(i).pins.at(j);
-					pin.Value = hats.at(i).pins.at(j).DefaultValue;
-					pins.push_back(pin);
-				}
-			}
+			return hats.at(i).pins;
 		}
 	}
 	return pins;
@@ -736,9 +884,42 @@ bool HatControllerNodeProcess::hat_present(const eros::device::ConstPtr& t_devic
 	}
 	return false;
 }
+std::vector<eros::pin> HatControllerNodeProcess::get_pins_byport(std::string devicetype,uint16_t device_id,uint8_t port_id)
+{
+	std::vector<eros::pin> pins;
+	pins.clear();
+	for(std::size_t i = 0; i < hats.size(); ++i)
+	{
+		if((hats.at(i).DeviceType == devicetype) && (hats.at(i).ID == device_id))
+		{
+			HatControllerNodeProcess::HatMap hat_map = get_hatmap_bypartnumber(hats.at(i).PartNumber);
+			for(std::size_t j = 0; j < hat_map.PinMap.size(); ++j)
+			{
+				if(hat_map.PinMap.at(j).port_id == port_id)
+				{
+					eros::device::ConstPtr hat_ptr(new eros::device(hats.at(i)));
+					eros::pin pin = find_pin(hat_ptr,hat_map.PinMap.at(j).PinName);
+					pins.push_back(pin);
+				}
+			}
+		}
+	}
+	return pins;
+}
+HatControllerNodeProcess::HatMap HatControllerNodeProcess::get_hatmap_bypartnumber(std::string partnumber)
+{
+	for(std::size_t i = 0; i < supported_hats.size(); ++i)
+	{
+		if(supported_hats.at(i).FAST_PN == partnumber)
+		{
+			return supported_hats.at(i);
+		}
+	}
+	HatMap empty_map;
+	return empty_map;
+}
 bool HatControllerNodeProcess::load_sensorinfo(std::string name)
 {
-	bool loaded = false;
 	std::string sensor_folder = "/home/robot/config/sensors/" + name;
 	std::string sensor_descriptor = "/home/robot/config/sensors/" + name + "/" + name + ".xml";
 	TiXmlDocument sensor_doc(sensor_descriptor);

@@ -34,11 +34,11 @@ target_link_libraries(navigation_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${T
 catkin_add_gtest(test_navigation_node_process unit_tests/test_navigation_node_process.cpp)
 target_link_libraries(test_navigation_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} navigation_node_process logger serialmessage)
 
-#Implement Node
-file(MAKE_DIRECTORY /home/robot/catkin_ws/build/test_results/icarus_rover_v2/implement_node)
-add_library(implement_node_process ImplementNodeProcess.cpp)
-target_link_libraries(implement_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${FuzzyLiteLibrary} controlgroup)
-add_executable(implement_node implement_node.cpp)
-target_link_libraries(implement_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} ${FuzzyLiteLibrary} logger resourcemonitor serialmessage implement_node_process)
-catkin_add_gtest(test_implement_node_process unit_tests/test_implement_node_process.cpp)
-target_link_libraries(test_implement_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${FuzzyLiteLibrary} implement_node_process logger serialmessage)
+#ControlGroup Node
+file(MAKE_DIRECTORY /home/robot/catkin_ws/build/test_results/icarus_rover_v2/controlgroup_node)
+add_library(controlgroup_node_process ControlGroupNodeProcess.cpp)
+target_link_libraries(controlgroup_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${FuzzyLiteLibrary} controlgroup)
+add_executable(controlgroup_node controlgroup_node.cpp)
+target_link_libraries(controlgroup_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} ${FuzzyLiteLibrary} logger resourcemonitor serialmessage controlgroup_node_process)
+catkin_add_gtest(test_controlgroup_node_process unit_tests/test_controlgroup_node_process.cpp)
+target_link_libraries(test_controlgroup_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${FuzzyLiteLibrary} controlgroup_node_process logger controlgroup serialmessage)

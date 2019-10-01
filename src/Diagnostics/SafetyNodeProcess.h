@@ -47,7 +47,6 @@ public:
 	//Terminal Hat Functions
 	eros::diagnostic set_terminalhat_initialized();
 	std::vector<eros::pin> get_terminalhatpins(std::string Function);
-	int get_pinnumber(std::string name);
 	bool set_pinvalue(std::string name,int v);
 protected:
 private:

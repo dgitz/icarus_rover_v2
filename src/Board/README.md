@@ -9,17 +9,14 @@ A. hatcontroller_node
 Usage: This node should be run on every ControlModule (Raspberry Pi).
 Configuration:
  * "analyze_timing": Diagnostic will report how long a pin took to set, based on the origination timestamp.  Default=false.
- 
+Supported PN's:
+  * GPIOHat: 100007
+  * ServoHat: 625004
+  * TerminalHat: 625005
 Purpose: Controls all directly connected Hats/Capes.
 Unit Tests:
 1.  Process Unit Tests:
   >>catkin_make run_tests_icarus_rover_v2_gtest_test_hatcontroller_node_process
-2.  Hat Unit Tests:
-  Compile: 
-  >>cd ~/catkin_ws/src/icarus_rover_v2/src/Board/unit_tests/
-  >>g++ -lm -lwiringPi ../Driver/ServoHatDriver.cpp test_servohat.cpp -o test_servohat
-  >>g++ -lm -lwiringPi ../Driver/TerminalHatDriver.cpp test_terminalhat.cpp -o test_terminalhat
-  >>g++ -lm -lwiringPi ../../../util/i2cmessage.cpp ../Driver/GPIOHatDriver.cpp test_gpiohat.cpp -o test_gpiohat
 
 Loops:
  * Loop1: Process Update, ServoHat(s) Update
@@ -31,8 +28,8 @@ Added analyze_timing functionality.
     
 B. boardcontroller_node
 Usage: This node should be run on every ControlModule with a connected Arduino Board.
-Supported Arduino Boards:
- * Arduino Mega 2560
+Supported PN's:
+  * 100005
 Configuration:
 Currently only 1 SPI Device is supported, at dev/spidev0.0
 Installation:

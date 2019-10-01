@@ -9,6 +9,16 @@ TerminalHatDriver::~TerminalHatDriver()
 void TerminalHatDriver::init()
 {
 }
+bool TerminalHatDriver::configure_pin(std::string pinname,std::string mode)
+{
+    int pin_number = map_connectorpin_to_pinfile(pinname);
+    if(pin_number == -1)
+    {
+        printf("[ERROR]: PinName: %s is not available!\n",pinname.c_str());
+        return -1;
+    }
+    return configure_pin(pin_number,mode);
+}
 bool TerminalHatDriver::configure_pin(int pinnumber,std::string mode)
 {
     int v = map_connectorpin_to_pinfile(pinnumber);
@@ -77,6 +87,16 @@ bool TerminalHatDriver::configure_pin(int pinnumber,std::string mode)
     }
     return false;
 }
+bool TerminalHatDriver::set_pin(std::string pinname,int v)
+{
+    int pin_number = map_connectorpin_to_pinfile(pinname);
+    if(pin_number == -1)
+    {
+        printf("[ERROR]: PinName: %s is not available!\n",pinname.c_str());
+        return -1;
+    }
+    return set_pin(pin_number,v);
+}
 bool TerminalHatDriver::set_pin(int pinnumber, int v)
 {
     std::ostringstream setval_str;
@@ -91,6 +111,16 @@ bool TerminalHatDriver::set_pin(int pinnumber, int v)
     setvalgpio.close();// close value file
     return true;
 }
+int TerminalHatDriver::read_pin(std::string pinname)
+{
+    int pin_number = map_connectorpin_to_pinfile(pinname);
+    if(pin_number == -1)
+    {
+        printf("[ERROR]: PinName: %s is not available!\n",pinname.c_str());
+        return -1;
+    }
+    return read_pin(pin_number);
+}
 int TerminalHatDriver::read_pin(int pinnumber)
 {
     std::ostringstream getval_str;
@@ -98,7 +128,7 @@ int TerminalHatDriver::read_pin(int pinnumber)
     std::ifstream getvalgpio(getval_str.str().c_str());// open value file for gpio
     if (getvalgpio < 0)
     {
-        printf("OPERATION FAILED: Unable to get value of GPIO %d/%d\n",pinnumber,map_connectorpin_to_pinfile(pinnumber));
+        printf("[ERROR]: OPERATION FAILED: Unable to get value of GPIO %d/%d\n",pinnumber,map_connectorpin_to_pinfile(pinnumber));
         return -1;
     }
     std::string val;
@@ -118,6 +148,40 @@ int TerminalHatDriver::map_pinfile_to_connectorpin(std::string)
     return -1;
 }
 */
+int TerminalHatDriver::map_connectorpin_to_pinfile(std::string pinname)
+{
+    if(pinname == "") { return -1; }
+    else if(pinname == "GPIO02") { return -1; } //USED FOR I2C
+    else if(pinname == "GPIO03") { return -1; } //USED FOR I2C
+    else if(pinname == "GPIO04") { return 4; }
+    else if(pinname == "GPIO17") { return 17; }
+    else if(pinname == "GPIO27") { return 27; }
+    else if(pinname == "GPIO22") { return 22; }
+    else if(pinname == "GPIO10") { return -1; } //USED FOR SPI
+    else if(pinname == "GPIO09") { return -1; } //USED FOR SPI
+    else if(pinname == "GPIO11") { return -1; } //USED FOR SPI
+    else if(pinname == "ID_SD") { return -1; } //USED FOR SPI
+    else if(pinname == "GPIO05") { return 5; }
+    else if(pinname == "GPIO06") { return 6; }
+    else if(pinname == "GPIO13") { return 13; }
+    else if(pinname == "GPIO19") { return 19; }
+    else if(pinname == "GPIO26") { return 26; }
+    else if(pinname == "GPIO14") { return -1; } //USED FOR UART
+    else if(pinname == "GPIO15") { return -1; } //USED FOR UART
+    else if(pinname == "GPIO18") { return 18; }
+    else if(pinname == "GPIO23") { return 23; }
+    else if(pinname == "GPIO24") { return 24; }
+    else if(pinname == "GPIO25") { return 25; }
+    else if(pinname == "GPIO08") { return -1; } //USED FOR SPI
+    else if(pinname == "GPIO07") { return -1; } //USED FOR SPI
+    else if(pinname == "ID_SC") { return -1; } //USED FOR I2C
+    else if(pinname == "GPIO12") { return 12; }
+    else if(pinname == "GPIO16") { return 16; }
+    else if(pinname == "GPIO20") { return 20; }
+    else if(pinname == "GPIO21") { return 21; }
+    else { return -1; }
+    
+}
 int TerminalHatDriver::map_connectorpin_to_pinfile(int pinnumber)
 {
     switch(pinnumber)

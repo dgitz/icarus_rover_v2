@@ -67,6 +67,8 @@ private:
 	/*! \brief Request a Lever Arm */
 	bool leverarm_service(eros::srv_leverarm::Request &req,
 					eros::srv_leverarm::Response &res);
+	bool pin_service(eros::srv_pin::Request &req,
+					eros::srv_pin::Response &res);
 	double read_device_temperature();
 	std::vector<std::string> find_serialports();
 	bool check_serialports();
@@ -84,6 +86,7 @@ private:
 	ros::ServiceServer device_srv;
 	ros::ServiceServer connection_srv;
 	ros::ServiceServer leverarm_srv;
+	ros::ServiceServer pin_srv;
 	SerialMessageHandler *serialmessagehandler;
 
 };

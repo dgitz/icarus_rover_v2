@@ -110,5 +110,6 @@ private:
 	ros::Publisher user_command_pub;
 	ros::Publisher ready_to_arm_pub;
 	ros::Subscriber systemsnapshot_state_sub;
+	ros::Publisher tune_controlgroup_pub;
 
 };

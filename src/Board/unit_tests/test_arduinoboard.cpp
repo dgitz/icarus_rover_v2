@@ -13,7 +13,7 @@ using namespace std;
 
 static void show_usage(std::string name)
 {
-	std::cerr << "Usage: Test SPI Comm between Raspberry Pi and Arduino. Options:\n"
+	std::cerr << name << "Usage: Test SPI Comm between Raspberry Pi and Arduino. Options:\n"
 			<< "\t-h,--help\t\tShow this help message\n"
 			<< "\t-d,--delay Delay in MicroSeconds between sending each message.  Default is 100000.\n"
 			<< "\t-q,--query Query Message.  Supported messages are:\n"
@@ -173,7 +173,6 @@ commands to the Arduino and displays the results
 	gettimeofday(&now,NULL);
 	gettimeofday(&last,NULL);
 	gettimeofday(&last_printtime,NULL);
-	char command[2];
 	while (1)
 	{
 		if(query_message == 1)
@@ -198,7 +197,6 @@ commands to the Arduino and displays the results
 
 			unsigned char v1,v2,v3,v4,v5,v6,v7,v8,v9,v10,v11,v12;
 			uint16_t a1,a2,a3,a4,a5,a6;
-			int16_t b1,b2;
 			switch(query)
 			{
 			case SPIMessageHandler::SPI_Diagnostic_ID:
@@ -241,10 +239,10 @@ commands to the Arduino and displays the results
 				{
 					printf("Unable to Decode\n");
 				}
-				printf("Missed: %d @ %f Passed: %d @ %f Succeed Ratio: %f%\n",
+				printf("Missed: %ld @ %f Passed: %ld @ %f Succeed Ratio: %f%%\n",
 						missed,missed/(dt(start,now)),
 						passed,passed/(dt(start,now)),
-						100.0*(double)passed/((double)passed+(double)missed));
+						100.0*(double)passed/((double)(passed)+(double)(missed)));
 				break;
 			case SPIMessageHandler::SPI_Get_ANA_Port1_ID:
 				success = spimessagehandler->decode_Get_ANA_Port1SPI(inputbuffer,&length,&a1,&a2,&a3,&a4,&a5,&a6);
@@ -269,7 +267,7 @@ commands to the Arduino and displays the results
 			gettimeofday(&last,NULL);
 			if(dt(last_printtime,now) > 1.0)
 			{
-				printf("Passed Checksum: %d @ %f Failed Checksum: %d @ %f Succeed Ratio: %f%\n",
+				printf("Passed Checksum: %ld @ %f Failed Checksum: %ld @ %f Succeed Ratio: %f%%\n",
 						passed_checksum,passed_checksum/(dt(start,now)),
 						failed_checksum,failed_checksum/(dt(start,now)),
 						100.0*(double)passed_checksum/((double)passed_checksum+(double)failed_checksum));
@@ -288,18 +286,30 @@ commands to the Arduino and displays the results
 			{
 			case SPIMessageHandler::SPI_LEDStripControl_ID:
 				success = spimessagehandler->encode_LEDStripControlSPI(outputbuffer,&length,param1,3,4);
+				if(success == 0)
+				{
+					printf("[ERROR]: Unable to encode SPI Message: %d\n",command);
+				}
 				break;
 			case SPIMessageHandler::SPI_Arm_Status_ID:
 				success = spimessagehandler->encode_Arm_StatusSPI(outputbuffer,&length,param1);
+				if(success == 0)
+				{
+					printf("[ERROR]: Unable to encode SPI Message: %d\n",command);
+				}
 				break;
 			case SPIMessageHandler::SPI_Command_ID:
 				success = spimessagehandler->encode_CommandSPI(outputbuffer,&length,param1,param2,param3,param4);
+				if(success == 0)
+				{
+					printf("[ERROR]: Unable to encode SPI Message: %d\n",command);
+				}
 				break;
 			default:
 				break;
 			}
-
-			int v = sendCommand(command,outputbuffer);
+			
+			sendCommand(command,outputbuffer);
 			usleep(loop_delay);
 		}
 	}

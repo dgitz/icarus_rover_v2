@@ -93,6 +93,7 @@ eros::diagnostic NetworkTransceiverNode::finish_initialization()
 	std::string systemsnapshot_state_topic = "/System/Snapshot/State";
 	systemsnapshot_state_sub = n->subscribe<eros::systemsnapshot_state>(systemsnapshot_state_topic,1,&NetworkTransceiverNode::systemSnapshotState_Callback,this);
 	
+
 	if(process->get_UIMode()=="Diagnostics_GUI")
 	{
 		std::string joystick_topic = "/" + process->get_UIMode() + "/joystick";
@@ -118,6 +119,9 @@ eros::diagnostic NetworkTransceiverNode::finish_initialization()
 
 		std::string user_command_topic = "/" + process->get_UIMode() + "/user_command";
 		user_command_pub = n->advertise<eros::command>(user_command_topic,1);
+
+		std::string tune_controlgroup_topic = "/" + process->get_UIMode() + "/tune_contolgroup";
+		tune_controlgroup_pub = n->advertise<eros::tune_controlgroup>(tune_controlgroup_topic,1);
 	}
 	udpmessagehandler = new UDPMessageHandler();
 	if(initialize_sendsocket() == false)
@@ -597,6 +601,25 @@ void NetworkTransceiverNode::thread_loop()
 					newjoy.buttons.push_back(button7);
 					newjoy.buttons.push_back(button8);
 					joy_pub.publish(newjoy);
+				}
+				else
+				{
+					printf("Couldn't decode message.\n");
+				}
+				break;
+			case UDPMessageHandler::UDP_TuneControlGroup_ID:
+					success = udpmessagehandler->decode_TuneControlGroupUDP(items,&tempstr1,&v1,&v2,&v3,&int_1,&int_2,&int_3);
+				if(success == 1)
+				{
+					eros::tune_controlgroup msg;
+					msg.Name = tempstr1;
+					msg.param1 = v1;
+					msg.param2 = v2;
+					msg.param3 = v3;
+					msg.max_value = int_1;
+					msg.min_value = int_2;
+					msg.default_value = int_3;
+					tune_controlgroup_pub.publish(msg);
 				}
 				else
 				{

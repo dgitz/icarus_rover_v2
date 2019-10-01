@@ -146,11 +146,11 @@ bool HatControllerNode::run_01hz()
 				std::vector<eros::pin> pins = process->get_terminalhatpins("",true);
 				for(std::size_t i = 0; i < pins.size(); i++)
 				{
-					if(TerminalHat.configure_pin(pins.at(i).Number,pins.at(i).Function) == false)
+					if(TerminalHat.configure_pin(pins.at(i).Name,pins.at(i).Function) == false)
 					{
 						any_error = true;
 						char tempstr[512];
-						sprintf(tempstr,"[TerminalHat] Could not configure Pin: %d with Function: %s",pins.at(i).Number,pins.at(i).Function.c_str());
+						sprintf(tempstr,"[TerminalHat] Could not configure Pin: %s with Function: %s",pins.at(i).Name.c_str(),pins.at(i).Function.c_str());
 						diag = process->update_diagnostic(SOFTWARE,ERROR,INITIALIZING_ERROR,std::string(tempstr));
 						get_logger()->log_error(std::string(tempstr));
 						kill_node = 1;
@@ -275,7 +275,7 @@ bool HatControllerNode::run_10hz()
 					std::vector<eros::pin> pins = process->get_servohatpins(ServoHats_ids.at(i));
 					for(std::size_t j = 0; j < pins.size(); j++)
 					{
-						ServoHats.at(i).setServoValue(pins.at(j).Number, pins.at(j).Value);
+						ServoHats.at(i).setServoValue(pins.at(j).Name, pins.at(j).Value);
 					}
 				}
 				else
@@ -320,11 +320,11 @@ bool HatControllerNode::run_10hz()
 			std::vector<eros::pin> pins = process->get_terminalhatpins("DigitalInput",true);
 			for(std::size_t i = 0; i < pins.size(); i++)
 			{
-				if(TerminalHat.configure_pin(pins.at(i).Number,pins.at(i).Function) == false)
+				if(TerminalHat.configure_pin(pins.at(i).Name,pins.at(i).Function) == false)
 				{
 					any_error = true;
 					char tempstr[512];
-					sprintf(tempstr,"[TerminalHat] Could not configure Pin: %d with Function: %s",pins.at(i).Number,pins.at(i).Function.c_str());
+					sprintf(tempstr,"[TerminalHat] Could not configure Pin: %s with Function: %s",pins.at(i).Name.c_str(),pins.at(i).Function.c_str());
 					diag = process->update_diagnostic(SOFTWARE,ERROR,INITIALIZING_ERROR,std::string(tempstr));
 					get_logger()->log_error(std::string(tempstr));
 					kill_node = 1;
@@ -349,27 +349,66 @@ bool HatControllerNode::run_loop1()
 	for(std::size_t i = 0; i < GPIOHats.size(); i++)
 	{
 		unsigned char inputbuffer[12];
-		int passed_checksum_calc = GPIOHats.at(i).sendQuery(I2CMessageHandler::I2C_Get_DIO_Port1_ID,inputbuffer);
-		if(passed_checksum_calc > 0)
 		{
-			uint16_t a1,a2,a3,a4;
-			int length;
-			bool success = i2cmessagehandler->decode_Get_DIO_Port1I2C(inputbuffer,&length,&a1,&a2,&a3,&a4);
-			if(success == true)
+			int passed_checksum_calc = GPIOHats.at(i).sendQuery(I2CMessageHandler::I2C_Get_DIO_Port1_ID,inputbuffer);
+			if(passed_checksum_calc > 0)
 			{
-				diag = process->new_message_GetDIOPort1(GPIOHats.at(i).get_address(),ros::Time::now().toSec(),a1,a2,a3,a4);
-				if(diag.Level >= WARN)
+				uint16_t a1,a2,a3,a4;
+				int length;
+				bool success = i2cmessagehandler->decode_Get_DIO_Port1I2C(inputbuffer,&length,&a1,&a2,&a3,&a4);
+				if(success == true)
 				{
-					diagnostic_pub.publish(diag);
-					get_logger()->log_diagnostic(diag);
-				}
-				std::vector<HatControllerNodeProcess::Sensor> sensors = process->get_sensordata();
-				for(std::size_t i = 0; i < sensors.size(); ++i)
-				{
-					signal_sensor_pubs.at(i).publish(sensors.at(i).signal);
+					diag = process->new_message_GetDIOPort1("GPIOHat",GPIOHats.at(i).get_address(),ros::Time::now().toSec(),a1,a2,a3,a4);
+					if(diag.Level >= WARN)
+					{
+						diagnostic_pub.publish(diag);
+						get_logger()->log_diagnostic(diag);
+					}
 				}
 			}
-
+		}
+		{
+			int passed_checksum_calc = GPIOHats.at(i).sendQuery(I2CMessageHandler::I2C_Get_ANA_Port1_ID,inputbuffer);
+			if(passed_checksum_calc > 0)
+			{
+				uint16_t a1,a2,a3,a4,a5,a6;
+				int length;
+				bool success = i2cmessagehandler->decode_Get_ANA_Port1I2C(inputbuffer,&length,&a1,&a2,&a3,&a4,&a5,&a6);
+				if(success == true)
+				{
+					diag = process->new_message_GetANAPort1("GPIOHat",GPIOHats.at(i).get_address(),ros::Time::now().toSec(),a1,a2,a3,a4,a5,a6);
+					if(diag.Level >= WARN)
+					{
+						diagnostic_pub.publish(diag);
+						get_logger()->log_diagnostic(diag);
+					}
+					
+				}
+			}
+		}
+		{
+			int passed_checksum_calc = GPIOHats.at(i).sendQuery(I2CMessageHandler::I2C_Get_ANA_Port2_ID,inputbuffer);
+			if(passed_checksum_calc > 0)
+			{
+				uint16_t a1,a2,a3,a4,a5,a6;
+				int length;
+				bool success = i2cmessagehandler->decode_Get_ANA_Port2I2C(inputbuffer,&length,&a1,&a2,&a3,&a4,&a5,&a6);
+				if(success == true)
+				{
+					diag = process->new_message_GetANAPort2("GPIOHat",GPIOHats.at(i).get_address(),ros::Time::now().toSec(),a1,a2,a3,a4,a5,a6);
+					if(diag.Level >= WARN)
+					{
+						diagnostic_pub.publish(diag);
+						get_logger()->log_diagnostic(diag);
+					}
+					
+				}
+			}
+		}
+		std::vector<HatControllerNodeProcess::Sensor> sensors = process->get_sensordata();
+		for(std::size_t i = 0; i < sensors.size(); ++i)
+		{
+			signal_sensor_pubs.at(i).publish(sensors.at(i).signal);
 		}
 
 	}
@@ -381,11 +420,11 @@ bool HatControllerNode::run_loop1()
 				std::vector<eros::pin> pins = process->get_terminalhatpins("DigitalInput",true);
 				for(std::size_t i = 0; i < pins.size(); i++)
 				{
-					if(process->set_terminalhatpinvalue(pins.at(i).Name,TerminalHat.read_pin(pins.at(i).Number)) == false)
+					if(process->set_terminalhatpinvalue(pins.at(i).Name,TerminalHat.read_pin(pins.at(i).Name)) == false)
 					{
 						any_error = true;
 						char tempstr[512];
-						sprintf(tempstr,"[TerminalHat] Could not read Pin: %s:%d with Function: %s",pins.at(i).Name.c_str(),pins.at(i).Number,pins.at(i).Function.c_str());
+						sprintf(tempstr,"[TerminalHat] Could not read Pin: %s with Function: %s",pins.at(i).Name.c_str(),pins.at(i).Function.c_str());
 						diag = process->update_diagnostic(SOFTWARE,ERROR,INITIALIZING_ERROR,std::string(tempstr));
 						get_logger()->log_diagnostic(diag);
 						kill_node = 1;
@@ -397,11 +436,11 @@ bool HatControllerNode::run_loop1()
 
 				for(std::size_t i = 0; i < pins.size(); i++)
 				{
-					if(TerminalHat.set_pin(pins.at(i).Number,pins.at(i).Value) == false)
+					if(TerminalHat.set_pin(pins.at(i).Name,pins.at(i).Value) == false)
 					{
 						any_error = true;
 						char tempstr[512];
-						sprintf(tempstr,"[TerminalHat] Could not set Pin: %s:%d with Function: %s",pins.at(i).Name.c_str(),pins.at(i).Number,pins.at(i).Function.c_str());
+						sprintf(tempstr,"[TerminalHat] Could not set Pin: %s with Function: %s",pins.at(i).Name.c_str(),pins.at(i).Function.c_str());
 						diag = process->update_diagnostic(SOFTWARE,ERROR,INITIALIZING_ERROR,std::string(tempstr));
 						get_logger()->log_diagnostic(diag);
 						kill_node = 1;

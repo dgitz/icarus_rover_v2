@@ -214,17 +214,11 @@ include_directories(include ${catkin_INCLUDE_DIRS} ${roscpp_INCLUDE_DIRS})
 add_library(resourcemonitor util/resourcemonitor.cpp)
 add_library(controlgroup util/controlgroup.cpp)
 
-
-
 #Libraries-Communications
 add_library(udpmessage util/udpmessage.cpp)
 add_library(serialmessage util/serialmessage.cpp)
 add_library(spimessage util/spimessage.cpp)
 add_library(i2cmessage util/i2cmessage.cpp)
-
-#Library-Unit Tests
-catkin_add_gtest(test_controlgroup util/unit_tests/test_controlgroup.cpp)
-target_link_libraries(test_controlgroup ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${FuzzyLiteLibrary} controlgroup)
 
 #Add CMakeLists for Templates
 add_subdirectory(src_templates)
