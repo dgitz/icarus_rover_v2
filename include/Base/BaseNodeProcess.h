@@ -37,6 +37,7 @@
 #include <eros/loadfactor.h>
 #include <eros/uptime.h>
 #include <eros/tune_controlgroup.h>
+#include <eros/view_controlgroup.h>
 //Project
 #include "../Definitions.h"
 #include "../../../eROS/include/DiagnosticClass.h"
@@ -147,6 +148,7 @@ public:
 	std::string exec(const char* cmd,bool wait_for_result);
 	//Printing Functions
 	void print_message(std::string level,std::string time_str,std::string filename,int line_number,std::string msg);
+	void print_diagnostic(eros::diagnostic diag);
 protected:
 	DiagnosticClass diagnostic_helper;
 	std::vector<eros::diagnostic> diagnostics;

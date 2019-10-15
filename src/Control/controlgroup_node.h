@@ -75,5 +75,6 @@ private:
 
 	std::vector<ros::Publisher> outputs;
 	std::vector<ros::Subscriber> inputs;
+	ros::Publisher controlgroup_view_pub;
 
 };

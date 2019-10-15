@@ -10,7 +10,7 @@
 std::string Node_Name = "/unittest_implement_node_process";
 std::string Host_Name = "unittest";
 std::string ros_DeviceName = Host_Name;
-#define DIAGNOSTIC_TYPE_COUNT 3
+#define DIAGNOSTIC_TYPE_COUNT 4
 void print_diagnostic(uint8_t level,eros::diagnostic diagnostic)
 {
 	if(diagnostic.Level >= level)
@@ -32,7 +32,7 @@ bool isequal(double a, double b, double precision)
 	}
 	
 }
-ControlGroupNodeProcess *initializeprocess()
+ControlGroupNodeProcess *initializeprocess(std::string controlgroupconfig_filepath)
 {
 	eros::device device;
 	device.DeviceName = ros_DeviceName;
@@ -44,11 +44,12 @@ ControlGroupNodeProcess *initializeprocess()
 	ControlGroupNodeProcess *process;
 	process = new ControlGroupNodeProcess;
 	process->initialize("controlgroup_node", Node_Name, Host_Name, ROVER, ROBOT_CONTROLLER, CONTROLLER_NODE);
-	process->set_config_filepaths("/home/robot/catkin_ws/src/icarus_rover_v2/src/Control/unit_tests/UnitTestControlGroup.xml");
+	process->set_config_filepaths(controlgroupconfig_filepath);
 	std::vector<uint8_t> diagnostic_types;
 	diagnostic_types.push_back(SOFTWARE);
 	diagnostic_types.push_back(DATA_STORAGE);
 	diagnostic_types.push_back(SYSTEM_RESOURCE);
+	diagnostic_types.push_back(ACTUATORS);
 	process->enable_diagnostics(diagnostic_types);
 	eros::diagnostic diag = process->finish_initialization();
 	EXPECT_TRUE(diag.Level <= NOTICE);
@@ -68,7 +69,7 @@ ControlGroupNodeProcess *readyprocess(ControlGroupNodeProcess *process)
 		output_pin.ConnectedDevice = "ImplementCylinderCommand";
 		output_pin.MaxValue = 2000;
 		output_pin.MinValue = 1000;
-		output_pin.DefaultValue = 1500;
+		output_pin.DefaultValue = 0;
 		output_pin.Function = "PWMOutput";
 		diag = process->set_pinproperties(output_pin);
 		EXPECT_TRUE(diag.Level <= NOTICE);
@@ -81,7 +82,7 @@ ControlGroupNodeProcess *readyprocess(ControlGroupNodeProcess *process)
 	EXPECT_TRUE(process->is_ready() == true);
 	{
 		std::vector<eros::diagnostic> diagnostics = process->get_diagnostics();
-		EXPECT_TRUE(diagnostics.size() == DIAGNOSTIC_TYPE_COUNT);
+		//EXPECT_TRUE((int)diagnostics.size() == DIAGNOSTIC_TYPE_COUNT+(2*(int)process->get_controlgroups().size()));
 		for (std::size_t i = 0; i < diagnostics.size(); ++i)
 		{
 			print_diagnostic(WARN,diagnostics.at(i));
@@ -93,12 +94,12 @@ ControlGroupNodeProcess *readyprocess(ControlGroupNodeProcess *process)
 TEST(Operation,CheckPIDComputationFromSpreadsheet)
 {
 	uint16_t INDEX_COLUMN = 0;
-	uint16_t CURRENT_TIME_COLUMN = 1;
-	uint16_t TIMEDELTA_COLUMN = 2;
+	uint16_t TIMEDELTA_COLUMN = 1;
+	uint16_t CURRENT_TIME_COLUMN = 2;
 	uint16_t COMMANDVALUE_COLUMN = 3;
 	uint16_t INPUTVALUE_COLUMN = 4;
-	uint16_t OUTPUTVALUE_COLUMN = 11;
-	ControlGroupNodeProcess *process = initializeprocess();
+	uint16_t OUTPUTVALUE_COLUMN = 14;
+	ControlGroupNodeProcess *process = initializeprocess("/home/robot/catkin_ws/src/icarus_rover_v2/src/Control/unit_tests/UnitTestControlGroup_PID.xml");
 	process = readyprocess(process);
 	eros::diagnostic diag = process->update(0.0,0.0);
 	std::vector<ControlGroup> controlgroups = process->get_controlgroups();
@@ -141,13 +142,17 @@ TEST(Operation,CheckPIDComputationFromSpreadsheet)
 				}
 				diag = process->update(dt,cur_time);
 				EXPECT_TRUE(diag.Level <= NOTICE);
+
+				// Check output signals
 				std::vector<eros::signal> output_signals = process->get_outputsignals();
 				EXPECT_TRUE(output_signals.size() == 1);
 				EXPECT_TRUE(output_signals.at(0).status == SIGNALSTATE_UPDATED);
 				EXPECT_TRUE(isequal(output_signals.at(0).value,expected_output,.0001) == true);
+
+				// Check output pins
 				std::vector<eros::pin> output_pins = process->get_outputpins();
 				EXPECT_TRUE(output_pins.size() == 1);
-				EXPECT_TRUE(isequal(output_pins.at(0).Value,(int32_t)expected_output,.0001) == true);
+				EXPECT_TRUE(isequal(output_pins.at(0).Value,(int32_t)expected_output,2.0) == true); //integer comparison
 			}
 			else
 			{
@@ -180,8 +185,14 @@ TEST(Operation,CheckPIDComputationFromSpreadsheet)
 }
 TEST(Template, Process_Initialization)
 {
-	ControlGroupNodeProcess *process = initializeprocess();
-	EXPECT_TRUE(process->is_initialized() == true);
+	{
+		ControlGroupNodeProcess *process = initializeprocess("/home/robot/catkin_ws/src/icarus_rover_v2/src/Control/unit_tests/UnitTestControlGroup_PID.xml");
+		EXPECT_TRUE(process->is_initialized() == true);
+	}
+	{
+		ControlGroupNodeProcess *process = initializeprocess("/home/robot/catkin_ws/src/icarus_rover_v2/src/Control/unit_tests/UnitTestControlGroup_Direct.xml");
+		EXPECT_TRUE(process->is_initialized() == true);
+	}
 }
 TEST(Operation,TimingTest)
 {
@@ -190,7 +201,7 @@ TEST(Operation,TimingTest)
 	double single_controlgroup_runtime = 0.0;
 	uint64_t loop_count = 1000000;
 	{
-		ControlGroupNodeProcess *process = initializeprocess();
+		ControlGroupNodeProcess *process = initializeprocess("/home/robot/catkin_ws/src/icarus_rover_v2/src/Control/unit_tests/UnitTestControlGroup_PID.xml");
 		process = readyprocess(process);
 		process->clear_controlgroups();
 		eros::diagnostic diag = process->update(0.0,0.5);
@@ -210,7 +221,7 @@ TEST(Operation,TimingTest)
 		simple_operation_run = ros_stop.toSec()-ros_start.toSec();
 	}
 	{
-		ControlGroupNodeProcess *process = initializeprocess();
+		ControlGroupNodeProcess *process = initializeprocess("/home/robot/catkin_ws/src/icarus_rover_v2/src/Control/unit_tests/UnitTestControlGroup_PID.xml");
 		process = readyprocess(process);
 		std::vector<ControlGroup> controlgroups = process->get_controlgroups();
 		EXPECT_TRUE(controlgroups.size() == 1);
@@ -250,9 +261,9 @@ TEST(Operation,TimingTest)
 	printf("Speed Reduction Factor: %4.4f\n",single_controlgroup_runtime/simple_operation_run);
 
 }
-TEST(Operation,InputReceive)
+TEST(Operation,InputReceive_PIDControlGroup)
 {
-	ControlGroupNodeProcess *process = initializeprocess();
+	ControlGroupNodeProcess *process = initializeprocess("/home/robot/catkin_ws/src/icarus_rover_v2/src/Control/unit_tests/UnitTestControlGroup_PID.xml");
 	process = readyprocess(process);
 
 	std::vector<ControlGroup> controlgroups = process->get_controlgroups();
@@ -291,10 +302,87 @@ TEST(Operation,InputReceive)
 	EXPECT_TRUE(output_signals.at(0).status == SIGNALSTATE_UPDATED);
 }
 
+TEST(Operation,InputReceive_DirectControlGroup)
+{
+	ControlGroupNodeProcess *process = initializeprocess("/home/robot/catkin_ws/src/icarus_rover_v2/src/Control/unit_tests/UnitTestControlGroup_Direct.xml");
+	process = readyprocess(process);
 
+	std::vector<ControlGroup> controlgroups = process->get_controlgroups();
+	EXPECT_TRUE(controlgroups.size() == 1);
+	eros::signal input_signal = controlgroups.at(0).get_inputsignal("InputSignal");
+	EXPECT_TRUE(input_signal.name == "InputSignal");
+	input_signal.value = 0.0;
+	std::vector<eros::signal> output_signals = process->get_outputsignals();
+	EXPECT_TRUE(output_signals.size() == 1);
+	eros::diagnostic diag;
+	EXPECT_TRUE(output_signals.at(0).status == SIGNALSTATE_INITIALIZING);
+	{
+		eros::signal::ConstPtr signal_ptr(new eros::signal(input_signal));
+		diag = process->new_inputsignalmsg(signal_ptr);
+	}
+	EXPECT_TRUE(diag.Level <= NOTICE);
+	output_signals = process->get_outputsignals();
+	diag = process->update(0.0,0.0);
+	EXPECT_TRUE(diag.Level <= NOTICE);
+	output_signals = process->get_outputsignals();
+	EXPECT_TRUE(output_signals.at(0).status == SIGNALSTATE_UPDATED);
+	{
+		eros::signal::ConstPtr signal_ptr(new eros::signal(input_signal));
+		process->new_inputsignalmsg(signal_ptr);
+	}
+	EXPECT_TRUE(diag.Level <= NOTICE);
+	output_signals = process->get_outputsignals();
+	EXPECT_TRUE(output_signals.at(0).status == SIGNALSTATE_UPDATED);
+	diag = process->update(0.0,0.0);
+	EXPECT_TRUE(diag.Level <= NOTICE);
+	output_signals = process->get_outputsignals();
+	EXPECT_TRUE(output_signals.at(0).status == SIGNALSTATE_UPDATED);
+
+	{//Set Input to Max and check Output is Max
+		input_signal.value = 1.0;
+		eros::signal::ConstPtr signal_ptr(new eros::signal(input_signal));
+		diag = process->new_inputsignalmsg(signal_ptr);
+		diag = process->update(0.0,0.0);
+		EXPECT_TRUE(diag.Level <= NOTICE);
+		std::vector<eros::pin> output_pins = process->get_outputpins();
+		EXPECT_TRUE(output_pins.size() == 1);
+		EXPECT_TRUE(isequal(output_pins.at(0).Value,(int32_t)2000.0,2.0) == true); //integer comparison
+	}
+	{//Set Input to Default and check Output is Default
+		input_signal.value = 0.0;
+		eros::signal::ConstPtr signal_ptr(new eros::signal(input_signal));
+		diag = process->new_inputsignalmsg(signal_ptr);
+		diag = process->update(0.0,0.0);
+		EXPECT_TRUE(diag.Level <= NOTICE);
+		std::vector<eros::pin> output_pins = process->get_outputpins();
+		EXPECT_TRUE(output_pins.size() == 1);
+		EXPECT_TRUE(isequal(output_pins.at(0).Value,(int32_t)1500.0,2.0) == true); //integer comparison
+
+	}
+	{//Set Input to Min and check Output is Min
+		input_signal.value = -1.0;
+		eros::signal::ConstPtr signal_ptr(new eros::signal(input_signal));
+		diag = process->new_inputsignalmsg(signal_ptr);
+		diag = process->update(0.0,0.0);
+		EXPECT_TRUE(diag.Level <= NOTICE);
+		std::vector<eros::pin> output_pins = process->get_outputpins();
+		EXPECT_TRUE(output_pins.size() == 1);
+		EXPECT_TRUE(isequal(output_pins.at(0).Value,(int32_t)1000.0,2.0) == true); //integer comparison
+	}
+	{//Set Input higher than expected
+		input_signal.value = 2.0;
+		eros::signal::ConstPtr signal_ptr(new eros::signal(input_signal));
+		diag = process->new_inputsignalmsg(signal_ptr);
+		diag = process->update(0.0,0.0);
+		EXPECT_TRUE(diag.Level <= NOTICE);
+		std::vector<eros::pin> output_pins = process->get_outputpins();
+		EXPECT_TRUE(output_pins.size() == 1);
+		EXPECT_TRUE(isequal(output_pins.at(0).Value,(int32_t)2000.0,2.0) == true); //integer comparison
+	}
+}
 TEST(Template, Process_Command)
 {
-	ControlGroupNodeProcess *process = initializeprocess();
+	ControlGroupNodeProcess *process = initializeprocess("/home/robot/catkin_ws/src/icarus_rover_v2/src/Control/unit_tests/UnitTestControlGroup_PID.xml");
 	process = readyprocess(process);
 	double time_to_run = 20.0;
 	double dt = 0.001;

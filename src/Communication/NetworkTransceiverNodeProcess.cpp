@@ -4,6 +4,8 @@ eros::diagnostic  NetworkTransceiverNodeProcess::finish_initialization()
 	eros::diagnostic diag = root_diagnostic;
 	init_messages();
 	diag = update_diagnostic(DATA_STORAGE,INFO,NOERROR,"Initializing In Progress.");
+	diag = update_diagnostic(COMMUNICATIONS,NOTICE,INITIALIZING,"Initializing Comms.");
+	diag = update_diagnostic(REMOTE_CONTROL,NOTICE,INITIALIZING,"Waiting for Remote Control.");
 	return diag;
 }
 void NetworkTransceiverNodeProcess::set_networkconfiguration(std::string t_multicast_group,int t_send_multicast_port,int t_recv_unicast_port)
@@ -15,12 +17,6 @@ void NetworkTransceiverNodeProcess::set_networkconfiguration(std::string t_multi
 eros::diagnostic NetworkTransceiverNodeProcess::update(double t_dt,double t_ros_time)
 {
 	eros::diagnostic diag = root_diagnostic;
-	if(initialized == false)
-	{
-		//Set Remote Control Diagnostics to Notice, give the node a chance to launch without throwing a ton of warnings.
-		diag = update_diagnostic(COMMUNICATIONS,NOTICE,INITIALIZING,"Initializing Comms.");
-		diag = update_diagnostic(REMOTE_CONTROL,NOTICE,INITIALIZING,"Waiting for Remote Control.");
-	}
 	if(initialized == true)
 	{
 		ready = true;
@@ -470,6 +466,14 @@ void NetworkTransceiverNodeProcess::init_messages()
 		newmessage.name = "Subsystem Diagnostic";
 		newmessage.priority_level = PriorityLevel::MEDIUM;
 		newmessage.target_sendrate = 5.0;
+		messages.push_back(newmessage);
+	}
+	{
+		Message newmessage;
+		newmessage.id = CONTROLGROUPVALUE_ID;
+		newmessage.name = "View Control Group";
+		newmessage.priority_level = PriorityLevel::MEDIUM;
+		newmessage.target_sendrate = 20.0;
 		messages.push_back(newmessage);
 	}
 	

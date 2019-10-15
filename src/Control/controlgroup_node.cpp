@@ -23,6 +23,7 @@ bool ControlGroupNode::start(int argc, char **argv)
 	diagnostic_types.push_back(SOFTWARE);
 	diagnostic_types.push_back(DATA_STORAGE);
 	diagnostic_types.push_back(SYSTEM_RESOURCE);
+	diagnostic_types.push_back(ACTUATORS);
 	process->enable_diagnostics(diagnostic_types);
 	process->finish_initialization();
 	diagnostic = finish_initialization();
@@ -64,7 +65,7 @@ eros::diagnostic ControlGroupNode::finish_initialization()
 	for(std::size_t i = 0; i < pins.size(); ++i)
 	{
 		printf("Init Publisher: %s\n",pins.at(i).ConnectedDevice.c_str());
-		ros::Publisher pub = n->advertise<eros::pin>("/" + pins.at(i).Name,1);
+		ros::Publisher pub = n->advertise<eros::pin>("/" + pins.at(i).ConnectedDevice,1);
 		outputs.push_back(pub);
 	}
 	//Initialize Input Subscribers
@@ -79,6 +80,8 @@ eros::diagnostic ControlGroupNode::finish_initialization()
 			inputs.push_back(sub);
 		}
 	}
+
+	controlgroup_view_pub = n->advertise<eros::view_controlgroup>("/DriverStation/view_controlgroup",10);
 	return diagnostic;
 }
 bool ControlGroupNode::run_001hz()
@@ -113,11 +116,11 @@ bool ControlGroupNode::run_1hz()
 	}
 	else if ((process->is_ready() == false) and (process->is_initialized() == true))
 	{
-		std::vector<eros::pin> outputs = process->get_outputpins();
-		for(std::size_t i = 0; i < outputs.size(); ++i)
+		std::vector<eros::pin> output_pins = process->get_outputpins();
+		for(std::size_t i = 0; i < output_pins.size(); ++i)
 		{
 			eros::srv_pin srv;
-			srv.request.query = outputs.at(i).ConnectedDevice;
+			srv.request.query = output_pins.at(i).ConnectedDevice;
 			if (srv_pin.call(srv) == true)
 			{
 				if (srv.response.pins.size() != 1)
@@ -184,6 +187,7 @@ bool ControlGroupNode::run_10hz()
 			diagnostic_pub.publish(diaglist.at(i));
 		}
 	}
+	
 	return true;
 }
 bool ControlGroupNode::run_loop1()
@@ -192,6 +196,11 @@ bool ControlGroupNode::run_loop1()
 	for(std::size_t i = 0; i < pins.size(); ++i)
 	{
 		outputs.at(i).publish(pins.at(i));
+	}
+	std::vector<eros::view_controlgroup> cgviews = process->get_controlgroupviews();
+	for(std::size_t i = 0; i < cgviews.size(); ++i)
+	{
+		controlgroup_view_pub.publish(cgviews.at(i));
 	}
 	return true;
 }

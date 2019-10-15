@@ -80,6 +80,7 @@ public:
 		}
 		return pins;
 	}
+	std::vector<eros::view_controlgroup> get_controlgroupviews();
 	//Message Functions
 	/*! \brief  Process Command Message.  All implementation should use at least the code in this Sample Function.
 	 *
