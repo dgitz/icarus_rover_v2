@@ -17,6 +17,7 @@ eros::diagnostic ControlGroup::init(eros::diagnostic t_diag,Mode t_mode,std::str
     gain_I = 0.0;
     gain_D = 0.0;
 	error = 0.0;
+	error_perc = 0.0;
 	integral_error = 0.0;
 	integral_reset_counter = 0;
 	output_max = 0.0;
@@ -25,7 +26,11 @@ eros::diagnostic ControlGroup::init(eros::diagnostic t_diag,Mode t_mode,std::str
 	input_max = 0.0;
 	input_default = 0.0;
 	input_min = 0.0;
+	derivative_error = 0.0;
 	delta_output_limit = 0.0;
+	P_term = 0.0;
+		I_term = 0.0;
+		D_term = 0.0;
 	diagnostic = t_diag;
 	diagnostic.DeviceName = _name;
 	if(t_mode == ControlGroup::Mode::UNKNOWN)
@@ -106,9 +111,7 @@ eros::diagnostic ControlGroup::update(double dt)
 	}
 	if(ready == true)
 	{
-		double P_term = 0.0;
-		double I_term = 0.0;
-		double D_term = 0.0;
+		
 		double last_error = error;
 		double v = 0.0;
 		double d_out = 0.0;
@@ -119,20 +122,28 @@ eros::diagnostic ControlGroup::update(double dt)
 			{
 				inputs_ok = true;
 				error = inputs.at(1).signal.value-inputs.at(0).signal.value;
-				double d_error = 0.0;
-				integral_error += (error)*dt;
-				if((inputs.at(0).rx_counter == 1) && (inputs.at(1).rx_counter  == 1))
+				if(fabs(inputs.at(1).signal.value) < 0.000001)
 				{
-					d_error = 0.0;
+					error_perc = 0.0;
 				}
 				else
 				{
-					d_error = (error-last_error)/dt;
+					error_perc = 100.0*error/inputs.at(1).signal.value;
+				}
+				
+				integral_error += (error)*dt;
+				if((inputs.at(0).rx_counter == 1) && (inputs.at(1).rx_counter  == 1))
+				{
+					derivative_error = 0.0;
+				}
+				else
+				{
+					derivative_error = (error-last_error)/dt;
 				}
 				 
 				P_term = gain_P*error;
 				I_term = gain_I*integral_error;
-				D_term = gain_D*d_error;
+				D_term = gain_D*derivative_error;
 				v = (P_term + I_term + D_term)+output_default;
 				d_out = (v-outputs.at(0).signal.value)/dt;
 				output_updated = true;

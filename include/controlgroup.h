@@ -95,8 +95,13 @@ public:
         view.command_value = inputs.at(1).signal.value;
         view.sensor_value = inputs.at(0).signal.value;
         view.error_value = error;
-        view.errorperc_value = 0.0;
+        view.errorperc_value = error_perc;
         view.output_value = outputs.at(0).signal.value;
+        view.integral_error = integral_error;
+        view.derivative_error = derivative_error;
+        view.P_output = P_term;
+        view.I_output = I_term;
+        view.D_output = D_term;
         return view;
     }
     std::string get_name() { return name; }
@@ -163,7 +168,11 @@ public:
     eros::diagnostic update(double dt);
     void reset_integral()
     {
-        integral_error = 0;
+        P_term = 0.0;
+		I_term = 0.0;
+		D_term = 0.0;
+        derivative_error = 0.0;
+        integral_error = 0.0;
         integral_reset_counter++;
     }
 private:
@@ -187,8 +196,13 @@ private:
     double gain_P;
     double gain_I;
     double gain_D;
+    double P_term;
+	double I_term;
+	double D_term;
+    double derivative_error;
     uint64_t integral_reset_counter;
     double error;
+    double error_perc;
     double integral_error;
     double output_max;
     double output_default;

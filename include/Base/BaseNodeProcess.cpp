@@ -182,6 +182,17 @@ eros::command BaseNodeProcess::convert_fromptr(const eros::command::ConstPtr &t_
 	cmd.Option3 = t_ptr->Option3;
 	return cmd;
 }
+eros::system_state BaseNodeProcess::convert_fromptr(const eros::system_state::ConstPtr& t_ptr)
+{
+	eros::system_state state;
+	state.State = t_ptr->State;
+	state.StateText = t_ptr->StateText;
+	state.Description = t_ptr->Description;
+	state.Option1 = t_ptr->Option1;
+	state.Option2 = t_ptr->Option2;
+	state.Option3 = t_ptr->Option3;
+	return state;
+}
 eros::diagnostic BaseNodeProcess::convert_fromptr(const eros::diagnostic::ConstPtr &t_ptr)
 {
 	eros::diagnostic diag;

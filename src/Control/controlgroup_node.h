@@ -58,6 +58,7 @@ private:
 	//Message Functions
 	void PPS1_Callback(const std_msgs::Bool::ConstPtr& t_msg);
 	void Command_Callback(const eros::command::ConstPtr& t_msg);
+	void UserCommand_Callback(const eros::command::ConstPtr& t_msg);
 	void Signal_Callback(const eros::signal::ConstPtr& t_msg);
 	void TuneControlGroup_Callback(const eros::tune_controlgroup::ConstPtr& t_msg);
 	bool new_devicemsg(std::string query,eros::device t_device);
@@ -68,6 +69,7 @@ private:
 	std::string base_node_name;
 	ros::Subscriber pps1_sub;
 	ros::Subscriber command_sub;
+	ros::Subscriber user_command_sub;
 	ros::Subscriber tune_controlgroup_sub;
 	ros::ServiceClient srv_device;
 	ros::ServiceClient srv_pin;

@@ -425,6 +425,16 @@ std::vector<eros::diagnostic> ControlGroupNodeProcess::new_commandmsg(const eros
 		{
 		}
 	}
+	if(t_msg->Command == ROVERCOMMAND_SIMULATIONCCONTROL)
+	{
+		if(t_msg->Option1 == ROVERCOMMAND_SIMULATIONCONTROL_RESETWORLD)
+		{
+			for(std::size_t i = 0; i < controlgroups.size(); ++i)
+			{
+				controlgroups.at(i).reset_integral();
+			}
+		}
+	}
 	for (std::size_t i = 0; i < diaglist.size(); ++i)
 	{
 		diag = update_diagnostic(diaglist.at(i));

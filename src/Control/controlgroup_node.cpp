@@ -54,6 +54,7 @@ eros::diagnostic ControlGroupNode::finish_initialization()
 	eros::diagnostic diag = diagnostic;
 	pps1_sub = n->subscribe<std_msgs::Bool>("/1PPS", 1, &ControlGroupNode::PPS1_Callback, this);
 	command_sub = n->subscribe<eros::command>("/command", 1, &ControlGroupNode::Command_Callback, this);
+	user_command_sub = n->subscribe<eros::command>("/DriverStation/user_command",1,&ControlGroupNode::UserCommand_Callback,this);
 	std::string device_topic = "/" + std::string(host_name) + "_master_node/srv_device";
 	srv_device = n->serviceClient<eros::srv_device>(device_topic);
 	std::string pin_topic = "/" + std::string(host_name) + "_master_node/srv_pin";
@@ -172,12 +173,7 @@ bool ControlGroupNode::run_1hz()
 bool ControlGroupNode::run_10hz()
 {
 	ready_to_arm = process->get_ready_to_arm();
-	eros::diagnostic diag = process->update(0.1, ros::Time::now().toSec());
-	if (diag.Level > WARN)
-	{
-		get_logger()->log_diagnostic(diag);
-		diagnostic_pub.publish(diag);
-	}
+	
 	std::vector<eros::diagnostic> diaglist = process->get_diagnostics();
 	for (std::size_t i = 0; i < diaglist.size(); ++i)
 	{
@@ -192,10 +188,20 @@ bool ControlGroupNode::run_10hz()
 }
 bool ControlGroupNode::run_loop1()
 {
+	eros::diagnostic diag = process->update(0.1, ros::Time::now().toSec());
+	if (diag.Level > WARN)
+	{
+		get_logger()->log_diagnostic(diag);
+		diagnostic_pub.publish(diag);
+	}
+		std::vector<eros::signal> signals = process->get_outputsignals();
 	std::vector<eros::pin> pins = process->get_outputpins();
 	for(std::size_t i = 0; i < pins.size(); ++i)
 	{
-		outputs.at(i).publish(pins.at(i));
+		if(signals.at(i).status == SIGNALSTATE_UPDATED )
+		{
+			outputs.at(i).publish(pins.at(i));
+		}
 	}
 	std::vector<eros::view_controlgroup> cgviews = process->get_controlgroupviews();
 	for(std::size_t i = 0; i < cgviews.size(); ++i)
@@ -224,6 +230,10 @@ void ControlGroupNode::Signal_Callback(const eros::signal::ConstPtr& t_msg)
 {
 	process->new_inputsignalmsg(t_msg);
 
+}
+void ControlGroupNode::UserCommand_Callback(const eros::command::ConstPtr& t_msg)
+{
+	process->new_commandmsg(t_msg);
 }
 void ControlGroupNode::Command_Callback(const eros::command::ConstPtr &t_msg)
 {
