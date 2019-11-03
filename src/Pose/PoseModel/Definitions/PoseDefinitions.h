@@ -9,6 +9,9 @@ struct PoseState
 struct PoseAcceleration
 {
 	PoseDiagnostic pose_diagnostic;
+	eros::signal xacc;
+	eros::signal yacc;
+	eros::signal zacc;
 };
 struct PoseRotationRate
 {
@@ -26,9 +29,11 @@ struct PosePosition
 {
 	PoseDiagnostic pose_diagnostic;
 };
-struct BasicLinearAcceleration
+struct SensorLinearAcceleration
 {
-
+	std::vector<eros::signal> xacc;
+	std::vector<eros::signal> yacc;
+	std::vector<eros::signal> zacc;
 };
 struct BasicLinearVelocity
 {

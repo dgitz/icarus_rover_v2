@@ -22,7 +22,7 @@ public:
 	//Printing Functions
 private:
 	PoseAcceleration pose_acc;
-	BasicLinearAcceleration acc_input;
+	SensorLinearAcceleration acc_input;
 	PoseState pose_state;
 };
 

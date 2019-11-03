@@ -111,6 +111,13 @@ bool PoseNode::run_1hz()
 			srv.request.filter = "*";
 			if(srv_device.call(srv) == true)
 			{
+				if(process->set_imucount((int)srv.response.data.size()) == false)
+				{
+					diag = process->update_diagnostic(DATA_STORAGE,ERROR,INITIALIZING_ERROR,
+					"IMU Count: " + std::to_string((int)srv.response.data.size()) + " is Invalid.");
+					logger->log_diagnostic(diag);
+					diagnostic_pub.publish(diag);
+				}
 				for(std::size_t i = 0; i < srv.response.data.size(); ++i)
 				{
 					new_devicemsg(srv.request.query,srv.response.data.at(i));

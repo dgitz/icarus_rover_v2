@@ -25,6 +25,7 @@ public:
 	//Attribute Functions
 	//Message Functions
 	//Support Functions
+	eros::diagnostic update(double dt, double _ros_time);
 	//Printing Functions
 };
 

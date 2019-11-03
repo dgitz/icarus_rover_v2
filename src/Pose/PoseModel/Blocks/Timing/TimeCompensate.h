@@ -31,8 +31,9 @@ public:
 	eros::signal new_signal(ros::Time current_time,eros::signal input);
 	eros::signal get_output()
 	{
+		eros::signal out = output;
 		output.status = SIGNALSTATE_HOLD;
-		return output;
+		return out;
 	}
 	//Support Functions
 

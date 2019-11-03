@@ -8,7 +8,14 @@ std::string Node_Name = "/unittest_pose_node_process";
 std::string Host_Name = "unittest";
 std::string ros_DeviceName = Host_Name;
 
-
+void print_diagnostic(uint8_t level,eros::diagnostic diagnostic)
+{
+	if(diagnostic.Level >= level)
+	{
+		printf("Type: %d Message: %d Level: %d Device: %s Desc: %s\n",diagnostic.Diagnostic_Type,diagnostic.Diagnostic_Message,
+			  		diagnostic.Level,diagnostic.DeviceName.c_str(),diagnostic.Description.c_str());
+	}
+}
 PoseNodeProcess* initializeprocess(uint8_t imucount)
 {
 	eros::device device;

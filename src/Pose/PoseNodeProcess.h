@@ -6,7 +6,7 @@
 //Project
 #include "PoseModel/Definitions/PoseDefinitions.h"
 #include <tf/transform_broadcaster.h>
-
+#include "PoseModel/Blocks/SignalLinker/LinearAccelerationLinker.h"
 /*! \class PoseNodeProcess PoseNodeProcess.h "PoseNodeProcess.h"
  *  \brief This is a PoseNodeProcess class.  Used for the pose_node node.
  *
@@ -69,9 +69,16 @@ private:
 	/*! \brief Process Specific Implementation
 	 *
 	 */
+	eros::diagnostic update_pose(double t_dt, double t_ros_time);
+	SensorLinearAcceleration sensor_linearacceleration;
     PoseAcceleration pose_acc;
 	std::vector<eros::diagnostic> check_programvariables();
     PoseMode current_mode;
 	std::vector<IMUSensor> imus;
 	uint8_t imu_count;
+
+	//Blocks
+	LinearAccelerationLinker *xacc_linker;
+	LinearAccelerationLinker *yacc_linker;
+	LinearAccelerationLinker *zacc_linker;
 };
