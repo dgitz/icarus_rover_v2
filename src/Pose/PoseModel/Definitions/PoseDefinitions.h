@@ -15,6 +15,11 @@ struct TimedSignal
 	eros::signal signal;
 	uint8_t signal_class;
 };
+struct PostProcessedSignal
+{
+	eros::signal signal;
+	uint8_t signal_class;
+};
 /*struct PoseDiagnostic
 {
 

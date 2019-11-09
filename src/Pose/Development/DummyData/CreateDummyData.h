@@ -23,10 +23,12 @@ public:
 	//Message Functions
 	//Support Functions
     std::vector<SensorSignal> Create_SensorSignal(DummyDataType dummydata_type);
+	std::vector<TimedSignal> Create_TimedSignal(DummyDataType dummydata_type);
 	//Printing Functions
 
 
 private:
+	std::vector<eros::signal> create_sensorsignal(DummyDataType dummydata_type);
 };
 
 #endif
