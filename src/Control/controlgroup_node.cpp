@@ -23,6 +23,7 @@ bool ControlGroupNode::start(int argc, char **argv)
 	diagnostic_types.push_back(SOFTWARE);
 	diagnostic_types.push_back(DATA_STORAGE);
 	diagnostic_types.push_back(SYSTEM_RESOURCE);
+	diagnostic_types.push_back(ACTUATORS);
 	process->enable_diagnostics(diagnostic_types);
 	process->finish_initialization();
 	diagnostic = finish_initialization();
@@ -53,6 +54,7 @@ eros::diagnostic ControlGroupNode::finish_initialization()
 	eros::diagnostic diag = diagnostic;
 	pps1_sub = n->subscribe<std_msgs::Bool>("/1PPS", 1, &ControlGroupNode::PPS1_Callback, this);
 	command_sub = n->subscribe<eros::command>("/command", 1, &ControlGroupNode::Command_Callback, this);
+	user_command_sub = n->subscribe<eros::command>("/DriverStation/user_command",1,&ControlGroupNode::UserCommand_Callback,this);
 	std::string device_topic = "/" + std::string(host_name) + "_master_node/srv_device";
 	srv_device = n->serviceClient<eros::srv_device>(device_topic);
 	std::string pin_topic = "/" + std::string(host_name) + "_master_node/srv_pin";
@@ -64,7 +66,7 @@ eros::diagnostic ControlGroupNode::finish_initialization()
 	for(std::size_t i = 0; i < pins.size(); ++i)
 	{
 		printf("Init Publisher: %s\n",pins.at(i).ConnectedDevice.c_str());
-		ros::Publisher pub = n->advertise<eros::pin>("/" + pins.at(i).Name,1);
+		ros::Publisher pub = n->advertise<eros::pin>("/" + pins.at(i).ConnectedDevice,1);
 		outputs.push_back(pub);
 	}
 	//Initialize Input Subscribers
@@ -79,6 +81,8 @@ eros::diagnostic ControlGroupNode::finish_initialization()
 			inputs.push_back(sub);
 		}
 	}
+
+	controlgroup_view_pub = n->advertise<eros::view_controlgroup>("/DriverStation/view_controlgroup",10);
 	return diagnostic;
 }
 bool ControlGroupNode::run_001hz()
@@ -113,11 +117,11 @@ bool ControlGroupNode::run_1hz()
 	}
 	else if ((process->is_ready() == false) and (process->is_initialized() == true))
 	{
-		std::vector<eros::pin> outputs = process->get_outputpins();
-		for(std::size_t i = 0; i < outputs.size(); ++i)
+		std::vector<eros::pin> output_pins = process->get_outputpins();
+		for(std::size_t i = 0; i < output_pins.size(); ++i)
 		{
 			eros::srv_pin srv;
-			srv.request.query = outputs.at(i).ConnectedDevice;
+			srv.request.query = output_pins.at(i).ConnectedDevice;
 			if (srv_pin.call(srv) == true)
 			{
 				if (srv.response.pins.size() != 1)
@@ -169,12 +173,7 @@ bool ControlGroupNode::run_1hz()
 bool ControlGroupNode::run_10hz()
 {
 	ready_to_arm = process->get_ready_to_arm();
-	eros::diagnostic diag = process->update(0.1, ros::Time::now().toSec());
-	if (diag.Level > WARN)
-	{
-		get_logger()->log_diagnostic(diag);
-		diagnostic_pub.publish(diag);
-	}
+	
 	std::vector<eros::diagnostic> diaglist = process->get_diagnostics();
 	for (std::size_t i = 0; i < diaglist.size(); ++i)
 	{
@@ -184,14 +183,30 @@ bool ControlGroupNode::run_10hz()
 			diagnostic_pub.publish(diaglist.at(i));
 		}
 	}
+	
 	return true;
 }
 bool ControlGroupNode::run_loop1()
 {
+	eros::diagnostic diag = process->update(0.1, ros::Time::now().toSec());
+	if (diag.Level > WARN)
+	{
+		get_logger()->log_diagnostic(diag);
+		diagnostic_pub.publish(diag);
+	}
+		std::vector<eros::signal> signals = process->get_outputsignals();
 	std::vector<eros::pin> pins = process->get_outputpins();
 	for(std::size_t i = 0; i < pins.size(); ++i)
 	{
-		outputs.at(i).publish(pins.at(i));
+		if(signals.at(i).status == SIGNALSTATE_UPDATED )
+		{
+			outputs.at(i).publish(pins.at(i));
+		}
+	}
+	std::vector<eros::view_controlgroup> cgviews = process->get_controlgroupviews();
+	for(std::size_t i = 0; i < cgviews.size(); ++i)
+	{
+		controlgroup_view_pub.publish(cgviews.at(i));
 	}
 	return true;
 }
@@ -215,6 +230,10 @@ void ControlGroupNode::Signal_Callback(const eros::signal::ConstPtr& t_msg)
 {
 	process->new_inputsignalmsg(t_msg);
 
+}
+void ControlGroupNode::UserCommand_Callback(const eros::command::ConstPtr& t_msg)
+{
+	process->new_commandmsg(t_msg);
 }
 void ControlGroupNode::Command_Callback(const eros::command::ConstPtr &t_msg)
 {

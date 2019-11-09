@@ -2,8 +2,10 @@
 eros::diagnostic  CommandNodeProcess::finish_initialization()
 {
 	eros::diagnostic diag = root_diagnostic;
+	init_StateList();
 	diag = init_PeriodicCommands();
 	ms_timer = 0;
+	gazebo_updaterate = -1.0;
 	timeout_value_ms = 0;
 	armeddisarmed_state = ARMEDSTATUS_DISARMED_CANNOTARM;
 	ReadyToArmList.clear();
@@ -29,6 +31,8 @@ eros::diagnostic  CommandNodeProcess::finish_initialization()
 	command_map[ROVERCOMMAND_STOPMOVEMENT] = "STOP MOVEMENT";
 	command_map[ROVERCOMMAND_DRIVECOMMAND] = "DRIVE COMMAND";
 	command_map[ROVERCOMMAND_WAIT] = "WAIT";
+	gazebo_message_topublish = 0;
+	timesince_lastgazeboclock = -1.0;
 	return diag;
 }
 eros::diagnostic CommandNodeProcess::update(double t_dt,double t_ros_time)
@@ -52,7 +56,43 @@ eros::diagnostic CommandNodeProcess::update(double t_dt,double t_ros_time)
 		node_state = NODESTATE_RUNNING;
 		current_command.Command = ROVERCOMMAND_NONE;
 	}
-
+	if(timesince_lastgazeboclock > 0.0)
+	{
+		bool simulation_running = false;
+		double dt = run_time - timesince_lastgazeboclock;
+		if(dt > GAZEBO_PAUSETIME)
+		{
+			simulation_running = false;
+		}
+		else
+		{
+			simulation_running = true;
+		}
+		for(std::size_t i = 0; i < current_statelist.size(); ++i)
+		{
+			if(current_statelist.at(i).State == ROVERSTATE_SIMULATION)
+			{
+				if(simulation_running == true)
+				{
+					current_statelist.at(i).Option1 = ROVERSTATE_SIMULATION_RUNNING;
+					if(gazebo_updaterate < 0.0)
+					{
+						current_statelist.at(i).StateText = "? Hz";
+					}
+					else
+					{
+						char tempstr[128];
+						sprintf(tempstr,"%4.2f Hz",gazebo_updaterate);
+						current_statelist.at(i).StateText = std::string(tempstr);
+					}
+				}
+				else
+				{
+					current_statelist.at(i).Option1 = ROVERSTATE_SIMULATION_NOTRUNNING;
+				}
+			}
+		}
+	}
 
 	node_state = NODESTATE_RUNNING; //Hack
 	batterylevel_perc = 0.0;
@@ -250,6 +290,10 @@ eros::diagnostic CommandNodeProcess::new_user_commandmsg(const eros::command::Co
 			return diag;
 		}
 	}
+	else if(msg->Command == ROVERCOMMAND_SIMULATIONCCONTROL)
+	{
+		gazebo_message_topublish = msg->Option1;
+	}
 	else
 	{
 		char tempstr[512];
@@ -311,6 +355,15 @@ std::vector<eros::command> CommandNodeProcess::get_PeriodicCommands()
 		}
 	}
 	return sendlist;
+}
+void CommandNodeProcess::init_StateList()
+{
+	{
+		eros::system_state state;
+		state.State = ROVERSTATE_SIMULATION;
+		state.Option1 = ROVERSTATE_SIMULATION_UNDEFINED;
+		current_statelist.push_back(state);
+	}
 }
 eros::diagnostic CommandNodeProcess::init_PeriodicCommands()
 {

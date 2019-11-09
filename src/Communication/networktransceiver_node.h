@@ -77,6 +77,8 @@ private:
 	void device_callback(std::vector<eros::device> devicelist);
 	void subsystem_diagnostic_Callback(const eros::subsystem_diagnostic::ConstPtr& msg);
 	void systemSnapshotState_Callback(const eros::systemsnapshot_state::ConstPtr& msg);
+	void viewControlGroup_Callback(const eros::view_controlgroup::ConstPtr& msg);
+	void systemstate_Callback(const eros::system_state::ConstPtr& msg);
 	//Support Functions
 	eros::diagnostic rescan_topics();
 
@@ -111,5 +113,7 @@ private:
 	ros::Publisher ready_to_arm_pub;
 	ros::Subscriber systemsnapshot_state_sub;
 	ros::Publisher tune_controlgroup_pub;
+	ros::Subscriber view_controlgroup_sub;
+	ros::Subscriber systemstate_sub;
 
 };

@@ -84,6 +84,7 @@ eros::diagnostic NetworkTransceiverNode::finish_initialization()
 	eros::diagnostic diag = diagnostic;
 	pps1_sub = n->subscribe<std_msgs::Bool>("/1PPS",1,&NetworkTransceiverNode::PPS1_Callback,this);
 	command_sub = n->subscribe<eros::command>("/command",1,&NetworkTransceiverNode::Command_Callback,this);
+	systemstate_sub = n->subscribe<eros::system_state>("/System/State",10,&NetworkTransceiverNode::systemstate_Callback,this);
 	std::string armed_disarmed_state_topic = "/armed_state";
 	armed_disarmed_state_sub = n->subscribe<std_msgs::UInt8>(armed_disarmed_state_topic,10,&NetworkTransceiverNode::ArmedState_Callback,this);
 	std::string device_topic = "/" + std::string(host_name) + "_master_node/srv_device";
@@ -120,8 +121,12 @@ eros::diagnostic NetworkTransceiverNode::finish_initialization()
 		std::string user_command_topic = "/" + process->get_UIMode() + "/user_command";
 		user_command_pub = n->advertise<eros::command>(user_command_topic,1);
 
-		std::string tune_controlgroup_topic = "/" + process->get_UIMode() + "/tune_contolgroup";
+		std::string tune_controlgroup_topic = "/" + process->get_UIMode() + "/tune_controlgroup";
 		tune_controlgroup_pub = n->advertise<eros::tune_controlgroup>(tune_controlgroup_topic,1);
+
+		std::string view_controlgroup_topic = "/" + process->get_UIMode() + "/view_controlgroup";
+		view_controlgroup_sub = n->subscribe<eros::view_controlgroup>(view_controlgroup_topic,1,&NetworkTransceiverNode::viewControlGroup_Callback,this);
+	
 	}
 	udpmessagehandler = new UDPMessageHandler();
 	if(initialize_sendsocket() == false)
@@ -170,12 +175,15 @@ bool NetworkTransceiverNode::run_1hz()
 	process->update_diagnostic(get_resource_diagnostic());
 	if((process->is_initialized() == true) and (process->is_ready() == true))
 	{
+		//get_logger()->log_debug("Init: " + std::to_string(process->is_initialized()) + " Ready: " + std::to_string(process->is_ready()));
 	}
 	else if((process->is_ready() == false) and (process->is_initialized() == true))
 	{
+		//get_logger()->log_info("Init: " + std::to_string(process->is_initialized()) + " Ready: " + std::to_string(process->is_ready()));
 	}
 	else if(process->is_initialized() == false)
 	{
+		//get_logger()->log_info("Init: " + std::to_string(process->is_initialized()) + " Ready: " + std::to_string(process->is_ready()));
 		{
 			{
 				eros::srv_device srv;
@@ -212,6 +220,10 @@ bool NetworkTransceiverNode::run_1hz()
 			}
 
 		}
+	}
+	else
+	{
+		//get_logger()->log_info("Init: " + std::to_string(process->is_initialized()) + " Ready: " + std::to_string(process->is_ready()));
 	}
 	std::vector<eros::diagnostic> diaglist = process->get_diagnostics();
 	for (std::size_t i = 0; i < diaglist.size(); ++i)
@@ -309,7 +321,17 @@ bool NetworkTransceiverNode::run_loop3()
 {
 	return true;
 }
-
+void NetworkTransceiverNode::systemstate_Callback(const eros::system_state::ConstPtr& msg)
+{
+	std::string send_string = udpmessagehandler->encode_SystemStateUDP(
+		msg->State,
+		msg->Option1,
+		msg->Option2,
+		msg->Option3,
+		msg->StateText,
+		msg->Description);
+	process->push_sendqueue(SYSTEMSTATE_ID,send_string);
+}
 void NetworkTransceiverNode::PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
 	new_ppsmsg(msg);
@@ -402,6 +424,23 @@ eros::diagnostic NetworkTransceiverNode::rescan_topics()
 	diag = process->update_diagnostic(SOFTWARE,INFO,NOERROR,std::string(tempstr));
 	logger->log_info(tempstr);
 	return diag;
+}
+void NetworkTransceiverNode::viewControlGroup_Callback(const eros::view_controlgroup::ConstPtr& msg)
+{
+	std::string send_string = udpmessagehandler->encode_ControlGroupValueUDP(
+		msg->tov,
+		msg->Name,
+		msg->command_value,
+		msg->sensor_value,
+		msg->error_value,
+		msg->errorperc_value,
+		msg->output_value,
+		msg->integral_error,
+		msg->derivative_error,
+		msg->P_output,
+		msg->I_output,
+		msg->D_output);
+	process->push_sendqueue(CONTROLGROUPVALUE_ID,send_string);
 }
 void NetworkTransceiverNode::ArmedState_Callback(const std_msgs::UInt8::ConstPtr& msg)
 {

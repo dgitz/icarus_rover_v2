@@ -56,7 +56,9 @@ eros::diagnostic CommandNode::finish_initialization()
 	srv_device = n->serviceClient<eros::srv_device>(device_topic);
 	std::string command_topic = "/command";
 	command_pub =  n->advertise<eros::command>(command_topic,20);
-
+	systemstate_sub = n->advertise<eros::system_state>("/System/State",20);
+	clock_sub = n->subscribe<rosgraph_msgs::Clock>("/clock",1,&CommandNode::gazeboclock_Callback,this);
+	gazeboupdaterate_sub = n->subscribe<std_msgs::Float64>("/gazebo/update_rate",1,&CommandNode::gazeboupdaterate_Callback,this);
 	std::vector<std::string> ready_to_arm_topics;
 
 	bool search_for_topics = true;
@@ -175,6 +177,11 @@ bool CommandNode::run_1hz()
 			diagnostic_pub.publish(diaglist.at(i));
 		}
 	}
+	std::vector<eros::system_state> states = process->get_statelist();
+	for(std::size_t i = 0; i < states.size(); ++i)
+	{
+		systemstate_sub.publish(states.at(i));
+	}
 	return true;
 }
 bool CommandNode::run_10hz()
@@ -217,13 +224,43 @@ bool CommandNode::run_loop1()
 }
 bool CommandNode::run_loop2()
 {
+	uint8_t gazebo_message = process->get_gazebomessagetopublish();
+	if(gazebo_message != 0)
+	{
+		ros::ServiceClient client;
+		std_srvs::Empty srv;
+		switch(gazebo_message)
+		{
+			case ROVERCOMMAND_SIMULATIONCONTROL_RESETWORLD:
+				client = n->serviceClient<std_srvs::Empty>("/gazebo/reset_simulation");
+				client.call(srv);
+				break;
+			case ROVERCOMMAND_SIMULATIONCONTROL_STARTSIM:
+				client = n->serviceClient<std_srvs::Empty>("/gazebo/unpause_physics");
+				client.call(srv);
+				break;
+			case ROVERCOMMAND_SIMULATIONCONTROL_PAUSESIM:
+				client = n->serviceClient<std_srvs::Empty>("/gazebo/pause_physics");
+				client.call(srv);
+				break;
+			default:
+				break;
+		}
+	}
 	return true;
 }
 bool CommandNode::run_loop3()
 {
 	return true;
 }
-
+void CommandNode::gazeboupdaterate_Callback(const std_msgs::Float64::ConstPtr& msg)
+{
+	process->new_gazebo_updaterate(msg->data);
+}
+void CommandNode::gazeboclock_Callback(const rosgraph_msgs::Clock::ConstPtr& msg)
+{
+	process->new_gazeboclockmsg();
+}
 void CommandNode::PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
 	new_ppsmsg(msg);

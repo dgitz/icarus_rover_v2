@@ -5,6 +5,7 @@
 //C++ System Files
 //ROS Base Functionality
 //ROS Messages
+
 //Project
 /*! \class CommandNode CommandNode.h "CommandNode.h"
  *  \brief This is a CommandNode class.  Used for the sample_node node.
@@ -61,6 +62,8 @@ private:
 	bool new_devicemsg(std::string query,eros::device t_device);
 	void ReadyToArm_Callback(const std_msgs::Bool::ConstPtr& msg,const std::string &topic);
 	void User_Command_Callback(const eros::command::ConstPtr& msg);
+	void gazeboclock_Callback(const rosgraph_msgs::Clock::ConstPtr& msg);
+	void gazeboupdaterate_Callback(const std_msgs::Float64::ConstPtr& msg);
 	//Support Functions
 
 
@@ -75,5 +78,8 @@ private:
 	ros::Publisher command_pub;
 	std::vector<ros::Subscriber> ready_to_arm_subs;
 	ros::Subscriber user_command_sub;
+	ros::Subscriber clock_sub;
+	ros::Publisher systemstate_sub;
+	ros::Subscriber gazeboupdaterate_sub;
 
 };

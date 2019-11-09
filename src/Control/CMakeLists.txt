@@ -31,8 +31,8 @@ add_library(navigation_node_process NavigationNodeProcess.cpp)
 target_link_libraries(navigation_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} )
 add_executable(navigation_node navigation_node.cpp)
 target_link_libraries(navigation_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor serialmessage navigation_node_process)
-catkin_add_gtest(test_navigation_node_process unit_tests/test_navigation_node_process.cpp)
-target_link_libraries(test_navigation_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} navigation_node_process logger serialmessage)
+#catkin_add_gtest(test_navigation_node_process unit_tests/test_navigation_node_process.cpp)
+#target_link_libraries(test_navigation_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} navigation_node_process logger serialmessage)
 
 #ControlGroup Node
 file(MAKE_DIRECTORY /home/robot/catkin_ws/build/test_results/icarus_rover_v2/controlgroup_node)

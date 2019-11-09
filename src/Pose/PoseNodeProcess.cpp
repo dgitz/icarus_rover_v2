@@ -1,6 +1,7 @@
 #include "PoseNodeProcess.h"
 eros::diagnostic  PoseNodeProcess::finish_initialization()
 {
+	expected_sensorsignal_count = 0;
 	eros::diagnostic diag = root_diagnostic;
 	imu_count = -1;
 	current_mode = PoseMode::CALIBRATE;
@@ -10,6 +11,7 @@ bool PoseNodeProcess::set_imucount(uint8_t v)
 {
 	if(v >= 1)
 	{
+		expected_sensorsignal_count+=9*v;
 		imu_count = v;
 		return true;
 	}
@@ -18,27 +20,122 @@ bool PoseNodeProcess::set_imucount(uint8_t v)
 eros::diagnostic PoseNodeProcess::update(double t_dt,double t_ros_time)
 {
 	eros::diagnostic diag = root_diagnostic;
-	if(initialized == true)
+	for(std::size_t i = 0; i < imus.size(); ++i)
 	{
+		if(imus.at(i).running == false)
+		{
+			diag = update_diagnostic(SENSORS,NOTICE,INITIALIZING,"No IMU Data Received yet for IMU: " + imus.at(i).topicname);
+		}
+	}
+	if((initialized == true) and (ready == false))
+	{
+		bool checks_ok = true;
 		if((imu_count >= 1) and (imu_count == imus.size()))
 		{
-			ready = true;
+			checks_ok = checks_ok && true;
 
 		}
 		else if(imu_count == 0)
 		{
-			diag = update_diagnostic(SENSORS,NOTICE,DEVICE_NOT_AVAILABLE,"No IMU's Configured.");
+			checks_ok = false;
+			diag = update_diagnostic(SENSORS,WARN,DEVICE_NOT_AVAILABLE,"No IMU's Configured.");
+			return diag;
+		}
+		
+		if(checks_ok == true)
+		{
+			// Ok to initialize objects
+			{ // Time Compensate: Already initialized with Sensor_Signals
+			}
+			{ // Sensor Post Process
+			}
+			{ // Initialize Sensor Linkers
+				/*
+				std::vector<eros::signal> xacc_signals;
+				std::vector<eros::signal> yacc_signals;
+				std::vector<eros::signal> zacc_signals;
+				for(std::size_t i = 0; i < imus.size(); ++i)
+				{
+					xacc_signals.push_back(imus.at(i).imu_data.xacc);
+					yacc_signals.push_back(imus.at(i).imu_data.yacc);
+					zacc_signals.push_back(imus.at(i).imu_data.zacc);
+				}
+				std::string linker_name;
+				{	// XAcc Linker
+					linker_name = "XAcc";
+					xacc_linker = new LinearAccelerationLinker;
+					if(xacc_linker->initialize_object(linker_name, diag) == false)
+					{
+						diag = update_diagnostic(DATA_STORAGE,ERROR,INITIALIZING_ERROR,"Unable to Initialize Linker: " + linker_name);
+						return diag;
+					}
+					diag = update_diagnostic(xacc_linker->initialize_inputsignals(xacc_signals));
+					if(diag.Level > ERROR)
+					{
+						return diag;
+					}
+					diag = update_diagnostic(xacc_linker->initialize_outputsignals(xacc_signals));
+					if(diag.Level > ERROR)
+					{
+						return diag;
+					}					
+				}
+				{	// YAcc Linker
+					linker_name = "YAcc";
+					yacc_linker = new LinearAccelerationLinker;
+					if(xacc_linker->initialize_object(linker_name, diag) == false)
+					{
+						diag = update_diagnostic(DATA_STORAGE,ERROR,INITIALIZING_ERROR,"Unable to Initialize Linker: " + linker_name);
+						return diag;
+					}
+					diag = update_diagnostic(yacc_linker->initialize_inputsignals(yacc_signals));
+					if(diag.Level > ERROR)
+					{
+						return diag;
+					}
+					diag = update_diagnostic(yacc_linker->initialize_outputsignals(yacc_signals));
+					if(diag.Level > ERROR)
+					{
+						return diag;
+					}					
+				}
+				{	// ZAcc Linker
+					linker_name = "ZAcc";
+					zacc_linker = new LinearAccelerationLinker;
+					if(zacc_linker->initialize_object(linker_name, diag) == false)
+					{
+						diag = update_diagnostic(DATA_STORAGE,ERROR,INITIALIZING_ERROR,"Unable to Initialize Linker: " + linker_name);
+						return diag;
+					}
+					diag = update_diagnostic(zacc_linker->initialize_inputsignals(zacc_signals));
+					if(diag.Level > ERROR)
+					{
+						return diag;
+					}
+					diag = update_diagnostic(zacc_linker->initialize_outputsignals(zacc_signals));
+					if(diag.Level > ERROR)
+					{
+						return diag;
+					}					
+				}
+				*/
+				
+			}
+			diag = update_diagnostic(DATA_STORAGE,INFO,NOERROR,"Node Ready.");
+			diag = update_diagnostic(POSE,INFO,NOERROR,"Node Ready.");
+			ready = true;
 		}
 	}
 	diag = update_baseprocess(t_dt,t_ros_time);
 	if((is_initialized() == true) and (is_ready() == true))
 	{
-		diag = update_diagnostic(DATA_STORAGE,INFO,NOERROR,"No Error.");
+		diag = update_pose(t_dt,t_ros_time);
 	}
 	if(diag.Level <= NOTICE)
 	{
+
 		diag = update_diagnostic(SOFTWARE,INFO,NOERROR,"Node Running.");
-		diag = update_diagnostic(POSE,NOTICE,NOERROR,"Pose Not Implemented Yet.");
+
 
 	}
 	return diag;
@@ -140,9 +237,20 @@ eros::diagnostic PoseNodeProcess::new_imumsg(std::string topic, const eros::imu:
 	{
 		if(imus.at(i).topicname == topic)
 		{
+			found = true;
 			imus.at(i).imu_data = convert_fromptr(data);
 			imus.at(i).running = true;
+			update_sensorsignal(imus.at(i).imu_data.sequence_number,imus.at(i).imu_data.xacc);
+			update_sensorsignal(imus.at(i).imu_data.sequence_number,imus.at(i).imu_data.yacc);
+			update_sensorsignal(imus.at(i).imu_data.sequence_number,imus.at(i).imu_data.zacc);
+			update_sensorsignal(imus.at(i).imu_data.sequence_number,imus.at(i).imu_data.xgyro);
+			update_sensorsignal(imus.at(i).imu_data.sequence_number,imus.at(i).imu_data.ygyro);
+			update_sensorsignal(imus.at(i).imu_data.sequence_number,imus.at(i).imu_data.zgyro);
+			update_sensorsignal(imus.at(i).imu_data.sequence_number,imus.at(i).imu_data.xmag);
+			update_sensorsignal(imus.at(i).imu_data.sequence_number,imus.at(i).imu_data.ymag);
+			update_sensorsignal(imus.at(i).imu_data.sequence_number,imus.at(i).imu_data.zmag);
 
+			/*
 			imus.at(i).orientation_roll.value = compute_acceleration_based_roll(imus.at(i).imu_data.xacc.value,
 																			     imus.at(i).imu_data.yacc.value,
 																				 imus.at(i).imu_data.zacc.value);
@@ -157,6 +265,13 @@ eros::diagnostic PoseNodeProcess::new_imumsg(std::string topic, const eros::imu:
 			q.setRPY(-imus.at(i).orientation_roll.value, imus.at(i).orientation_pitch.value, imus.at(i).orientation_yaw.value);
 			imus.at(i).transform.setRotation(q);
 			found = true;
+			if((initialized == true) and (ready == true))
+			{
+				diag = update_diagnostic(xacc_linker->new_inputsignal(imus.at(i).imu_data.xacc));
+				diag = update_diagnostic(yacc_linker->new_inputsignal(imus.at(i).imu_data.yacc));
+				diag = update_diagnostic(zacc_linker->new_inputsignal(imus.at(i).imu_data.zacc));
+			}
+			*/
 		}
 	}
 	if(found == false)
@@ -210,5 +325,58 @@ PoseNodeProcess::PoseMode PoseNodeProcess::map_posemode_tovalue(std::string t_po
 	else
 	{
 		return PoseMode::UNKNOWN;
+	}
+}
+eros::diagnostic PoseNodeProcess::update_pose(double t_dt, double t_ros_time)
+{
+	eros::diagnostic diag = root_diagnostic;
+	if((sensor_signals.size() < expected_sensorsignal_count) || (expected_sensorsignal_count == 0))
+	{
+		diag = update_diagnostic(POSE,WARN,INITIALIZING,"Pose has not received all Sensor Inputs Yet.");
+	}
+	else
+	{
+		{ // Time Compensate
+			std::vector<TimedSignal> timedsignal_list;
+			for(std::size_t i = 0; i < sensor_signals.size(); ++i)
+			{
+				TimedSignal sig = time_compensators.at(i).new_signal(t_ros_time,sensor_signals.at(i));
+				timedsignal_list.push_back(sig);
+			}
+		}
+		{ // Sensor Post-Process
+
+		}
+		{ // Signal Linkers
+			//sensor_linearacceleration.xacc = xacc_linker->get_outputsignals();
+			//sensor_linearacceleration.yacc = yacc_linker->get_outputsignals();
+			//sensor_linearacceleration.zacc = zacc_linker->get_outputsignals();
+		}
+		diag = update_diagnostic(POSE,INFO,NOERROR,"Pose Updated at time: " + std::to_string(t_ros_time));
+	}
+	return diag;
+}
+void PoseNodeProcess::update_sensorsignal(uint64_t sequence_number,eros::signal signal)
+{
+	bool found = false;
+	for(std::size_t i = 0; i < sensor_signals.size(); ++i)
+	{
+		if(signal.name == sensor_signals.at(i).signal.name)
+		{
+			found = true;
+			sensor_signals.at(i).sequence_number = sequence_number;
+			sensor_signals.at(i).signal = signal;
+		}
+	}
+	if(found == false)
+	{
+		SensorSignal new_sig;
+		new_sig.sequence_number = sequence_number;
+		new_sig.signal = signal;
+		sensor_signals.push_back(new_sig);
+
+		TimeCompensate tc;
+		tc.init(new_sig.signal.name,TimeCompensate::SamplingMethod::SAMPLEANDHOLD);
+		time_compensators.push_back(tc);
 	}
 }

@@ -12,6 +12,7 @@
 #include <eros/diagnostic.h>
 #include <eros/signal.h>
 #include <eros/pin.h>
+#include <eros/view_controlgroup.h>
 
 /*
 This Class represents a library that takes in a series of inputs, and calculates 1 output based on the input data and various config items.
@@ -25,6 +26,7 @@ public:
 	{
 		UNKNOWN=0,
 		PID=1, //2 Input Signals of Type: SIGNAL are Required.  No other Input Signals are available.
+        DIRECT=2, //1 Input Signal of Type: SIGNAL is Required.  
 	};
     enum class SignalClass
     {
@@ -72,6 +74,36 @@ public:
     eros::diagnostic set_pinproperties(eros::pin pin);
 
     /* Attribute Functions */
+    void set_printtuninginfo(bool v) { print_tuning_info = v; }
+    void set_publishtuninginfo(bool v)
+    { 
+        if(mode == Mode::PID)
+        {
+            publish_tuning_info = v; 
+        }
+        else
+        {
+            publish_tuning_info = false;
+        }
+    }
+    bool get_publishtuninginfo() { return publish_tuning_info; }
+    eros::view_controlgroup get_controlgroupview()
+    { 
+        eros::view_controlgroup view;
+        view.tov = run_time;
+        view.Name = name;
+        view.command_value = inputs.at(1).signal.value;
+        view.sensor_value = inputs.at(0).signal.value;
+        view.error_value = error;
+        view.errorperc_value = error_perc;
+        view.output_value = outputs.at(0).signal.value;
+        view.integral_error = integral_error;
+        view.derivative_error = derivative_error;
+        view.P_output = P_term;
+        view.I_output = I_term;
+        view.D_output = D_term;
+        return view;
+    }
     std::string get_name() { return name; }
     eros::diagnostic get_diagnostic() { return diagnostic; }
     bool is_initialized() { return initialized; }
@@ -115,10 +147,17 @@ public:
         }
         return signals;
     }
-    void set_outputlimits(double min,double max)
+    void set_outputlimits(double min,double t_default,double max)
     {
         output_max = max;
+        output_default = t_default;
         output_min = min;
+    }
+     void set_inputlimits(double min,double t_default,double max)
+    {
+        input_max = max;
+        input_default = t_default;
+        input_min = min;
     }
     void set_max_deltaoutput(double d_output) //(Current Output-Last Output) / Sampling Time
     {
@@ -129,10 +168,23 @@ public:
     eros::diagnostic update(double dt);
     void reset_integral()
     {
-        integral_error = 0;
+        P_term = 0.0;
+		I_term = 0.0;
+		D_term = 0.0;
+        derivative_error = 0.0;
+        integral_error = 0.0;
         integral_reset_counter++;
     }
 private:
+    void print_diagnostic(uint8_t level,eros::diagnostic diagnostic)
+    {
+        if(diagnostic.Level >= level)
+        {
+            printf("Type: %d Message: %d Level: %d Device: %s Desc: %s\n",diagnostic.Diagnostic_Type,diagnostic.Diagnostic_Message,
+                        diagnostic.Level,diagnostic.DeviceName.c_str(),diagnostic.Description.c_str());
+        }
+    }
+    double scale_value(double in_value,double in_default,double neutral_value,double in_min,double in_max,double out_min,double out_max, double deadband);
     std::string name;
     eros::diagnostic diagnostic;
     std::vector<Input> inputs;
@@ -144,12 +196,23 @@ private:
     double gain_P;
     double gain_I;
     double gain_D;
+    double P_term;
+	double I_term;
+	double D_term;
+    double derivative_error;
     uint64_t integral_reset_counter;
     double error;
+    double error_perc;
     double integral_error;
     double output_max;
+    double output_default;
     double output_min;
+    double input_max;
+    double input_min;
+    double input_default;
     double delta_output_limit;
+    bool print_tuning_info;
+    bool publish_tuning_info;
    
 };
 #endif

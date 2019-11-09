@@ -27,6 +27,14 @@ bool isequal(double a, double b)
 		return false;
 	}
 }
+void print_diagnostic(uint8_t level,eros::diagnostic diagnostic)
+{
+	if(diagnostic.Level >= level)
+	{
+		printf("Type: %d Message: %d Level: %d Device: %s Desc: %s\n",diagnostic.Diagnostic_Type,diagnostic.Diagnostic_Message,
+			  		diagnostic.Level,diagnostic.DeviceName.c_str(),diagnostic.Description.c_str());
+	}
+}
 NavigationNodeProcess *initializeprocess(std::string controlgroup_filepath)
 {
 	eros::device device;
@@ -90,6 +98,7 @@ NavigationNodeProcess *initializeprocess(std::string controlgroup_filepath)
 	diag = process->fetch_complete();
 	EXPECT_TRUE(diag.Level <= NOTICE);
 	diag = process->load_controlgroupfile();
+	print_diagnostic(DEBUG,diag);
 	EXPECT_TRUE(diag.Level <= NOTICE);
 
 	return process;

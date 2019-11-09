@@ -9,17 +9,19 @@
 //ROS Base Functionality
 #include "ros/time.h"
 //ROS Messages
+#include <std_srvs/Empty.h>
 #include <std_msgs/Bool.h>
 #include "sensor_msgs/Joy.h"
 #include "std_msgs/UInt8.h"
 #include "std_msgs/Float32.h"
 #include "std_msgs/Float64.h"
 #include <sensor_msgs/JointState.h>
-#include <eros/diagnostic.h>
+#include "eros/diagnostic.h"
 #include <eros/firmware.h>
 #include <eros/heartbeat.h>
 #include <eros/device.h>
 #include <eros/command.h>
+#include <eros/system_state.h>
 #include <eros/resource.h>
 #include <eros/pin.h>
 #include <eros/leverarm.h>
@@ -37,6 +39,7 @@
 #include <eros/loadfactor.h>
 #include <eros/uptime.h>
 #include <eros/tune_controlgroup.h>
+#include <eros/view_controlgroup.h>
 //Project
 #include "../Definitions.h"
 #include "../../../eROS/include/DiagnosticClass.h"
@@ -147,6 +150,7 @@ public:
 	std::string exec(const char* cmd,bool wait_for_result);
 	//Printing Functions
 	void print_message(std::string level,std::string time_str,std::string filename,int line_number,std::string msg);
+	void print_diagnostic(eros::diagnostic diag);
 protected:
 	DiagnosticClass diagnostic_helper;
 	std::vector<eros::diagnostic> diagnostics;
@@ -157,6 +161,7 @@ protected:
 	eros::diagnostic convert_fromptr(const eros::diagnostic::ConstPtr& t_ptr);
 	eros::imu convert_fromptr(const eros::imu::ConstPtr& t_ptr);
 	eros::signal convert_fromptr(const eros::signal::ConstPtr& t_ptr);
+	eros::system_state convert_fromptr(const eros::system_state::ConstPtr& t_ptr);
 
 	bool initialized;
 	bool ready;

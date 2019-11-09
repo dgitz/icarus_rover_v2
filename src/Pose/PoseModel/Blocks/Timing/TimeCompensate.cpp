@@ -1,82 +1,69 @@
 #include "TimeCompensate.h"
 TimeCompensate::TimeCompensate()
 {
-	method = NONE;
-	buffer_limit = 0;
+	method = TimeCompensate::NONE;
 	output.status = SIGNALSTATE_INITIALIZING;
-}   
+	valid_buffer.clear();
+	name = "";
+	prev_sequence_number = 0;
+}
 TimeCompensate::~TimeCompensate()
 {
-
 }
-eros::signal TimeCompensate::new_signal(ros::Time current_time,eros::signal input)
+TimedSignal TimeCompensate::new_signal(double current_time, SensorSignal input)
 {
-	if(method == SAMPLEANDHOLD)
+	bool sensor_updated = false;
+	if (input.sequence_number != prev_sequence_number)
 	{
-
-		output = input;
+		sensor_updated = true;
 	}
-	else if(method == EXTRAPOLATE)
+	prev_sequence_number = input.sequence_number;
+	TimedSignal output;
+	output.signal_class = SIGNALCLASS_TIMEDSIGNAL;
+	if (sensor_updated == true)
 	{
-		if(buffer.size() == 0)
+		output.signal.tov = current_time;
+		output.signal.value = input.signal.value;
+		output.signal.rms = input.signal.rms;
+		output.signal.status = input.signal.status;
+		StorageBufferElement new_element;
+		new_element.time = current_time;
+		new_element.value = input.signal.value;
+		valid_buffer.push_back(new_element);
+		if((int)valid_buffer.size() > BUFFER_LENGTH)
 		{
-			StorageBufferElement element;
-			element.timestamp = input.tov;
-			element.state = SIGNALSTATE_INITIALIZING;
-			element.value = input.value;
-			buffer.push_back(element);
-			output = input;
+			valid_buffer.erase(valid_buffer.begin());
 		}
-		else if(input.tov > buffer.back().timestamp)
+	}
+	else
+	{
+		if (method == TimeCompensate::SamplingMethod::SAMPLEANDHOLD)
 		{
-			StorageBufferElement element;
-			element.timestamp = input.tov;
-			element.state = input.status;
-			element.value = input.value;
-			output = input;
+			output.signal.status = SIGNALSTATE_HOLD;
+			output.signal.tov = current_time;
+			output.signal.value = input.signal.value;
+			output.signal.rms = input.signal.rms;
 		}
-		else if(buffer.size() <= BUFFER_LENGTH)
+		else if(method == TimeCompensate::SamplingMethod::LINEAREXTRAPOLATE)
 		{
-			eros::signal out = input;
-			out.status = SIGNALSTATE_HOLD;
-			output = out;
-		}
-		else
-		{
-			double t_sum = compute_timesum(buffer,buffer.size()-BUFFER_LENGTH,buffer.size());
-			double value_sum = compute_valuesum(buffer,buffer.size()-BUFFER_LENGTH,buffer.size());
-			double t_mean = t_sum/(double)(BUFFER_LENGTH);
-			double value_mean = value_sum/(double)(BUFFER_LENGTH);
-			double B0 = ((buffer.back().timestamp - t_mean) * (buffer.back().value-value_mean))/(buffer.back().timestamp-(t_mean*t_mean));
-			double B1 = value_mean-B1*t_mean;
-			eros::signal out;
-			out.tov = current_time.toSec();
-			out.value = B0 + B1*out.tov;
-			out.status = SIGNALSTATE_EXTRAPOLATED;
-			output = out;
-		}
-		if(buffer.size() > BUFFER_LENGTH)
-		{
-			buffer.erase(buffer.begin());
+			if(valid_buffer.size() < BUFFER_LENGTH)
+			{
+				output.signal.status = SIGNALSTATE_HOLD;
+				output.signal.tov = current_time;
+				output.signal.value = input.signal.value;
+				output.signal.rms = input.signal.rms;
+			}
+			else
+			{
+				output.signal.status = SIGNALSTATE_EXTRAPOLATED;
+				double t_mean = valid_buffer.at(valid_buffer.size()-1).time-valid_buffer.at(valid_buffer.size()-2).time;
+				double v_mean = valid_buffer.at(valid_buffer.size()-1).value-valid_buffer.at(valid_buffer.size()-2).value;
+				double m = v_mean/t_mean;
+				output.signal.tov = current_time;
+				output.signal.value = m*(current_time-valid_buffer.at(valid_buffer.size()-1).time) + valid_buffer.at(valid_buffer.size()-1).value;
+				output.signal.rms = input.signal.rms;
+			}	
 		}
 	}
 	return output;
-}
-double TimeCompensate::compute_timesum(std::vector<StorageBufferElement> buf,uint32_t start_index,uint32_t stop_index)
-{
-	double sum = 0.0;
-	for(std::size_t i = start_index; i < stop_index; ++i)
-	{
-		sum += buf.at(i).timestamp;
-	}
-	return sum;
-}
-double TimeCompensate::compute_valuesum(std::vector<StorageBufferElement> buf,uint32_t start_index,uint32_t stop_index)
-{
-	double sum = 0.0;
-	for(std::size_t i = start_index; i < stop_index; ++i)
-	{
-		sum += buf.at(i).value;
-	}
-	return sum;
 }

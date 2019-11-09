@@ -12,6 +12,10 @@ ControlGroup::Mode ControlGroupNodeProcess::map_controlgroupmode_toenum(std::str
 	{
 		return ControlGroup::Mode::PID;
 	}
+	else if(v == "Direct")
+	{
+		return ControlGroup::Mode::DIRECT;
+	}
 	else
 	{
 		return ControlGroup::Mode::UNKNOWN;
@@ -94,6 +98,7 @@ eros::diagnostic ControlGroupNodeProcess::load_configfile(std::string path)
 			while (l_pControlGroup)
 			{
 				ControlGroup controlgroup;
+				
 				double gain_P, gain_I, gain_D = 0.0;
 				std::string name;
 				std::string mode;
@@ -118,6 +123,22 @@ eros::diagnostic ControlGroupNodeProcess::load_configfile(std::string path)
 				{
 					return diag;
 				}
+				TiXmlElement *l_pOptions = l_pControlGroup->FirstChildElement("Options");
+				if (l_pOptions != NULL)
+				{
+					TiXmlElement *l_pPrintTuningInfo = l_pOptions->FirstChildElement("PrintTuningInfo");
+					if (l_pPrintTuningInfo != NULL)
+					{
+						int print_tuning_info = std::atoi(l_pPrintTuningInfo->GetText());
+						controlgroup.set_printtuninginfo((bool)print_tuning_info);
+					}
+					TiXmlElement *l_pPublishTuningInfo = l_pOptions->FirstChildElement("PublishTuningInfo");
+					if (l_pPublishTuningInfo != NULL)
+					{
+						int publish_tuning_info = std::atoi(l_pPublishTuningInfo->GetText());
+						controlgroup.set_publishtuninginfo((bool)publish_tuning_info);
+					}
+				}
 				TiXmlElement *l_pLimits = l_pControlGroup->FirstChildElement("Limits");
 				if(l_pLimits != NULL)
 				{
@@ -126,6 +147,7 @@ eros::diagnostic ControlGroupNodeProcess::load_configfile(std::string path)
 					{
 						double output_max = 0.0;
 						double output_min = 0.0;
+						double output_default = 0.0;
 						double output_delta = 0.0;
 						TiXmlElement *l_pOutputMax = l_pOutputLimits->FirstChildElement("Max");
 						if(l_pOutputMax != NULL)
@@ -137,13 +159,41 @@ eros::diagnostic ControlGroupNodeProcess::load_configfile(std::string path)
 						{
 							output_min = std::atof(l_pOutputMin->GetText());
 						}
+						TiXmlElement *l_pOutputDefault = l_pOutputLimits->FirstChildElement("Default");
+						if(l_pOutputDefault != NULL)
+						{
+							output_default = std::atof(l_pOutputDefault->GetText());
+						}
 						TiXmlElement *l_pOutputDelta = l_pOutputLimits->FirstChildElement("Delta");
 						if(l_pOutputDelta != NULL)
 						{
 							output_delta = std::atof(l_pOutputDelta->GetText());
 						}
-						controlgroup.set_outputlimits(output_min,output_max);
+						controlgroup.set_outputlimits(output_min,output_default,output_max);
 						controlgroup.set_max_deltaoutput(output_delta);
+					}
+					TiXmlElement *l_pInputLimits = l_pLimits->FirstChildElement("Input");
+					if(l_pInputLimits != NULL)
+					{
+						double input_min = 0.0;
+						double input_default = 0.0;
+						double input_max = 0.;
+						TiXmlElement *l_InputMax = l_pInputLimits->FirstChildElement("Max");
+						if(l_InputMax != NULL)
+						{
+							input_max = std::atof(l_InputMax->GetText());
+						}
+						TiXmlElement *l_pInputMin = l_pInputLimits->FirstChildElement("Min");
+						if(l_pInputMin != NULL)
+						{
+							input_min = std::atof(l_pInputMin->GetText());
+						}
+						TiXmlElement *l_pInputDefault = l_pInputLimits->FirstChildElement("Default");
+						if(l_pInputDefault != NULL)
+						{
+							input_default = std::atof(l_pInputDefault->GetText());
+						}
+						controlgroup.set_inputlimits(input_min,input_default,input_max);
 					}
 				}
 				if (cg_mode == ControlGroup::Mode::PID)
@@ -254,8 +304,10 @@ eros::diagnostic ControlGroupNodeProcess::load_configfile(std::string path)
 					l_pOutput = l_pOutput->NextSiblingElement("Output");
 				}
 				//Output Signals
-				
-				controlgroup.set_PIDGains(gain_P, gain_I, gain_D);
+				if (cg_mode == ControlGroup::Mode::PID)
+				{
+					controlgroup.set_PIDGains(gain_P, gain_I, gain_D);
+				}
 				diag = controlgroup.finish_initialization();
 				if (diag.Level > NOTICE)
 				{
@@ -324,13 +376,24 @@ eros::diagnostic ControlGroupNodeProcess::update(double t_dt, double t_ros_time)
 	for(std::size_t i = 0; i < controlgroups.size(); ++i)
 	{
 		diag = controlgroups.at(i).update(t_dt);
-
+		diag = update_diagnostic(diag);
+		//print_diagnostic(diag);
+	}
+	bool controlgroups_ok = true;
+	for(std::size_t i = 0; i < controlgroups.size(); ++i)
+	{
+		controlgroups_ok = controlgroups_ok && controlgroups.at(i).is_ready();
+	}
+	if(controlgroups_ok == true)
+	{
+		diag = update_diagnostic(ACTUATORS, INFO, NOERROR, "All Control Groups Ready.");
 	}
 	if (diag.Level <= NOTICE)
 	{
 		diag = update_diagnostic(DATA_STORAGE, INFO, NOERROR, "No Error.");
 		diag = update_diagnostic(SOFTWARE, INFO, NOERROR, "Node Running");
 	}
+	
 	return diag;
 }
 eros::diagnostic ControlGroupNodeProcess::new_devicemsg(const eros::device::ConstPtr &device)
@@ -362,6 +425,16 @@ std::vector<eros::diagnostic> ControlGroupNodeProcess::new_commandmsg(const eros
 		{
 		}
 	}
+	if(t_msg->Command == ROVERCOMMAND_SIMULATIONCCONTROL)
+	{
+		if(t_msg->Option1 == ROVERCOMMAND_SIMULATIONCONTROL_RESETWORLD)
+		{
+			for(std::size_t i = 0; i < controlgroups.size(); ++i)
+			{
+				controlgroups.at(i).reset_integral();
+			}
+		}
+	}
 	for (std::size_t i = 0; i < diaglist.size(); ++i)
 	{
 		diag = update_diagnostic(diaglist.at(i));
@@ -385,4 +458,17 @@ std::vector<eros::diagnostic> ControlGroupNodeProcess::check_programvariables()
 		diaglist.push_back(diag);
 	}
 	return diaglist;
+}
+std::vector<eros::view_controlgroup> ControlGroupNodeProcess::get_controlgroupviews()
+{
+	std::vector<eros::view_controlgroup> list;
+	for(std::size_t i = 0; i < controlgroups.size(); ++i)
+	{
+		if(controlgroups.at(i).get_publishtuninginfo() == true)
+		{
+			eros::view_controlgroup cgview = controlgroups.at(i).get_controlgroupview();
+			list.push_back(cgview);
+		}
+	}
+	return list;
 }

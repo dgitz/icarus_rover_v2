@@ -1,0 +1,31 @@
+<?xml version="1.0" ?>
+<ControlGroupFile>
+  <ControlGroupList>
+        <ControlGroup>
+            <Name>ControlGroupDirect</Name>
+            <Mode>Direct</Mode>
+            <Limits>
+                <Input>
+                    <Max>1.0</Max>
+                    <Min>-1.0</Min>
+                    <Default>0.0</Default>
+                </Input>
+                <Output>
+                    <Max>2000.0</Max>
+                    <Min>1000.0</Min>
+                    <Default>1500.0</Default>
+                    <Delta>100000.0</Delta>
+                </Output>
+            </Limits>
+            <Input>
+                <Class>Signal</Class>
+                <Name>InputSignal</Name>
+                <Units>m</Units>
+            </Input>
+            <Output>
+                <Class>Pin</Class>
+                <ConnectedDevice>ImplementCylinderCommand</ConnectedDevice>
+            </Output>
+        </ControlGroup>
+  </ControlGroupList>
+</ControlGroupFile>

@@ -182,6 +182,17 @@ eros::command BaseNodeProcess::convert_fromptr(const eros::command::ConstPtr &t_
 	cmd.Option3 = t_ptr->Option3;
 	return cmd;
 }
+eros::system_state BaseNodeProcess::convert_fromptr(const eros::system_state::ConstPtr& t_ptr)
+{
+	eros::system_state state;
+	state.State = t_ptr->State;
+	state.StateText = t_ptr->StateText;
+	state.Description = t_ptr->Description;
+	state.Option1 = t_ptr->Option1;
+	state.Option2 = t_ptr->Option2;
+	state.Option3 = t_ptr->Option3;
+	return state;
+}
 eros::diagnostic BaseNodeProcess::convert_fromptr(const eros::diagnostic::ConstPtr &t_ptr)
 {
 	eros::diagnostic diag;
@@ -331,7 +342,9 @@ eros::diagnostic BaseNodeProcess::update_diagnostic(std::string device_name, uin
 		diag.Level = ERROR;
 		diag.Diagnostic_Message = UNKNOWN_MESSAGE;
 		char tempstr[512];
-		sprintf(tempstr, "Unsupported Diagnostic Type: %s.  Did you forget to enable it?", diagnostic_helper.get_DiagTypeString(diagnostic_type).c_str());
+		sprintf(tempstr, "Unsupported Diagnostic Type: %s(%d).  Did you forget to enable it?", 
+			diagnostic_helper.get_DiagTypeString(diagnostic_type).c_str(),diagnostic_type);
+		diag.Description = std::string(tempstr);
 		return diag;
 	}
 }
@@ -376,4 +389,14 @@ uint8_t BaseNodeProcess::convert_signaltype(std::string units,double *conversion
 	{
 		return SIGNALTYPE_UNDEFINED;
 	}
+}
+void BaseNodeProcess::print_diagnostic(eros::diagnostic diag)
+{
+	printf("--- Diag ---\n");
+	printf("\tRun Time: %4.4f ROS Time: %4.4f\n",run_time,ros_time);
+	printf("\tDevice: %s Node: %s\n",diag.DeviceName.c_str(),diag.Node_Name.c_str());
+	printf("\tSystem: %d SubSystem: %d Component: %d\n",diag.System,diag.SubSystem,diag.Component);
+	printf("\tDiagnostic Type: %d Level: %d Message: %d\n",diag.Diagnostic_Type,diag.Level,diag.Diagnostic_Message);
+	printf("\tDesc: %s\n",diag.Description.c_str());
+	printf("-----\n");
 }
