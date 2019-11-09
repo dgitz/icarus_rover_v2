@@ -30,6 +30,7 @@ public:
 	}
 	//Attribute Functions
 	uint16_t buffer_size() { return (int)valid_buffer.size(); }
+	std::string get_name() { return name; }
 	//Message Functions
 	TimedSignal new_signal(double current_time,SensorSignal input);
 	/*eros::signal get_output()

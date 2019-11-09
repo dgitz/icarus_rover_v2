@@ -7,6 +7,7 @@
 #include "PoseModel/Definitions/PoseDefinitions.h"
 #include <tf/transform_broadcaster.h>
 #include "PoseModel/Blocks/Timing/TimeCompensate.h"
+#include "PoseModel/Blocks/SensorPostProcessing/IMUPostProcess.h"
 #include "PoseModel/Blocks/SignalLinker/LinearAccelerationLinker.h"
 /*! \class PoseNodeProcess PoseNodeProcess.h "PoseNodeProcess.h"
  *  \brief This is a PoseNodeProcess class.  Used for the pose_node node.
@@ -73,11 +74,12 @@ private:
 	 *
 	 */
 	uint16_t expected_sensorsignal_count;
-	void update_sensorsignal(uint64_t sequence_number,eros::signal sig);
+	void update_sensorsignal(uint64_t sequence_number,eros::signal sig,std::string source_sensor);
 	
 	eros::diagnostic update_pose(double t_dt, double t_ros_time);
 	std::vector<SensorSignal> sensor_signals;
 	std::vector<TimeCompensate> time_compensators;
+	std::vector<IMUPostProcess> imu_postprocessors;
 	//SensorLinearAcceleration sensor_linearacceleration;
     //PoseAcceleration pose_acc;
 	std::vector<eros::diagnostic> check_programvariables();

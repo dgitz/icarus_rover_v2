@@ -240,15 +240,15 @@ eros::diagnostic PoseNodeProcess::new_imumsg(std::string topic, const eros::imu:
 			found = true;
 			imus.at(i).imu_data = convert_fromptr(data);
 			imus.at(i).running = true;
-			update_sensorsignal(imus.at(i).imu_data.sequence_number,imus.at(i).imu_data.xacc);
-			update_sensorsignal(imus.at(i).imu_data.sequence_number,imus.at(i).imu_data.yacc);
-			update_sensorsignal(imus.at(i).imu_data.sequence_number,imus.at(i).imu_data.zacc);
-			update_sensorsignal(imus.at(i).imu_data.sequence_number,imus.at(i).imu_data.xgyro);
-			update_sensorsignal(imus.at(i).imu_data.sequence_number,imus.at(i).imu_data.ygyro);
-			update_sensorsignal(imus.at(i).imu_data.sequence_number,imus.at(i).imu_data.zgyro);
-			update_sensorsignal(imus.at(i).imu_data.sequence_number,imus.at(i).imu_data.xmag);
-			update_sensorsignal(imus.at(i).imu_data.sequence_number,imus.at(i).imu_data.ymag);
-			update_sensorsignal(imus.at(i).imu_data.sequence_number,imus.at(i).imu_data.zmag);
+			update_sensorsignal(imus.at(i).imu_data.sequence_number,imus.at(i).imu_data.xacc,"imu");
+			update_sensorsignal(imus.at(i).imu_data.sequence_number,imus.at(i).imu_data.yacc,"imu");
+			update_sensorsignal(imus.at(i).imu_data.sequence_number,imus.at(i).imu_data.zacc,"imu");
+			update_sensorsignal(imus.at(i).imu_data.sequence_number,imus.at(i).imu_data.xgyro,"imu");
+			update_sensorsignal(imus.at(i).imu_data.sequence_number,imus.at(i).imu_data.ygyro,"imu");
+			update_sensorsignal(imus.at(i).imu_data.sequence_number,imus.at(i).imu_data.zgyro,"imu");
+			update_sensorsignal(imus.at(i).imu_data.sequence_number,imus.at(i).imu_data.xmag,"imu");
+			update_sensorsignal(imus.at(i).imu_data.sequence_number,imus.at(i).imu_data.ymag,"imu");
+			update_sensorsignal(imus.at(i).imu_data.sequence_number,imus.at(i).imu_data.zmag,"imu");
 
 			/*
 			imus.at(i).orientation_roll.value = compute_acceleration_based_roll(imus.at(i).imu_data.xacc.value,
@@ -336,8 +336,10 @@ eros::diagnostic PoseNodeProcess::update_pose(double t_dt, double t_ros_time)
 	}
 	else
 	{
+		std::vector<TimedSignal> timedsignal_list;
+		std::vector<PostProcessedSignal> postprocessedsignal_list;
 		{ // Time Compensate
-			std::vector<TimedSignal> timedsignal_list;
+			
 			for(std::size_t i = 0; i < sensor_signals.size(); ++i)
 			{
 				TimedSignal sig = time_compensators.at(i).new_signal(t_ros_time,sensor_signals.at(i));
@@ -345,7 +347,17 @@ eros::diagnostic PoseNodeProcess::update_pose(double t_dt, double t_ros_time)
 			}
 		}
 		{ // Sensor Post-Process
-
+			for(std::size_t i = 0; i < timedsignal_list.size(); ++i)
+			{
+				for(std::size_t j = 0; j < imu_postprocessors.size(); ++j)
+				{
+					if(timedsignal_list.at(i).signal.name == imu_postprocessors.at(j).get_name())
+					{
+						PostProcessedSignal post_signal = imu_postprocessors.at(i).new_signal(timedsignal_list.at(i));
+						postprocessedsignal_list.push_back(post_signal);
+					}
+				}
+			}
 		}
 		{ // Signal Linkers
 			//sensor_linearacceleration.xacc = xacc_linker->get_outputsignals();
@@ -356,7 +368,7 @@ eros::diagnostic PoseNodeProcess::update_pose(double t_dt, double t_ros_time)
 	}
 	return diag;
 }
-void PoseNodeProcess::update_sensorsignal(uint64_t sequence_number,eros::signal signal)
+void PoseNodeProcess::update_sensorsignal(uint64_t sequence_number,eros::signal signal,std::string source_sensor)
 {
 	bool found = false;
 	for(std::size_t i = 0; i < sensor_signals.size(); ++i)
@@ -378,5 +390,12 @@ void PoseNodeProcess::update_sensorsignal(uint64_t sequence_number,eros::signal 
 		TimeCompensate tc;
 		tc.init(new_sig.signal.name,TimeCompensate::SamplingMethod::SAMPLEANDHOLD);
 		time_compensators.push_back(tc);
+
+		if(source_sensor == "imu")
+		{
+			IMUPostProcess post_processor;
+			post_processor.init(new_sig.signal.name);
+			imu_postprocessors.push_back(post_processor);
+		}
 	}
 }
