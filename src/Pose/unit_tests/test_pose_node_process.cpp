@@ -10,11 +10,36 @@ std::string ros_DeviceName = Host_Name;
 
 void print_diagnostic(uint8_t level,eros::diagnostic diagnostic)
 {
+	DiagnosticClass diag_helper;
 	if(diagnostic.Level >= level)
 	{
-		printf("Type: %d Message: %d Level: %d Device: %s Desc: %s\n",diagnostic.Diagnostic_Type,diagnostic.Diagnostic_Message,
-			  		diagnostic.Level,diagnostic.DeviceName.c_str(),diagnostic.Description.c_str());
+		printf("Type: %s Message: %s Level: %s Device: %s Desc: %s\n",
+			diag_helper.get_DiagTypeString(diagnostic.Diagnostic_Type).c_str(),
+			diag_helper.get_DiagMessageString(diagnostic.Diagnostic_Message).c_str(),
+			diag_helper.get_DiagLevelString(diagnostic.Level).c_str(),
+			diagnostic.DeviceName.c_str(),diagnostic.Description.c_str());
 	}
+}
+eros::signal generate_signal(std::string name,double value)
+{
+	eros::signal sig;
+	sig.name = name;
+	sig.value = value;
+	return sig;
+}
+eros::imu generate_imumsg(uint16_t id)
+{
+	eros::imu msg;
+	msg.xacc = generate_signal("xacc" + std::to_string(id),0.0);
+	msg.yacc = generate_signal("yacc" + std::to_string(id),0.0);
+	msg.zacc = generate_signal("zacc" + std::to_string(id),0.0);
+	msg.xgyro = generate_signal("xgyro" + std::to_string(id),0.0);
+	msg.ygyro = generate_signal("ygyro" + std::to_string(id),0.0);
+	msg.zgyro = generate_signal("zgyro" + std::to_string(id),0.0);
+	msg.xmag = generate_signal("xmag" + std::to_string(id),0.0);
+	msg.ymag = generate_signal("ymag" + std::to_string(id),0.0);
+	msg.zmag = generate_signal("zmag" + std::to_string(id),0.0);
+	return msg;
 }
 PoseNodeProcess* initializeprocess(uint8_t imucount)
 {
@@ -25,13 +50,13 @@ PoseNodeProcess* initializeprocess(uint8_t imucount)
 	device.DeviceParent = "None";
 	device.Architecture = "x86_64";
 	std::vector<eros::device> imu_list;
-	if(imucount == 1)
+	for(int i = 0; i < imucount; ++i)
 	{
 		eros::device imu;
-		imu.DeviceName = "IMU1";;
+		imu.DeviceName = "IMU" + std::to_string(i+1);
 		imu.DeviceParent = ros_DeviceName;
 		imu.DeviceType = "IMU";
-		imu.ID = 0;
+		imu.ID = i;
 		imu.PartNumber = "110012";
 		imu_list.push_back(imu);
 	}
@@ -57,20 +82,32 @@ PoseNodeProcess* initializeprocess(uint8_t imucount)
 		eros::diagnostic diagnostic = process->new_devicemsg(imu_ptr);
 		EXPECT_TRUE(diagnostic.Level <= NOTICE);
 	}
+	process->update_diagnostic(SYSTEM_RESOURCE,INFO,NOERROR,"Not testing this during unit tests.");
 	EXPECT_TRUE(process->get_mydevice().DeviceName == device.DeviceName);
 	return process;
 }
 PoseNodeProcess* readyprocess(PoseNodeProcess* process)
 {
+	std::vector<eros::diagnostic> diagnostics;
 	eros::diagnostic diag = process->update(0.0,0.0);
-	EXPECT_TRUE(diag.Level <= NOTICE);
+	EXPECT_TRUE(diag.Diagnostic_Type == POSE);
+	EXPECT_TRUE(diag.Level == WARN); //NO Sensor Inputs Yet
 	EXPECT_TRUE(process->is_ready() == true);
 	{
 		std::vector<eros::diagnostic> diagnostics = process->get_diagnostics();
 		EXPECT_TRUE(diagnostics.size() == (DIAGNOSTIC_TYPE_COUNT+process->get_imus().size()));
 		for (std::size_t i = 0; i < diagnostics.size(); ++i)
 		{
-			EXPECT_TRUE(diagnostics.at(i).Level <= NOTICE);
+			if(diagnostics.at(i).Diagnostic_Type == POSE) //NO Sensor Inputs Yet
+			{
+				EXPECT_TRUE(diagnostics.at(i).Level <= WARN);
+			}
+			else
+			{
+				EXPECT_TRUE(diagnostics.at(i).Level <= NOTICE);
+			}
+			
+			
 		}
 	}
 	return process;
@@ -105,40 +142,9 @@ TEST(Math,Definitions)
 		}
 	}
 }
-TEST(Blocks,Blocks)
+TEST(Template,Process_SensorInputs)
 {
-	PoseNodeProcess* process = initializeprocess(1);
-	process = readyprocess(process);
-	//Acceleration Based Orientation
-	{
-		{//Roll
-			std::vector<double> x{0.0,-4.0,-9.0,4.0,9.0,0.0,0.0,0.0,0.0};
-			std::vector<double> y{0.0,0.0,0.0,0.0,0.0,-4.0,-9.0,4.0,9.0};
-			std::vector<double> z{9.81,8.9574605,3.90334472,8.9574605,3.90334472,8.9574605,3.90334472,8.9574605,3.90334472};
-			std::vector<double> expected{0.0,0.0,0.0,0.0,0.0,0.4199855,1.161575,-0.4199855,-1.161575};
-			for(std::size_t i = 0; i < x.size(); ++i)
-			{
-				double v = process->compute_acceleration_based_roll(x.at(i),y.at(i),z.at(i));
-				EXPECT_TRUE((fabs(v-expected.at(i)) < .000001));
-			}
-		}
-		{//Pitch
-			std::vector<double> x{0.0,-4.0,-9.0,4.0,9.0,0.0,0.0,0.0,0.0};
-			std::vector<double> y{0.0,0.0,0.0,0.0,0.0,-4.0,-9.0,4.0,9.0};
-			std::vector<double> z{9.81,8.9574605,3.90334472,8.9574605,3.90334472,8.9574605,3.90334472,8.9574605,3.90334472};
-			std::vector<double> expected{0.0,0.4199855,1.161575,-0.4199855,-1.161575,0.0,0.0,0.0,0.0};
-			for(std::size_t i = 0; i < x.size(); ++i)
-			{
-				double v = process->compute_acceleration_based_pitch(x.at(i),y.at(i),z.at(i));
-				EXPECT_TRUE((fabs(v-expected.at(i)) < .000001));
-			}
-		}
-	}
-}
-
-TEST(Template,Process_Command)
-{
-	PoseNodeProcess* process = initializeprocess(1);
+	PoseNodeProcess* process = initializeprocess(2);
 	process = readyprocess(process);
 	double time_to_run = 20.0;
 	double dt = 0.001;
@@ -146,84 +152,23 @@ TEST(Template,Process_Command)
 	bool fastrate_fire = false; //10 Hz
 	bool mediumrate_fire = false; //1 Hz
 	bool slowrate_fire = false; //0.1 Hz
+	bool allsensor_data_received = false;
 	while(current_time <= time_to_run)
 	{
+		if(current_time > 5.0)
+		{
+			EXPECT_TRUE(allsensor_data_received == true);
+		}
 		eros::diagnostic diag = process->update(dt,current_time);
-		EXPECT_TRUE(diag.Level <= NOTICE);
-		int current_time_ms = (int)(current_time*1000.0);
-		if((current_time_ms % 100) == 0)
+		if(allsensor_data_received == true)
 		{
-			fastrate_fire = true;
+			EXPECT_TRUE(diag.Level <= NOTICE);
 		}
-		else { fastrate_fire = false; }
-		if((current_time_ms % 1000) == 0)
+		else
 		{
-			mediumrate_fire = true;
+			EXPECT_TRUE(diag.Level == WARN);
 		}
-		else { mediumrate_fire = false; }
-		if((current_time_ms % 10000) == 0)
-		{
-			slowrate_fire = true;
-		}
-		else { slowrate_fire = false; }
-
-		eros::command cmd;
-		cmd.Command = ROVERCOMMAND_RUNDIAGNOSTIC;
-
-		if(fastrate_fire == true) //Nothing to do here
-		{
-			cmd.Option1 = LEVEL1;
-			eros::command::ConstPtr cmd_ptr(new eros::command(cmd));
-			std::vector<eros::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
-			for(std::size_t i = 0; i < diaglist.size(); i++)
-			{
-				EXPECT_TRUE(diaglist.at(i).Level <= NOTICE);
-			}
-			EXPECT_TRUE(diaglist.size() > 0);
-
-
-		}
-		if(mediumrate_fire == true)
-		{
-			cmd.Option1 = LEVEL2;
-			eros::command::ConstPtr cmd_ptr(new eros::command(cmd));
-			std::vector<eros::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
-			for(std::size_t i = 0; i < diaglist.size(); i++)
-			{
-				EXPECT_TRUE(diaglist.at(i).Level <= NOTICE);
-			}
-			EXPECT_TRUE(diaglist.size() > 0);
-
-		}
-		if(slowrate_fire == true)
-		{
-			{
-				std::vector<eros::diagnostic> diagnostics = process->get_diagnostics();
-				EXPECT_TRUE(diagnostics.size() == (DIAGNOSTIC_TYPE_COUNT+process->get_imus().size()));
-				for (std::size_t i = 0; i < diagnostics.size(); ++i)
-				{
-					EXPECT_TRUE(diagnostics.at(i).Level <= NOTICE);
-				}
-			}
-		}
-		current_time += dt;
-	}
-	EXPECT_TRUE(process->get_runtime() >= time_to_run);
-}
-TEST(Template,Process_IMUMsg)
-{
-	PoseNodeProcess* process = initializeprocess(1);
-	process = readyprocess(process);
-	double time_to_run = 20.0;
-	double dt = 0.001;
-	double current_time = 0.0;
-	bool fastrate_fire = false; //10 Hz
-	bool mediumrate_fire = false; //1 Hz
-	bool slowrate_fire = false; //0.1 Hz
-	while(current_time <= time_to_run)
-	{
-		eros::diagnostic diag = process->update(dt,current_time);
-		EXPECT_TRUE(diag.Level <= NOTICE);
+		
 		int current_time_ms = (int)(current_time*1000.0);
 		if((current_time_ms % 100) == 0)
 		{
@@ -244,14 +189,19 @@ TEST(Template,Process_IMUMsg)
 
 		if(fastrate_fire == true)
 		{
-			eros::imu imu_msg;
-			imu_msg.xacc.value = 0.0;
-			imu_msg.yacc.value = 0.0;
-			imu_msg.zacc.value = 9.81;
-			eros::imu::ConstPtr imudata_ptr(new eros::imu(imu_msg));
-			diag = process->new_imumsg("/IMU1", imudata_ptr);
-			PoseNodeProcess::IMUSensor imu = process->get_imudata("IMU1");
-			EXPECT_TRUE(imu.orientation_pitch.status == SIGNALSTATE_UPDATED);
+			{
+				eros::imu imu_msg = generate_imumsg(1);
+				eros::imu::ConstPtr imudata_ptr(new eros::imu(imu_msg));
+				diag = process->new_imumsg("/IMU1", imudata_ptr);
+			}
+			{
+				eros::imu imu_msg = generate_imumsg(2);
+				eros::imu::ConstPtr imudata_ptr(new eros::imu(imu_msg));
+				diag = process->new_imumsg("/IMU2", imudata_ptr);
+			}
+			allsensor_data_received = true;
+			//PoseNodeProcess::IMUSensor imu = process->get_imudata("IMU1");
+			//EXPECT_TRUE(imu.orientation_pitch.status == SIGNALSTATE_UPDATED);
 		}
 		if(mediumrate_fire == true)
 		{
@@ -264,7 +214,21 @@ TEST(Template,Process_IMUMsg)
 				EXPECT_TRUE(diagnostics.size() == (DIAGNOSTIC_TYPE_COUNT+process->get_imus().size()));
 				for (std::size_t i = 0; i < diagnostics.size(); ++i)
 				{
-					EXPECT_TRUE(diagnostics.at(i).Level <= NOTICE);
+					if(diagnostics.at(i).Diagnostic_Type == POSE) //NO Sensor Inputs Yet
+					{
+						if(allsensor_data_received == true)
+						{
+							EXPECT_TRUE(diag.Level <= NOTICE);
+						}
+						else
+						{
+							EXPECT_TRUE(diag.Level == WARN);
+						}
+					}
+					else
+					{
+						EXPECT_TRUE(diagnostics.at(i).Level <= NOTICE);
+					}
 				}
 			}
 		}

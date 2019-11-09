@@ -3,18 +3,19 @@
 
 #include <stdio.h>
 #include <iostream>
+#include "../../Definitions/PoseDefinitions.h"
 #include "Definitions.h"
 #include <eros/signal.h>
 class TimeCompensate
 {
 
 public:
-	const uint8_t BUFFER_LENGTH = 5;
+	const static uint8_t BUFFER_LENGTH = 10;
 	enum SamplingMethod
 	{
 		NONE = 0,
 		SAMPLEANDHOLD = 1,
-		EXTRAPOLATE = 2
+		LINEAREXTRAPOLATE = 2
 	};
 	TimeCompensate();
 	~TimeCompensate();
@@ -22,19 +23,22 @@ public:
 
 
 	//Initialization Functions
-	//Attribute Functions
-	void set_samplingmethod(SamplingMethod method_)
+	void init(std::string _name,SamplingMethod _method)
 	{
-		method = method_;
+		name = _name;
+		method = _method;
 	}
+	//Attribute Functions
+	uint16_t buffer_size() { return (int)valid_buffer.size(); }
 	//Message Functions
-	eros::signal new_signal(ros::Time current_time,eros::signal input);
-	eros::signal get_output()
+	TimedSignal new_signal(double current_time,SensorSignal input);
+	/*eros::signal get_output()
 	{
 		eros::signal out = output;
 		output.status = SIGNALSTATE_HOLD;
 		return out;
 	}
+	*/
 	//Support Functions
 
 	//Printing Functions
@@ -43,16 +47,14 @@ public:
 private:
 	struct StorageBufferElement
 	{
-		double timestamp;
+		double time;
 		double value;
-		uint8_t state;
 	};
-	double compute_timesum(std::vector<StorageBufferElement> buf,uint32_t start_index,uint32_t stop_index);
-	double compute_valuesum(std::vector<StorageBufferElement> buf,uint32_t start_index,uint32_t stop_index);
+	std::string name;
 	eros::signal output;
-	std::vector<StorageBufferElement> buffer;
+	std::vector<StorageBufferElement> valid_buffer;
 	SamplingMethod method;
-	int buffer_limit;
+	uint64_t prev_sequence_number;
 };
 
 #endif

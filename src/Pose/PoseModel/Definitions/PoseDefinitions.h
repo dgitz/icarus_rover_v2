@@ -1,4 +1,21 @@
-struct PoseDiagnostic
+#ifndef POSEDEFINITIONS_H
+#define POSEDEFINITIONS_H
+#include <stdio.h>
+#include <iostream>
+#include "Definitions.h"
+#include <eros/signal.h>
+struct SensorSignal
+{
+	uint64_t sequence_number;
+	eros::signal signal;
+	uint8_t signal_class;
+};
+struct TimedSignal
+{
+	eros::signal signal;
+	uint8_t signal_class;
+};
+/*struct PoseDiagnostic
 {
 
 };
@@ -55,3 +72,6 @@ struct BaseMachine
 {
 
 };
+*/
+
+#endif
