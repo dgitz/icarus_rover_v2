@@ -44,7 +44,7 @@ public:
 	/*! \brief Implementation of the update function
 	 *
 	 */
-	eros::diagnostic update(double t_dt,double t_ros_time);
+	eros::diagnostic update(__attribute__((unused)) double t_dt,double t_ros_time);
 
 	//Attribute Functions
 	uint16_t get_expectedsensor_signalcount() { return expected_sensorsignal_count; }

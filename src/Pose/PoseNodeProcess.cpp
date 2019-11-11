@@ -327,7 +327,7 @@ PoseNodeProcess::PoseMode PoseNodeProcess::map_posemode_tovalue(std::string t_po
 		return PoseMode::UNKNOWN;
 	}
 }
-eros::diagnostic PoseNodeProcess::update_pose(double t_dt, double t_ros_time)
+eros::diagnostic PoseNodeProcess::update_pose(__attribute__((unused)) double t_dt, double t_ros_time)
 {
 	eros::diagnostic diag = root_diagnostic;
 	if((sensor_signals.size() < expected_sensorsignal_count) || (expected_sensorsignal_count == 0))
