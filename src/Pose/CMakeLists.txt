@@ -7,7 +7,7 @@ if (${CMAKE_HOST_SYSTEM_PROCESSOR} STREQUAL x86_64)
     target_link_libraries(pose_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES}
         time_compensate 
         imu_postprocess
-        linear_acceleration_linker)
+        master_linker)
     add_executable(pose_node pose_node.cpp)
     target_link_libraries(pose_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} pose_node_process logger resourcemonitor)
     catkin_add_gtest(test_pose_node_process unit_tests/test_pose_node_process.cpp)

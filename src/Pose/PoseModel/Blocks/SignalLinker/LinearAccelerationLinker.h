@@ -5,28 +5,52 @@
  *      Author: robot
  */
 
-#ifndef SRC_ICARUS_ROVER_V2_SRC_POSE_POSEMODEL_BLOCKS_SIGNALLINKER_LINEARACCELERATIONLINKER_H_
-#define SRC_ICARUS_ROVER_V2_SRC_POSE_POSEMODEL_BLOCKS_SIGNALLINKER_LINEARACCELERATIONLINKER_H_
-#include "BaseMachineLinker.cpp"
-class LinearAccelerationLinker: public BaseMachineLinker {
+#ifndef SRC_ICARUS_ROVER_V2_SRC_POSE_POSEMODEL_BLOCKS_SIGNALLINKER_LINEACCELERATIONLINKER_H_
+#define SRC_ICARUS_ROVER_V2_SRC_POSE_POSEMODEL_BLOCKS_SIGNALLINKER_LINEACCELERATIONLINKER_H_
+#include "../../../../../include/eROS_Definitions.h"
+#include "../../Definitions/PoseDefinitions.h"
+#include "eros/diagnostic.h"
+#include "eros/signal.h"
+#include "BaseLinker.h"
+class LinearAccelerationLinker: public BaseLinker {
 public:
 	LinearAccelerationLinker();
 	virtual ~LinearAccelerationLinker();
 	//Initialization Functions
-	bool initialize_object(std::string _name,eros::diagnostic diag);
-	/*
-	For this linker, all inputs are expected to be of the same class (i.e. Linear Acceleration signals)
-	*/
-	eros::diagnostic initialize_inputsignals(std::vector<eros::signal> inputs);
-	/*
-	For this linker, it is expected that there is a 1-to-1 mapping between input and output signals
-	*/
-	eros::diagnostic initialize_outputsignals(std::vector<eros::signal> outputs);
+	void init(eros::diagnostic _diagnostic)
+	{
+		diagnostic = _diagnostic;
+	}
 	//Attribute Functions
+	void reset()
+	{
+
+	}
 	//Message Functions
-	//Support Functions
-	eros::diagnostic update(double dt, double _ros_time);
-	//Printing Functions
+	eros::diagnostic new_input(std::vector<SplitSignal> inputs);
+	eros::diagnostic new_input(__attribute__((unused)) std::vector<std::vector<InputSignal_3d> > inputs)
+	{
+		eros::diagnostic diag = diagnostic;
+		diag.Level = ERROR;
+		diag.Diagnostic_Message = INITIALIZING_ERROR;
+		diag.Description = "LinearAccelerationLinker: Function is not available or not implemented yet.";
+		diagnostic = diag;
+		return diag;
+	}
+
+private:
+	eros::diagnostic update_input(std::vector<SplitSignal> inputs);
+	eros::diagnostic update_input(__attribute__((unused)) std::vector<std::vector<InputSignal_3d> > inputs)
+	{
+		eros::diagnostic diag = diagnostic;
+		diag.Level = ERROR;
+		diag.Diagnostic_Message = INITIALIZING_ERROR;
+		diag.Description = "LinearAccelerationLinker: Function is not available or not implemented yet.";
+		diagnostic = diag;
+		return diag;
+	}
+	eros::diagnostic diagnostic;
+	bool initialized;
 };
 
-#endif /* SRC_ICARUS_ROVER_V2_SRC_POSE_POSEMODEL_BLOCKS_SIGNALLINKER_LINEARACCELERATIONLINKER_H_ */
+#endif /* SRC_ICARUS_ROVER_V2_SRC_POSE_POSEMODEL_BLOCKS_SIGNALLINKER_LINEACCELERATIONLINKER_H_ */

@@ -78,7 +78,8 @@ bool PoseNode::run_01hz_noisy()
 }
 bool PoseNode::run_1hz()
 {
-	process->update_diagnostic(get_resource_diagnostic());
+	eros::diagnostic diag = diagnostic;
+	diag = process->update_diagnostic(get_resource_diagnostic());
 	if ((process->is_initialized() == true) and (process->is_ready() == true))
 	{
 	}
@@ -235,7 +236,7 @@ void PoseNode::cleanup()
 /*! \brief Attempts to kill a node when an interrupt is received.
  *
  */
-void signalinterrupt_handler(int sig)
+void signalinterrupt_handler(__attribute__((unused)) int sig)
 {
 	kill_node = true;
 	exit(0);

@@ -2,6 +2,7 @@
 #define POSEDEFINITIONS_H
 #include <stdio.h>
 #include <iostream>
+#include "../../../../../eROS/include/DiagnosticClass.h"
 #include "Definitions.h"
 #include <eros/signal.h>
 struct SensorSignal
@@ -19,6 +20,28 @@ struct PostProcessedSignal
 {
 	eros::signal signal;
 	uint8_t signal_class;
+};
+
+
+struct SplitSignal
+{
+	std::string instance_name;
+	eros::signal x;
+	eros::signal y;
+	eros::signal z;
+	uint64_t x_update_count;
+	uint64_t y_update_count;
+	uint64_t z_update_count;
+};
+struct InputSignal_3d
+{
+	std::string instance_name;
+	eros::signal x;
+	eros::signal y;
+	eros::signal z;
+	uint64_t x_update_count;
+	uint64_t y_update_count;
+	uint64_t z_update_count;
 };
 /*struct PoseDiagnostic
 {

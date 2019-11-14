@@ -24,11 +24,12 @@ public:
 	//Support Functions
     std::vector<SensorSignal> Create_SensorSignal(DummyDataType dummydata_type);
 	std::vector<TimedSignal> Create_TimedSignal(DummyDataType dummydata_type);
+	std::vector<std::vector<PostProcessedSignal> > Create_ProcessedSignalVector();
 	//Printing Functions
 
 
 private:
-	std::vector<eros::signal> create_sensorsignal(DummyDataType dummydata_type);
+	std::vector<eros::signal> create_sensorsignal(bool rand_time,std::string name, uint8_t signal_type,DummyDataType dummydata_type);
 };
 
 #endif

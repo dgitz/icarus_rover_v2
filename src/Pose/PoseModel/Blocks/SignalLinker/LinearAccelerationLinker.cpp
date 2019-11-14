@@ -6,7 +6,6 @@
  */
 
 #include "LinearAccelerationLinker.h"
-
 LinearAccelerationLinker::LinearAccelerationLinker() {
 	// TODO Auto-generated constructor stub
 
@@ -15,41 +14,42 @@ LinearAccelerationLinker::LinearAccelerationLinker() {
 LinearAccelerationLinker::~LinearAccelerationLinker() {
 	// TODO Auto-generated destructor stub
 }
-bool LinearAccelerationLinker::initialize_object(std::string _name,eros::diagnostic diag)
+eros::diagnostic LinearAccelerationLinker::new_input(std::vector<SplitSignal> inputs)
 {
-	diagnostic = diag;
-	name = _name;
-	return true;
+    eros::diagnostic diag = diagnostic;
+    if(initialized == false)
+    {
+        for(std::size_t i = 0; i < inputs.size(); ++i)
+        {
+            InputSignal_3d output;
+            output.instance_name = std::to_string(i);
+            output.x = inputs.at(i).x;
+            output.y = inputs.at(i).y;
+            output.z = inputs.at(i).z;
+            output.x_update_count = 0;
+            output.y_update_count = 0;
+            output.z_update_count = 0;
+            outputs.push_back(output);
+        }
+        input_count = (int)inputs.size();
+        initialized = true;
+    }
+    diag = update_input(inputs);
+    diagnostic = diag;
+    return diagnostic;
 }
-eros::diagnostic LinearAccelerationLinker::initialize_inputsignals(std::vector<eros::signal> inputs)
+eros::diagnostic LinearAccelerationLinker::update_input(std::vector<SplitSignal> inputs)
 {
-	eros::diagnostic diag = diagnostic;
-	for(std::size_t i = 0; i < inputs.size(); ++i)
-	{
-		input_signals.push_back(inputs.at(i));
-	}
-	diagnostic = diag;
-	return diagnostic;
-}
-eros::diagnostic LinearAccelerationLinker::initialize_outputsignals(std::vector<eros::signal> outputs)
-{
-	eros::diagnostic diag = diagnostic;
-	for(std::size_t i = 0; i < outputs.size(); ++i)
-	{
-		output_signals.push_back(outputs.at(i));
-	}
-	diagnostic = diag;
-	return diagnostic;
-}
-eros::diagnostic LinearAccelerationLinker::update(double dt, double _ros_time)
-{
-	eros::diagnostic diag = base_update(dt,_ros_time);
-	for(std::size_t i = 0; i < output_signals.size(); ++i)
-	{
-		eros::signal out = input_signals.at(i);
-		out.tov = ros_time;
-		output_signals.at(i) = out;
-	}
-	diagnostic = diag;
-	return diagnostic;
+    eros::diagnostic diag = diagnostic;
+    for(std::size_t i = 0; i < inputs.size(); ++i)
+    {
+        outputs.at(i).x = inputs.at(i).x;
+        outputs.at(i).y = inputs.at(i).y;
+        outputs.at(i).z = inputs.at(i).z;
+        outputs.at(i).x_update_count++;
+        outputs.at(i).y_update_count++;
+        outputs.at(i).z_update_count++;
+    }
+    diagnostic = diag;
+    return diagnostic;
 }
