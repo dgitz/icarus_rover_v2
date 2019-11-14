@@ -23,9 +23,9 @@ public:
 	//Message Functions
 	eros::diagnostic new_input(std::vector<PostProcessedSignal> signals);
 	//Attribute Functions
-	std::vector<LinkedSensor_Acceleration> get_linked_accelerations() { return linked_accelerations; }
-	std::vector<LinkedSensor_RotationRate> get_linked_rotationratates() { return linked_rotationrates; }
-	std::vector<LinkedSensor_MagneticField> get_linked_magneticfields() { return linked_magneticfields; }
+	std::vector<SplitSignal> get_split_linearaccelerations() { return split_linearaccelerations; }
+	std::vector<SplitSignal> get_split_rotationratates() { return split_rotationrates; }
+	std::vector<SplitSignal> get_split_magneticfields() { return split_magneticfields; }
 	//Printing functions
 	void print_splitsignals();
 private:
@@ -33,9 +33,9 @@ private:
 	eros::diagnostic update_input(std::vector<PostProcessedSignal> signals);
 	eros::diagnostic diagnostic;
 	bool initialized;
-	std::vector<LinkedSensor_Acceleration> linked_accelerations;
-	std::vector<LinkedSensor_RotationRate> linked_rotationrates;
-	std::vector<LinkedSensor_MagneticField> linked_magneticfields;
+	std::vector<SplitSignal> split_linearaccelerations;
+	std::vector<SplitSignal> split_rotationrates;
+	std::vector<SplitSignal> split_magneticfields;
 };
 
 #endif /* SRC_ICARUS_ROVER_V2_SRC_POSE_POSEMODEL_BLOCKS_SIGNALLINKER_SIGNALSPLITTER_H_ */

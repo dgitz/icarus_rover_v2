@@ -50,6 +50,7 @@ eros::diagnostic PoseNodeProcess::update(double t_dt,double t_ros_time)
 			{ // Sensor Post Process
 			}
 			{ // Initialize Sensor Linkers
+				signal_linker.initialize_object("signal_linker",root_diagnostic);
 				/*
 				std::vector<eros::signal> xacc_signals;
 				std::vector<eros::signal> yacc_signals;
@@ -360,9 +361,8 @@ eros::diagnostic PoseNodeProcess::update_pose(__attribute__((unused)) double t_d
 			}
 		}
 		{ // Signal Linkers
-			//sensor_linearacceleration.xacc = xacc_linker->get_outputsignals();
-			//sensor_linearacceleration.yacc = yacc_linker->get_outputsignals();
-			//sensor_linearacceleration.zacc = zacc_linker->get_outputsignals();
+			diag = signal_linker.new_input(postprocessedsignal_list);
+			linearacc_inputsignals = signal_linker.get_linearaccelerations();
 		}
 		diag = update_diagnostic(POSE,INFO,NOERROR,"Pose Updated at time: " + std::to_string(t_ros_time));
 	}

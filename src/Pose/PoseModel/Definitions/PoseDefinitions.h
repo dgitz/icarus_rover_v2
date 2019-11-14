@@ -23,19 +23,7 @@ struct PostProcessedSignal
 };
 
 
-struct LinkedSensor_Acceleration
-{
-	std::string instance_name;
-	eros::signal x;
-
-	eros::signal y;
-
-	eros::signal z;
-	uint64_t x_update_count;
-	uint64_t y_update_count;
-	uint64_t z_update_count;
-};
-struct LinkedSensor_RotationRate
+struct SplitSignal
 {
 	std::string instance_name;
 	eros::signal x;
@@ -45,7 +33,7 @@ struct LinkedSensor_RotationRate
 	uint64_t y_update_count;
 	uint64_t z_update_count;
 };
-struct LinkedSensor_MagneticField
+struct InputSignal_3d
 {
 	std::string instance_name;
 	eros::signal x;

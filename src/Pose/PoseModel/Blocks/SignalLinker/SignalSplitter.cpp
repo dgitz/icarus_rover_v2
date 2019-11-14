@@ -41,16 +41,16 @@ eros::diagnostic SignalSplitter::init_signals(std::vector<PostProcessedSignal> s
             processed_signal_name = true;
             std::string instance_name = signals.at(i).signal.name.substr(4);
             bool found_instance = false;
-            for(std::size_t j = 0; j < linked_accelerations.size(); ++j)
+            for(std::size_t j = 0; j < split_linearaccelerations.size(); ++j)
             {
-                if(linked_accelerations.at(j).instance_name == instance_name)
+                if(split_linearaccelerations.at(j).instance_name == instance_name)
                 {
                     found_instance = true;
                 }
             }
             if(found_instance == false)
             {
-                LinkedSensor_Acceleration acc;
+                SplitSignal acc;
                 acc.instance_name = instance_name;
                 acc.x.name = "xacc" + instance_name;
                 acc.y.name = "yacc" + instance_name;
@@ -58,7 +58,7 @@ eros::diagnostic SignalSplitter::init_signals(std::vector<PostProcessedSignal> s
                 acc.x_update_count = 0;
                 acc.y_update_count = 0;
                 acc.z_update_count = 0;
-                linked_accelerations.push_back(acc);
+                split_linearaccelerations.push_back(acc);
             }
         }
         if( (signals.at(i).signal.name.find("xgyro") != std::string::npos) || 
@@ -68,16 +68,16 @@ eros::diagnostic SignalSplitter::init_signals(std::vector<PostProcessedSignal> s
             processed_signal_name = true;
             std::string instance_name = signals.at(i).signal.name.substr(5);
             bool found_instance = false;
-            for(std::size_t j = 0; j < linked_rotationrates.size(); ++j)
+            for(std::size_t j = 0; j < split_rotationrates.size(); ++j)
             {
-                if(linked_rotationrates.at(j).instance_name == instance_name)
+                if(split_rotationrates.at(j).instance_name == instance_name)
                 {
                     found_instance = true;
                 }
             }
             if(found_instance == false)
             {
-                LinkedSensor_RotationRate rot;
+                SplitSignal rot;
                 rot.instance_name = instance_name;
                 rot.x.name = "xgyro" + instance_name;
                 rot.y.name = "ygyro" + instance_name;
@@ -85,7 +85,7 @@ eros::diagnostic SignalSplitter::init_signals(std::vector<PostProcessedSignal> s
                 rot.x_update_count = 0;
                 rot.y_update_count = 0;
                 rot.z_update_count = 0;
-                linked_rotationrates.push_back(rot);
+                split_rotationrates.push_back(rot);
             }
         }
         if( (signals.at(i).signal.name.find("xmag") != std::string::npos) || 
@@ -95,16 +95,16 @@ eros::diagnostic SignalSplitter::init_signals(std::vector<PostProcessedSignal> s
             processed_signal_name = true;
             std::string instance_name = signals.at(i).signal.name.substr(4);
             bool found_instance = false;
-            for(std::size_t j = 0; j < linked_magneticfields.size(); ++j)
+            for(std::size_t j = 0; j < split_magneticfields.size(); ++j)
             {
-                if(linked_magneticfields.at(j).instance_name == instance_name)
+                if(split_magneticfields.at(j).instance_name == instance_name)
                 {
                     found_instance = true;
                 }
             }
             if(found_instance == false)
             {
-                LinkedSensor_MagneticField mag;
+                SplitSignal mag;
                 mag.instance_name = instance_name;
                 mag.x.name = "xmag" + instance_name;
                 mag.y.name = "ymag" + instance_name;
@@ -112,7 +112,7 @@ eros::diagnostic SignalSplitter::init_signals(std::vector<PostProcessedSignal> s
                 mag.x_update_count = 0;
                 mag.y_update_count = 0;
                 mag.z_update_count = 0;
-                linked_magneticfields.push_back(mag);
+                split_magneticfields.push_back(mag);
             }
         }
         if(processed_signal_name == false)
@@ -144,75 +144,75 @@ eros::diagnostic SignalSplitter::update_input(std::vector<PostProcessedSignal> s
     for(std::size_t i =0; i < signals.size(); ++i)
     {
         bool processed_signal_name = false;
-        for(std::size_t j = 0; j < linked_accelerations.size(); ++j)
+        for(std::size_t j = 0; j < split_linearaccelerations.size(); ++j)
         {
-            if(linked_accelerations.at(j).x.name == signals.at(i).signal.name)
+            if(split_linearaccelerations.at(j).x.name == signals.at(i).signal.name)
             {
                 processed_signal_name = true;
-                linked_accelerations.at(j).x = signals.at(i).signal;
-                linked_accelerations.at(j).x_update_count++;
+                split_linearaccelerations.at(j).x = signals.at(i).signal;
+                split_linearaccelerations.at(j).x_update_count++;
                 break;
             }
-            if(linked_accelerations.at(j).y.name == signals.at(i).signal.name)
+            if(split_linearaccelerations.at(j).y.name == signals.at(i).signal.name)
             {
                 processed_signal_name = true;
-                linked_accelerations.at(j).y = signals.at(i).signal;
-                linked_accelerations.at(j).y_update_count++;
+                split_linearaccelerations.at(j).y = signals.at(i).signal;
+                split_linearaccelerations.at(j).y_update_count++;
                 break;
             }
-            if(linked_accelerations.at(j).z.name == signals.at(i).signal.name)
+            if(split_linearaccelerations.at(j).z.name == signals.at(i).signal.name)
             {
                 processed_signal_name = true;
-                linked_accelerations.at(j).z = signals.at(i).signal;
-                linked_accelerations.at(j).z_update_count++;
+                split_linearaccelerations.at(j).z = signals.at(i).signal;
+                split_linearaccelerations.at(j).z_update_count++;
                 break;
             }
         }
-        for(std::size_t j = 0; j < linked_rotationrates.size(); ++j)
+        for(std::size_t j = 0; j < split_rotationrates.size(); ++j)
         {
-            if(linked_rotationrates.at(j).x.name == signals.at(i).signal.name)
+            if(split_rotationrates.at(j).x.name == signals.at(i).signal.name)
             {
                 processed_signal_name = true;
-                linked_rotationrates.at(j).x = signals.at(i).signal;
-                linked_rotationrates.at(j).x_update_count++;
+                split_rotationrates.at(j).x = signals.at(i).signal;
+                split_rotationrates.at(j).x_update_count++;
                 break;
             }
-            if(linked_rotationrates.at(j).y.name == signals.at(i).signal.name)
+            if(split_rotationrates.at(j).y.name == signals.at(i).signal.name)
             {
                 processed_signal_name = true;
-                linked_rotationrates.at(j).y = signals.at(i).signal;
-                linked_rotationrates.at(j).y_update_count++;
+                split_rotationrates.at(j).y = signals.at(i).signal;
+                split_rotationrates.at(j).y_update_count++;
                 break;
             }
-            if(linked_accelerations.at(j).z.name == signals.at(i).signal.name)
+            if(split_linearaccelerations.at(j).z.name == signals.at(i).signal.name)
             {
                 processed_signal_name = true;
-                linked_rotationrates.at(j).z = signals.at(i).signal;
-                linked_rotationrates.at(j).z_update_count++;
+                split_rotationrates.at(j).z = signals.at(i).signal;
+                split_rotationrates.at(j).z_update_count++;
                 break;
             }
         }
-        for(std::size_t j = 0; j < linked_magneticfields.size(); ++j)
+        for(std::size_t j = 0; j < split_magneticfields.size(); ++j)
         {
-            if(linked_magneticfields.at(j).x.name == signals.at(i).signal.name)
+            if(split_magneticfields.at(j).x.name == signals.at(i).signal.name)
             {
                 processed_signal_name = true;
-                linked_magneticfields.at(j).x = signals.at(i).signal;
-                linked_magneticfields.at(j).x_update_count++;
+                split_magneticfields.at(j).x = signals.at(i).signal;
+                split_magneticfields.at(j).x_update_count++;
                 break;
             }
-            if(linked_magneticfields.at(j).y.name == signals.at(i).signal.name)
+            if(split_magneticfields.at(j).y.name == signals.at(i).signal.name)
             {
                 processed_signal_name = true;
-                linked_magneticfields.at(j).y = signals.at(i).signal;
-                linked_magneticfields.at(j).y_update_count++;
+                split_magneticfields.at(j).y = signals.at(i).signal;
+                split_magneticfields.at(j).y_update_count++;
                 break;
             }
-            if(linked_magneticfields.at(j).z.name == signals.at(i).signal.name)
+            if(split_magneticfields.at(j).z.name == signals.at(i).signal.name)
             {
                 processed_signal_name = true;
-                linked_magneticfields.at(j).z = signals.at(i).signal;
-                linked_magneticfields.at(j).z_update_count++;
+                split_magneticfields.at(j).z = signals.at(i).signal;
+                split_magneticfields.at(j).z_update_count++;
                 break;
             }
         }
@@ -226,35 +226,35 @@ eros::diagnostic SignalSplitter::update_input(std::vector<PostProcessedSignal> s
 void SignalSplitter::print_splitsignals()
 {
     printf("--- SPLIT SIGNALS: ACCELERATION ---\n");
-    for(std::size_t i = 0; i < linked_accelerations.size(); ++i)
+    for(std::size_t i = 0; i < split_linearaccelerations.size(); ++i)
     {
         printf("\t[%d/%d] Instance: %s X Update Count: %ld Y Update Count: %ld Z Update Count: %ld\n",
-            (int)i+1,(int)linked_accelerations.size(),linked_accelerations.at(i).instance_name.c_str(),
-            linked_accelerations.at(i).x_update_count,
-            linked_accelerations.at(i).y_update_count,
-            linked_accelerations.at(i).z_update_count);
+            (int)i+1,(int)split_linearaccelerations.size(),split_linearaccelerations.at(i).instance_name.c_str(),
+            split_linearaccelerations.at(i).x_update_count,
+            split_linearaccelerations.at(i).y_update_count,
+            split_linearaccelerations.at(i).z_update_count);
 
     }
     printf("--- END SPLIT SIGNALS: ACCELERATION ---\n");
     printf("--- SPLIT SIGNALS: ROTATION RATE ---\n");
-    for(std::size_t i = 0; i < linked_rotationrates.size(); ++i)
+    for(std::size_t i = 0; i < split_rotationrates.size(); ++i)
     {
         printf("\t[%d/%d] Instance: %s X Update Count: %ld Y Update Count: %ld Z Update Count: %ld\n",
-            (int)i+1,(int)linked_rotationrates.size(),linked_rotationrates.at(i).instance_name.c_str(),
-            linked_rotationrates.at(i).x_update_count,
-            linked_rotationrates.at(i).y_update_count,
-            linked_rotationrates.at(i).z_update_count);
+            (int)i+1,(int)split_rotationrates.size(),split_rotationrates.at(i).instance_name.c_str(),
+            split_rotationrates.at(i).x_update_count,
+            split_rotationrates.at(i).y_update_count,
+            split_rotationrates.at(i).z_update_count);
 
     }
     printf("--- END SPLIT SIGNALS: ROTATION RATE ---\n");
     printf("--- SPLIT SIGNALS: MAGNETIC FIELD ---\n");
-    for(std::size_t i = 0; i < linked_magneticfields.size(); ++i)
+    for(std::size_t i = 0; i < split_magneticfields.size(); ++i)
     {
         printf("\t[%d/%d] Instance: %s X Update Count: %ld Y Update Count: %ld Z Update Count: %ld\n",
-            (int)i+1,(int)linked_magneticfields.size(),linked_magneticfields.at(i).instance_name.c_str(),
-            linked_magneticfields.at(i).x_update_count,
-            linked_magneticfields.at(i).y_update_count,
-            linked_magneticfields.at(i).z_update_count);
+            (int)i+1,(int)split_magneticfields.size(),split_magneticfields.at(i).instance_name.c_str(),
+            split_magneticfields.at(i).x_update_count,
+            split_magneticfields.at(i).y_update_count,
+            split_magneticfields.at(i).z_update_count);
 
     }
     printf("--- END SPLIT SIGNALS: MAGNETIC FIELD ---\n");

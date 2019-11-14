@@ -29,7 +29,57 @@ bool isequal(double a, double b, double precision)
 		return false;
 	}
 }
-
+void print_linearaccelerations(MasterLinker* linker)
+{
+	printf("--- LINEAR ACC INPUTS ---\n");
+	std::vector<InputSignal_3d> linear_acc_inputs = linker->get_linearaccelerations();
+	
+	for(std::size_t i = 0; i < linear_acc_inputs.size(); ++i)
+	{
+		printf("\t[%d/%d] Instance: %s X: %f Update Count: %ld Y: %f Update Count: %ld Z: %f Update Count: %ld\n",
+			(int)i+1,(int)linear_acc_inputs.size(),linear_acc_inputs.at(i).instance_name.c_str(),
+			linear_acc_inputs.at(i).x.value,
+			linear_acc_inputs.at(i).x_update_count,
+			linear_acc_inputs.at(i).y.value,
+			linear_acc_inputs.at(i).y_update_count,
+			linear_acc_inputs.at(i).z.value,
+			linear_acc_inputs.at(i).z_update_count);
+	}
+}
+void print_rotationrates(MasterLinker* linker)
+{
+	printf("--- ROTATION RATE INPUTS ---\n");
+	std::vector<InputSignal_3d> rotation_rate_inputs = linker->get_rotationrates();
+	
+	for(std::size_t i = 0; i < rotation_rate_inputs.size(); ++i)
+	{
+		printf("\t[%d/%d] Instance: %s X: %f Update Count: %ld Y: %f Update Count: %ld Z: %f Update Count: %ld\n",
+			(int)i+1,(int)rotation_rate_inputs.size(),rotation_rate_inputs.at(i).instance_name.c_str(),
+			rotation_rate_inputs.at(i).x.value,
+			rotation_rate_inputs.at(i).x_update_count,
+			rotation_rate_inputs.at(i).y.value,
+			rotation_rate_inputs.at(i).y_update_count,
+			rotation_rate_inputs.at(i).z.value,
+			rotation_rate_inputs.at(i).z_update_count);
+	}
+}
+void print_orientations(MasterLinker* linker)
+{
+	printf("--- ORIENTATION INPUTS ---\n");
+	std::vector<InputSignal_3d> orientations = linker->get_orientations();
+	
+	for(std::size_t i = 0; i < orientations.size(); ++i)
+	{
+		printf("\t[%d/%d] Instance: %s X: %f Update Count: %ld Y: %f Update Count: %ld Z: %f Update Count: %ld\n",
+			(int)i+1,(int)orientations.size(),orientations.at(i).instance_name.c_str(),
+			orientations.at(i).x.value,
+			orientations.at(i).x_update_count,
+			orientations.at(i).y.value,
+			orientations.at(i).y_update_count,
+			orientations.at(i).z.value,
+			orientations.at(i).z_update_count);
+	}
+}
 MasterLinker *initialize_master_linker(std::string name, uint8_t input_signal_count, uint8_t output_signal_count)
 {
 	/*
@@ -63,6 +113,7 @@ MasterLinker *initialize_master_linker(std::string name, uint8_t input_signal_co
 	//EXPECT_TRUE(linker->initialize_outputsignals(output_signals).Level <= NOTICE);
 	return linker;
 }
+
 TEST(MasterLinker, Execution)
 {
 	eros::diagnostic diag;
@@ -78,6 +129,10 @@ TEST(MasterLinker, Execution)
 		}
 		diag = linker->new_input(input_signals);
 		EXPECT_TRUE(diag.Level <= NOTICE);
+		printf("t: %f\n",dummydata.at(0).at(t).signal.tov);
+		print_linearaccelerations(linker);
+		print_rotationrates(linker);
+		print_orientations(linker);
 	}
 }
 int main(int argc, char **argv)
