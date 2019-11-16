@@ -20,6 +20,7 @@ eros::diagnostic MasterNodeProcess::finish_initialization()
 	diag = load_devicefile(device_filepath);
 	diag = update_diagnostic(diag);
 	load_factor.stamp = convert_time(ros_time);
+	load_factor.DeviceName = get_mydevice().DeviceName;
 	load_factor.loadfactor.push_back(-1.0);
 	load_factor.loadfactor.push_back(-1.0);
 	load_factor.loadfactor.push_back(-1.0);

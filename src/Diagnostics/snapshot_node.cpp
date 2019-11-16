@@ -54,7 +54,7 @@ eros::diagnostic SnapshotNode::finish_initialization()
 {
 	eros::diagnostic diag = diagnostic;
 	pps1_sub = n->subscribe<std_msgs::Bool>("/1PPS", 1, &SnapshotNode::PPS1_Callback, this);
-	command_sub = n->subscribe<eros::command>("/command", 1, &SnapshotNode::Command_Callback, this);
+	command_sub = n->subscribe<eros::command>("/command", 5, &SnapshotNode::Command_Callback, this);
 	std::string device_topic = "/" + std::string(host_name) + "_master_node/srv_device";
 	srv_device = n->serviceClient<eros::srv_device>(device_topic);
 	std::string srv_snapshot_topic = "/" + node_name + "/srv_snapshotstate";
