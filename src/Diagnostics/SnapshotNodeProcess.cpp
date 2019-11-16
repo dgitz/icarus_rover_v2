@@ -529,11 +529,30 @@ std::vector<eros::diagnostic> SnapshotNodeProcess::createnew_snapshot(uint8_t sn
 	//Copy all folders into new snapshot 
 	for(std::size_t i = 0; i < snapshot_config.folders.size(); ++i)
 	{
-		char tempstr[1024];
-		sprintf(tempstr, "cp -r %s %s/",  snapshot_config.folders.at(i).c_str(),snapshot_path.c_str());
+		char tempstr1[1024];
+		sprintf(tempstr1,"mkdir -p %s %s/%s",
+				snapshot_config.folders.at(i).c_str(),
+				snapshot_path.c_str(),
+				snapshot_config.folders.at(i).c_str());
 		try
 		{
-			exec(tempstr, true); 
+			printf("exec: %s\n",tempstr1);
+			exec(tempstr1, true); 
+		}
+		catch(std::exception e)
+		{
+			std::string tempstr = "Folder Create failed with error: " + std::string(e.what());
+			diag = update_diagnostic(DATA_STORAGE,WARN,DROPPING_PACKETS,tempstr);
+		}
+		char tempstr2[1024];
+		sprintf(tempstr2, "rsync -a --exclude='.*' %s %s/%s",  
+			snapshot_config.folders.at(i).c_str(),
+			snapshot_path.c_str(),
+			snapshot_config.folders.at(i).c_str());
+		try
+		{
+			printf("exec: %s\n",tempstr2);
+			exec(tempstr2, true); 
 		}
 		catch(std::exception e)
 		{
@@ -543,11 +562,13 @@ std::vector<eros::diagnostic> SnapshotNodeProcess::createnew_snapshot(uint8_t sn
 	}
 	for(std::size_t i = 0; i < snapshot_config.files.size(); ++i)
 	{
-		char tempstr[1024];
-		sprintf(tempstr, "cp %s %s/",  snapshot_config.files.at(i).c_str(),snapshot_path.c_str());
+		char tempstr2[1024];
+		sprintf(tempstr2, "cp %s %s",  
+			snapshot_config.files.at(i).c_str(),
+			snapshot_path.c_str());
 		try
 		{
-			exec(tempstr, true); 
+			exec(tempstr2, true); 
 		}
 		catch(std::exception e)
 		{
