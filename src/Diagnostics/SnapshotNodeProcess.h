@@ -20,6 +20,7 @@
 class SnapshotNodeProcess: public BaseNodeProcess {
 public:
     //Constants
+	const double TIMETOHOLD_SYSTEMSNAPSTATE_SEC = 10.0;
     //Enums
 	enum class InstanceMode
 	{
@@ -202,8 +203,10 @@ private:
 	std::vector<std::string> missing_snapshots;
 	bool run_systemsnapshot_timeout_timer;
 	double systemsnapshot_timeout_timer;
+	double systemsnapshot_complete_timer;
 	SystemSnapshotInfo systemsnapshot_info;
 	eros::systemsnapshot_state eros_systemsnapshot_state;
+	std::string systemsnapinfo_extratext;
 
 
 };
