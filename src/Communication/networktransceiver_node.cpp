@@ -83,7 +83,7 @@ eros::diagnostic NetworkTransceiverNode::finish_initialization()
 {
 	eros::diagnostic diag = diagnostic;
 	pps1_sub = n->subscribe<std_msgs::Bool>("/1PPS",1,&NetworkTransceiverNode::PPS1_Callback,this);
-	command_sub = n->subscribe<eros::command>("/command",1,&NetworkTransceiverNode::Command_Callback,this);
+	command_sub = n->subscribe<eros::command>("/command",10,&NetworkTransceiverNode::Command_Callback,this);
 	systemstate_sub = n->subscribe<eros::system_state>("/System/State",10,&NetworkTransceiverNode::systemstate_Callback,this);
 	std::string armed_disarmed_state_topic = "/armed_state";
 	armed_disarmed_state_sub = n->subscribe<std_msgs::UInt8>(armed_disarmed_state_topic,10,&NetworkTransceiverNode::ArmedState_Callback,this);
@@ -272,7 +272,8 @@ bool NetworkTransceiverNode::run_loop1()
 		std::vector<NetworkTransceiverNodeProcess::QueueElement> buffer = process->get_sendqueue(NetworkTransceiverNodeProcess::PriorityLevel::HIGH);
 		for(std::size_t i = 0; i < buffer.size(); i++)
 		{
-			if(sendto(senddevice_sock, buffer.at(i).item.c_str(), buffer.at(i).item.size(), 0, (struct sockaddr *)&senddevice_addr, sizeof(senddevice_addr))!=buffer.at(i).item.size())
+			if(sendto(senddevice_sock, buffer.at(i).item.c_str(), buffer.at(i).item.size(), 0, (struct sockaddr *)&senddevice_addr, 
+				sizeof(senddevice_addr))!=(uint16_t)buffer.at(i).item.size())
 			{
 				logger->log_warn("Mismatch in number of bytes sent");
 			}
@@ -287,7 +288,8 @@ bool NetworkTransceiverNode::run_loop1()
 		std::vector<NetworkTransceiverNodeProcess::QueueElement> buffer = process->get_sendqueue(NetworkTransceiverNodeProcess::PriorityLevel::MEDIUM);
 		for(std::size_t i = 0; i < buffer.size(); i++)
 		{
-			if(sendto(senddevice_sock, buffer.at(i).item.c_str(), buffer.at(i).item.size(), 0, (struct sockaddr *)&senddevice_addr, sizeof(senddevice_addr))!=buffer.at(i).item.size())
+			if(sendto(senddevice_sock, buffer.at(i).item.c_str(), buffer.at(i).item.size(), 0, 
+				(struct sockaddr *)&senddevice_addr, sizeof(senddevice_addr))!=(uint16_t)buffer.at(i).item.size())
 			{
 				logger->log_warn("Mismatch in number of bytes sent");
 			}
@@ -301,7 +303,8 @@ bool NetworkTransceiverNode::run_loop1()
 		std::vector<NetworkTransceiverNodeProcess::QueueElement> buffer = process->get_sendqueue(NetworkTransceiverNodeProcess::PriorityLevel::LOW);
 		for(std::size_t i = 0; i < buffer.size(); i++)
 		{
-			if(sendto(senddevice_sock, buffer.at(i).item.c_str(), buffer.at(i).item.size(), 0, (struct sockaddr *)&senddevice_addr, sizeof(senddevice_addr))!=buffer.at(i).item.size())
+			if(sendto(senddevice_sock, buffer.at(i).item.c_str(), buffer.at(i).item.size(), 0, 
+				(struct sockaddr *)&senddevice_addr, sizeof(senddevice_addr))!=(uint16_t)buffer.at(i).item.size())
 			{
 				logger->log_warn("Mismatch in number of bytes sent");
 			}
@@ -568,7 +571,7 @@ void NetworkTransceiverNode::thread_loop()
 			char tempstr[8];
 			sprintf(tempstr,"0x%s",items.at(0).c_str());
 			int id = (int)strtol(tempstr,NULL,0);
-			uint8_t device,armcommand;
+			uint8_t device;
 			int axis1,axis2,axis3,axis4,axis5,axis6,axis7,axis8,int_1,int_2,int_3;
 			uint8_t command,option1,option2,option3;
 			uint8_t button1,button2,button3,button4,button5,button6,button7,button8;
@@ -713,7 +716,7 @@ void NetworkTransceiverNode::cleanup()
 /*! \brief Attempts to kill a node when an interrupt is received.
  *
  */
-void signalinterrupt_handler(int sig)
+void signalinterrupt_handler(__attribute__((unused)) int sig)
 {
 	kill_node = true;
 	exit(0);

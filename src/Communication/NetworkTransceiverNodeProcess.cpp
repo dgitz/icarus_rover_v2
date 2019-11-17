@@ -74,10 +74,11 @@ eros::diagnostic NetworkTransceiverNodeProcess::check_remoteHeartbeats()
 	{
 		diag = update_diagnostic(COMMUNICATIONS,INFO,NOERROR,"Remote Heartbeat Check Passed.");
 	}
+	
 	remote_heartbeat_pass = heartbeat_pass;
 	return diag;
 }
-eros::diagnostic NetworkTransceiverNodeProcess::new_devicemsg(const eros::device::ConstPtr& device)
+eros::diagnostic NetworkTransceiverNodeProcess::new_devicemsg(__attribute__((unused)) const eros::device::ConstPtr& device)
 {
 	eros::diagnostic diag = root_diagnostic;
 	return diag;
@@ -147,7 +148,7 @@ std::vector<eros::diagnostic> NetworkTransceiverNodeProcess::check_programvariab
 	}
 	return diaglist;
 }
-eros::diagnostic NetworkTransceiverNodeProcess::new_remoteheartbeatmsg(double timestamp,std::string name,double current_beat,double expected_beat)
+eros::diagnostic NetworkTransceiverNodeProcess::new_remoteheartbeatmsg(double timestamp,std::string name,__attribute__((unused)) double current_beat,double expected_beat)
 {
 	eros::diagnostic diag = root_diagnostic;
 	std::vector<eros::diagnostic> diag_list;

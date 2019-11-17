@@ -33,18 +33,14 @@ eros::diagnostic  CommandNodeProcess::finish_initialization()
 	command_map[ROVERCOMMAND_WAIT] = "WAIT";
 	gazebo_message_topublish = 0;
 	timesince_lastgazeboclock = -1.0;
+	diag = update_diagnostic(REMOTE_CONTROL,NOTICE,NOERROR,"No Remote Control Command Yet.");
+	diag = update_diagnostic(TARGET_ACQUISITION,INFO,NOERROR,"No Targets Found Yet.");
 	return diag;
 }
 eros::diagnostic CommandNodeProcess::update(double t_dt,double t_ros_time)
 {
 	eros::diagnostic diag = root_diagnostic;
-	//NEED MUTEX LOCK
-	if(initialized == false)
-	{
-		diag = update_diagnostic(REMOTE_CONTROL,NOTICE,NOERROR,"No Remote Control Command Yet.");
-		diag = update_diagnostic(DATA_STORAGE,NOTICE,INITIALIZING,"Initializing.");
-		diag = update_diagnostic(TARGET_ACQUISITION,INFO,NOERROR,"No Targets Found Yet.");
-	}
+
 	if(initialized == true)
 	{
 		ready = true;
@@ -93,7 +89,6 @@ eros::diagnostic CommandNodeProcess::update(double t_dt,double t_ros_time)
 			}
 		}
 	}
-
 	node_state = NODESTATE_RUNNING; //Hack
 	batterylevel_perc = 0.0;
 	bool temp = true;
@@ -191,7 +186,7 @@ std::vector<eros::command> CommandNodeProcess::get_command_buffer()
 	}
 	return command_buffer;
 }
-eros::diagnostic CommandNodeProcess::new_devicemsg(const eros::device::ConstPtr& device)
+eros::diagnostic CommandNodeProcess::new_devicemsg(__attribute__((unused)) const eros::device::ConstPtr& device)
 {
 	eros::diagnostic diag = root_diagnostic;
 	return diag;
@@ -301,6 +296,7 @@ eros::diagnostic CommandNodeProcess::new_user_commandmsg(const eros::command::Co
 		diag = update_diagnostic(REMOTE_CONTROL,WARN,DIAGNOSTIC_FAILED,std::string(tempstr));
 		return diag;
 	}
+	return diag;
 }
 
 eros::diagnostic CommandNodeProcess::get_disarmedreason()
@@ -438,7 +434,7 @@ eros::diagnostic CommandNodeProcess::load_loadscriptingfiles(std::string directo
 	dpdf = opendir(directory.c_str());
 	if (dpdf != NULL)
 	{
-		while (epdf = readdir(dpdf))
+		while ((epdf = (readdir(dpdf))))
 		{
 			std::string tempstr = std::string(epdf->d_name);
 			if(tempstr.length() <= 4)
