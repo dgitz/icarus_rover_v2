@@ -257,7 +257,7 @@ void CommandNode::gazeboupdaterate_Callback(const std_msgs::Float64::ConstPtr& m
 {
 	process->new_gazebo_updaterate(msg->data);
 }
-void CommandNode::gazeboclock_Callback(const rosgraph_msgs::Clock::ConstPtr& msg)
+void CommandNode::gazeboclock_Callback(__attribute__((unused)) const rosgraph_msgs::Clock::ConstPtr& msg)
 {
 	process->new_gazeboclockmsg();
 }
@@ -313,7 +313,7 @@ void CommandNode::cleanup()
 /*! \brief Attempts to kill a node when an interrupt is received.
  *
  */
-void signalinterrupt_handler(int sig)
+void signalinterrupt_handler(__attribute__((unused)) int sig)
 {
 	kill_node = true;
 	exit(0);
