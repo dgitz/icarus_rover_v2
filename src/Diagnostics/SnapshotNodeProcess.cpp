@@ -167,6 +167,7 @@ void SnapshotNodeProcess::clear_allsnapshots()
 	{
 		devicesnapshot_state = SnapshotState::NOTRUNNING;
 		systemsnapshot_state = SnapshotState::NOTRUNNING;
+		eros_systemsnapshot_state.state = map_state_tostring(systemsnapshot_state);
 		char tempstr[256];
 		sprintf(tempstr, "rm -r -f %s/*.zip", snapshot_config.destination_path.c_str());
 		exec(tempstr, true); 
@@ -199,6 +200,9 @@ eros::diagnostic  SnapshotNodeProcess::finish_initialization()
     eros::diagnostic diag = root_diagnostic;
 	diag = load_configfile(config_filepath);
 	diag = update_diagnostic(diag);
+	systemsnapshot_timeout_timer = 0.0;
+	systemsnapshot_complete_timer = 0.0;
+	systemsnapinfo_extratext = "";
     return diag;
 }
 eros::diagnostic SnapshotNodeProcess::update_slow()
@@ -260,6 +264,22 @@ eros::diagnostic SnapshotNodeProcess::update(double t_dt,double t_ros_time)
 			systemsnapshot_state = SnapshotState::INCOMPLETE;
 			systemsnapshot_info.state = systemsnapshot_state;
 			eros_systemsnapshot_state.percent_complete = 100;
+			std::string tempstr2;
+			for(std::size_t i = 0; i < missing_snapshots.size(); ++i)
+			{
+				tempstr2 += missing_snapshots.at(i);
+				if(i < (missing_snapshots.size() -1))
+				{
+					tempstr2 += ",";
+				}
+			}
+			if(missing_snapshots.size() > 0)
+			{
+				std::string str = "\nWARN: System Snapshot: " + systemsnapshot_name + " Generated but is missing snapshots from: " +
+					tempstr2;
+				systemsnapinfo_extratext+=str;
+				diag = update_diagnostic(DATA_STORAGE,NOTICE,DROPPING_PACKETS,str);
+			}
 			diag = finishSystemSnapshot();
 		}
 		else if((systemsnapshot_state == SnapshotState::COMPLETE))
@@ -271,7 +291,14 @@ eros::diagnostic SnapshotNodeProcess::update(double t_dt,double t_ros_time)
 		if((systemsnapshot_state == SnapshotState::INCOMPLETE) or (systemsnapshot_state == SnapshotState::COMPLETE) or (systemsnapshot_state == SnapshotState::READY))
 		{
 			systemsnapshot_timeout_timer = 0.0;
+			systemsnapshot_complete_timer+=t_dt;
 			run_systemsnapshot_timeout_timer = false;
+			if(systemsnapshot_complete_timer > TIMETOHOLD_SYSTEMSNAPSTATE_SEC)
+			{
+				systemsnapshot_complete_timer = 0.0;
+				systemsnapshot_state = SnapshotState::NOTRUNNING;
+				eros_systemsnapshot_state.percent_complete = 0;
+			}
 		}
 	}
 	
@@ -355,19 +382,6 @@ std::vector<eros::diagnostic> SnapshotNodeProcess::check_programvariables()
 eros::diagnostic SnapshotNodeProcess::finishSystemSnapshot()
 {
 	eros::diagnostic diag = root_diagnostic;
-	systemsnapshot_info.rostime_stop = getROSTime();
-	std::string infotext = generate_systemsnapshotinfo(systemsnapshot_info);
-	std::string info_filepath = systemsnapshot_path + "/SystemSnapshotInfo.txt";
-	std::ofstream info_fd (info_filepath.c_str(), std::ofstream::out);
-	if(info_fd.is_open() == false)
-	{
-		char tempstr[512];
-		sprintf(tempstr,"Unable to create System Info File: %s",info_filepath.c_str());
-		diag = update_diagnostic(DATA_STORAGE,WARN,DROPPING_PACKETS,std::string(tempstr));
-		return diag;
-	}
-	info_fd << infotext;
-	info_fd.close();
 	//Look for bag file
 	{
 		bool bagfile_ready = false;
@@ -388,9 +402,24 @@ eros::diagnostic SnapshotNodeProcess::finishSystemSnapshot()
 		}
 		if(bagfile_ready == false)
 		{
+			std::string str = "\nWARN: DataLog BAG file missing.";
+			systemsnapinfo_extratext+=str;	
 			diag = update_diagnostic(DATA_STORAGE,WARN,DROPPING_PACKETS,"DataLog BAG file missing.");			
 		}
 	}
+	systemsnapshot_info.rostime_stop = getROSTime();
+	std::string infotext = generate_systemsnapshotinfo(systemsnapshot_info);
+	std::string info_filepath = systemsnapshot_path + "/SystemSnapshotInfo.txt";
+	std::ofstream info_fd (info_filepath.c_str(), std::ofstream::out);
+	if(info_fd.is_open() == false)
+	{
+		char tempstr[512];
+		sprintf(tempstr,"Unable to create System Info File: %s",info_filepath.c_str());
+		diag = update_diagnostic(DATA_STORAGE,WARN,DROPPING_PACKETS,std::string(tempstr));
+		return diag;
+	}
+	info_fd << infotext;
+	info_fd.close();
 	//Zip it up
 	if(1)
 	{
@@ -427,18 +456,6 @@ eros::diagnostic SnapshotNodeProcess::finishSystemSnapshot()
 	}
 	else if(systemsnapshot_state == SnapshotState::INCOMPLETE)
 	{
-		std::string tempstr2;
-		for(std::size_t i = 0; i < missing_snapshots.size(); ++i)
-		{
-			tempstr2 += missing_snapshots.at(i);
-			if(i < (missing_snapshots.size() -1))
-			{
-				tempstr2 += ",";
-			}
-		}
-		sprintf(tempstr,"System Snapshot: %s Generated but is missing snapshots from: %s.",systemsnapshot_name.c_str(),tempstr2.c_str());
-		diag = update_diagnostic(DATA_STORAGE,NOTICE,DROPPING_PACKETS,std::string(tempstr));
-		//systemsnapshot_state = SnapshotState::READY;
 	}
 	if((systemsnapshot_state == SnapshotState::READY) or (systemsnapshot_state == SnapshotState::INCOMPLETE))
 	{
@@ -463,6 +480,7 @@ bool SnapshotNodeProcess::received_snapshot_fromdevice(std::string devicename)
 	}
 	if(found == true)
 	{
+		systemsnapshot_state = SnapshotState::RUNNING;
 		filtered_snapshot_devices.erase(filtered_snapshot_devices.begin() + index);
 		double v = 1.0/(double)((uint32_t)all_snapshot_devices.size()+1);
 		eros_systemsnapshot_state.percent_complete+= (uint8_t)(100.0*v);
@@ -473,18 +491,24 @@ bool SnapshotNodeProcess::received_snapshot_fromdevice(std::string devicename)
 		systemsnapshot_state = SnapshotState::COMPLETE;
 		eros_systemsnapshot_state.percent_complete = 100;
 	}
+	eros_systemsnapshot_state.state = map_state_tostring(systemsnapshot_state);
 	return found;
 }
 std::vector<eros::diagnostic> SnapshotNodeProcess::createnew_snapshot(uint8_t snapshot_mode,std::string command_text,std::string command_description)
 {
 	std::vector<eros::diagnostic> diaglist;
 	eros::diagnostic diag = root_diagnostic;
-	if((devicesnapshot_state == SnapshotState::RUNNING) or (devicesnapshot_state == SnapshotState::READY) or (systemsnapshot_state == SnapshotState::RUNNING))
+	if((systemsnapshot_state != SnapshotState::NOTRUNNING))
 	{
 		diag = update_diagnostic(DATA_STORAGE,DROPPING_PACKETS,WARN,"Snapshot is still being generated.");
 		diaglist.push_back(diag);
 		return diaglist;
 	}
+	else
+	{
+		diag = update_diagnostic(DATA_STORAGE,NOERROR,INFO,"Snapshot generation in progress.");
+	}
+	
 	systemsnapshot_info.rostime_start = getROSTime();
 	
 	filtered_snapshot_devices = all_snapshot_devices;
@@ -536,7 +560,6 @@ std::vector<eros::diagnostic> SnapshotNodeProcess::createnew_snapshot(uint8_t sn
 				snapshot_config.folders.at(i).c_str());
 		try
 		{
-			printf("exec: %s\n",tempstr1);
 			exec(tempstr1, true); 
 		}
 		catch(std::exception e)
@@ -551,7 +574,6 @@ std::vector<eros::diagnostic> SnapshotNodeProcess::createnew_snapshot(uint8_t sn
 			snapshot_config.folders.at(i).c_str());
 		try
 		{
-			printf("exec: %s\n",tempstr2);
 			exec(tempstr2, true); 
 		}
 		catch(std::exception e)
@@ -635,13 +657,13 @@ std::vector<eros::diagnostic> SnapshotNodeProcess::createnew_snapshot(uint8_t sn
 			sprintf(tempstr, "mv %s %s",  active_snapshot_completepath.c_str(),systemsnapshot_path.c_str());
 			exec(tempstr, true); 
 		}
-		systemsnapshot_info.devices.push_back(mydevice.DeviceName);
-		double v = 1.0/(double)((uint32_t)all_snapshot_devices.size()+1);
-		eros_systemsnapshot_state.percent_complete+= (uint8_t)(100.0*v);
-
 		devicesnapshot_state = SnapshotState::NOTRUNNING;
 		systemsnapshot_state = SnapshotState::RUNNING;
+		received_snapshot_fromdevice(mydevice.DeviceName);
+		systemsnapshot_info.devices.push_back(mydevice.DeviceName);
+		
 	}
+	eros_systemsnapshot_state.state = map_state_tostring(systemsnapshot_state);
 	diaglist.push_back(diag);
 	return diaglist;
 }
@@ -722,5 +744,8 @@ std::string SnapshotNodeProcess::generate_systemsnapshotinfo(SystemSnapshotInfo 
 	{
 		tempstr += "\t[" + std::to_string(i) + "] Device: " + info.devices.at(i) + "\r\n";
 	}
+	tempstr += systemsnapinfo_extratext;
+
+	systemsnapinfo_extratext = "";
 	return tempstr;
 }

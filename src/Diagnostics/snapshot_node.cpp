@@ -288,7 +288,10 @@ void SnapshotNode::Command_Callback(const eros::command::ConstPtr &t_msg)
 					if(process->getInstanceMode() == SnapshotNodeProcess::InstanceMode::MASTER)
 					{
 						eros::systemsnapshot_state faststate = process->getROSSnapshotState();
-						faststate.state = "RUNNING";
+						if(process->getSystemSnapshotState() == SnapshotNodeProcess::SnapshotState::NOTRUNNING)
+						{
+							faststate.state = "RUNNING";
+						}
 						snapshotstate_pub.publish(faststate);
 						logger->log_warn("Publishing Snapshot State quickly.");
 					}

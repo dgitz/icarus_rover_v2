@@ -16,10 +16,14 @@ double FAST_RATE = 10.0f;
 int DeviceID = 123;
 void print_diagnostic(uint8_t level,eros::diagnostic diagnostic)
 {
+	DiagnosticClass diag_helper;
 	if(diagnostic.Level >= level)
 	{
-		printf("Type: %d Message: %d Level: %d Device: %s Desc: %s\n",diagnostic.Diagnostic_Type,diagnostic.Diagnostic_Message,
-			  		diagnostic.Level,diagnostic.DeviceName.c_str(),diagnostic.Description.c_str());
+		printf("Type: %s Message: %s Level: %s Device: %s Desc: %s\n",
+			diag_helper.get_DiagTypeString(diagnostic.Diagnostic_Type).c_str(),
+			diag_helper.get_DiagMessageString(diagnostic.Diagnostic_Message).c_str(),
+			diag_helper.get_DiagLevelString(diagnostic.Level).c_str(),
+			diagnostic.DeviceName.c_str(),diagnostic.Description.c_str());
 	}
 }
 
