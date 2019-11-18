@@ -56,6 +56,7 @@ private:
 	bool run_loop3();
 	//Attribute Functions
 	//Message Functions
+	void truthpose_Callback(const eros::pose::ConstPtr& msg);
 	void PPS1_Callback(const std_msgs::Bool::ConstPtr& t_msg);
 	void Command_Callback(const eros::command::ConstPtr& t_msg);
 	bool new_devicemsg(std::string query,eros::device t_device);
@@ -71,6 +72,7 @@ private:
 	ros::ServiceServer snapshot_srv;
 	ros::ServiceClient srv_device;
 	ros::Publisher snapshotstate_pub;
+	ros::Subscriber truthpose_sub;
 	SnapshotNodeProcess *process;
 	SnapshotNodeProcess::SnapshotState prev_snapshot_state;
 	SnapshotNodeProcess::SnapshotState snapshot_state;

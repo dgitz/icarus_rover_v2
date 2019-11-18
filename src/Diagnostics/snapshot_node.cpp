@@ -53,6 +53,7 @@ eros::diagnostic SnapshotNode::read_launchparameters()
 eros::diagnostic SnapshotNode::finish_initialization()
 {
 	eros::diagnostic diag = diagnostic;
+	truthpose_sub = n->subscribe<eros::pose>("/TruthPose_Simulated",2,&SnapshotNode::truthpose_Callback,this);
 	pps1_sub = n->subscribe<std_msgs::Bool>("/1PPS", 1, &SnapshotNode::PPS1_Callback, this);
 	command_sub = n->subscribe<eros::command>("/command", 5, &SnapshotNode::Command_Callback, this);
 	std::string device_topic = "/" + std::string(host_name) + "_master_node/srv_device";
@@ -263,7 +264,10 @@ bool SnapshotNode::run_loop3()
 {
 	return true;
 }
-
+void SnapshotNode::truthpose_Callback(const eros::pose::ConstPtr& msg)
+{
+	process->new_truthpose(msg);
+}
 void SnapshotNode::PPS1_Callback(const std_msgs::Bool::ConstPtr &msg)
 {
 	new_ppsmsg(msg);

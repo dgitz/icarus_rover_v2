@@ -203,6 +203,7 @@ eros::diagnostic  SnapshotNodeProcess::finish_initialization()
 	systemsnapshot_timeout_timer = 0.0;
 	systemsnapshot_complete_timer = 0.0;
 	systemsnapinfo_extratext = "";
+	truthpose_string = "\nTruth Pose: Not Received.";
     return diag;
 }
 eros::diagnostic SnapshotNodeProcess::update_slow()
@@ -309,6 +310,19 @@ eros::diagnostic SnapshotNodeProcess::update(double t_dt,double t_ros_time)
 	}
 	eros_systemsnapshot_state.state = map_state_tostring(systemsnapshot_state);
 	return diag;
+}
+eros::diagnostic SnapshotNodeProcess::new_truthpose(const eros::pose::ConstPtr& t_ptr)
+{
+    eros::diagnostic diag = root_diagnostic;
+    char tempstr[256];
+    sprintf(tempstr,"\nTruth Pose: N: %4.2f(m) E: %4.2f(m) Z: %4.2f(m) Heading: %4.2f(deg)==%s",
+        t_ptr->north.value,
+        t_ptr->east.value,
+        t_ptr->elev.value,
+        t_ptr->yaw.value,
+        pose_helper.compute_heading_simplestring(PoseHelper::HeadingReference::COMMON_YAW,t_ptr->yaw.value).c_str());
+    truthpose_string = std::string(tempstr);
+    return diag;
 }
 eros::diagnostic SnapshotNodeProcess::new_devicemsg(const eros::device::ConstPtr& device)
 {
@@ -745,7 +759,7 @@ std::string SnapshotNodeProcess::generate_systemsnapshotinfo(SystemSnapshotInfo 
 		tempstr += "\t[" + std::to_string(i) + "] Device: " + info.devices.at(i) + "\r\n";
 	}
 	tempstr += systemsnapinfo_extratext;
-
+	tempstr += truthpose_string;
 	systemsnapinfo_extratext = "";
 	return tempstr;
 }
