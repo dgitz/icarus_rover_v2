@@ -38,10 +38,12 @@
 #include <eros/subsystem_diagnostic.h>
 #include <eros/loadfactor.h>
 #include <eros/uptime.h>
+#include <eros/pose.h>
 #include <eros/tune_controlgroup.h>
 #include <eros/view_controlgroup.h>
 //Project
 #include "../Definitions.h"
+#include "../../../eROS/include/PoseHelper.h"
 #include "../../../eROS/include/DiagnosticClass.h"
 #include <nlohmann/json.hpp> //See: https://github.com/nlohmann/json#projects-using-json-for-modern-c
 

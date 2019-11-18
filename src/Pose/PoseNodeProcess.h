@@ -9,6 +9,7 @@
 #include "PoseModel/Blocks/Timing/TimeCompensate.h"
 #include "PoseModel/Blocks/SensorPostProcessing/IMUPostProcess.h"
 #include "PoseModel/Blocks/SignalLinker/MasterLinker.h"
+#include "../../../eROS/include/PoseHelper.h"
 /*! \class PoseNodeProcess PoseNodeProcess.h "PoseNodeProcess.h"
  *  \brief This is a PoseNodeProcess class.  Used for the pose_node node.
  *
@@ -73,6 +74,7 @@ private:
 	/*! \brief Process Specific Implementation
 	 *
 	 */
+	PoseHelper pose_helper;
 	uint16_t expected_sensorsignal_count;
 	void update_sensorsignal(uint64_t sequence_number,eros::signal sig,std::string source_sensor);
 	

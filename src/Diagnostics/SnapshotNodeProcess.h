@@ -159,6 +159,7 @@ public:
 	/*! \brief  Process Command Message.  All implementation should use at least the code in this  Function.
 	 *
 	 */
+	eros::diagnostic new_truthpose(const eros::pose::ConstPtr& t_ptr);
 	std::vector<eros::diagnostic> new_commandmsg(const eros::command::ConstPtr& t_msg);
 	eros::diagnostic new_devicemsg(const eros::device::ConstPtr& device);
 	bool received_snapshot_fromdevice(std::string devicename);
@@ -182,7 +183,7 @@ private:
 	std::string generate_systemsnapshotinfo(SystemSnapshotInfo info);
 	void clear_allsnapshots();
 	
-
+	PoseHelper pose_helper;
 	InstanceMode mode;
 	std::string snapshot_name;
 	std::string snapshot_path;
@@ -207,6 +208,7 @@ private:
 	SystemSnapshotInfo systemsnapshot_info;
 	eros::systemsnapshot_state eros_systemsnapshot_state;
 	std::string systemsnapinfo_extratext;
+	std::string truthpose_string;
 
 
 };

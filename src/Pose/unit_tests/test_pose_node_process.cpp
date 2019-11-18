@@ -142,6 +142,103 @@ TEST(Math,Definitions)
 		}
 	}
 }
+TEST(Reference,HeadingReference)
+{
+	PoseHelper pose_helper;
+	pose_helper.print_simple_headingstring_map();
+	double angle = 0.0;
+	//Check Simple Heading String Map Constructino
+	angle = pose_helper.get_examplarheading_simplestring(PoseHelper::HeadingReference::COMMON_YAW, "W");
+	EXPECT_TRUE(pose_helper.is_angleequal(
+		PoseHelper::HeadingReference::COMMON_YAW,angle,
+		PoseHelper::HeadingReference::COMMON_YAW,-180.0,
+		0.0001));
+	angle = pose_helper.get_examplarheading_simplestring(PoseHelper::HeadingReference::COMMON_YAW, "WSW");
+	EXPECT_TRUE(pose_helper.is_angleequal(
+		PoseHelper::HeadingReference::COMMON_YAW,angle,
+		PoseHelper::HeadingReference::COMMON_YAW,-157.5,
+		0.0001));
+	angle = pose_helper.get_examplarheading_simplestring(PoseHelper::HeadingReference::COMMON_YAW, "SW");
+	EXPECT_TRUE(pose_helper.is_angleequal(
+		PoseHelper::HeadingReference::COMMON_YAW,angle,
+		PoseHelper::HeadingReference::COMMON_YAW,-135.0,
+		0.0001));
+	angle = pose_helper.get_examplarheading_simplestring(PoseHelper::HeadingReference::COMMON_YAW, "SSW");
+	EXPECT_TRUE(pose_helper.is_angleequal(
+		PoseHelper::HeadingReference::COMMON_YAW,angle,
+		PoseHelper::HeadingReference::COMMON_YAW,-112.5,
+		0.0001));
+	angle = pose_helper.get_examplarheading_simplestring(PoseHelper::HeadingReference::COMMON_YAW, "S");
+	EXPECT_TRUE(pose_helper.is_angleequal(
+		PoseHelper::HeadingReference::COMMON_YAW,angle,
+		PoseHelper::HeadingReference::COMMON_YAW,-90.0,
+		0.0001));
+	angle = pose_helper.get_examplarheading_simplestring(PoseHelper::HeadingReference::COMMON_YAW, "SSE");
+	EXPECT_TRUE(pose_helper.is_angleequal(
+		PoseHelper::HeadingReference::COMMON_YAW,angle,
+		PoseHelper::HeadingReference::COMMON_YAW,-67.5,
+		0.0001));
+	angle = pose_helper.get_examplarheading_simplestring(PoseHelper::HeadingReference::COMMON_YAW, "SE");
+	EXPECT_TRUE(pose_helper.is_angleequal(
+		PoseHelper::HeadingReference::COMMON_YAW,angle,
+		PoseHelper::HeadingReference::COMMON_YAW,-45.0,
+		0.0001));
+	angle = pose_helper.get_examplarheading_simplestring(PoseHelper::HeadingReference::COMMON_YAW, "ESE");
+	EXPECT_TRUE(pose_helper.is_angleequal(
+		PoseHelper::HeadingReference::COMMON_YAW,angle,
+		PoseHelper::HeadingReference::COMMON_YAW,-22.5,
+		0.0001));
+	angle = pose_helper.get_examplarheading_simplestring(PoseHelper::HeadingReference::COMMON_YAW, "E");
+	EXPECT_TRUE(pose_helper.is_angleequal(
+		PoseHelper::HeadingReference::COMMON_YAW,angle,
+		PoseHelper::HeadingReference::COMMON_YAW,0.0,
+		0.0001));
+	angle = pose_helper.get_examplarheading_simplestring(PoseHelper::HeadingReference::COMMON_YAW, "ENE");
+	EXPECT_TRUE(pose_helper.is_angleequal(
+		PoseHelper::HeadingReference::COMMON_YAW,angle,
+		PoseHelper::HeadingReference::COMMON_YAW,22.5,
+		0.0001));
+	angle = pose_helper.get_examplarheading_simplestring(PoseHelper::HeadingReference::COMMON_YAW, "NE");
+	EXPECT_TRUE(pose_helper.is_angleequal(
+		PoseHelper::HeadingReference::COMMON_YAW,angle,
+		PoseHelper::HeadingReference::COMMON_YAW,45.0,
+		0.0001));
+	angle = pose_helper.get_examplarheading_simplestring(PoseHelper::HeadingReference::COMMON_YAW, "NNE");
+	EXPECT_TRUE(pose_helper.is_angleequal(
+		PoseHelper::HeadingReference::COMMON_YAW,angle,
+		PoseHelper::HeadingReference::COMMON_YAW,67.5,
+		0.0001));
+		angle = pose_helper.get_examplarheading_simplestring(PoseHelper::HeadingReference::COMMON_YAW, "N");
+	EXPECT_TRUE(pose_helper.is_angleequal(
+		PoseHelper::HeadingReference::COMMON_YAW,angle,
+		PoseHelper::HeadingReference::COMMON_YAW,90.0,
+		0.0001));
+	angle = pose_helper.get_examplarheading_simplestring(PoseHelper::HeadingReference::COMMON_YAW, "NNW");
+	EXPECT_TRUE(pose_helper.is_angleequal(
+		PoseHelper::HeadingReference::COMMON_YAW,angle,
+		PoseHelper::HeadingReference::COMMON_YAW,112.5,
+		0.0001));
+	angle = pose_helper.get_examplarheading_simplestring(PoseHelper::HeadingReference::COMMON_YAW, "NW");
+	EXPECT_TRUE(pose_helper.is_angleequal(
+		PoseHelper::HeadingReference::COMMON_YAW,angle,
+		PoseHelper::HeadingReference::COMMON_YAW,135.0,
+		0.0001));
+	angle = pose_helper.get_examplarheading_simplestring(PoseHelper::HeadingReference::COMMON_YAW, "WNW");
+	EXPECT_TRUE(pose_helper.is_angleequal(
+		PoseHelper::HeadingReference::COMMON_YAW,angle,
+		PoseHelper::HeadingReference::COMMON_YAW,157.5,
+		0.0001));
+	
+	// Spot check a few arbitrary angles
+	EXPECT_TRUE("E"==pose_helper.compute_heading_simplestring(PoseHelper::HeadingReference::COMMON_YAW,5.0));
+	EXPECT_TRUE("E"==pose_helper.compute_heading_simplestring(PoseHelper::HeadingReference::COMMON_YAW,-5.0));
+	EXPECT_TRUE("N"==pose_helper.compute_heading_simplestring(PoseHelper::HeadingReference::COMMON_YAW,88.0));
+	EXPECT_TRUE("NW"==pose_helper.compute_heading_simplestring(PoseHelper::HeadingReference::COMMON_YAW,136.0));
+	EXPECT_TRUE("W"==pose_helper.compute_heading_simplestring(PoseHelper::HeadingReference::COMMON_YAW,181.0));
+	EXPECT_TRUE("W"==pose_helper.compute_heading_simplestring(PoseHelper::HeadingReference::COMMON_YAW,179.0));
+	EXPECT_TRUE("W"==pose_helper.compute_heading_simplestring(PoseHelper::HeadingReference::COMMON_YAW,-181.0));
+	EXPECT_TRUE("W"==pose_helper.compute_heading_simplestring(PoseHelper::HeadingReference::COMMON_YAW,-179.0));
+}
 TEST(Template,Process_SensorInputs)
 {
 	PoseNodeProcess* process = initializeprocess(2);
