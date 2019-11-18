@@ -24,6 +24,7 @@ eros::diagnostic MasterNodeProcess::finish_initialization()
 	load_factor.loadfactor.push_back(-1.0);
 	load_factor.loadfactor.push_back(-1.0);
 	load_factor.loadfactor.push_back(-1.0);
+	uptime.DeviceName = get_mydevice().DeviceName;
 	uptime.stamp = convert_time(ros_time);
 	std::string tempstr = exec("nproc",true);
 	boost::trim_right(tempstr);
