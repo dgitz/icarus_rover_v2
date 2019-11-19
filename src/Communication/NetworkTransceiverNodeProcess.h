@@ -5,6 +5,7 @@
 //ROS Messages
 #include <eros/systemsnapshot_state.h>
 //Project
+#include <tinyxml.h>
 /*! \class NetworkTransceiverNodeProcess NetworkTransceiverNodeProcess.h "NetworkTransceiverNodeProcess.h"
  *  \brief This is a NetworkTransceiverNodeProcess class.  Used for the networktransceiver_node node.
  *
@@ -49,6 +50,7 @@ public:
 	/*! \brief NodeProcess specific Initialization
 	 *
 	 */
+	eros::diagnostic load(std::string miscconfigfilepath);
 	eros::diagnostic finish_initialization();
 	//Update Functions
 	/*! \brief Implementation of the update function
@@ -166,6 +168,7 @@ private:
 	/*! \brief Process Specific Implementation
 	 *
 	 */
+	int parse_miscconfigfile(TiXmlDocument doc);
 	std::vector<eros::diagnostic> check_programvariables();
 	eros::diagnostic check_remoteHeartbeats();
 	void init_messages();
