@@ -42,6 +42,7 @@ bool NetworkTransceiverNode::start(int argc,char **argv)
 eros::diagnostic NetworkTransceiverNode::read_launchparameters()
 {
 	eros::diagnostic diag = diagnostic;
+	/*
 	std::string send_multicast_group;
 	int send_multicast_port,recv_unicast_port;
 	std::string param_send_multicast_group = node_name +"/Send_Multicast_Group";
@@ -67,6 +68,7 @@ eros::diagnostic NetworkTransceiverNode::read_launchparameters()
 		return diag;
 	}
 	process->set_networkconfiguration(send_multicast_group,send_multicast_port,recv_unicast_port);
+	*/
 	std::string UIMode;
 	std::string param_Mode = node_name +"/Mode";
 	if(n->getParam(param_Mode,UIMode) == false)
@@ -127,6 +129,13 @@ eros::diagnostic NetworkTransceiverNode::finish_initialization()
 		std::string view_controlgroup_topic = "/" + process->get_UIMode() + "/view_controlgroup";
 		view_controlgroup_sub = n->subscribe<eros::view_controlgroup>(view_controlgroup_topic,1,&NetworkTransceiverNode::viewControlGroup_Callback,this);
 	
+	}
+	diagnostic = process->load("/home/robot/config/MiscConfig.xml");
+	logger->log_diagnostic(diagnostic);
+	if(diagnostic.Level > NOTICE)
+	{
+		logger->log_diagnostic(diagnostic);
+		return diagnostic;
 	}
 	udpmessagehandler = new UDPMessageHandler();
 	if(initialize_sendsocket() == false)

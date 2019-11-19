@@ -515,3 +515,100 @@ std::string NetworkTransceiverNodeProcess::get_messageinfo(bool v)
 	}
 	return std::string(tempstr);
 }
+eros::diagnostic NetworkTransceiverNodeProcess::load(std::string miscconfigfilepath)
+{
+    eros::diagnostic diag = root_diagnostic;
+    TiXmlDocument miscconfig_doc(miscconfigfilepath);
+    bool miscconfigfile_loaded = miscconfig_doc.LoadFile();
+	if(miscconfigfile_loaded == true)
+	{
+		if(parse_miscconfigfile(miscconfig_doc) <= 0)
+		{
+            char tempstr[512];
+            sprintf(tempstr,"Didn't read any Config: %s",miscconfigfilepath.c_str());
+			diag = update_diagnostic(DATA_STORAGE,ERROR,INITIALIZING_ERROR,std::string(tempstr));
+            return diag;
+		}
+        else
+        {
+            char tempstr[512];
+            sprintf(tempstr,"Loaded: %s",miscconfigfilepath.c_str());
+			diag = update_diagnostic(DATA_STORAGE,INFO,INITIALIZING,std::string(tempstr));
+            return diag;
+        }
+    }
+    else
+    {
+        char tempstr[512];
+        sprintf(tempstr,"Unable to load: %s",miscconfigfilepath.c_str());
+		diag = update_diagnostic(DATA_STORAGE,ERROR,INITIALIZING_ERROR,std::string(tempstr));
+        return diag;
+    }
+}
+int NetworkTransceiverNodeProcess::parse_miscconfigfile(TiXmlDocument doc)
+{
+	uint16_t parameters_required = 3;
+	uint16_t parameters_found = 0;
+	TiXmlElement *l_pRootElement = doc.RootElement();
+	if( NULL != l_pRootElement )
+	{
+		TiXmlElement *l_pPortList = l_pRootElement->FirstChildElement( "PortList" );
+		std::string capability = "";
+		if ( NULL != l_pPortList )
+		{
+			TiXmlElement *l_pPort = l_pPortList->FirstChildElement( "Port" );
+			while( l_pPort )
+			{
+				TiXmlElement *l_pCapability = l_pPort->FirstChildElement( "Capability" );
+				if(NULL != l_pCapability)
+				{
+					capability = l_pCapability->GetText();
+				}
+				TiXmlElement *l_pNumber = l_pPort->FirstChildElement( "Number" );
+				if(NULL != l_pNumber)
+				{
+					if(capability == "MulticastPort")
+					{
+						send_multicast_port = std::atoi(l_pNumber->GetText());
+						parameters_found++;
+					}
+					if(capability == "RoverUnicastPort")
+					{
+						recv_unicast_port = std::atoi(l_pNumber->GetText());
+						parameters_found++;
+					}
+				}
+				l_pPort = l_pPort->NextSiblingElement( "Port" );
+			}
+		}
+		TiXmlElement *l_pAddressList = l_pRootElement->FirstChildElement( "AddressList" );
+		capability = "";
+		if ( NULL != l_pAddressList )
+		{
+			TiXmlElement *l_pAddress = l_pAddressList->FirstChildElement( "Address" );
+			while( l_pAddress )
+			{
+				TiXmlElement *l_pCapability = l_pAddress->FirstChildElement( "Capability" );
+				if(NULL != l_pCapability)
+				{
+					capability = l_pCapability->GetText();
+				}
+				TiXmlElement *l_pNetwork = l_pAddress->FirstChildElement( "Network" );
+				if(NULL != l_pNetwork)
+				{
+					if(capability == "MulticastGroup")
+					{
+						multicast_group = l_pNetwork->GetText();
+						parameters_found++;
+					}
+				}
+				l_pAddress = l_pAddress->NextSiblingElement( "Address" );
+			}
+		}
+	}
+	if(parameters_found != parameters_required)
+	{
+		return 0;
+	}
+	return 1;
+}
