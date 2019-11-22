@@ -106,13 +106,13 @@ eros::diagnostic BaseNode::read_baselaunchparameters()
 	double startup_delay = 0.0;
 	if(n->getParam(param_startup_delay,startup_delay) == false)
 	{
-		logger->log_notice("Missing Parameter: startup_delay.  Using Default: 0.0 sec.");
+		logger->log_notice(__FILE__,__LINE__,"Missing Parameter: startup_delay.  Using Default: 0.0 sec.");
 	}
 	else
 	{
 		char tempstr[128];
 		sprintf(tempstr,"Using Parameter: startup_delay = %4.2f sec.",startup_delay);
-		logger->log_notice(std::string(tempstr));
+		logger->log_notice(__FILE__,__LINE__,std::string(tempstr));
 	}
 	ros::Duration(startup_delay).sleep();
 	std::string param_require_pps_to_start = node_name +"/require_pps_to_start";
@@ -133,7 +133,7 @@ eros::diagnostic BaseNode::read_baselaunchparameters()
 	std::string param_loop1_rate = node_name + "/loop1_rate";
 	if(n->getParam(param_loop1_rate,loop1_rate) == false)
 	{
-		logger->log_warn("Missing parameter: loop1_rate.  Not running loop1 code.");
+		logger->log_warn(__FILE__,__LINE__,"Missing parameter: loop1_rate.  Not running loop1 code.");
 		loop1_enabled = false;
 	}
 	else
@@ -146,7 +146,7 @@ eros::diagnostic BaseNode::read_baselaunchparameters()
 	std::string param_loop2_rate = node_name + "/loop2_rate";
 	if(n->getParam(param_loop2_rate,loop2_rate) == false)
 	{
-		logger->log_warn("Missing parameter: loop2_rate.  Not running loop2 code.");
+		logger->log_warn(__FILE__,__LINE__,"Missing parameter: loop2_rate.  Not running loop2 code.");
 		loop2_enabled = false;
 	}
 	else
@@ -159,7 +159,7 @@ eros::diagnostic BaseNode::read_baselaunchparameters()
 	std::string param_loop3_rate = node_name + "/loop3_rate";
 	if(n->getParam(param_loop3_rate,loop3_rate) == false)
 	{
-		logger->log_warn("Missing parameter: loop3_rate.  Not running loop3 code.");
+		logger->log_warn(__FILE__,__LINE__,"Missing parameter: loop3_rate.  Not running loop3 code.");
 		loop3_enabled = false;
 	}
 	else
@@ -176,7 +176,7 @@ eros::diagnostic BaseNode::read_baselaunchparameters()
 	}
 	char tempstr[512];
 	sprintf(tempstr,"Running Node at Rate: %4.2f Hz.",ros_rate);
-	logger->log_notice(std::string(tempstr));
+	logger->log_notice(__FILE__,__LINE__,std::string(tempstr));
 	diagnostic = diag;
 	return diag;
 }
@@ -191,7 +191,7 @@ bool BaseNode::update()
 		ros::Duration d(1.0);
 		d.sleep();
 		ros::spinOnce();
-		logger->log_notice("Waiting on PPS To Start.");
+		logger->log_notice(__FILE__,__LINE__,"Waiting on PPS To Start.");
 		return true;
 	}
 	ros::Rate r(ros_rate);
@@ -241,7 +241,7 @@ bool BaseNode::update()
 		}
 		else
 		{
-			logger->log_warn("Resource Monitor Not Initialized.");
+			logger->log_warn(__FILE__,__LINE__,"Resource Monitor Not Initialized.");
 		}
 	}
 	mtime = measure_time_diff(ros::Time::now(),last_1hz_timer);
