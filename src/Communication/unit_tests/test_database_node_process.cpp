@@ -15,6 +15,18 @@ void print_diagnostic(uint8_t level,eros::diagnostic diagnostic)
 			  		diagnostic.Level,diagnostic.DeviceName.c_str(),diagnostic.Description.c_str());
 	}
 }
+bool isequal(double a, double b, double precision)
+{
+	double v = fabs(a-b);
+	if(v < precision)
+	{
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
 DatabaseNodeProcess *initializeprocess()
 {
 	eros::device device;
@@ -60,7 +72,75 @@ TEST(Template, Process_Initialization)
 	DatabaseNodeProcess *process = initializeprocess();
 	EXPECT_TRUE(process->is_initialized() == true);
 }
+TEST(Template,ParameterConversion)
+{
+	DatabaseNodeProcess *process = initializeprocess();
+	process = readyprocess(process);
+	{ //CHECK BOOLEARN
+		bool output;
+		EXPECT_TRUE(process->convert_dataparameter(&output,"true","[1]") == true);
+		EXPECT_TRUE(true == output);
+		EXPECT_TRUE(process->convert_dataparameter(&output,"false","[1]") == true);
+		EXPECT_TRUE(false == output);
+	}
+	{ //CHECK DOUBLE
+		double output;
+		EXPECT_TRUE(process->convert_dataparameter(&output,"1.234","[1]") == true);
+		EXPECT_TRUE(isequal(1.234,output,.00001)==true);
+	}
+	{ //CHECK STRING
+		std::string output;
+		EXPECT_TRUE(process->convert_dataparameter(&output,"1.234","[1]") == true);
+		EXPECT_TRUE("1.234" == output);
+	}
+	{ //CHECK EIGEN VECTOR
+		{
+			Eigen::VectorXf output;
+			EXPECT_TRUE(process->convert_dataparameter(output,"[1.111 2.222 3.333 4.444]","[4]") == true);
+			EXPECT_TRUE(isequal(1.111,output(0),.00001) == true);
+			EXPECT_TRUE(isequal(2.222,output(1),.00001) == true);
+			EXPECT_TRUE(isequal(3.333,output(2),.00001) == true);
+			EXPECT_TRUE(isequal(4.444,output(3),.00001) == true);
+		}
+		{
+			Eigen::VectorXf output;
+			EXPECT_TRUE(process->convert_dataparameter(output,"[1.111 2.222 3.333 4.444]","[3]") == false);
+			EXPECT_TRUE(process->convert_dataparameter(output,"[1.111 2.222 3.333 4.444]","[]") == false);
+			EXPECT_TRUE(process->convert_dataparameter(output,"[1.111 2.222 3.333 4.444]","[a]") == false);
+		}
+	}
+	{ //CHECK EIGEN MATRIX
+		{
+			Eigen::MatrixXf output;
+			EXPECT_TRUE(process->convert_dataparameter(output,
+				"[1.111 2.222 3.333 4.444;5.555 6.666 7.777 8.888;9.999 10.000 11.111 12.222]","[3 4]") == true);
+			EXPECT_TRUE(isequal(output(0,0),1.111,.0001) == true);
+			EXPECT_TRUE(isequal(output(0,1),2.222,.0001) == true);
+			EXPECT_TRUE(isequal(output(0,2),3.333,.0001) == true);
+			EXPECT_TRUE(isequal(output(0,3),4.444,.0001) == true);
+			EXPECT_TRUE(isequal(output(1,0),5.555,.0001) == true);
+			EXPECT_TRUE(isequal(output(1,1),6.666,.0001) == true);
+			EXPECT_TRUE(isequal(output(1,2),7.777,.0001) == true);
+			EXPECT_TRUE(isequal(output(1,3),8.888,.0001) == true);
+			EXPECT_TRUE(isequal(output(2,0),9.999,.0001) == true);
+			EXPECT_TRUE(isequal(output(2,1),10.000,.0001) == true);
+			EXPECT_TRUE(isequal(output(2,2),11.111,.0001) == true);
+			EXPECT_TRUE(isequal(output(2,3),12.222,.0001) == true);
+		}
+		{
+			Eigen::MatrixXf output;
+			EXPECT_TRUE(process->convert_dataparameter(output,
+				"[1.111 2.222 3.333 4.444;5.555 6.666 7.777 8.888;9.999 10.000 11.111 12.222]","[0 4]") == false);
+			EXPECT_TRUE(process->convert_dataparameter(output,
+				"[1.111 2.222 3.333 4.444;5.555 6.666 7.777 9.999 10.000 11.111 12.222]","[3 4]") == false);
+			EXPECT_TRUE(process->convert_dataparameter(output,
+				"[1.111 2.222 3.333 4.444;5.555 6.666 7.777 8.888;9.999 10.000 11.111 12.222]","[4]") == false);
+			EXPECT_TRUE(process->convert_dataparameter(output,
+				"[1.111 2.222 3.333 4.444;5.555 6.666 7.777 8.888;9.999 10.000 11.111 12.222]","[3 4 a]") == false);
+		}
+	}
 
+}
 TEST(Template, Process_Command)
 {
 	DatabaseNodeProcess *process = initializeprocess();

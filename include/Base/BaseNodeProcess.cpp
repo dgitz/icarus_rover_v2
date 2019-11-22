@@ -400,3 +400,138 @@ void BaseNodeProcess::print_diagnostic(eros::diagnostic diag)
 	printf("\tDesc: %s\n",diag.Description.c_str());
 	printf("-----\n");
 }
+bool BaseNodeProcess::convert_dataparameter(bool *output,std::string param_input,std::string param_size)
+{
+	*output = false;
+	if(param_size != "[1]")
+	{
+		return false;
+	}
+	if(param_input == "true")
+	{
+		*output = true;
+		return true;
+	}
+	if(param_input == "false")
+	{
+		*output = false;
+		return true;
+	}
+	return false;
+}
+bool BaseNodeProcess::convert_dataparameter(double* output,std::string param_input,std::string param_size)
+{
+	if(param_size != "[1]")
+	{
+		*output = 0.0;
+		return false;
+	}
+	else
+	{
+		*output = std::atof(param_input.c_str());
+		return true;
+	}
+	return false;
+}
+bool BaseNodeProcess::convert_dataparameter(std::string* output,std::string param_input,std::string param_size)
+{
+	*output = "";
+	if(param_size != "[1]")
+	{
+		*output = "";
+		return false;
+	}
+	else
+	{
+		*output = param_input;
+		return true;
+	}
+	return false;
+}
+
+bool BaseNodeProcess::convert_dataparameter(Eigen::VectorXf& output,std::string param_input,std::string param_size)
+{
+	output.resize(0);
+	if((param_size.size() < 3) || (param_input.size() < 3))
+	{
+		return false;
+	}
+	if(	(param_size.at(0) == '[') && 
+		(param_size.at(param_size.size()-1) == ']') &&
+		(param_input.at(0) == '[') && 
+		(param_input.at(param_input.size()-1) == ']'))
+	{
+		std::string sz_substr = param_size.substr(1,param_size.size()-2);
+		uint64_t length = std::atoi(sz_substr.c_str());
+		std::string item_substr = param_input.substr(1,param_input.size()-2);
+		std::vector<std::string> items;
+		boost::split(items, item_substr, boost::is_any_of(" "));
+		if(length != (uint64_t)items.size())
+		{
+			return false;
+		}
+		output.resize(length);
+		for(std::size_t i = 0; i < items.size(); ++i)
+		{
+			double v = std::atof(items.at(i).c_str());
+			output(i) = v;
+		}
+		return true;
+
+	}
+	else
+	{
+		return false;
+	}
+	return false;
+}
+bool BaseNodeProcess::convert_dataparameter(Eigen::MatrixXf& output,std::string param_input,std::string param_size)
+{
+	output.resize(0,0);
+	if((param_size.size() < 5) || (param_input.size() < 3))
+	{
+		return false;
+	}
+	if(	(param_size.at(0) == '[') && 
+		(param_size.at(param_size.size()-1) == ']') &&
+		(param_input.at(0) == '[') && 
+		(param_input.at(param_input.size()-1) == ']'))
+	{
+		std::string sz_substr = param_size.substr(1,param_size.size()-2);
+		std::vector<std::string> items_sz;
+		boost::split(items_sz, sz_substr, boost::is_any_of(" "));
+		if(items_sz.size() != 2)
+		{
+			return false;
+		}
+		uint64_t height = std::atoi(items_sz.at(0).c_str());
+		uint64_t width = std::atoi(items_sz.at(1).c_str());
+		output.resize(height,width);
+		std::string substr = param_input.substr(1,param_input.size()-2);
+		std::vector<std::string> items_rows;
+		boost::split(items_rows,substr,boost::is_any_of(";"));
+		if(height != (uint64_t)items_rows.size())
+		{
+			return false;
+		}
+		for(std::size_t i = 0; i < items_rows.size(); ++i)
+		{
+			std::vector<std::string> items;
+			boost::split(items,items_rows.at(i),boost::is_any_of(" "));
+			if(width != (uint64_t)items.size())
+			{
+				return false;
+			}
+			for(std::size_t j = 0; j < items.size(); ++j)
+			{
+				output(i,j) = std::atof(items.at(j).c_str());
+			}
+		}
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+	return false;
+}

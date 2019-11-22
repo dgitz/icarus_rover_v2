@@ -89,9 +89,4 @@ private:
     PoseMode current_mode;
 	std::vector<IMUSensor> imus;
 	uint8_t imu_count;
-
-	//Blocks
-	//LinearAccelerationLinker *xacc_linker;
-	//LinearAccelerationLinker *yacc_linker;
-	//LinearAccelerationLinker *zacc_linker;
 };
