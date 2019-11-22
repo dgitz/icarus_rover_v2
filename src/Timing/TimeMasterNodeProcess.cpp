@@ -2,8 +2,7 @@
 eros::diagnostic TimeMasterNodeProcess::finish_initialization()
 {
 	eros::diagnostic diag = root_diagnostic;
-	pps1_delay = 0;
-	time_since_last_1pps = 0.0;
+	reset();
 	if (pps_source == "self")
 	{
 		update_diagnostic(TIMING, INFO, NOERROR, "Using Self Timebase.");
@@ -15,11 +14,11 @@ eros::diagnostic TimeMasterNodeProcess::finish_initialization()
 eros::diagnostic TimeMasterNodeProcess::update(double t_dt, double t_ros_time)
 {
 	eros::diagnostic diag = root_diagnostic;
-	if (initialized == true)
+	if (get_taskstate() == TASKSTATE_INITIALIZED)
 	{
-		ready = true;
+		request_statechange(TASKSTATE_RUNNING);
 	}
-	if ((is_initialized() == true) and (is_ready() == true))
+	if (get_taskstate() == TASKSTATE_RUNNING)
 	{
 		update_diagnostic(DATA_STORAGE, INFO, NOERROR, "No Error.");
 	}

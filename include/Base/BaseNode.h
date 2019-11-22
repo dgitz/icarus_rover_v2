@@ -52,7 +52,7 @@ public:
 
 	//Update Functions
 	/*! \brief Main Node update section, will call all derived Node Loop Functions, and publish base pubs such as firmware, heartbeat, etc. */
-	bool update();
+	bool update(uint8_t task_state);
 	/*! \brief Loop1 Must be Implemented in Derived Node.*/
 	virtual bool run_loop1() = 0;
 	/*! \brief Loop2 Must be Implemented in Derived Node.*/
@@ -132,7 +132,7 @@ protected:
 	eros::firmware firmware;
 	std::string base_node_name;
 	std::string node_name;
-
+	ros::Publisher state_pub;
 	ros::Publisher firmware_pub;
 	ros::Publisher resource_pub;
 	ros::Publisher heartbeat_pub;

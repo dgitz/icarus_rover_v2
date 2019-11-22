@@ -43,6 +43,7 @@ eros::diagnostic SampleNodeProcess::load_configfile(std::string path)
 }
 eros::diagnostic  SampleNodeProcess::finish_initialization()
 {
+	reset();
     eros::diagnostic diag = root_diagnostic;
 	sample_map[(uint8_t)SampleEnum::UNKNOWN] = "UNKNOWN";
 	sample_map[(uint8_t)SampleEnum::ENUMTYPEA] = "ENUM TYPE A";
@@ -53,10 +54,17 @@ eros::diagnostic  SampleNodeProcess::finish_initialization()
 }
 eros::diagnostic SampleNodeProcess::update(double t_dt,double t_ros_time)
 {
-	if(initialized == true)
+	if(task_state == TASKSTATE_PAUSE)
 	{
-		ready = true;
 
+	}
+	else if(task_state == TASKSTATE_RESET)
+	{
+		request_statechange(TASKSTATE_RUNNING);
+	}
+	else if(task_state != TASKSTATE_RUNNING)
+	{
+		request_statechange(TASKSTATE_RUNNING);
 	}
 	eros::diagnostic diag = update_baseprocess(t_dt,t_ros_time);
 	if(diag.Level <= NOTICE)
@@ -94,6 +102,23 @@ std::vector<eros::diagnostic> SampleNodeProcess::new_commandmsg(const eros::comm
 		}
 		else if (t_msg->Option1 == LEVEL4)
 		{
+		}
+	}
+	else if(t_msg->Command == ROVERCOMMAND_TASKCONTROL)
+	{
+		if(t_msg->CommandText == node_name)
+		{
+			bool v = request_statechange(t_msg->Option1);
+			if(v == false)
+			{
+				diag = update_diagnostic(SOFTWARE,ERROR,DIAGNOSTIC_FAILED,
+					"Unallowed State Transition: From: " + map_taskstate_tostring(task_state) + " To: " + map_taskstate_tostring(t_msg->Option1));
+			}
+			if(task_state == TASKSTATE_RESET)
+			{
+				reset();
+			}
+
 		}
 	}
 	for(std::size_t i = 0; i < diaglist.size(); ++i)

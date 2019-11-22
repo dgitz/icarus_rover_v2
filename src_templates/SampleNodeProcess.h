@@ -46,6 +46,9 @@ public:
 	/*! \brief NodeProcess specific Initialization
 	 *
 	 */
+	void reset()
+	{
+	}
 	eros::diagnostic set_config_filepaths(std::string filepath);
 	eros::diagnostic finish_initialization();
 	//Update Functions

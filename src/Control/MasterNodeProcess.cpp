@@ -14,6 +14,7 @@ eros::diagnostic MasterNodeProcess::new_devicemsg(__attribute__((unused)) const 
 }
 eros::diagnostic MasterNodeProcess::finish_initialization()
 {
+	reset();
 	eros::diagnostic diag = root_diagnostic;
 	SerialMessageHandler *serialmessagehandler = new SerialMessageHandler;
 	device_temperature = -100.0;
@@ -200,7 +201,7 @@ eros::diagnostic MasterNodeProcess::update(double t_dt, double t_ros_time)
 	{
 		diag = update_diagnostic(SOFTWARE, INFO, NOERROR, "Node Running.");
 	}
-	if((is_ready() == true) and (is_initialized() == true))
+	if(get_taskstate() == TASKSTATE_RUNNING)
 	{
 		update_diagnostic(DATA_STORAGE,INFO,NOERROR,"No Error");
 	}

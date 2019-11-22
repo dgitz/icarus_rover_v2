@@ -181,7 +181,7 @@ eros::diagnostic BaseNode::read_baselaunchparameters()
 	return diag;
 }
 
-bool BaseNode::update()
+bool BaseNode::update(uint8_t task_state)
 {
 	bool ok_to_run = false;
 	if(require_pps_to_start == false) { ok_to_run = true; }
@@ -211,6 +211,8 @@ bool BaseNode::update()
 		rand_delay_sec = (double)(rand() % 2000 - 1000)/1000.0;  
 		run_01hz_noisy();
 		last_01hz_noisy_timer = ros::Time::now();
+		logger->log_info("Task State: " + std::to_string(task_state));
+		
 	}
 	mtime = measure_time_diff(ros::Time::now(),last_01hz_timer);
 	if(mtime >= 10.0)
@@ -256,7 +258,7 @@ bool BaseNode::update()
 	if(mtime >= 0.1)
 	{
 		run_10hz();
-		heartbeat.TaskState = TASKSTATE_RUNNING;
+		heartbeat.TaskState = task_state;
 		heartbeat.stamp = ros::Time::now();
 		heartbeat_pub.publish(heartbeat);
 		if(publish_readytoarm == true)
@@ -354,7 +356,7 @@ void BaseNode::new_commandmsg_result(const eros::command::ConstPtr& t_msg,std::v
 }
 void BaseNode::base_cleanup()
 {
-	heartbeat.TaskState = TASKSTATE_STOPPED;
+	heartbeat.TaskState = TASKSTATE_FINISHED;
 	heartbeat.stamp = ros::Time::now();
 	heartbeat_pub.publish(heartbeat);
 }

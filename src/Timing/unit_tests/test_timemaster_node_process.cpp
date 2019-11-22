@@ -30,9 +30,9 @@ TimeMasterNodeProcess* initializeprocess(std::string pps_source)
 	process->enable_diagnostics(diagnostic_types);
 	process->set_ppssource(pps_source);
 	process->finish_initialization();
-	EXPECT_TRUE(process->is_initialized() == false);
+	EXPECT_TRUE(process->get_taskstate() == TASKSTATE_INITIALIZING);
 	process->set_mydevice(device);
-	EXPECT_TRUE(process->is_initialized() == true);
+	EXPECT_TRUE(process->get_taskstate() == TASKSTATE_INITIALIZED);
 	EXPECT_TRUE(process->get_mydevice().DeviceName == device.DeviceName);
 	return process;
 }
@@ -40,7 +40,7 @@ TimeMasterNodeProcess* readyprocess(TimeMasterNodeProcess* process)
 {
 	eros::diagnostic diag = process->update(0.0,0.0);
 	EXPECT_TRUE(diag.Level <= NOTICE);
-	EXPECT_TRUE(process->is_ready() == true);
+	EXPECT_TRUE(process->get_taskstate() == TASKSTATE_RUNNING);
 	{
 		std::vector<eros::diagnostic> diagnostics = process->get_diagnostics();
 		EXPECT_TRUE(diagnostics.size() == DIAGNOSTIC_TYPE_COUNT);

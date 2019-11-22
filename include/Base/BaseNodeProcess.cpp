@@ -9,8 +9,14 @@ eros::diagnostic BaseNodeProcess::update_baseprocess(double t_dt, double t_ros_t
 }
 void BaseNodeProcess::set_mydevice(eros::device t_device)
 {
+	eros::diagnostic diag = root_diagnostic;
 	mydevice = t_device;
-	initialized = true;
+	bool v = request_statechange(TASKSTATE_INITIALIZED);
+	if(v == false)
+	{
+		diag = update_diagnostic(SOFTWARE,ERROR,DIAGNOSTIC_FAILED,
+			"Unallowed State Transition: From: " + map_taskstate_tostring(task_state) + " To: " + map_taskstate_tostring(TASKSTATE_INITIALIZED));
+	}
 }
 ros::Time BaseNodeProcess::convert_time(struct timeval t_)
 {
@@ -31,6 +37,107 @@ ros::Time BaseNodeProcess::convert_time(double t_)
 	double rem = t_ - (double)t.sec;
 	t.nsec = (int64_t)(rem * 1000000.0);
 	return t;
+}
+bool BaseNodeProcess::request_statechange(uint8_t newstate)
+{
+	uint8_t current_state = task_state;
+	bool state_changed = false;
+	switch(current_state)
+	{
+		case TASKSTATE_START:
+			if(newstate == TASKSTATE_INITIALIZING)
+			{
+				state_changed = true;
+			}
+			else
+			{
+				state_changed = false;
+			}
+			break;
+		case TASKSTATE_INITIALIZING:
+			if(newstate == TASKSTATE_INITIALIZED)
+			{
+				state_changed = true;
+			}
+			else
+			{
+				state_changed = false;
+			}
+			break;
+		case TASKSTATE_INITIALIZED:
+			if(newstate == TASKSTATE_LOADING)
+			{
+				state_changed = true;
+			}
+			else if(newstate == TASKSTATE_RUNNING)
+			{
+				state_changed = true;
+			}
+			else
+			{
+				state_changed = false;
+			}
+			break;
+		case TASKSTATE_LOADING:
+			if(newstate == TASKSTATE_RUNNING)
+			{
+				state_changed = true;
+			}
+			else
+			{
+				state_changed = false;
+			}
+			break;
+		case TASKSTATE_RUNNING:
+			if(newstate == TASKSTATE_PAUSE)
+			{
+				state_changed = true;
+			}
+			else if(newstate == TASKSTATE_RESET)
+			{
+				state_changed = true;
+			}
+			else if(newstate == TASKSTATE_FINISHED)
+			{
+				state_changed = true;
+			}
+			else
+			{
+				state_changed = false;
+			}
+			break;
+		case TASKSTATE_PAUSE:
+			if(newstate == TASKSTATE_RUNNING)
+			{
+				state_changed = true;
+			}
+			else
+			{
+				state_changed = false;
+			}
+			break;
+		case TASKSTATE_RESET:
+			if(newstate == TASKSTATE_LOADING)
+			{
+				state_changed = true;
+			}
+			else
+			{
+				state_changed = false;
+			}
+			break;
+		case TASKSTATE_FINISHED:
+			state_changed = false;
+			break;
+		default:
+			state_changed = false;
+			break;
+	}
+	if(state_changed == true)
+	{
+		task_state = newstate;
+	}
+	return state_changed;
 }
 std::vector<eros::diagnostic> BaseNodeProcess::run_unittest()
 {
@@ -534,4 +641,37 @@ bool BaseNodeProcess::convert_dataparameter(Eigen::MatrixXf& output,std::string 
 		return false;
 	}
 	return false;
+}
+std::string BaseNodeProcess::map_taskstate_tostring(uint8_t state)
+{
+	switch(state)
+	{
+		case TASKSTATE_START:
+			return "START";
+			break;
+		case TASKSTATE_INITIALIZING:
+			return "INITIALIZING";
+			break;
+		case TASKSTATE_INITIALIZED:
+			return "INITIALIZED";
+			break;
+		case TASKSTATE_LOADING:
+			return "LOADING";
+			break;
+		case TASKSTATE_RUNNING:
+			return "RUNNING";
+			break;
+		case TASKSTATE_PAUSE:
+			return "PAUSE";
+			break;
+		case TASKSTATE_RESET:
+			return "RESET";
+			break;
+		case TASKSTATE_FINISHED:
+			return "FINISHED";
+			break;
+		default:
+			return "UNKNOWN";
+			break;
+	}
 }
