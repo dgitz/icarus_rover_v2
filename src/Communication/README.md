@@ -44,7 +44,9 @@ Instructions:
 * Manually run a SQL command
 1. Run the database_node and master_node
 2. Execute the following command:
-  >>rosservice call /ConfigDatabase/srv_sql '{type: 3,cmd: SELECT * FROM FASTDatabaseTable_Item}'
+  >>rosservice call /ConfigDatabase/srv_sql '{type: 3,cmd: SELECT * FROM PoseCore_LinearAcceleration}'
+  >>rosservice call /ConfigDatabase/srv_sql '{type: 2,cmd: UPDATE Info SET DateUpdated = "20-Nov-2019"}'
+
 
 Documentation History:
 12-Aug-2019 David Gitz

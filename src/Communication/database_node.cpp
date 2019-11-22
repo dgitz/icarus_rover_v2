@@ -183,6 +183,14 @@ bool DatabaseNode::sql_service(eros::srv_sql::Request &req,
 	std::string tempstr;
 	switch(req.type)
 	{
+		case SQLCOMMANDTYPE_DATAMANIPULATION:
+			db_fd = sqlite3_exec(db, req.cmd.c_str(), DatabaseNode::database_update, &recordlist, &zErrMsg);
+			if( db_fd != SQLITE_OK ) 
+			{
+				res.status = -1;
+				sqlite3_free(zErrMsg);
+			}
+			break;
 		case SQLCOMMANDTYPE_DATAQUERY:
 			db_fd = sqlite3_exec(db, req.cmd.c_str(), DatabaseNode::database_query, &recordlist, &zErrMsg);
 			if( db_fd != SQLITE_OK ) 
@@ -240,6 +248,10 @@ int DatabaseNode::database_query(void *p_data, int num_fields, char **p_fields, 
 		return 1;
 	}
    return 0;
+}
+int DatabaseNode::database_update(void *data, int argc, char **argv, char**azColName)
+{
+	return 0;
 }
 void DatabaseNode::PPS1_Callback(const std_msgs::Bool::ConstPtr &msg)
 {

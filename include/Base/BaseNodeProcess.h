@@ -6,6 +6,7 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/lexical_cast.hpp>
 #include "boost/date_time/posix_time/posix_time.hpp"
+#include <eigen3/Eigen/Dense>
 //ROS Base Functionality
 #include "ros/time.h"
 //ROS Messages
@@ -153,6 +154,16 @@ public:
 	//Printing Functions
 	void print_message(std::string level,std::string time_str,std::string filename,int line_number,std::string msg);
 	void print_diagnostic(eros::diagnostic diag);
+	/*! \brief input: true,false size=[1] */
+	bool convert_dataparameter(bool *output,std::string param_input,std::string param_size);
+	/*! \brief input: 1.234 size=[1] */
+	bool convert_dataparameter(double* output,std::string param_input,std::string param_size);
+	/*! \brief input: sometext size=[1] */
+	bool convert_dataparameter(std::string* output,std::string param_input,std::string param_size);
+	/*! \brief input: [1.11 2.22 3.33] size=[<LENGTH>] */
+	bool convert_dataparameter(Eigen::VectorXf& output,std::string param_input,std::string param_size);
+	/*! \brief input: [1.11 2.22 3.33;4.44 5.55 6.66;7.77 8.88 9.99;] size=[<HEIGHT> <WIDTH>] */
+	bool convert_dataparameter(Eigen::MatrixXf& output,std::string param_input,std::string param_size);
 protected:
 	DiagnosticClass diagnostic_helper;
 	std::vector<eros::diagnostic> diagnostics;

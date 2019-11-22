@@ -53,6 +53,7 @@ private:
 	eros::diagnostic finish_initialization();
 	//Update Functions
 	static int database_query(void *data, int argc, char **argv, char **azColName);
+	static int database_update(void *data, int argc, char **argv, char**azColName);
 	bool run_001hz();
 	bool run_01hz();
 	bool run_01hz_noisy();
