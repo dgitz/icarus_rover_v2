@@ -45,7 +45,7 @@ bool SampleNode::start(int argc, char **argv)
 eros::diagnostic SampleNode::read_launchparameters()
 {
 	eros::diagnostic diag = diagnostic;
-	get_logger()->log_notice("Configuration Files Loaded.");
+	get_logger()->log_notice(__FILE__,__LINE__,"Configuration Files Loaded.");
 	return diagnostic;
 }
 eros::diagnostic SampleNode::finish_initialization()
@@ -74,9 +74,9 @@ bool SampleNode::run_01hz_noisy()
 		get_logger()->log_diagnostic(diaglist.at(i));
 		diagnostic_pub.publish(diaglist.at(i));
 	}
-	eros::diagnostic diag = rescan_topics();
-	get_logger()->log_diagnostic(diag);
-	diagnostic_pub.publish(diag);
+	//eros::diagnostic diag = rescan_topics();
+	//get_logger()->log_diagnostic(diag);
+	//diagnostic_pub.publish(diag);
 	return true;
 }
 bool SampleNode::run_1hz()
@@ -92,7 +92,7 @@ bool SampleNode::run_1hz()
 				if (srv.response.data.size() != 1)
 				{
 
-					get_logger()->log_error("Got unexpected device message.");
+					get_logger()->log_error(__FILE__,__LINE__,"Got unexpected device message.");
 				}
 				else
 				{
@@ -191,7 +191,7 @@ eros::diagnostic SampleNode::rescan_topics()
 			found_new_topics++;
 			char tempstr[255];
 			sprintf(tempstr,"Subscribing to command topic: %s",info.name.c_str());
-			logger->log_info(tempstr);
+			logger->log_info(__FILE__,__LINE__,tempstr);
 			ros::Subscriber sub = n->subscribe<eros::command>(info.name,20,&SampleNode::Command_Callback,this);
 			multiple_subs.push_back(sub);
 		}
@@ -207,7 +207,7 @@ eros::diagnostic SampleNode::rescan_topics()
 		sprintf(tempstr,"Rescanned and found no new topics.");
 	}
 	diag = process->update_diagnostic(SOFTWARE,INFO,NOERROR,std::string(tempstr));
-	logger->log_info(tempstr);
+	logger->log_info(__FILE__,__LINE__,tempstr);
 	return diag;
 }
 void SampleNode::thread_loop()
@@ -220,7 +220,7 @@ void SampleNode::thread_loop()
 void SampleNode::cleanup()
 {
 	base_cleanup();
-	get_logger()->log_info("Node Finished Safely.");
+	get_logger()->log_info(__FILE__,__LINE__,"Node Finished Safely.");
 }
 /*! \brief Attempts to kill a node when an interrupt is received.
  *

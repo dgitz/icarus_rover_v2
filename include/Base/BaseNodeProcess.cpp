@@ -121,6 +121,10 @@ bool BaseNodeProcess::request_statechange(uint8_t newstate)
 			{
 				state_changed = true;
 			}
+			else if(newstate == TASKSTATE_RUNNING)
+			{
+				state_changed = true;
+			}
 			else
 			{
 				state_changed = false;
@@ -674,4 +678,18 @@ std::string BaseNodeProcess::map_taskstate_tostring(uint8_t state)
 			return "UNKNOWN";
 			break;
 	}
+}
+bool BaseNodeProcess::isEqual(double a, double b,double precision)
+{
+	a = fabs(a);
+	b = fabs(b);
+	double v = fabs(a-b);
+	if(v < precision)
+	{
+		return true;
+	}
+	else
+	{
+		return false;
+	}	
 }

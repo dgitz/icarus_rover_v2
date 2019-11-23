@@ -54,19 +54,31 @@ eros::diagnostic  SampleNodeProcess::finish_initialization()
 }
 eros::diagnostic SampleNodeProcess::update(double t_dt,double t_ros_time)
 {
+	eros::diagnostic diag = root_diagnostic;
 	if(task_state == TASKSTATE_PAUSE)
 	{
 
 	}
 	else if(task_state == TASKSTATE_RESET)
 	{
-		request_statechange(TASKSTATE_RUNNING);
+		bool v = request_statechange(TASKSTATE_RUNNING);
+		if(v == false)
+		{
+			diag = update_diagnostic(SOFTWARE,ERROR,DIAGNOSTIC_FAILED,
+				"Unallowed State Transition: From: " + map_taskstate_tostring(task_state) + " To: " + map_taskstate_tostring(TASKSTATE_RUNNING));
+		}
+		
 	}
 	else if(task_state != TASKSTATE_RUNNING)
 	{
-		request_statechange(TASKSTATE_RUNNING);
+		bool v = request_statechange(TASKSTATE_RUNNING);
+		if(v == false)
+		{
+			diag = update_diagnostic(SOFTWARE,ERROR,DIAGNOSTIC_FAILED,
+				"Unallowed State Transition: From: " + map_taskstate_tostring(task_state) + " To: " + map_taskstate_tostring(TASKSTATE_RUNNING));
+		}
 	}
-	eros::diagnostic diag = update_baseprocess(t_dt,t_ros_time);
+	diag = update_baseprocess(t_dt,t_ros_time);
 	if(diag.Level <= NOTICE)
 	{
 		diag = update_diagnostic(DATA_STORAGE,INFO,NOERROR,"No Error.");
@@ -106,17 +118,25 @@ std::vector<eros::diagnostic> SampleNodeProcess::new_commandmsg(const eros::comm
 	}
 	else if(t_msg->Command == ROVERCOMMAND_TASKCONTROL)
 	{
-		if(t_msg->CommandText == node_name)
+		if(node_name.find(t_msg->CommandText) != std::string::npos)
 		{
-			bool v = request_statechange(t_msg->Option1);
+			uint8_t prev_taskstate = get_taskstate();
+			bool v = request_statechange(t_msg->Option2);
 			if(v == false)
 			{
 				diag = update_diagnostic(SOFTWARE,ERROR,DIAGNOSTIC_FAILED,
-					"Unallowed State Transition: From: " + map_taskstate_tostring(task_state) + " To: " + map_taskstate_tostring(t_msg->Option1));
+					"Unallowed State Transition: From: " + map_taskstate_tostring(prev_taskstate) + " To: " + map_taskstate_tostring(t_msg->Option2));
+				diaglist.push_back(diag);
 			}
-			if(task_state == TASKSTATE_RESET)
+			else
 			{
-				reset();
+				if(task_state == TASKSTATE_RESET)
+				{
+					reset();
+				}
+				diag = update_diagnostic(SOFTWARE,NOTICE,DIAGNOSTIC_PASSED,
+					"Commanded State Transition: From: " + map_taskstate_tostring(prev_taskstate) + " To: " + map_taskstate_tostring(t_msg->Option2));
+				diaglist.push_back(diag);
 			}
 
 		}

@@ -158,6 +158,8 @@ public:
 	/*! \brief input: [1.11 2.22 3.33;4.44 5.55 6.66;7.77 8.88 9.99;] size=[<HEIGHT> <WIDTH>] */
 	bool convert_dataparameter(Eigen::MatrixXf& output,std::string param_input,std::string param_size);
 	std::string map_taskstate_tostring(uint8_t state);
+	bool isEqual(double a, double b,double precision);
+	
 protected:
 	uint8_t task_state;
 	DiagnosticClass diagnostic_helper;
