@@ -36,10 +36,8 @@ CommandLauncherNodeProcess* initializeprocess()
 	EXPECT_TRUE(process->is_initialized() == true);
 	EXPECT_TRUE(process->get_mydevice().DeviceName == device.DeviceName);
 
-	EXPECT_TRUE(process->set_camerastream("CameraPort"));
-
 	std::vector<CommandLauncherNodeProcess::ProcessCommand> processlist = process->get_processlist();
-	EXPECT_TRUE(processlist.size() > 0);
+	EXPECT_TRUE(processlist.size() == 0); //NO Processes Defined Yet.
 	for(std::size_t i = 0; i < processlist.size(); i++)
 	{
 		EXPECT_TRUE(processlist.at(i).initialized == true); 

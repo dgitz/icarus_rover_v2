@@ -15,10 +15,10 @@ public:
 
 	const string BASE_NODE_NAME = "commandlauncher_node";
 
-	const uint8_t MAJOR_RELEASE_VERSION = 2;
+	const uint8_t MAJOR_RELEASE_VERSION = 3;
 	const uint8_t MINOR_RELEASE_VERSION = 0;
-	const uint8_t BUILD_NUMBER = 1;
-	const string FIRMWARE_DESCRIPTION = "Latest Rev: 2-December-2018";
+	const uint8_t BUILD_NUMBER = 0;
+	const string FIRMWARE_DESCRIPTION = "Latest Rev: 26-December-2019";
 
 	const uint8_t DIAGNOSTIC_SYSTEM = ROVER;
 	const uint8_t DIAGNOSTIC_SUBSYSTEM = ROBOT_CONTROLLER;
