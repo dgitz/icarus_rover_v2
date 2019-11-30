@@ -42,7 +42,23 @@ bool IMUNode::start(int argc,char **argv)
 eros::diagnostic IMUNode::read_launchparameters()
 {
 	eros::diagnostic diag = diagnostic;
-	get_logger()->log_notice("Configuration Files Loaded.");
+	std::string param_use_calibrationfile = node_name +"/use_calibrationfile";
+	bool load_calibrationfile = false;
+	if(n->getParam(param_use_calibrationfile,load_calibrationfile) == false)
+	{
+		get_logger()->log_warn("Param: use_calibrationfile Not Found.");
+	}
+	if(load_calibrationfile == false)
+	{
+		get_logger()->log_warn("Not using Calibration File.");
+	}
+	else
+	{
+		get_logger()->log_info("Using Calibration File.");
+	}
+	process->set_readsensorfile(load_calibrationfile);
+	get_logger()->log_notice("All Configuration Files Loaded.");
+	
 	return diagnostic;
 }
 eros::diagnostic IMUNode::finish_initialization()
@@ -86,6 +102,7 @@ bool IMUNode::run_1hz()
 			{
 				IMUDriver imu_driver;
 				int status = imu_driver.init(imus.at(i).partnumber,imus.at(i).device_path,imus.at(i).devicename,0);
+				logger->log_notice("Init IMU: " + imus.at(i).devicename + " at Port: " + imu_driver.get_port());
 				if(status <= 0)
 				{
 					diagnostic.Diagnostic_Type = SENSORS;

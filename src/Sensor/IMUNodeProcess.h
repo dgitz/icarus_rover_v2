@@ -112,6 +112,7 @@ public:
 	eros::diagnostic update(double t_dt,double t_ros_time);
 
 	//Attribute Functions
+	void set_readsensorfile(bool v) { load_sensorfile = v; }
 	 bool set_imu_mounting_angles(std::string devicename,double roll_deg,double pitch_deg,double yaw_deg);
 	double get_commtimeout_threshold() { return IMU_INVALID_TIME_THRESHOLD; }
 	std::vector<IMU> get_imus() { return imus; }
@@ -169,4 +170,5 @@ private:
 	bool imu_reset_trigger;
 	bool imu_reset_inprogress;
 	double imu_reset_inprogress_timer;
+	bool load_sensorfile;
 };

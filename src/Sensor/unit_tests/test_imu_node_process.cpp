@@ -15,10 +15,14 @@ std::string Host_Name = "unittest";
 std::string ros_DeviceName = Host_Name;
 void print_diagnostic(uint8_t level,eros::diagnostic diagnostic)
 {
+	DiagnosticClass diag_helper;
 	if(diagnostic.Level >= level)
 	{
-		printf("Type: %d Message: %d Level: %d Device: %s Desc: %s\n",diagnostic.Diagnostic_Type,diagnostic.Diagnostic_Message,
-			  		diagnostic.Level,diagnostic.DeviceName.c_str(),diagnostic.Description.c_str());
+		printf("Type: %s Message: %s Level: %s Device: %s Desc: %s\n",
+			diag_helper.get_DiagTypeString(diagnostic.Diagnostic_Type).c_str(),
+			diag_helper.get_DiagMessageString(diagnostic.Diagnostic_Message).c_str(),
+			diag_helper.get_DiagLevelString(diagnostic.Level).c_str(),
+			diagnostic.DeviceName.c_str(),diagnostic.Description.c_str());
 	}
 }
 void print_3x3matrix(std::string name,Eigen::Matrix3f mat)
@@ -65,6 +69,7 @@ IMUNodeProcess* initializeprocess(std::string imuname,std::string imu_partnumber
 	process->enable_diagnostics(diagnostic_types);
 	process->finish_initialization();
 	EXPECT_TRUE(process->is_initialized() == false);
+	process->set_readsensorfile(true);
 	process->set_mydevice(device);
 	EXPECT_TRUE(process->is_initialized() == true);
 	EXPECT_TRUE(process->get_mydevice().DeviceName == device.DeviceName);
@@ -96,7 +101,6 @@ IMUNodeProcess* initializeprocess(std::string imuname,std::string imu_partnumber
 	}
 	eros::leverarm::ConstPtr leverarm_ptr(new eros::leverarm(leverarm));
 	eros::diagnostic diagnostic = process->new_devicemsg(imu_ptr,leverarm_ptr,true,override_config_path);
-	print_diagnostic(NOTICE,diagnostic);
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 	diagnostic = process->update(0.0,0.0);
 	EXPECT_TRUE(process->is_ready() == true);
@@ -792,8 +796,8 @@ TEST(Template,IMUReset_Manual)
 					raw_imudata.gyro_y.value = (double)(counter % 11)*imu1.gyro_scale_factor;
 					raw_imudata.gyro_z.value = (double)(counter % 11)*imu1.gyro_scale_factor;
 					raw_imudata.mag_x.value =  -3386.66650391;
-				raw_imudata.mag_y.value = -146.666656494;
-				raw_imudata.mag_z.value = 2039.99987793;
+					raw_imudata.mag_y.value = -146.666656494;
+					raw_imudata.mag_z.value = 2039.99987793;
 					eros::imu processed_imudata;
 					eros::signal processed_imudata_temperature;
 					EXPECT_TRUE(process->new_imumsg(imus.at(i).devicename,raw_imudata,processed_imudata,processed_imudata_temperature).Level <= NOTICE);

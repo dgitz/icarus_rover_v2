@@ -315,6 +315,8 @@ eros::diagnostic IMUNodeProcess::new_devicemsg(const eros::device::ConstPtr& dev
 			newimu.mounting_angle_offset_pitch_deg = leverarm->pitch.value;
 			newimu.mounting_angle_offset_roll_deg = leverarm->roll.value;
 			newimu.mounting_angle_offset_yaw_deg = leverarm->yaw.value;
+			newimu.MagnetometerEllipsoidFit_RotationMatrix = Eigen::Matrix3f::Identity(3,3);
+			newimu.MagnetometerEllipsoidFit_Bias = Eigen::Vector3f::Zero(3);
 			newimu.rotate_matrix = generate_rotation_matrix(newimu.mounting_angle_offset_roll_deg,newimu.mounting_angle_offset_pitch_deg,newimu.mounting_angle_offset_yaw_deg);
 			newimu.initialized = true;
 
@@ -327,7 +329,14 @@ eros::diagnostic IMUNodeProcess::new_devicemsg(const eros::device::ConstPtr& dev
 				newimu.sensor_info_path = "/home/robot/config/sensors/" + device->PartNumber + "-" + std::to_string(device->ID) + "/" + device->PartNumber + "-" + std::to_string(device->ID) + ".xml";
 			}
 			imus.push_back(newimu);
-			diag = load_sensorinfo(device->DeviceName);
+			if(load_sensorfile == true)
+			{
+				diag = load_sensorinfo(device->DeviceName);
+			}
+			else
+			{
+				diag = update_diagnostic(DATA_STORAGE,NOTICE,NOERROR,"Not Loading Sensor File.");
+			}
 			diag = update_diagnostic(diag);
 			if(diag.Level > WARN) { return diag; }
 			ready = true;
@@ -368,6 +377,8 @@ eros::diagnostic IMUNodeProcess::new_devicemsg(const eros::device::ConstPtr& dev
 			newimu.mounting_angle_offset_pitch_deg = leverarm->pitch.value;
 			newimu.mounting_angle_offset_roll_deg = leverarm->roll.value;
 			newimu.mounting_angle_offset_yaw_deg = leverarm->yaw.value;
+			newimu.MagnetometerEllipsoidFit_RotationMatrix = Eigen::Matrix3f::Identity(3,3);
+			newimu.MagnetometerEllipsoidFit_Bias = Eigen::Vector3f::Zero(3);
 			newimu.rotate_matrix = generate_rotation_matrix(newimu.mounting_angle_offset_roll_deg,newimu.mounting_angle_offset_pitch_deg,newimu.mounting_angle_offset_yaw_deg);
 			newimu.initialized = true;
 
@@ -380,7 +391,14 @@ eros::diagnostic IMUNodeProcess::new_devicemsg(const eros::device::ConstPtr& dev
 				newimu.sensor_info_path = "/home/robot/config/sensors/" + device->PartNumber + "-" + std::to_string(device->ID) + "/" + device->PartNumber + "-" + std::to_string(device->ID) + ".xml";
 			}
 			imus.push_back(newimu);
-			diag = load_sensorinfo(device->DeviceName);
+			if(load_sensorfile == true)
+			{
+				diag = load_sensorinfo(device->DeviceName);
+			}
+			else
+			{
+				diag = update_diagnostic(DATA_STORAGE,NOTICE,NOERROR,"Not Loading Sensor File.");
+			}
 			if(diag.Level > WARN) { return diag; }
 			ready = true;
 			imus_initialized = true;
