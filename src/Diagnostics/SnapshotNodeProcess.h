@@ -49,6 +49,7 @@ public:
 		std::vector<std::string> folders;
 		std::vector<std::string> files;
 		std::vector<Command> commands;
+		std::vector<std::string> scripts;
 		std::string destination_path;
 	};
 	struct SystemSnapshotInfo

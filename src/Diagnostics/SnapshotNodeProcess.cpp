@@ -142,6 +142,16 @@ eros::diagnostic SnapshotNodeProcess::load_configfile(std::string path)
 							l_pCommand = l_pCommand->NextSiblingElement( "Command" );
 						}
 					}
+					TiXmlElement *l_pScript = l_pArchitecture->FirstChildElement( "Script" );
+					if(NULL != l_pScript)
+					{
+						atleast_one_entity_found = true;
+						while( l_pScript )
+						{
+							config.scripts.push_back(l_pScript->GetText());
+							l_pScript = l_pScript->NextSiblingElement( "Script" );
+						}
+					}
 					snapshot_configlist.push_back(config);
 					l_pArchitecture = l_pArchitecture->NextSiblingElement( "Architecture" );
 				}
@@ -193,6 +203,10 @@ void SnapshotNodeProcess::print_snapshotconfig(SnapshotNodeProcess::SnapshotConf
 	for(std::size_t i = 0; i < config.commands.size(); ++i)
 	{
 		printf("\t[%d] Command: %s\n",(int)i,config.commands.at(i).command.c_str());
+	}
+	for(std::size_t i = 0; i < config.scripts.size(); ++i)
+	{
+		printf("\t[%d] Script: %s\n",(int)i,config.scripts.at(i).c_str());
 	}
 }
 eros::diagnostic  SnapshotNodeProcess::finish_initialization()
@@ -561,6 +575,20 @@ std::vector<eros::diagnostic> SnapshotNodeProcess::createnew_snapshot(uint8_t sn
 		catch(std::exception e)
 		{
 			std::string tempstr = "Command Exec failed with error: " + std::string(e.what());
+			diag = update_diagnostic(DATA_STORAGE,WARN,DROPPING_PACKETS,tempstr);
+		}
+	}
+	for(std::size_t i = 0; i < snapshot_config.scripts.size(); ++i)
+	{
+		char tempstr[1024];
+		sprintf(tempstr,"%s %s",snapshot_config.scripts.at(i).c_str(),snapshot_path.c_str());
+		try
+		{
+			exec(tempstr,true);
+		}
+		catch(std::exception e)
+		{
+			std::string tempstr = "Script Exec failed with error: " + std::string(e.what());
 			diag = update_diagnostic(DATA_STORAGE,WARN,DROPPING_PACKETS,tempstr);
 		}
 	}
