@@ -16,7 +16,6 @@ bool IMUNode::start(int argc,char **argv)
 	{
 		return false;
 	}
-
 	process->initialize(get_basenodename(),get_nodename(),get_hostname(),DIAGNOSTIC_SYSTEM,DIAGNOSTIC_SUBSYSTEM,DIAGNOSTIC_COMPONENT);
 	std::vector<uint8_t> diagnostic_types;
 	diagnostic_types.push_back(SOFTWARE);
@@ -347,7 +346,7 @@ bool IMUNode::new_devicemsg(std::string query,eros::device t_device)
 	}
 	return true;
 }
-bool IMUNode::new_devicemsg(std::string query,eros::device t_device,eros::leverarm t_leverarm)
+bool IMUNode::new_devicemsg(__attribute__((unused))std::string query,eros::device t_device,eros::leverarm t_leverarm)
 {
 	if((process->is_initialized() == true))
 	{
@@ -470,7 +469,7 @@ void IMUNode::cleanup()
 /*! \brief Attempts to kill a node when an interrupt is received.
  *
  */
-void signalinterrupt_handler(int sig)
+void signalinterrupt_handler(__attribute__((unused))int sig)
 {
 	kill_node = true;
 	exit(0);

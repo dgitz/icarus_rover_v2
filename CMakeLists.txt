@@ -212,7 +212,9 @@ install(DIRECTORY include/${PROJECT_NAME}/
 include_directories(include ${catkin_INCLUDE_DIRS} ${roscpp_INCLUDE_DIRS})
 #Libraries-General
 add_library(resourcemonitor util/resourcemonitor.cpp)
+add_dependencies(resourcemonitor ${catkin_EXPORTED_TARGETS})
 add_library(controlgroup util/controlgroup.cpp)
+
 
 #Libraries-Communications
 add_library(udpmessage util/udpmessage.cpp)

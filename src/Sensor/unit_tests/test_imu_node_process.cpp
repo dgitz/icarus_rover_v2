@@ -140,6 +140,7 @@ TEST(Template,Process_Msg)
 	bool mediumrate_fire = false; //1 Hz
 	bool slowrate_fire = false; //0.1 Hz
 	bool all_valid_msg_sent = false;
+	bool check_outofrange_magnetometer = true;
 	while(current_time <= time_to_run)
 	{
 		eros::diagnostic diag = process->update(dt,current_time);
@@ -190,9 +191,9 @@ TEST(Template,Process_Msg)
 				raw_imudata.gyro_x.value = 4.0;
 				raw_imudata.gyro_y.value = 5.0;
 				raw_imudata.gyro_z.value = 6.0;
-				raw_imudata.mag_x.value =  -3386.66650391;
-				raw_imudata.mag_y.value = -146.666656494;
-				raw_imudata.mag_z.value = 2039.99987793;
+				raw_imudata.mag_x.value =  -2100.0;
+				raw_imudata.mag_y.value = -419.999;
+				raw_imudata.mag_z.value = -853.333;
 				eros::imu processed_imudata;
 				eros::signal processed_imudata_temperature;
 				diag = process->new_imumsg(imus.at(i).devicename,raw_imudata,processed_imudata,processed_imudata_temperature);
@@ -204,6 +205,21 @@ TEST(Template,Process_Msg)
 				EXPECT_TRUE((fabs((raw_imudata.gyro_x.value/imus.at(i).gyro_scale_factor)-processed_imudata.xgyro.value) < .0001));
 				EXPECT_TRUE((fabs((raw_imudata.gyro_y.value/imus.at(i).gyro_scale_factor)-processed_imudata.ygyro.value) < .0001));
 				EXPECT_TRUE((fabs((raw_imudata.gyro_z.value/imus.at(i).gyro_scale_factor)-processed_imudata.zgyro.value) < .0001));
+				EXPECT_TRUE((fabs((processed_imudata.xmag.value-(-0.05526))) < .0001));
+				EXPECT_TRUE((fabs((processed_imudata.ymag.value-(-0.95117))) < .0001));
+				EXPECT_TRUE((fabs((processed_imudata.zmag.value-(-0.31256))) < .0001));
+
+				if(check_outofrange_magnetometer == true)
+				{
+					double prev_value = raw_imudata.mag_x.value;
+					raw_imudata.mag_x.value =  10.0*raw_imudata.mag_x.value;
+					diag = process->new_imumsg(imus.at(i).devicename,raw_imudata,processed_imudata,processed_imudata_temperature);
+					EXPECT_TRUE(diag.Level > NOTICE);
+					raw_imudata.mag_x.value = prev_value;
+					diag = process->new_imumsg(imus.at(i).devicename,raw_imudata,processed_imudata,processed_imudata_temperature);
+					EXPECT_TRUE(diag.Level <= NOTICE);
+					check_outofrange_magnetometer = false;
+				}
 				
 			}
 
@@ -226,6 +242,7 @@ TEST(Template,Process_Msg)
 		current_time += dt;
 	}
 	EXPECT_TRUE(process->get_runtime() >= time_to_run);
+	EXPECT_TRUE(check_outofrange_magnetometer == false);
 }
 
 TEST(Template,Process_BadMsg)
@@ -795,12 +812,13 @@ TEST(Template,IMUReset_Manual)
 					raw_imudata.gyro_x.value = (double)(counter % 11)*imu1.gyro_scale_factor;
 					raw_imudata.gyro_y.value = (double)(counter % 11)*imu1.gyro_scale_factor;
 					raw_imudata.gyro_z.value = (double)(counter % 11)*imu1.gyro_scale_factor;
-					raw_imudata.mag_x.value =  -3386.66650391;
-					raw_imudata.mag_y.value = -146.666656494;
-					raw_imudata.mag_z.value = 2039.99987793;
+					raw_imudata.mag_x.value =  -2100.00;
+					raw_imudata.mag_y.value = -419.9999;
+					raw_imudata.mag_z.value = -853.333;
 					eros::imu processed_imudata;
 					eros::signal processed_imudata_temperature;
 					EXPECT_TRUE(process->new_imumsg(imus.at(i).devicename,raw_imudata,processed_imudata,processed_imudata_temperature).Level <= NOTICE);
+
 				}
 			}
 			else
