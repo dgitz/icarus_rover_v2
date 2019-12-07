@@ -11,7 +11,7 @@
 //ROS Messages
 #include <eros/diagnostic.h>
 //Project
-#include "Definitions.h"
+#include "../../Definitions/PoseDefinitions.h"
 
 using namespace Eigen;
 #ifndef SRC_ICARUS_ROVER_V2_SRC_POSE_POSEMODEL_BLOCKS_FILTER_BASICKALMANFILTER_H_

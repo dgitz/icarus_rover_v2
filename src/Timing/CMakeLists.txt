@@ -1,6 +1,7 @@
 #TimeMaster Node
 file(MAKE_DIRECTORY /home/robot/catkin_ws/build/test_results/icarus_rover_v2/timemaster_node)
 add_library(timemaster_node_process TimeMasterNodeProcess.cpp)
+add_dependencies(timemaster_node_process eros_generate_messages_cpp)
 target_link_libraries(timemaster_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} )
 add_executable(timemaster_node timemaster_node.cpp)
 target_link_libraries(timemaster_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor timemaster_node_process)
@@ -11,6 +12,7 @@ target_link_libraries(test_timemaster_node_process ${catkin_LIBRARIES} ${Boost_L
 #TimeSlave Node
 file(MAKE_DIRECTORY /home/robot/catkin_ws/build/test_results/icarus_rover_v2/timeslave_node)
 add_library(timeslave_node_process TimeSlaveNodeProcess.cpp)
+add_dependencies(timeslave_node_process eros_generate_messages_cpp)
 target_link_libraries(timeslave_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} )
 add_executable(timeslave_node timeslave_node.cpp)
 target_link_libraries(timeslave_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor timeslave_node_process)

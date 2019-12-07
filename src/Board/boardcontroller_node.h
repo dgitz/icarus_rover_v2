@@ -1,6 +1,6 @@
 // Derived class
 #include "BoardControllerNodeProcess.cpp"
-#include "../include/Base/BaseNode.cpp"
+#include "../../include/Base/BaseNode.cpp"
 //C System Files
 #include <sys/ioctl.h>
 #include <linux/spi/spidev.h>
@@ -14,7 +14,6 @@
 //ROS Base Functionality
 //ROS Messages
 //Project
-#include "spimessage.h"
 /*! \class SampleNode SampleNode.h "SampleNode.h"
  *  \brief This is a SampleNode class.  Used for the sample_node node.
  *
