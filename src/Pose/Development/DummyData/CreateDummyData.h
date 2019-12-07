@@ -4,7 +4,6 @@
 #include <stdio.h>
 #include <iostream>
 #include "../../PoseModel/Definitions/PoseDefinitions.h"
-#include "Definitions.h"
 #include <eros/signal.h>
 class CreateDummyData
 {

@@ -1,11 +1,11 @@
-#include "../include/Base/BaseNodeProcess.cpp"
+#include "../../include/Base/BaseNodeProcess.cpp"
 //C System Files
 //C++ System Files
 //ROS Base Functionality
 //ROS Messages
 //Project
 #include <tinyxml.h>
-#include "spimessage.h"
+#include "../../include/spimessage.h"
 /*! \class BoardControllerNodeProcess BoardControllerNodeProcess.h "BoardControllerNodeProcess.h"
  *  \brief This is a BoardControllerNodeProcess class.  Used for the boardcontroller_node node.
  *

@@ -10,6 +10,7 @@ file(MAKE_DIRECTORY /home/robot/catkin_ws/build/test_results/icarus_rover_v2/imu
 add_library(imudriver ${IMU_SOURCES} Driver/IMUDriver.cpp )
 target_link_libraries(imudriver ${CMAKE_THREAD_LIBS_INIT})
 add_library(imu_node_process IMUNodeProcess.cpp)
+add_dependencies(imu_node_process eros_generate_messages_cpp)
 target_link_libraries(imu_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} )
 add_executable(imu_node imu_node.cpp)
 target_link_libraries(imu_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} imudriver imu_node_process logger resourcemonitor)

@@ -1,6 +1,6 @@
 // Derived class
 #include "HatControllerNodeProcess.cpp"
-#include "../include/Base/BaseNode.cpp"
+#include "../../include/Base/BaseNode.cpp"
 //C System Files
 #include <unistd.h>			//Used for UART
 #include <fcntl.h>			//Used for UART

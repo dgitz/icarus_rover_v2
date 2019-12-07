@@ -1,10 +1,12 @@
 // Derived class
 #include "DataLoggerNodeProcess.cpp"
-#include "../include/Base/BaseNode.cpp"
+#include "../../include/Base/BaseNode.cpp"
 //C System Files
 //C++ System Files
 //ROS Base Functionality
-#include "../../../ros_comm/tools/rosbag/include/rosbag/recorder.h"
+//#include "../../../ros_comm/tools/rosbag/include/rosbag/recorder.h"
+//#include "record_ros/record.h"
+#include <rosbag/recorder.h>
 //ROS Messages
 //Project
 /*! \class DataLoggerNode DataLoggerNode.h "DataLoggerNode.h"

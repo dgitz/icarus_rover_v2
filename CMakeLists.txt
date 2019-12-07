@@ -20,6 +20,7 @@ find_package(catkin REQUIRED COMPONENTS
   roslib
   tf
   rosbag
+  eros
 )
 
 ## Setup FuzzyLite Library
@@ -121,7 +122,7 @@ find_package(OpenCV)
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES icarus_rover_v2
-  CATKIN_DEPENDS roscpp rospy std_msgs roslib
+  CATKIN_DEPENDS roscpp message_runtime rospy std_msgs roslib
   DEPENDS Boost message_runtime TinyXML
   
 )
@@ -134,10 +135,12 @@ catkin_package(
 ## Your package locations should be listed before other locations
 # include_directories(include)
 include_directories(
+  include
   ${catkin_INCLUDE_DIRS}
   ${Boost_INCLUDE_DIRS}
   ${TinyXML_INCLUDE_DIRS}
   ${OpenCV_INCLUDE_DIRS}
+  ${roscpp_INCLUDE_DIRS}
 )
 
 
@@ -209,10 +212,13 @@ install(DIRECTORY include/${PROJECT_NAME}/
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
-include_directories(include ${catkin_INCLUDE_DIRS} ${roscpp_INCLUDE_DIRS})
 #Libraries-General
 add_library(resourcemonitor util/resourcemonitor.cpp)
+#target_link_libraries(resourcemonitor ${catkin_LIBRARIES})
+add_dependencies(resourcemonitor eros_generate_messages_cpp)
+#add_dependencies(resourcemonitor ${catkin_EXPORTED_TARGETS})
 add_library(controlgroup util/controlgroup.cpp)
+add_dependencies(controlgroup eros_generate_messages_cpp)
 
 #Libraries-Communications
 add_library(udpmessage util/udpmessage.cpp)
@@ -246,3 +252,4 @@ add_subdirectory(src/Timing)
 
 #Add CMakeLists for User Control
 add_subdirectory(src/User_Control)
+
