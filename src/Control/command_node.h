@@ -1,6 +1,6 @@
 // Derived class
 #include "CommandNodeProcess.cpp"
-#include "../include/Base/BaseNode.cpp"
+#include "../../include/Base/BaseNode.cpp"
 //C System Files
 //C++ System Files
 //ROS Base Functionality

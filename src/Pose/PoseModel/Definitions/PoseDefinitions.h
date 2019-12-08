@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <iostream>
 #include "../../../../../eROS/include/DiagnosticClass.h"
-#include "Definitions.h"
+#include "../../../../include/Definitions.h"
 #include <eros/signal.h>
 struct SensorSignal
 {

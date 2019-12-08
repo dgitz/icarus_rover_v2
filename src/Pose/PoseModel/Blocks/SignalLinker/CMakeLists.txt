@@ -5,6 +5,7 @@ add_library(master_linker MasterLinker.cpp SignalSplitter.cpp
     LinearAccelerationLinker.cpp
     RotationRateLinker.cpp
     OrientationLinker.cpp)
+add_dependencies(master_linker eros_generate_messages_cpp)
 target_link_libraries(master_linker ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES})
 catkin_add_gtest(test_masterlinker unit_tests/test_masterlinker.cpp)
 target_link_libraries(test_masterlinker ${catkin_LIBRARIES} ${Boost_LIBRARIES} create_dummydata master_linker)

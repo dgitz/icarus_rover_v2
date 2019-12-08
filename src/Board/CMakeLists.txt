@@ -6,6 +6,7 @@ endif ()
 #Board Controller Node
 file(MAKE_DIRECTORY /home/robot/catkin_ws/build/test_results/icarus_rover_v2/boardcontroller_node)
 add_library(boardcontroller_node_process BoardControllerNodeProcess.cpp)
+add_dependencies(boardcontroller_node_process eros_generate_messages_cpp)
 target_link_libraries(boardcontroller_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} )
 add_executable(boardcontroller_node boardcontroller_node.cpp)
 target_link_libraries(boardcontroller_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} spimessage boardcontroller_node_process logger resourcemonitor)
@@ -19,6 +20,7 @@ add_dependencies(boardcontroller_node ${catkin_EXPORTED_TARGETS})
 #HatController Node
 file(MAKE_DIRECTORY /home/robot/catkin_ws/build/test_results/icarus_rover_v2/hatcontroller_node)
 add_library(hatcontroller_node_process HatControllerNodeProcess.cpp)
+add_dependencies(hatcontroller_node_process eros_generate_messages_cpp)
 target_link_libraries(hatcontroller_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} )
 if (${CMAKE_HOST_SYSTEM_PROCESSOR} STREQUAL armv7l)
     add_executable(hatcontroller_node hatcontroller_node.cpp) #Only compatible for armv7l

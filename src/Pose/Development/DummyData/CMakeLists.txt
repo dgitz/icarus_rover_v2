@@ -1,1 +1,2 @@
 add_library(create_dummydata CreateDummyData.cpp)
+add_dependencies(create_dummydata eros_generate_messages_cpp)
