@@ -294,6 +294,7 @@ eros::diagnostic BaseNodeProcess::update_diagnostic(uint8_t diagnostic_type, uin
 }
 eros::diagnostic BaseNodeProcess::update_diagnostic(eros::diagnostic diag)
 {
+	//printf("xxx3: type: %d\n",diag.Diagnostic_Type);
 	return update_diagnostic(diag.DeviceName,diag.Diagnostic_Type,diag.Level,diag.Diagnostic_Message,diag.Description);
 }
 eros::diagnostic BaseNodeProcess::update_diagnostic(std::string device_name, uint8_t diagnostic_type, uint8_t level, uint8_t message, std::string description)

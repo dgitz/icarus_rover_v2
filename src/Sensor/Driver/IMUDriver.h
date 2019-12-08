@@ -71,6 +71,7 @@ public:
 	void set_debugmode(uint8_t v);
 	int init(std::string t_partnumber,std::string t_port,std::string t_devicename,uint8_t verbosity);
 	int finish();
+	std::string get_port() { return port; }
 	std::string map_pn_tostring(PartNumber v);
 	IMUDriver::PartNumber map_pn_toenum(std::string v);
 	RawIMU update();

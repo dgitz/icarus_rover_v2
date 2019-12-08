@@ -19,7 +19,7 @@ static void show_usage()
 			<< "\t-r,--report\tReport: stat,acc,gyro,mag,all. Default=all.\n"
 			<< "\t-v,--verbose\tVerbosity: Default=0.\n"
 			<< "\t-pn,--partno\tPart Number: 110013,110015.\n"
-			<< "\t-p,--port\tSerial Port. Default=/dev/ttyAMA0.\n"
+			<< "\t-p,--port\tSerial Port. Default:\n\t\tPN=110013:/dev/ttyAMA0\n\t\tPN=110015:/dev/ttyACM0\n"
 			<< std::endl;
 }
 void print_imudata(std::string report,IMUDriver driver,IMUDriver::RawIMU imu_data);
@@ -30,6 +30,7 @@ int main(int argc, char* argv[])
 	std::string port = "/dev/ttyAMA0";
 	std::string partnumber = "";
 	std::string report = "all";
+	bool port_defined = false;
 	int verbosity = 0;
 	struct timeval start_time,now,last;
 	gettimeofday(&now,NULL);
@@ -113,7 +114,7 @@ int main(int argc, char* argv[])
 			if (i + 1 < argc)
 			{
 				// Make sure we aren't at the end of argv!
-				partnumber = argv[i+1]; // Increment 'i' so we don't get the argument as the next argv[i
+				partnumber = argv[i+1]; // Increment 'i' so we don't get the argument as the next argv[i]
 				i++;
 			}
 			else
@@ -129,6 +130,7 @@ int main(int argc, char* argv[])
 			if (i + 1 < argc)
 			{
 				// Make sure we aren't at the end of argv!
+				port_defined = true;
 				port = argv[i+1]; // Increment 'i' so we don't get the argument as the next argv[i
 				i++;
 			}
@@ -141,6 +143,17 @@ int main(int argc, char* argv[])
 		}
 		else
 		{
+		}
+	}
+	if(port_defined == false)
+	{
+		if(partnumber == "110013")
+		{
+			port = "/dev/ttyAMA0";
+		}
+		else if(partnumber == "110015")
+		{
+			port = "/dev/ttyACM0";
 		}
 	}
 	IMUDriver imu;
