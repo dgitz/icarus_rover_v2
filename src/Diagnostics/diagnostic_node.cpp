@@ -441,10 +441,10 @@ bool DiagnosticNode::log_resources()
 {
 	std::vector<DiagnosticNodeProcess::Task> TaskList = process->get_TaskList();
 	std::vector<DiagnosticNodeProcess::DeviceResourceAvailable> DeviceResourceAvailableList = process->get_DeviceResourceAvailableList();
-	std::string ram_used_file_path = "/home/robot/logs/ram_used.csv";
-	std::string cpu_used_file_path = "/home/robot/logs/cpu_used.csv";
-	std::string ram_free_file_path = "/home/robot/logs/ram_free.csv";
-	std::string cpu_free_file_path = "/home/robot/logs/cpu_free.csv";
+	std::string ram_used_file_path = "/home/robot/var/log/ram_used.csv";
+	std::string cpu_used_file_path = "/home/robot/var/log/cpu_used.csv";
+	std::string ram_free_file_path = "/home/robot/var/log/ram_free.csv";
+	std::string cpu_free_file_path = "/home/robot/var/log/cpu_free.csv";
 	if(logging_initialized == false)
 	{
 		ram_used_file.open(ram_used_file_path.c_str(),ios::out);
