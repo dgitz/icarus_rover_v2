@@ -381,6 +381,14 @@ uint8_t BaseNodeProcess::convert_signaltype(std::string units,double *conversion
 	{
 		return SIGNALTYPE_ANGLE;
 	}
+	else if(units == "amp")
+	{
+		return SIGNALTYPE_CURRENT;
+	}
+	else if(units == "volt")
+	{
+		return SIGNALTYPE_VOLTAGE;
+	}
 	else if(units == "")
 	{
 		*conversion_factor = 1.0;
