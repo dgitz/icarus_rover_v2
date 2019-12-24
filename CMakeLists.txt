@@ -214,9 +214,10 @@ install(DIRECTORY include/${PROJECT_NAME}/
 # catkin_add_nosetests(test)
 #Libraries-General
 add_library(resourcemonitor util/resourcemonitor.cpp)
-add_library(controlgroup util/controlgroup.cpp)
 add_dependencies(resourcemonitor eros_generate_messages_cpp)
+add_library(controlgroup util/controlgroup.cpp)
 add_dependencies(controlgroup eros_generate_messages_cpp)
+
 
 #Libraries-Communications
 add_library(udpmessage util/udpmessage.cpp)

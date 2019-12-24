@@ -10,7 +10,7 @@
             <DeviceSnapshotPath>/home/robot/storage/SNAPSHOT/UNITTEST/DEVICESNAPSHOT/</DeviceSnapshotPath>
             <Command file="ps_log">ps aux</Command>
             <Command file="ifconfig_log">ifconfig</Command>
-            <Folder>/home/robot/var/log/output/</Folder>
+            <Folder>/var/log/output/</Folder>
             <File>/var/log/syslog</File>
             <File>/var/log/boot.log</File>
             <File>/var/log/kern.log</File>
@@ -19,7 +19,7 @@
             <DeviceSnapshotPath>/home/robot/storage/SNAPSHOT/UNITTEST/DEVICESNAPSHOT/</DeviceSnapshotPath>
             <Command file="ps_log">ps aux</Command>
             <Command file="ifconfig_log">ifconfig</Command>
-            <Folder>/home/robot/var/log/output/</Folder>
+            <Folder>/var/log/output/</Folder>
             <File>/var/log/syslog</File>
             <File>/var/log/bootstrap.log</File>
             <File>/var/log/kern.log</File>
