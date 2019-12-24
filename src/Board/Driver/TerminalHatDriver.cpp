@@ -29,7 +29,7 @@ bool TerminalHatDriver::configure_pin(int pinnumber,std::string mode)
     }
     std::string export_str = "/sys/class/gpio/export";
     std::ofstream exportgpio(export_str.c_str()); // Open "export" file. Convert C++ string to C string. Required for all Linux pathnames
-    if (exportgpio < 0)
+    if (exportgpio.is_open() == false)
     {
         printf("OPERATION FAILED: Unable to export GPIO %d/%d\n",pinnumber,map_connectorpin_to_pinfile(pinnumber));
         return false;
@@ -42,7 +42,7 @@ bool TerminalHatDriver::configure_pin(int pinnumber,std::string mode)
         std::ostringstream setdir_str;
         setdir_str << "/sys/class/gpio/gpio" << map_connectorpin_to_pinfile(pinnumber) << "/direction";    
         std::ofstream setdirgpio(setdir_str.str().c_str()); // open direction file for gpio
-        if (setdirgpio < 0)
+        if (setdirgpio.is_open() == false)
         {
             printf(" OPERATION FAILED: Unable to set direction of GPIO %d/%d\n",pinnumber,map_connectorpin_to_pinfile(pinnumber));
             return false;
@@ -70,7 +70,7 @@ bool TerminalHatDriver::configure_pin(int pinnumber,std::string mode)
         std::ostringstream setdir_str;
         setdir_str << "/sys/class/gpio/gpio" << map_connectorpin_to_pinfile(pinnumber) << "/direction";    
         std::ofstream setdirgpio(setdir_str.str().c_str()); // open direction file for gpio
-        if (setdirgpio < 0)
+        if (setdirgpio.is_open() == false)
         {
             printf(" OPERATION FAILED: Unable to set direction of GPIO %d/%d\n",pinnumber,map_connectorpin_to_pinfile(pinnumber));
             return false;
@@ -102,7 +102,7 @@ bool TerminalHatDriver::set_pin(int pinnumber, int v)
     std::ostringstream setval_str;
     setval_str << "/sys/class/gpio/gpio" <<  map_connectorpin_to_pinfile(pinnumber) <<  "/value";
     std::ofstream setvalgpio(setval_str.str().c_str()); // open value file for gpio
-    if (setvalgpio < 0)
+    if (setvalgpio.is_open() == false)
     {
         printf("OPERATION FAILED: Unable to set the value of GPIO: %d/%d\n",pinnumber,map_connectorpin_to_pinfile(pinnumber));
         return false;
@@ -126,7 +126,7 @@ int TerminalHatDriver::read_pin(int pinnumber)
     std::ostringstream getval_str;
     getval_str << "/sys/class/gpio/gpio" << map_connectorpin_to_pinfile(pinnumber) << "/value";
     std::ifstream getvalgpio(getval_str.str().c_str());// open value file for gpio
-    if (getvalgpio < 0)
+    if (getvalgpio.is_open() == false)
     {
         printf("[ERROR]: OPERATION FAILED: Unable to get value of GPIO %d/%d\n",pinnumber,map_connectorpin_to_pinfile(pinnumber));
         return -1;
