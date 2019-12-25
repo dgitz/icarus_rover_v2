@@ -12,6 +12,7 @@ ServoHatDriver::~ServoHatDriver()
 
 int ServoHatDriver::init(int address_)
 {
+    init_pinmap();
 	address = address_;
     ServoHatfd = wiringPiI2CSetup(address);
 
@@ -74,6 +75,15 @@ void ServoHatDriver::resetAllPWM(int on, int off)
 }
 int ServoHatDriver::map_channelname_topin(std::string name)
 {
+    if(PinMap.find(name) != PinMap.end())
+    {
+        return PinMap[name];
+    }
+    else
+    {
+        return PinMap["UNKNOWN"];
+    }
+    /*
     if(name == "") { return -1; }
     else if(name == "CH0") { return 0; }
     else if(name == "CH1") { return 1; }
@@ -92,4 +102,26 @@ int ServoHatDriver::map_channelname_topin(std::string name)
     else if(name == "CH14") { return 14; }
     else if(name == "CH15") { return 15; }
     else { return -1; }
+    */
+}
+void ServoHatDriver::init_pinmap()
+{
+    PinMap["CH0"] = 0;
+    PinMap["CH1"] = 1;
+    PinMap["CH2"] = 2;
+    PinMap["CH3"] = 3;
+    PinMap["CH4"] = 4;
+    PinMap["CH5"] = 5;
+    PinMap["CH6"] = 6;
+    PinMap["CH7"] = 7;
+    PinMap["CH8"] = 8;
+    PinMap["CH9"] = 9;
+    PinMap["CH10"] = 10;
+    PinMap["CH11"] = 11;
+    PinMap["CH12"] = 12;
+    PinMap["CH13"] = 13;
+    PinMap["CH14"] = 14;
+    PinMap["CH15"] = 15;
+    PinMap["UNKNOWN"] = -1;
+
 }

@@ -9,11 +9,16 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
+#include <map>
 
 class TerminalHatDriver
 {
 public:
-
+    struct PinInfo
+    {
+        int8_t pinfile;
+        int8_t pinnumber;
+    };
 	TerminalHatDriver();
 	~TerminalHatDriver();
 	void init();
@@ -28,10 +33,12 @@ public:
     bool set_pin(std::string pinname,int v);
     int read_pin(int pinnumber);
     bool set_pin(int pinnumber, int v);
+    void print_pinmap();
     
 private:
-    
-    
+    void init_pinmap();
+    std::map<std::string,PinInfo> PinMap;
+    std::map<int,int> PinNumberMap; //PinNumber,PinFile
 	int address;
 };
 
