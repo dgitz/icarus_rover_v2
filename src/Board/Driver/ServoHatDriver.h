@@ -6,7 +6,7 @@
 #include <time.h>
 #include <math.h>
 #include <string>
-
+#include <map>
 class ServoHatDriver
 {
 public:
@@ -69,9 +69,10 @@ public:
 	int get_address() { return address; }
 	int map_channelname_topin(std::string name);
 private:
-	
+	void init_pinmap();
 	int address;
 	int ServoHatfd;
+	std::map<std::string,int> PinMap;
 };
 
 

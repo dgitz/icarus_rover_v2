@@ -7,24 +7,27 @@
 
 using namespace std;
 
-static void show_usage(std::string name)
+static void show_usage()
 {
-	std::cerr << "Usage: Test LCD. Options:\n"
-			<< "\t-h,--help\t\tShow this help message\n"
-			<< "\t-r,--red\t\tSet Red Backlight (Default=0)\n"
-			<< "\t-g,--green\t\tSet Green Backlight (Default=0)\n"
-			<< "\t-b,--blue\t\tSet Blue Backlight (Default=0)\n"
-			<< "\t-w,--width\t\tSet Screen Width (Default=20)\n"
-			<< "\t-h,--height\t\tSet Screen Height (Default=4)\n"
-			<< "\t-m,--mode\t\tOperation Mode \n"
-			<< "\t\t Possible Modes: text (Default),colorsweep,colorcycle\n"
-			<< "\t\t mode==text:\n"
-			<< "\t\t -o,--output\t\t Output Text\n"
-			<< "\t\t mode==colorsweep:\n"
-			<< "\t\t -o,--output\t\t Output Text\n"
-			<< "\t\t mode==colorcycle:\n"
-			<< "\t\t No extra Options.\n"
-			<< std::endl;
+	std::cerr 	<< "This program is used to test the operation of a directly connected LCD.\n"
+				<< "Currently supported Part Numbers:\n"
+				<< "\tPN: 617003\n"
+				<< "Usage: Tests LCD via USB (UART) Connection. Options:\n"
+				<< "\t-h,--help\t\tShow this help message\n"
+				<< "\t-r,--red\t\tSet Red Backlight (Default=0)\n"
+				<< "\t-g,--green\t\tSet Green Backlight (Default=0)\n"
+				<< "\t-b,--blue\t\tSet Blue Backlight (Default=0)\n"
+				<< "\t-w,--width\t\tSet Screen Width (Default=20)\n"
+				<< "\t-h,--height\t\tSet Screen Height (Default=4)\n"
+				<< "\t-m,--mode\t\tOperation Mode \n"
+				<< "\t\tPossible Modes: text (Default),colorsweep,colorcycle\n"
+				<< "\t\t\tmode==text:\n"
+				<< "\t\t\t\t-o,--output\tOutput Text\n"
+				<< "\t\t\tmode==colorsweep:\n"
+				<< "\t\t\t\t-o,--output\tOutput Text\n"
+				<< "\t\t\tmode==colorcycle:\n"
+				<< "\t\t\t\tNo extra Options.\n"
+				<< std::endl;
 }
 
 int main(int argc, char* argv[])
@@ -38,7 +41,7 @@ int main(int argc, char* argv[])
 	int blue = 0;
 	int increment = 1;
 	if (argc < 2) {
-		show_usage(argv[0]);
+		show_usage();
 		return 1;
 	}
 	for (int i = 1; i < argc; ++i)
@@ -46,7 +49,7 @@ int main(int argc, char* argv[])
 		std::string arg = argv[i];
 		if ((arg == "-h") || (arg == "--help"))
 		{
-			show_usage(argv[0]);
+			show_usage();
 			return 0;
 		}
 		else if ((arg == "-m") || (arg == "--mode"))
@@ -162,6 +165,7 @@ int main(int argc, char* argv[])
 	}
 	LCDDriver lcd;
 	int status = lcd.init(width,height);
+	printf("Connecting to LCD via: %s\n",lcd.get_portname().c_str());
 	if(status <= 0)
 	{
 		return 0;

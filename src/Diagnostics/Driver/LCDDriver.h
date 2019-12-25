@@ -38,6 +38,7 @@ public:
 	const int GREEN_STOP = 187;
 	const int BLUE_START = 188;
 	const int BLUE_STOP = 217;
+	const std::string port_name = "/dev/ttyUSB0";
 	LCDDriver();
 	~LCDDriver();
 	int init(int _width, int _height);
@@ -47,6 +48,7 @@ public:
 	int set_backlightblue(int v);
 	int send(std::string buffer);
 	int test_comm(int v);
+	std::string get_portname() { return port_name; }
     bool get_initialized() { return initialized; }
     std::string map_color_tostring(Color c);
 
