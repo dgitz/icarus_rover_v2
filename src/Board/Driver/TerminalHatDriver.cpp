@@ -8,6 +8,7 @@ TerminalHatDriver::~TerminalHatDriver()
 }
 void TerminalHatDriver::init()
 {
+    init_pinmap();
 }
 bool TerminalHatDriver::configure_pin(std::string pinname,std::string mode)
 {
@@ -142,14 +143,19 @@ int TerminalHatDriver::read_pin(int pinnumber)
     getvalgpio.close(); //close the value file
     return readvalue;
 }
-/*
-int TerminalHatDriver::map_pinfile_to_connectorpin(std::string)
-{
-    return -1;
-}
-*/
 int TerminalHatDriver::map_connectorpin_to_pinfile(std::string pinname)
 {
+    if(PinMap.find(pinname) != PinMap.end())
+    {
+        PinInfo pin = PinMap[pinname];
+        return pin.pinfile;
+    }
+    else
+    {
+        PinInfo pin = PinMap["UNKNOWN"];
+        return pin.pinfile;
+    }
+    /*
     if(pinname == "") { return -1; }
     else if(pinname == "GPIO02") { return -1; } //USED FOR I2C
     else if(pinname == "GPIO03") { return -1; } //USED FOR I2C
@@ -180,10 +186,20 @@ int TerminalHatDriver::map_connectorpin_to_pinfile(std::string pinname)
     else if(pinname == "GPIO20") { return 20; }
     else if(pinname == "GPIO21") { return 21; }
     else { return -1; }
-    
+    */
 }
 int TerminalHatDriver::map_connectorpin_to_pinfile(int pinnumber)
 {
+    return PinNumberMap.find(pinnumber)->second;
+    if(PinNumberMap.find(pinnumber) != PinNumberMap.end())
+    {
+        return PinNumberMap[pinnumber];
+    }
+    else
+    {
+        return -1;
+    }
+    /*
     switch(pinnumber)
     {
         case 3:     return -1;   break; //USED FOR I2C
@@ -216,4 +232,74 @@ int TerminalHatDriver::map_connectorpin_to_pinfile(int pinnumber)
         case 40:    return 21;  break;
         default:    return -1;  break;
     }
+    */
+}
+void TerminalHatDriver::init_pinmap()
+{
+    PinMap["GPIO04"] = {4,7};
+    PinMap["GPIO17"] = {17,11};
+    PinMap["GPIO27"] = {27,13};
+    PinMap["GPIO22"] = {22,15};
+    PinMap["GPIO05"] = {5,29};
+    PinMap["GPIO06"] = {6,31};
+    PinMap["GPIO13"] = {13,33};
+    PinMap["GPIO19"] = {19,35};
+    PinMap["GPIO26"] = {26,37};
+    PinMap["GPIO18"] = {18,12};
+    PinMap["GPIO23"] = {23,16};
+    PinMap["GPIO24"] = {24,18};
+    PinMap["GPIO25"] = {25,22};
+    PinMap["GPIO12"] = {12,32};
+    PinMap["GPIO16"] = {16,36};
+    PinMap["GPIO20"] = {20,38};
+    PinMap["GPIO21"] = {21,40};
+    PinMap["UNKNOWN"] = {-1,-1};
+
+    std::map<std::string, PinInfo>::iterator it = PinMap.begin();
+	while (it != PinMap.end())
+	{
+        PinNumberMap.insert({it->second.pinnumber,it->second.pinfile});
+		it++;
+	}
+}
+void TerminalHatDriver::print_pinmap()
+{
+    printf("TerminalHat PinMap:\n");
+    std::map<int,int>::iterator it = PinNumberMap.begin();
+	while (it != PinNumberMap.end())
+	{
+        if(it->first >= 0)
+        {
+            int pinnumber = it->first;
+            std::ostringstream getdir_str;
+            getdir_str << "/sys/class/gpio/gpio" << map_connectorpin_to_pinfile(pinnumber) << "/direction";
+            std::ifstream getdirgpio(getdir_str.str().c_str());
+            std::string direction = "N/A";
+            int value = 0;
+            if (getdirgpio.is_open() == false)
+            {
+            }
+            else
+            {
+                getdirgpio >> direction ; 
+            }
+            if(direction == "in")
+            {
+                value = read_pin(pinnumber);
+            }
+            char tempstr[512];
+            sprintf(tempstr,"\t40-Pin Connector Pin Number: %d (Name: GPIO%d) Direction: %s",
+                pinnumber,it->second,direction.c_str());
+            if(direction == "in")
+            {
+                sprintf(tempstr,"%s Value: %d\n",tempstr,value);
+            }
+            else
+            {
+                sprintf(tempstr,"%s\n",tempstr);
+            }
+            printf(tempstr);
+        }
+        it++;
+	}
 }

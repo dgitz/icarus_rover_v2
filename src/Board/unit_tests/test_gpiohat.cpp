@@ -8,19 +8,22 @@
 
 using namespace std;
 
-static void show_usage(std::string name)
+static void show_usage()
 {
-	std::cerr << "Usage: Test GPIOHat. Options:\n"
-			  << "\t-h,--help\t\tShow this help message\n"
-			  << "\t-a,--address Address\tThe I2C Address of the Hat (Base 10).  Default=20.\n"
-			  << "\t-d,--delay Delay in MicroSeconds between sending each message.  Default is 100000.\n"
-			  << "\t-q,--query\tQuery Device for Data.  Options:\n"
-			  << "\t\t [0] Get_Diagnostic (0xAB12)\n"
-			  << "\t\t [1] TestMessageCounter (0xAB14)\n"
-			  << "\t\t [2] Get_DIO_Port1 (0xAB19)\n"
-			  << "\t\t [2] Get_ANA_Port1 (0xAB20)\n"
-			  << "\t\t [2] Get_ANA_Port2 (0xAB21)\n"
-			  << std::endl;
+	std::cerr 	<< "This program is used to test the operation of a directly connected GPIOHat.\n"
+				<< "Currently supported Part Numbers:\n"
+				<< "\tPN: 1000007\n"
+			  	<< "Usage: Test GPIOHat via I2C. Options:\n"
+			 	<< "\t-h,--help\t\tShow this help message\n"
+			  	<< "\t-a,--address Address\tThe I2C Address of the Hat (Base 10).  Default=20.\n"
+			  	<< "\t-d,--delay\t\tDelay in MicroSeconds between sending each message.  Default is 100000.\n"
+			  	<< "\t-q,--query\t\tQuery Device for Data.  Options:\n"
+			  	<< "\t\t [0] Get_Diagnostic (0xAB12)\n"
+			  	<< "\t\t [1] TestMessageCounter (0xAB14)\n"
+			  	<< "\t\t [2] Get_DIO_Port1 (0xAB19)\n"
+			  	<< "\t\t [2] Get_ANA_Port1 (0xAB20)\n"
+			  	<< "\t\t [2] Get_ANA_Port2 (0xAB21)\n"
+			  	<< std::endl;
 }
 /**********************************************************
 Housekeeping variables
@@ -45,7 +48,7 @@ int main(int argc, char *argv[])
 	unsigned char query_type;
 	if (argc < 2)
 	{
-		show_usage(argv[0]);
+		show_usage();
 		return 1;
 	}
 	for (int i = 1; i < argc; ++i)
@@ -53,7 +56,7 @@ int main(int argc, char *argv[])
 		std::string arg = argv[i];
 		if ((arg == "-h") || (arg == "--help"))
 		{
-			show_usage(argv[0]);
+			show_usage();
 			return 0;
 		}
 		else if ((arg == "-d") || (arg == "--delay"))

@@ -11,17 +11,20 @@
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
 using namespace std;
 
-static void show_usage(std::string name)
+static void show_usage()
 {
-	std::cerr << name << "Usage: Test SPI Comm between Raspberry Pi and Arduino. Options:\n"
-			<< "\t-h,--help\t\tShow this help message\n"
-			<< "\t-d,--delay Delay in MicroSeconds between sending each message.  Default is 100000.\n"
-			<< "\t-q,--query Query Message.  Supported messages are:\n"
+	std::cerr  << "This program is used to test the operation of a directly connected ArduinoBoard.\n"
+			<< "Currently supported Part Numbers:\n"
+			<< "\tPN: 100005\n"
+			<< "Usage: Test SPI Comm between Raspberry Pi and Arduino. Options:\n"
+			<< "\t-h,--help\tShow this help message\n"
+			<< "\t-d,--delay\tDelay in MicroSeconds between sending each message.  Default is 100000.\n"
+			<< "\t-q,--query\tQuery Message.  Supported messages are:\n"
 			<< "\t\t [0] Get_Diagnostic (0xAB12)\n"
 			<< "\t\t [1] TestMessageCounter (0xAB14)\n"
 			<< "\t\t [2] Get_DIO_Port1 (0xAB19)\n"
 			<< "\t\t [3] Get_ANA_Port1 (0xAB20)\n"
-			<< "\t-c,--command Command Message.  Supported messages are:\n"
+			<< "\t-c,--command\tCommand Message.  Supported messages are:\n"
 			<< "\t\t [0] LED Strip Control (0xAB42)\n"
 			<< "\t\t\t [0-5] [LEDPixelMode:0=None,1=Normal,2=Warn,3=Error,4=Color Cycle,5=Focus]\n"
 			<< "\t\t [1] ArmStatus (0xAB30)\n"
@@ -71,7 +74,7 @@ int main(int argc, char* argv[])
 	unsigned char command_type;
 	long loop_delay = 100000;
 	if (argc < 2) {
-		show_usage(argv[0]);
+		show_usage();
 		return 1;
 	}
 	for (int i = 1; i < argc; ++i)
@@ -79,7 +82,7 @@ int main(int argc, char* argv[])
 		std::string arg = argv[i];
 		if ((arg == "-h") || (arg == "--help"))
 		{
-			show_usage(argv[0]);
+			show_usage();
 			return 0;
 		}
 		else if ((arg == "-d") || (arg == "--delay"))

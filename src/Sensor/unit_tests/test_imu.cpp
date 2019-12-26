@@ -12,14 +12,18 @@ using namespace std;
 
 static void show_usage()
 {
-	std::cerr << "Usage: Test IMU. Options:\n"
+	std::cerr << "This program is used to test the operation of a directly connected IMU.\n"
+			<< "Currently supported Part Numbers:\n"
+			<< "\tPN: 110012\n"
+			<< "\tPN: 110015\n"
+			<<  "Usage: Tests IMU via UART Connection. Options:\n"
 			<< "\t-h,--help\t\tShow this help message\n"
-			<< "\t-d,--delay Delay (uS)\t\t Delay in micro Seconds.  Default is 100000.\n"
-			<< "\t-m,--mode\tMode: monitor,query. Default=monitor.\n"
-			<< "\t-r,--report\tReport: stat,acc,gyro,mag,all. Default=all.\n"
-			<< "\t-v,--verbose\tVerbosity: Default=0.\n"
-			<< "\t-pn,--partno\tPart Number: 110013,110015.\n"
-			<< "\t-p,--port\tSerial Port. Default:\n\t\tPN=110013:/dev/ttyAMA0\n\t\tPN=110015:/dev/ttyACM0\n"
+			<< "\t-d,--delay Delay (uS)\tDelay in micro Seconds.  Default is 100000.\n"
+			<< "\t-m,--mode\t\tMode: monitor,query. Default=monitor.\n"
+			<< "\t-r,--report\t\tReport: stat,acc,gyro,mag,all. Default=all.\n"
+			<< "\t-v,--verbose\t\tVerbosity: Default=0.\n"
+			<< "\t-pn,--partno\t\tPart Number: 110012,110015.\n"
+			<< "\t-p,--port\t\tSerial Port. Default:\n\t\tPN=110012:/dev/ttyAMA0\n\t\tPN=110015:/dev/ttyACM0\n"
 			<< std::endl;
 }
 void print_imudata(std::string report,IMUDriver driver,IMUDriver::RawIMU imu_data);
@@ -147,7 +151,7 @@ int main(int argc, char* argv[])
 	}
 	if(port_defined == false)
 	{
-		if(partnumber == "110013")
+		if(partnumber == "110012")
 		{
 			port = "/dev/ttyAMA0";
 		}
