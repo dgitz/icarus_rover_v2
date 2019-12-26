@@ -235,6 +235,14 @@ eros::imu BaseNodeProcess::convert_fromptr(const eros::imu::ConstPtr &t_ptr)
 	imu.zmag = t_ptr->zmag;
 	return imu;
 }
+eros::usermessage BaseNodeProcess::convert_fromptr(const eros::usermessage::ConstPtr& t_ptr)
+{
+	eros::usermessage msg;
+	msg.stamp = t_ptr->stamp;
+	msg.Level = t_ptr->Level;
+	msg.message = t_ptr->message;
+	return msg;
+}
 void BaseNodeProcess::print_message(std::string level,std::string time_str,std::string filename,int line_number,std::string msg)
 {
 	printf("[%s] %s %s(%d) %s\n",

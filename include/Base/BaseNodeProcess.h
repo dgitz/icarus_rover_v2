@@ -37,6 +37,7 @@
 #include <eros/srv_sql.h>
 #include <eros/srv_pin.h>
 #include <eros/subsystem_diagnostic.h>
+#include <eros/usermessage.h>
 #include <eros/loadfactor.h>
 #include <eros/uptime.h>
 #include <eros/pose.h>
@@ -175,6 +176,7 @@ protected:
 	eros::imu convert_fromptr(const eros::imu::ConstPtr& t_ptr);
 	eros::signal convert_fromptr(const eros::signal::ConstPtr& t_ptr);
 	eros::system_state convert_fromptr(const eros::system_state::ConstPtr& t_ptr);
+	eros::usermessage convert_fromptr(const eros::usermessage::ConstPtr& t_ptr);
 
 	bool initialized;
 	bool ready;
