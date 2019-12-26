@@ -24,7 +24,7 @@ bool SpeakerNode::start(int argc, char **argv)
 	diagnostic_types.push_back(SYSTEM_RESOURCE);
 	diagnostic_types.push_back(COMMUNICATIONS);
 	process->enable_diagnostics(diagnostic_types);
-	sc.reset(new sound_play::SoundClient());
+	//sc.reset(new sound_play::SoundClient());
 	process->finish_initialization();
 	diagnostic = finish_initialization();
 	if (diagnostic.Level > WARN)
@@ -58,6 +58,7 @@ eros::diagnostic SpeakerNode::finish_initialization()
 	srv_device = n->serviceClient<eros::srv_device>(device_topic);
 	UserMessage_sub = n->subscribe<eros::usermessage>("/usermessage",10,&SpeakerNode::UserMessage_Callback,this);
 	soundplaystatus_sub = n->subscribe<actionlib_msgs::GoalStatusArray>("/sound_play/status",1,&SpeakerNode::SoundPlayStatus_Callback,this);
+	robot_sound_pub = n->advertise<sound_play::SoundRequest>("/robotsound",1);
 	return diagnostic;
 }
 bool SpeakerNode::run_001hz()
@@ -135,10 +136,12 @@ bool SpeakerNode::run_10hz()
 	}
 	if(process->readytospeak() == true)
 	{
-		std::string speechout = process->get_speechoutput();
-		sc->say(speechout);
+		//std::string speechout = process->get_speechoutput();
+		//sc->say(speechout);
+		sound_play::SoundRequest msg = process->get_speechoutput_client();
+		robot_sound_pub.publish(process->get_speechoutput_client());
 		char tempstr[512];
-		sprintf(tempstr,"Saying: %s",speechout.c_str());
+		sprintf(tempstr,"Saying: %s",msg.arg.c_str());
 		logger->log_debug(tempstr);
 	}
 	std::vector<eros::diagnostic> diaglist = process->get_diagnostics();
@@ -260,12 +263,16 @@ eros::diagnostic SpeakerNode::rescan_topics()
 		const ros::master::TopicInfo& info = *it;
 		if(info.datatype == "eros/diagnostic")
 		{
-			found_new_topics++;
-			char tempstr[255];
-			sprintf(tempstr,"Subscribing to diagnostic topic: %s",info.name.c_str());
-			logger->log_info(tempstr);
-			ros::Subscriber sub = n->subscribe<eros::diagnostic>(info.name,20,&SpeakerNode::diagnostic_Callback,this);
-			diagnostic_subs.push_back(sub);
+			int v = process->push_topiclist(info.datatype,info.name);
+			if(v == 1)
+			{
+				found_new_topics++;
+				char tempstr[255];
+				sprintf(tempstr,"Subscribing to diagnostic topic: %s",info.name.c_str());
+				logger->log_info(tempstr);
+				ros::Subscriber sub = n->subscribe<eros::diagnostic>(info.name,20,&SpeakerNode::diagnostic_Callback,this);
+				diagnostic_subs.push_back(sub);
+			}
 		}
 	}
 

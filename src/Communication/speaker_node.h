@@ -79,9 +79,10 @@ private:
 	ros::Subscriber soundplaystatus_sub;
 	SpeakerNodeProcess *process;
 	ros::Subscriber UserMessage_sub;
-	boost::shared_ptr<sound_play::SoundClient> sc;
+	//boost::shared_ptr<sound_play::SoundClient> sc;
 	ros::Time last_time_speech_ended;
 	std::vector<std::string> speechbuffer;
 	double initial_speech_wait;
     std::vector<ros::Subscriber> diagnostic_subs;
+	ros::Publisher robot_sound_pub;
 };

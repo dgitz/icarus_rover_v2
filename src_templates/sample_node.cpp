@@ -194,12 +194,16 @@ eros::diagnostic SampleNode::rescan_topics()
 		const ros::master::TopicInfo& info = *it;
 		if(info.datatype == "eros/command")
 		{
-			found_new_topics++;
-			char tempstr[255];
-			sprintf(tempstr,"Subscribing to command topic: %s",info.name.c_str());
-			logger->log_info(tempstr);
-			ros::Subscriber sub = n->subscribe<eros::command>(info.name,20,&SampleNode::Command_Callback,this);
-			multiple_subs.push_back(sub);
+			int v = process->push_topiclist(info.datatype,info.name);
+			if(v == 1)
+			{
+				found_new_topics++;
+				char tempstr[255];
+				sprintf(tempstr,"Subscribing to command topic: %s",info.name.c_str());
+				logger->log_info(tempstr);
+				ros::Subscriber sub = n->subscribe<eros::command>(info.name,20,&SampleNode::Command_Callback,this);
+				multiple_subs.push_back(sub);
+			}
 		}
 	}
 
