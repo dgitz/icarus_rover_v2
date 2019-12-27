@@ -33,6 +33,9 @@ public:
 	bool start(int argc,char **argv);
 	MasterNodeProcess* get_process() { return process; }
 	void thread_loop();
+
+	//Support Functions
+	bool write_logfile(std::string text);
 	//Cleanup
 	void cleanup();
 
@@ -57,6 +60,7 @@ private:
 	void PPS1_Callback(const std_msgs::Bool::ConstPtr& t_msg);
 	void Command_Callback(const eros::command::ConstPtr& t_msg);
 	bool new_devicemsg(std::string query,eros::device t_device);
+	void ArmedState_Callback(const std_msgs::UInt8::ConstPtr& t_msg);
 	//Support Functions
 	/*! \brief Request Information in the DeviceFile */
 	bool device_service(eros::srv_device::Request &req,
@@ -80,7 +84,7 @@ private:
 	ros::Publisher device_resourceavail_pub;
 	ros::Publisher loadfactor_pub;
 	ros::Publisher uptime_pub;
-
+	ros::Subscriber armedstate_sub;
 	ros::Subscriber command_sub;
 	MasterNodeProcess *process;
 	ros::ServiceServer device_srv;
@@ -88,5 +92,6 @@ private:
 	ros::ServiceServer leverarm_srv;
 	ros::ServiceServer pin_srv;
 	SerialMessageHandler *serialmessagehandler;
+	uint8_t last_armedstate;
 
 };

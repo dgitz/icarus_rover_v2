@@ -190,6 +190,10 @@ bool CommandNode::run_10hz()
 	std_msgs::UInt8 state;
 	state.data = process->get_armeddisarmed_state();
 	armeddisarmed_state_pub.publish(state);
+	if(state.data == ARMEDSTATUS_DISARMED_CANNOTARM)
+	{
+		logger->log_diagnostic(process->get_disarmedreason());
+	}
 
 	eros::diagnostic diag = process->update(0.1,ros::Time::now().toSec());
 	if(diag.Level > WARN)

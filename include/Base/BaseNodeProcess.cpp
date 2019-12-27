@@ -252,6 +252,26 @@ void BaseNodeProcess::print_message(std::string level,std::string time_str,std::
 		line_number,
 		msg.c_str());
 }
+std::string BaseNodeProcess::map_armedstate_tostring(uint8_t v)
+{
+	switch(v)
+	{
+		case ARMEDSTATUS_UNDEFINED:
+			return "UNDEFINED";
+		case ARMEDSTATUS_ARMED:
+			return "ARMED";
+		case ARMEDSTATUS_DISARMED_CANNOTARM:
+			return "DISARMED AND CANNOT ARM";
+		case ARMEDSTATUS_DISARMED:
+			return "DISARMED";
+		case ARMEDSTATUS_DISARMING:
+			return "DISARMING";
+		case ARMEDSTATUS_ARMING:
+			return "ARMING";
+		default:
+			return "UNDEFINED";
+	}
+}
 std::string BaseNodeProcess::exec(const char *cmd, bool wait_for_result)
 {
 	char buffer[512];

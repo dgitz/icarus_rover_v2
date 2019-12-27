@@ -31,7 +31,7 @@ public:
 		std::string type;
 		std::string topic;
 		std::string parentdevice;
-		int pinnumber;
+		std::string pinname;
 		std::string function;
 		double maxvalue;
 		double minvalue;

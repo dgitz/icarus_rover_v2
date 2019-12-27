@@ -61,7 +61,7 @@ eros::diagnostic SafetyNodeProcess::new_devicemsg(const eros::device::ConstPtr& 
 						for(std::size_t i = 0; i < t_device->pins.size(); i++)
 						{
 							if((t_device->pins.at(i).Function == "DigitalInput-Safety") and
-									(t_device->pins.at(i).Name == "ArmSwitch"))
+									(t_device->pins.at(i).ConnectedDevice == "ArmSwitch"))
 							{
 								arm_switch_found = true;
 							}
