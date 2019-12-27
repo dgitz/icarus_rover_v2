@@ -32,7 +32,7 @@ bool TerminalHatDriver::configure_pin(int pinnumber,std::string mode)
     std::ofstream exportgpio(export_str.c_str()); // Open "export" file. Convert C++ string to C string. Required for all Linux pathnames
     if (exportgpio.is_open() == false)
     {
-        printf("OPERATION FAILED: Unable to export GPIO %d/%d\n",pinnumber,map_connectorpin_to_pinfile(pinnumber));
+        printf("OPERATION FAILED: Unable to export GPIO.");
         return false;
     }
     exportgpio << map_connectorpin_to_pinfile(pinnumber); //write GPIO number to export
@@ -45,7 +45,8 @@ bool TerminalHatDriver::configure_pin(int pinnumber,std::string mode)
         std::ofstream setdirgpio(setdir_str.str().c_str()); // open direction file for gpio
         if (setdirgpio.is_open() == false)
         {
-            printf(" OPERATION FAILED: Unable to set direction of GPIO %d/%d\n",pinnumber,map_connectorpin_to_pinfile(pinnumber));
+            printf(" OPERATION FAILED: Unable to set direction of GPIO %d with: %s\n",pinnumber,
+                setdir_str.str().c_str());
             return false;
         }
         setdirgpio << "in"; //write direction to direction file
@@ -73,7 +74,8 @@ bool TerminalHatDriver::configure_pin(int pinnumber,std::string mode)
         std::ofstream setdirgpio(setdir_str.str().c_str()); // open direction file for gpio
         if (setdirgpio.is_open() == false)
         {
-            printf(" OPERATION FAILED: Unable to set direction of GPIO %d/%d\n",pinnumber,map_connectorpin_to_pinfile(pinnumber));
+            printf(" OPERATION FAILED: Unable to set direction of GPIO %d/%d with:%s\n",pinnumber,map_connectorpin_to_pinfile(pinnumber),
+                setdir_str.str().c_str());
             return false;
         }
         setdirgpio << "out"; //write direction to direction file
@@ -105,7 +107,8 @@ bool TerminalHatDriver::set_pin(int pinnumber, int v)
     std::ofstream setvalgpio(setval_str.str().c_str()); // open value file for gpio
     if (setvalgpio.is_open() == false)
     {
-        printf("OPERATION FAILED: Unable to set the value of GPIO: %d/%d\n",pinnumber,map_connectorpin_to_pinfile(pinnumber));
+        printf("OPERATION FAILED: Unable to set the value of GPIO: %d/%d with: %s\n",pinnumber,map_connectorpin_to_pinfile(pinnumber),
+            setval_str.str().c_str());
         return false;
     }
     setvalgpio << v ;//write value to value file

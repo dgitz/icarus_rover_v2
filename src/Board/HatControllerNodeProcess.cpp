@@ -500,7 +500,6 @@ eros::diagnostic HatControllerNodeProcess::new_message_GetANAPort1(std::string d
 		if(pin.Name != "")
 		{
 			pin.Value = v[i];
-			
 			diag = update_pin(device_type,hatid,pin.Name,pin);
 			diag = update_diagnostic(diag);
 		}
@@ -551,7 +550,6 @@ eros::diagnostic HatControllerNodeProcess::new_message_GetANAPort2(std::string d
 		if(pin.Name != "")
 		{
 			pin.Value = v[i];
-			
 			diag = update_pin(device_type,hatid,pin.Name,pin);
 			diag = update_diagnostic(diag);
 		}

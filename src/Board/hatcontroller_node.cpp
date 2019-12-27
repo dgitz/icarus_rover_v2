@@ -523,14 +523,14 @@ bool HatControllerNode::new_devicemsg(std::string query,eros::device t_device)
 						{
 							if(pins.at(i).Function == "DigitalInput")
 							{
-								std::string topic = "/" + pins.at(i).Name;
+								std::string topic = "/" + pins.at(i).ConnectedDevice;
 								ros::Publisher pub = n->advertise<std_msgs::Bool>(topic,10);
 								signal_digitalinput_names.push_back(pins.at(i).Name);
 								digitalinput_pubs.push_back(pub);
 							}
 							else if(pins.at(i).Function == "DigitalOutput")
 							{
-								std::string topic = "/" + pins.at(i).Name;
+								std::string topic = "/" + pins.at(i).ConnectedDevice;
 								ros::Subscriber sub = n->subscribe<eros::pin>(topic,5,&HatControllerNode::DigitalOutput_Callback,this);
 								digitaloutput_subs.push_back(sub);
 							}
@@ -554,7 +554,7 @@ bool HatControllerNode::new_devicemsg(std::string query,eros::device t_device)
 							{
 								if((pins.at(i).Function == "PWMOutput") or (pins.at(i).Function == "PWMOutput-NonActuator"))
 								{
-									std::string topic = "/" + pins.at(j).Name;
+									std::string topic = "/" + pins.at(j).ConnectedDevice;
 									ros::Subscriber sub = n->subscribe<eros::pin>(topic,5,&HatControllerNode::PwmOutput_Callback,this);
 									pwmoutput_subs.push_back(sub);
 								}
@@ -570,7 +570,7 @@ bool HatControllerNode::new_devicemsg(std::string query,eros::device t_device)
 							{
 								if(pins.at(i).Function == "DigitalOutput")
 								{
-									std::string topic = "/" + pins.at(i).Name;
+									std::string topic = "/" + pins.at(i).ConnectedDevice;
 									ros::Subscriber sub = n->subscribe<eros::pin>(topic,5,&HatControllerNode::DigitalOutput_Callback,this);
 									digitaloutput_subs.push_back(sub);
 								}

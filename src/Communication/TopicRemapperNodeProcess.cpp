@@ -227,10 +227,10 @@ int TopicRemapperNodeProcess::parse_topicmapfile(TiXmlDocument doc)
 								}
 								else { return -1; }
 
-								TiXmlElement *l_pPinNumber = l_pOutputChannel->FirstChildElement( "PinNumber" );
-								if(NULL != l_pPinNumber)
+								TiXmlElement *l_pPinName = l_pOutputChannel->FirstChildElement( "PinName" );
+								if(NULL != l_pPinName)
 								{
-									out.pinnumber = std::atoi(l_pPinNumber->GetText());
+									out.pinname = l_pPinName->GetText();
 								}
 
 								TiXmlElement *l_pFunction = l_pOutputChannel->FirstChildElement( "Function" );
@@ -360,7 +360,7 @@ std::string TopicRemapperNodeProcess::print_topicmaps()
             for(std::size_t j = 0; j < TopicMaps.at(i).outs.size();j++)
             {
                ss << "i: " << i << " Output Channel[" << j << "]: Type: " << TopicMaps.at(i).outs.at(j).type << " Topic: " << TopicMaps.at(i).outs.at(j).topic <<
-                " ParentDevice: " << TopicMaps.at(i).outs.at(j).parentdevice << " Pin: " << TopicMaps.at(i).outs.at(j).pinnumber << " Function: " <<
+                " ParentDevice: " << TopicMaps.at(i).outs.at(j).parentdevice << " Pin: " << TopicMaps.at(i).outs.at(j).pinname << " Function: " <<
                 TopicMaps.at(i).outs.at(j).function << " Max Value: " << TopicMaps.at(i).outs.at(j).maxvalue << " Neutral Value: " << TopicMaps.at(i).outs.at(j).neutralvalue <<
                 " Min Value: " << TopicMaps.at(i).outs.at(j).minvalue << " Deadband: " << TopicMaps.at(i).outs.at(j).deadband << std::endl;
             }
@@ -450,6 +450,7 @@ eros::diagnostic TopicRemapperNodeProcess::new_joymsg(sensor_msgs::Joy msg,std::
 							newpin.DefaultValue = (int)ch.neutralvalue;
 							newpin.Function = ch.function;
 							newpin.Value = (int)out;
+							newpin.Name = ch.pinname;
 							//p_pwmoutputs.pins.push_back(newpin);
 							map.outs.at(j).value = newpin.Value;
 							//map.pubs.at(j).publish(newpin);
@@ -604,6 +605,7 @@ std::vector<eros::pin> TopicRemapperNodeProcess::get_outputs_pins()
                 out.ParentDevice = ch.parentdevice;
                 out.Function = ch.function;
                 out.Value = ch.value;
+				out.Name = ch.pinname;
                 outs.push_back(out);
             }
         }
