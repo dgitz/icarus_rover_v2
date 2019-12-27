@@ -255,6 +255,7 @@ bool NetworkTransceiverNode::run_10hz()
 	}
 	else
 	{
+		logger->log_warn("Remote Heartbeat Failed.");
 		ready_to_arm = false;
 	}
 	eros::diagnostic diag = process->update(0.1,ros::Time::now().toSec());

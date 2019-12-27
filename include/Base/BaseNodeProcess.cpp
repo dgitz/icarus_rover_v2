@@ -257,7 +257,7 @@ std::string BaseNodeProcess::map_armedstate_tostring(uint8_t v)
 	switch(v)
 	{
 		case ARMEDSTATUS_UNDEFINED:
-			return "UNDEFINED.";
+			return "UNDEFINED";
 		case ARMEDSTATUS_ARMED:
 			return "ARMED";
 		case ARMEDSTATUS_DISARMED_CANNOTARM:

@@ -122,7 +122,6 @@ eros::diagnostic CommandNodeProcess::update(double t_dt,double t_ros_time)
 	}
 	else if(ready_to_arm == true)
 	{
-
 		if(armeddisarmed_state == ARMEDSTATUS_DISARMED_CANNOTARM)
 		{
 			disarmed_reason = "None";

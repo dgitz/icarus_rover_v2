@@ -232,7 +232,12 @@ bool DiagnosticNode::run_1hz()
 }
 bool DiagnosticNode::run_10hz()
 {
+	bool last_ready_to_arm = ready_to_arm;
 	ready_to_arm = process->get_ready_to_arm();
+	if(last_ready_to_arm != ready_to_arm)
+	{
+		logger->log_notice("Ready To Arm Changed From: " + std::to_string(last_ready_to_arm) + " To: " + std::to_string(ready_to_arm));
+	}
 	eros::diagnostic diag = process->update(0.1,ros::Time::now().toSec());
 	if(diag.Level > WARN)
 	{
@@ -243,6 +248,16 @@ bool DiagnosticNode::run_10hz()
 	for (std::size_t i = 0; i < diaglist.size(); ++i)
 	{
 		if (diaglist.at(i).Level > WARN)
+		{
+			get_logger()->log_diagnostic(diaglist.at(i));
+			diagnostic_pub.publish(diaglist.at(i));
+		}
+	}
+	if(process->get_armedstate() == ARMEDSTATUS_DISARMED_CANNOTARM)
+	{
+		logger->log_warn("Checking Tasks More Frequently for now.");
+		std::vector<eros::diagnostic> diaglist = process->check_tasks();
+		for(std::size_t i = 0; i < diaglist.size(); ++i)
 		{
 			get_logger()->log_diagnostic(diaglist.at(i));
 			diagnostic_pub.publish(diaglist.at(i));
