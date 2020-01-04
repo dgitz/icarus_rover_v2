@@ -285,7 +285,6 @@ bool HatControllerNode::run_10hz()
 						if(((pins.at(j).Function == "DigitalOutput") || (pins.at(j).Function == "PWMOutput")) &&
 							(process->get_armedstate() != ARMEDSTATUS_ARMED))
 						{
-							logger->log_warn("Disabling Actuators.");
 							ServoHats.at(i).setServoValue(pins.at(j).Name,0);
 						}
 						else
