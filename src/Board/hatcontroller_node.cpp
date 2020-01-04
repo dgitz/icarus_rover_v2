@@ -282,7 +282,16 @@ bool HatControllerNode::run_10hz()
 					std::vector<eros::pin> pins = process->get_servohatpins(ServoHats_ids.at(i));
 					for(std::size_t j = 0; j < pins.size(); j++)
 					{
-						ServoHats.at(i).setServoValue(pins.at(j).Name, pins.at(j).Value);
+						if(((pins.at(j).Function == "DigitalOutput") || (pins.at(j).Function == "PWMOutput")) &&
+							(process->get_armedstate() != ARMEDSTATUS_ARMED))
+						{
+							logger->log_warn("Disabling Actuators.");
+							ServoHats.at(i).setServoValue(pins.at(j).Name,0);
+						}
+						else
+						{
+							ServoHats.at(i).setServoValue(pins.at(j).Name, pins.at(j).Value);
+						}
 					}
 				}
 				else
