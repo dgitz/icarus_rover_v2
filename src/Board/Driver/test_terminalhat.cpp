@@ -15,16 +15,16 @@ static void show_usage()
                 << "As a TerminalHat is electrically the same as a ControlModule this essentially supports any ControlModule.\n"
                 << "Currently supported Part Numbers:\n"
                 << "\tPN: 100003\n"
+                << "\tPN: 100008\n"
+                << "\tPN: 100009\n"
                 << "Usage: Tests TerminalHat via GPIO pins. Options:\n"
                 << "\t-h,--help\t\tShow this help message.\n"
-                << "\t-v,--verbose\t\tSet Verbosity. Default=1\n"
-                << "\t-vn,--version\t\tPrint version of wiringPi Library.\n"
-                << "\t-r,--readall\t\tRead all GPIO Pins.\n"
+                << "\t-v,--verbose\t\tSet Verbosity.\n"
                 << "\t-view,--view\t\tPrint Pin Map.\n"
-                << "\t-pn,--partnumber\tPart Number. Default=100003.\n"
+                << "\t-t-pn,--partumber\tPart Number. Default=100008.\n"
                 << "\t-m,--mode Pin Mode\tValid Options: DigitalInput,DigitalOutput. Default=DigitalInput.\n"
                 << "\t-d,--delay Delay (uS)\tDelay in micro Seconds.  Default is 100000.\n"
-                << "\t-p,--pin Pin Name\tRaspberry Pi Broadcom GPIO Pin Name (ex: GPIO23).\n"
+                << "\t-p,--pin Pin Name\tRaspberry Pi GPIO Pin Name (eg GPIO0).\n"
                 << "\t-o,--output Pin Output\tOutput for Pin, only used for Pin Mode=DigitalOutput.  Valid Options: 0,1,toggle. Default=0.\n"
                 << std::endl;
 }
@@ -33,10 +33,10 @@ int main(int argc, char* argv[])
 {
     std::string pinmode = "DigitalInput";
     std::string pinname = "";
-    bool verbose = true;
+    bool verbose = false;
     int delay = 100000;
-    std::string partnumber = "100003";
     std::string pin_output = "0";
+    std::string partnumber = "100008";
     TerminalHatDriver terminalhat;
     bool print_pinmap = false;
     int pin_value = 0;
@@ -56,33 +56,9 @@ int main(int argc, char* argv[])
         {
             verbose = true; 
         }
-        else if ((arg == "-view") || (arg == "--view"))
+        else if ((arg == "-view") || (arg == "==view"))
         {
             print_pinmap = true;
-        }
-        else if ((arg == "-vn") || ( arg == "--version"))
-        {
-            system("gpio -v");
-            return 0;
-        }
-        else if ((arg == "-r") || ( arg == "--readall"))
-        {
-            system("gpio readall");
-            return 0;
-        }
-        else if ((arg == "-pn") || (arg == "--partnumber"))
-        {
-            if (i + 1 < argc) 
-            { 
-                partnumber = argv[i+1];
-                i++;
-            } 
-            else 
-            {
-                // Uh-oh, there was no argument to the destination option.
-                std::cerr << "--Part Number option requires one argument." << std::endl;
-                return 1;
-            }  
         }
         else if ((arg == "-m") || (arg == "--mode"))
         {
@@ -131,6 +107,20 @@ int main(int argc, char* argv[])
                 return 1;
             }  
         }
+        else if ((arg == "-pn") || (arg == "--partnumber"))
+        {
+            if (i + 1 < argc) 
+            { 
+                partnumber = argv[i+1];
+                i++;
+            } 
+            else 
+            {
+                // Uh-oh, there was no argument to the destination option.
+                std::cerr << "--Part Number option requires one argument." << std::endl;
+                return 1;
+            }  
+        }
         else if ((arg == "-d") || (arg == "--delay"))
         {
             if (i + 1 < argc) 
@@ -146,13 +136,13 @@ int main(int argc, char* argv[])
             }  
         }
     }
-    bool status = terminalhat.init(partnumber);
+    terminalhat.init(partnumber);
     if(print_pinmap == true)
     {
         terminalhat.print_pinmap();
         return 0;
     }
-    status = terminalhat.configure_pin(pinname,pinmode);
+    bool status = terminalhat.configure_pin(pinname,pinmode);
     if(status == false)
     {
         printf("Unable to Configure Pin: %s with mode: %s\n",pinname.c_str(),pinmode.c_str());
@@ -162,7 +152,7 @@ int main(int argc, char* argv[])
     {
         if(pinmode == "DigitalInput")
         {
-            if(verbose == true) { printf("%s V: %d\n",pinname.c_str(),terminalhat.read_pin(pinname)); }
+            if(verbose == true) { printf("Pin: %s V: %d\n",pinname.c_str(),terminalhat.read_pin(pinname)); }
         }
         else if(pinmode == "DigitalOutput")
         {
