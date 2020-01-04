@@ -2,8 +2,6 @@
 TerminalHatDriver::TerminalHatDriver()
 {
     supported_partnumbers.push_back("100003");
-    supported_partnumbers.push_back("100008");
-    supported_partnumbers.push_back("100009");
 	address = 0;
 }
 TerminalHatDriver::~TerminalHatDriver()
@@ -92,35 +90,39 @@ int TerminalHatDriver::read_pin(std::string pinname)
 
 void TerminalHatDriver::init_pinmap()
 {
-    if(partnumber == "100008")
+    //BROADCOM GPIO PIN # TO WIRING PI PIN #
+    //Run gpio readall for pin map
+    if(partnumber == "100003")
     {
-        PinMap["GPIO8"] = 8;
-        PinMap["GPIO9"] = 9;
-        PinMap["GPIO7"] = 7;
-        PinMap["GPIO15"] = 15;
-        PinMap["GPIO16"] = 16;
-        PinMap["GPIO0"] = 0;
-        PinMap["GPIO1"] = 1;
-        PinMap["GPIO2"] = 2;
-        PinMap["GPIO3"] = 3;
-        PinMap["GPIO4"] = 4;
-        PinMap["GPIO5"] = 5;
-        PinMap["GPIO12"] = 12;
-        PinMap["GPIO13"] = 13;
-        PinMap["GPIO6"] = 6;
-        PinMap["GPIO14"] = 14;
-        PinMap["GPIO10"] = 10;
-        PinMap["GPIO11"] = 11;
-        PinMap["GPIO30"] = 31;
-        PinMap["GPIO21"] = 21;
-        PinMap["GPIO22"] = 22;
-        PinMap["GPIO26"] = 26;
-        PinMap["GPIO23"] = 23;
-        PinMap["GPIO24"] = 24;
-        PinMap["GPIO27"] = 27;
-        PinMap["GPIO25"] = 25;
-        PinMap["GPIO28"] = 28;
-        PinMap["GPIO29"] = 29;
+        PinMap["GPIO21"] = 29;
+        PinMap["GPIO23"] = 4;
+        PinMap["GPIO17"] = 0;
+        PinMap["GPIO27"] = 2;
+        PinMap["GPIO22"] = 3;
+        PinMap["GPIO02"] = 8;
+        PinMap["GPIO03"] = 9;
+        PinMap["GPIO14"] = 15;
+        PinMap["GPIO15"] = 16;
+        PinMap["GPIO18"] = 1;
+        PinMap["GPIO27"] = 2;
+        PinMap["GPIO22"] = 3;
+        PinMap["GPIO23"] = 4;
+        PinMap["GPIO24"] = 5;
+        PinMap["GPIO10"] = 12;
+        PinMap["GPIO09"] = 13;
+        PinMap["GPIO25"] = 6;
+        PinMap["GPIO11"] = 14;
+        PinMap["GPIO08"] = 10;
+        PinMap["GPIO07"] = 11;
+        PinMap["GPIO05"] = 21;
+        PinMap["GPIO06"] = 22;
+        PinMap["GPIO12"] = 26;
+        PinMap["GPIO13"] = 23;
+        PinMap["GPIO19"] = 24;
+        PinMap["GPIO16"] = 27;
+        PinMap["GPIO26"] = 25;
+        PinMap["GPIO20"] = 28;
+        PinMap["GPIO21"] = 29;       
     }
 }
 void TerminalHatDriver::print_pinmap()

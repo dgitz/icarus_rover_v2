@@ -15,18 +15,16 @@ static void show_usage()
                 << "As a TerminalHat is electrically the same as a ControlModule this essentially supports any ControlModule.\n"
                 << "Currently supported Part Numbers:\n"
                 << "\tPN: 100003\n"
-                << "\tPN: 100008\n"
-                << "\tPN: 100009\n"
                 << "Usage: Tests TerminalHat via GPIO pins. Options:\n"
                 << "\t-h,--help\t\tShow this help message.\n"
                 << "\t-v,--verbose\t\tSet Verbosity. Default=1\n"
                 << "\t-vn,--version\t\tPrint version of wiringPi Library.\n"
                 << "\t-r,--readall\t\tRead all GPIO Pins.\n"
                 << "\t-view,--view\t\tPrint Pin Map.\n"
-                << "\t-pn,--partnumber\tPart Number. Default=100008.\n"
+                << "\t-pn,--partnumber\tPart Number. Default=100003.\n"
                 << "\t-m,--mode Pin Mode\tValid Options: DigitalInput,DigitalOutput. Default=DigitalInput.\n"
                 << "\t-d,--delay Delay (uS)\tDelay in micro Seconds.  Default is 100000.\n"
-                << "\t-p,--pin Pin Name\tRaspberry Pi GPIO Pin Name (ex: GPIO0).\n"
+                << "\t-p,--pin Pin Name\tRaspberry Pi Broadcom GPIO Pin Name (ex: GPIO23).\n"
                 << "\t-o,--output Pin Output\tOutput for Pin, only used for Pin Mode=DigitalOutput.  Valid Options: 0,1,toggle. Default=0.\n"
                 << std::endl;
 }
@@ -37,7 +35,7 @@ int main(int argc, char* argv[])
     std::string pinname = "";
     bool verbose = true;
     int delay = 100000;
-    std::string partnumber = "100008";
+    std::string partnumber = "100003";
     std::string pin_output = "0";
     TerminalHatDriver terminalhat;
     bool print_pinmap = false;

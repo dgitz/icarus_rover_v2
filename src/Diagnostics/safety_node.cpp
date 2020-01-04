@@ -95,7 +95,14 @@ bool SafetyNode::run_1hz()
 		}
 		if(process->is_hat_running("TerminalHat",0) == false)
 		{
-			TerminalHat.init();
+			bool init = TerminalHat.init(process->get_mydevice().PartNumber);
+			if(init == false)
+			{
+				diag = process->update_diagnostic(DATA_STORAGE,ERROR,INITIALIZING_ERROR,"TerminalHatDriver Could not initialize.");
+				get_logger()->log_diagnostic(diag);
+				diagnostic_pub.publish(diag);
+
+			}
 			{
 				bool any_error = false;
 				std::vector<eros::pin> pins = process->get_terminalhatpins("");
