@@ -7,6 +7,7 @@
 #include "actionlib_msgs/GoalStatusArray.h"
 #include <sound_play/SoundRequest.h>
 #define SPEECH_RATE 12 //Characters per Second
+#define LEVEL_MESSAGE_MAXCOUNT 20
 #define PAUSE_BETWEEN 0.25f
 /*
 struct state_ack
@@ -35,7 +36,7 @@ public:
 	void initialize_stateack_messages();
 	eros::diagnostic finish_initialization();
 	//Update Functions
-	eros::diagnostic update(double t_dt,double t_ros_time);
+	eros::diagnostic update(double t_dt,__attribute__((unused))double t_ros_time);
 	int push_topiclist(std::string type,std::string name)
 	{
 		if(type == "eros/diagnostic")

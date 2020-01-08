@@ -205,7 +205,7 @@ void SpeakerNode::UserMessage_Callback(const eros::usermessage::ConstPtr& msg)
 		logger->log_diagnostic(diag);
 	}
 }
-void SpeakerNode::SoundPlayStatus_Callback(const actionlib_msgs::GoalStatusArray::ConstPtr& msg)
+void SpeakerNode::SoundPlayStatus_Callback(__attribute__((unused))const actionlib_msgs::GoalStatusArray::ConstPtr& msg)
 {
 	process->new_soundplaystatus();
 }
