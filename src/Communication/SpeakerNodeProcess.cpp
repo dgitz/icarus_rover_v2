@@ -21,7 +21,7 @@ eros::diagnostic  SpeakerNodeProcess::finish_initialization()
 	diag = update_diagnostic(DATA_STORAGE,INFO,NOERROR,"No Error");
     return diag;
 }
-eros::diagnostic SpeakerNodeProcess::update(double t_dt,double t_ros_time)
+eros::diagnostic SpeakerNodeProcess::update(double t_dt,__attribute__((unused))double t_ros_time)
 {
 	eros::diagnostic diag = root_diagnostic;
 	if(initialized == true)
@@ -154,18 +154,34 @@ eros::diagnostic SpeakerNodeProcess::new_usermessage(const eros::usermessage::Co
 	if(t_msg->Level == LEVEL1)
 	{
 		level1_messages.push_back(convert_fromptr(t_msg));
+		if(level1_messages.size() > LEVEL_MESSAGE_MAXCOUNT)
+		{
+			level1_messages.erase(level1_messages.begin());
+		}
 	}
 	else if(t_msg->Level == LEVEL2)
 	{
 		level2_messages.push_back(convert_fromptr(t_msg));
+		if(level2_messages.size() > LEVEL_MESSAGE_MAXCOUNT)
+		{
+			level2_messages.erase(level2_messages.begin());
+		}
 	}
 	else if(t_msg->Level == LEVEL3)
 	{
 		level3_messages.push_back(convert_fromptr(t_msg));
+		if(level3_messages.size() > LEVEL_MESSAGE_MAXCOUNT)
+		{
+			level3_messages.erase(level3_messages.begin());
+		}
 	}
 	else if(t_msg->Level == LEVEL4)
 	{
 		level4_messages.push_back(convert_fromptr(t_msg));
+		if(level4_messages.size() > LEVEL_MESSAGE_MAXCOUNT)
+		{
+			level4_messages.erase(level4_messages.begin());
+		}
 	}
 	else
 	{

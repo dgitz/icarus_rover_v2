@@ -1,4 +1,4 @@
-#Target: ComputeModule
+#Target: dgitzrosmaster
 cmake_minimum_required(VERSION 2.8.3)
 project(icarus_rover_v2)
 set(CMAKE_BUILD_TYPE Debug)
@@ -16,7 +16,7 @@ find_package(catkin REQUIRED COMPONENTS
   roslaunch
   message_generation
   sensor_msgs
-  #cv_bridge
+  cv_bridge
   roslib
   tf
   rosbag
@@ -55,7 +55,7 @@ find_library (FuzzyLiteLibrary ${FL_LIBRARY_NAME} HINTS ${FL_LIBRARY_DIR})
 
 find_package(Boost REQUIRED COMPONENTS system thread)
 find_package(TinyXML REQUIRED)
-#find_package(OpenCV)
+find_package(OpenCV)
 #rosbuild_add_boost_directories()
 #rosbuild_link_boost(icarus_rover_v2 thread signals system)
 
@@ -122,7 +122,7 @@ find_package(TinyXML REQUIRED)
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES icarus_rover_v2
-  CATKIN_DEPENDS roscpp rospy std_msgs roslib
+  CATKIN_DEPENDS roscpp message_runtime rospy std_msgs roslib
   DEPENDS Boost message_runtime TinyXML
   
 )
@@ -135,10 +135,11 @@ catkin_package(
 ## Your package locations should be listed before other locations
 # include_directories(include)
 include_directories(
+  include
   ${catkin_INCLUDE_DIRS}
   ${Boost_INCLUDE_DIRS}
   ${TinyXML_INCLUDE_DIRS}
-  #${OpenCV_INCLUDE_DIRS}
+  ${OpenCV_INCLUDE_DIRS}
   ${roscpp_INCLUDE_DIRS}
 )
 
@@ -217,6 +218,7 @@ add_dependencies(resourcemonitor eros_generate_messages_cpp)
 add_library(controlgroup util/controlgroup.cpp)
 add_dependencies(controlgroup eros_generate_messages_cpp)
 
+
 #Libraries-Communications
 add_library(udpmessage util/udpmessage.cpp)
 add_library(serialmessage util/serialmessage.cpp)
@@ -249,3 +251,4 @@ add_subdirectory(src/Timing)
 
 #Add CMakeLists for User Control
 add_subdirectory(src/User_Control)
+

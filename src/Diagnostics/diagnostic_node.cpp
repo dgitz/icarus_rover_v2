@@ -24,6 +24,7 @@ bool DiagnosticNode::start(int argc,char **argv)
 	diagnostic_types.push_back(SYSTEM_RESOURCE);
 	diagnostic_types.push_back(COMMUNICATIONS);
 	diagnostic_types.push_back(REMOTE_CONTROL);
+	resourcemonitor->disable_memoryleakdetection(); 
 	process->enable_diagnostics(diagnostic_types);
 	std::string subsystem_diagnostic_topic = "/System/Diagnostic/State";
 	subsystem_diagnostic_pub =  n->advertise<eros::subsystem_diagnostic>(subsystem_diagnostic_topic,1);

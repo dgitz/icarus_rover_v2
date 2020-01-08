@@ -26,6 +26,7 @@ public:
     ResourceMonitor();
     ResourceMonitor(eros::diagnostic diag,std::string DeviceArchitecture,std::string HostName,std::string TaskName);
     void init(eros::diagnostic diag,std::string DeviceArchitecture,std::string HostName,std::string TaskName);
+    void disable_memoryleakdetection() { memoryleak_detectection_enabled = false; }
     eros::diagnostic update();
     int get_CPUUsed_perc();  //Helper function, not needed in application.
     int get_RAMUsed_kB(); //Helper function, not needed in application.
@@ -53,7 +54,7 @@ std::string exec(const char* cmd,bool wait_for_result);
     uint64_t RAMTotal_kb;
     uint8_t processor_count;
     bool ramfree_initialized;
-
+    bool memoryleak_detectection_enabled;
 
     std::vector<double> shortterm_buffer_RamUsed_kB;
     int shortterm_buffer_index;
