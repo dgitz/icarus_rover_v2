@@ -137,7 +137,7 @@ bool AudioNode::run_1hz()
 	{
 		{
 			eros::srv_device srv;
-			srv.request.query = "DeviceType=Microphone";
+			srv.request.query = (std::string("DeviceType=") + std::string(DEVICETYPE_MICROPHONE)).c_str();
 			if(srv_device.call(srv) == true)
 			{
 				for(std::size_t i = 0; i < srv.response.data.size(); i++)
@@ -152,7 +152,7 @@ bool AudioNode::run_1hz()
 		}
 		{
 			eros::srv_device srv;
-			srv.request.query = "DeviceType=AudioAmplifier";
+			srv.request.query = (std::string("DeviceType=") + std::string(DEVICETYPE_AUDIOAMPLIFIER)).c_str();
 			if(srv_device.call(srv) == true)
 			{
 				for(std::size_t i = 0; i < srv.response.data.size(); i++)

@@ -40,7 +40,6 @@ CommandNodeProcess* initializeprocess()
 	CommandNodeProcess* process;
 	process = new CommandNodeProcess;
 	process->initialize("command_node",Node_Name,Host_Name,ROVER,ROBOT_CONTROLLER,CONTROLLER_NODE);
-
 	std::vector<uint8_t> diagnostic_types;
 	diagnostic_types.push_back(SOFTWARE);
 	diagnostic_types.push_back(DATA_STORAGE);

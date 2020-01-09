@@ -343,7 +343,7 @@ eros::diagnostic SnapshotNodeProcess::new_devicemsg(const eros::device::ConstPtr
 	eros::diagnostic diag = update_diagnostic(SOFTWARE,INFO,NOERROR,"Updated Device");
 	if(device->DeviceName != mydevice.DeviceName)
 	{
-		if((device->DeviceType == "ControlModule") or (device->DeviceType == "ComputeModule"))
+		if((device->DeviceType == DEVICETYPE_CONTROLMODULE) or (device->DeviceType == DEVICETYPE_COMPUTEMODULE))
 		{
 			all_snapshot_devices.push_back(device->DeviceName);
 		}

@@ -3,6 +3,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include "../../../include/Supported_PN.h"
 #include "../Driver/ServoHatDriver.h"
 
 using namespace std;
@@ -11,7 +12,7 @@ static void show_usage()
 {
     std::cerr   << "This program is used to test the operation of a directly connected Servo Hat.\n"
                 << "Currently supported Part Numbers:\n"
-                << "\tPN: 625004\n"
+                << "\tPN: " << PN_625004 << "\n"
                 << "Usage: Test ServoHat via I2C. Options:\n"
                 << "\t-h,--help\t\tShow this help message\n"
                 << "\t-a,--address Address\tThe I2C Address of the Hat (Base 10).  Default=64.\n"

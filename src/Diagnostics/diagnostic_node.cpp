@@ -157,7 +157,7 @@ bool DiagnosticNode::run_1hz()
 	{
 		{
 			eros::srv_device srv;
-			srv.request.query = "DeviceType=LCD";
+			srv.request.query = (std::string("DeviceType=") + std::string(DEVICETYPE_LCD)).c_str();
 			if(srv_device.call(srv) == true)
 			{
 				if(srv.response.data.size() == 0)
@@ -178,7 +178,7 @@ bool DiagnosticNode::run_1hz()
 		}
 		{
 			eros::srv_device srv;
-			srv.request.query = "DeviceType=Battery";
+			srv.request.query = (std::string("DeviceType=") + std::string(DEVICETYPE_BATTERY)).c_str();
 			if(srv_device.call(srv) == true)
 			{
 				if(srv.response.data.size() == 0)
@@ -305,7 +305,7 @@ bool DiagnosticNode::new_devicemsg(std::string query,eros::device t_device)
 			process->set_mydevice(t_device);
 		}
 	}
-	else if(t_device.DeviceType == "Battery")
+	else if(t_device.DeviceType == DEVICETYPE_BATTERY)
 	{
 		std::string topic = "/" + t_device.DeviceName;
 		battery_sub = n->subscribe<eros::battery>(topic,1,&DiagnosticNode::Battery_Callback,this);

@@ -9,7 +9,7 @@
 #include <fcntl.h>    /* For O_RDWR */
 #include <unistd.h>   /* For open(), */
 #include <sys/ioctl.h>
-
+#include "../../../include/Supported_PN.h"
 class GPIOHatDriver
 {
 public:

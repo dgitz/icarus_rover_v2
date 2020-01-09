@@ -3,6 +3,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include "../../../include/Supported_PN.h"
 #include "../Driver/TerminalHatDriver.h"
 /*
     - Show all current input/output pin status's
@@ -14,7 +15,7 @@ static void show_usage()
     std::cerr   << "This program is used to test the operation of a directly connected Terminal Hat.\n"
                 << "As a TerminalHat is electrically the same as a ControlModule this essentially supports any ControlModule.\n"
                 << "Currently supported Part Numbers:\n"
-                << "\tPN: 100003\n"
+                << "\tPN: " << PN_100003 << "\n"
                 << "Usage: Tests TerminalHat via GPIO pins. Options:\n"
                 << "\t-h,--help\t\tShow this help message.\n"
                 << "\t-v,--verbose\t\tSet Verbosity. Default=1\n"
@@ -35,7 +36,7 @@ int main(int argc, char* argv[])
     std::string pinname = "";
     bool verbose = true;
     int delay = 100000;
-    std::string partnumber = "100003";
+    std::string partnumber = PN_100003;
     std::string pin_output = "0";
     TerminalHatDriver terminalhat;
     bool print_pinmap = false;

@@ -47,6 +47,8 @@
 #include "../Definitions.h"
 #include "../../../eROS/include/PoseHelper.h"
 #include "../../../eROS/include/DiagnosticClass.h"
+#include "../Supported_PN.h"
+#include "../Supported_DeviceType.h"
 #include <nlohmann/json.hpp> //See: https://github.com/nlohmann/json#projects-using-json-for-modern-c
 
 using json = nlohmann::json;
@@ -137,6 +139,7 @@ public:
 	uint8_t get_component() { return component; }
 	std::string get_basenodename() { return base_node_name; }
 	std::string get_nodename() { return node_name; }
+	std::vector<std::string> get_supported_partnumbers() { return supported_partnumbers; }
 
 	//Message Functions
 	virtual eros::diagnostic new_devicemsg(const eros::device::ConstPtr& t_device) = 0;
@@ -178,7 +181,7 @@ protected:
 	eros::signal convert_fromptr(const eros::signal::ConstPtr& t_ptr);
 	eros::system_state convert_fromptr(const eros::system_state::ConstPtr& t_ptr);
 	eros::usermessage convert_fromptr(const eros::usermessage::ConstPtr& t_ptr);
-
+	std::vector<std::string> supported_partnumbers;
 	bool initialized;
 	bool ready;
 	eros::device mydevice;

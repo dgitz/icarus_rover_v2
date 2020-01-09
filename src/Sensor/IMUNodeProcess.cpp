@@ -1,6 +1,8 @@
 #include "IMUNodeProcess.h"
 eros::diagnostic  IMUNodeProcess::finish_initialization()
 {
+	supported_partnumbers.push_back(PN_110012);
+	supported_partnumbers.push_back(PN_110015);
 	eros::diagnostic diag = root_diagnostic;
 	imus_initialized = false;
 	imus_running = false;
@@ -300,9 +302,9 @@ eros::diagnostic IMUNodeProcess::new_devicemsg(const eros::device::ConstPtr& dev
 eros::diagnostic IMUNodeProcess::new_devicemsg(const eros::device::ConstPtr& device,const eros::leverarm::ConstPtr& leverarm,bool override_config=false,std::string override_config_path="")
 {
 	eros::diagnostic diag = root_diagnostic;
-	if(device->DeviceType == "IMU")
+	if(device->DeviceType == DEVICETYPE_IMU)
 	{
-		if(device->PartNumber == "110012")
+		if(device->PartNumber == PN_110012)
 		{
 			IMUNodeProcess::IMU newimu;
 			newimu.initialized = false;
@@ -310,7 +312,7 @@ eros::diagnostic IMUNodeProcess::new_devicemsg(const eros::device::ConstPtr& dev
 			newimu.connection_method = "serial";
 			newimu.device_path = "/dev/ttyAMA0";
 			newimu.comm_rate = "115200";
-			newimu.partnumber = "110012";
+			newimu.partnumber = PN_110012;
 			newimu.acc_scale_factor = 2000.0;
 			newimu.gyro_scale_factor = 2000.0;
 			newimu.mag_scale_factor = 6.665;
@@ -364,7 +366,7 @@ eros::diagnostic IMUNodeProcess::new_devicemsg(const eros::device::ConstPtr& dev
 			diag = update_diagnostic(newimu.diagnostic.DeviceName,DATA_STORAGE,INFO,INITIALIZING,"Initializing.");
 			diag = update_diagnostic(newimu.diagnostic);
 		}
-		else if(device->PartNumber == "110015")
+		else if(device->PartNumber == PN_110015)
 		{
 			IMUNodeProcess::IMU newimu;
 			newimu.initialized = false;
@@ -374,7 +376,7 @@ eros::diagnostic IMUNodeProcess::new_devicemsg(const eros::device::ConstPtr& dev
 			newimu.connection_method = "serial";
 			newimu.device_path = "/dev/ttyACM0";
 			newimu.comm_rate = "115200";
-			newimu.partnumber = "110015";
+			newimu.partnumber = PN_110015;
 			newimu.acc_scale_factor = 1.0;
 			newimu.gyro_scale_factor = 1.0;
 			newimu.mag_scale_factor = 1.0;
