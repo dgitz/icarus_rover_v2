@@ -1,6 +1,6 @@
 // Derived class
 #include "BoardControllerNodeProcess.cpp"
-#include "../include/Base/BaseNode.cpp"
+#include "../../include/Base/BaseNode.cpp"
 //C System Files
 #include <sys/ioctl.h>
 #include <linux/spi/spidev.h>
@@ -14,7 +14,6 @@
 //ROS Base Functionality
 //ROS Messages
 //Project
-#include "spimessage.h"
 /*! \class SampleNode SampleNode.h "SampleNode.h"
  *  \brief This is a SampleNode class.  Used for the sample_node node.
  *
@@ -25,9 +24,9 @@ public:
 	const string BASE_NODE_NAME = "boardcontroller_node";
 
 	const uint8_t MAJOR_RELEASE_VERSION = 1;
-	const uint8_t MINOR_RELEASE_VERSION = 0;
-	const uint8_t BUILD_NUMBER = 1;
-	const string FIRMWARE_DESCRIPTION = "Latest Rev: 2-December-2018";
+	const uint8_t MINOR_RELEASE_VERSION = 1;
+	const uint8_t BUILD_NUMBER = 0;
+	const string FIRMWARE_DESCRIPTION = "Latest Rev: 25-December-2019";
 
 	const uint8_t DIAGNOSTIC_SYSTEM = ROVER;
 	const uint8_t DIAGNOSTIC_SUBSYSTEM = ROBOT_CONTROLLER;

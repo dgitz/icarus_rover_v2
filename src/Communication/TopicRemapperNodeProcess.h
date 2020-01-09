@@ -1,4 +1,4 @@
-#include "../include/Base/BaseNodeProcess.cpp"
+#include "../../include/Base/BaseNodeProcess.cpp"
 //C System Files
 //C++ System Files
 #include <boost/algorithm/string.hpp>
@@ -31,7 +31,7 @@ public:
 		std::string type;
 		std::string topic;
 		std::string parentdevice;
-		int pinnumber;
+		std::string pinname;
 		std::string function;
 		double maxvalue;
 		double minvalue;

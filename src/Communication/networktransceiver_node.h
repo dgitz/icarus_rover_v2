@@ -1,6 +1,6 @@
 // Derived class
 #include "NetworkTransceiverNodeProcess.cpp"
-#include "../include/Base/BaseNode.cpp"
+#include "../../include/Base/BaseNode.cpp"
 //C System Files
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -14,7 +14,7 @@
 //ROS Base Functionality
 //ROS Messages
 //Project
-#include "udpmessage.h"
+#include "../../include/udpmessage.h"
 /*! \class NetworkTransceiverNode NetworkTransceiverNode.h "NetworkTransceiverNode.h"
  *  \brief This is a NetworkTransceiverNode class.  Used for the networktransceiver_node node.
  *

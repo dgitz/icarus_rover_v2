@@ -8,7 +8,7 @@ std::string Node_Name = "/unittest_safety_node_process";
 std::string Host_Name = "ControlModule1";
 std::string ros_DeviceName = Host_Name;
 std::string ros_ParentDevice = "";
-std::string ros_DeviceType = "ControlModule";
+std::string ros_DeviceType = DEVICETYPE_CONTROLMODULE;
 #define DIAGNOSTIC_TYPE_COUNT 4
 
 SafetyNodeProcess* initializeprocess()
@@ -37,7 +37,7 @@ SafetyNodeProcess* initializeprocess()
 
 	eros::device hat1;
 	hat1.DeviceName = "TerminalHat1";
-	hat1.DeviceType = "TerminalHat";
+	hat1.DeviceType = DEVICETYPE_TERMINALHAT;
 	hat1.DeviceParent = ros_DeviceName;
 	hat1.ID = 0;
 	hat1.Architecture = "None";

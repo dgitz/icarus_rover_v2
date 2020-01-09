@@ -108,7 +108,7 @@ bool PoseNode::run_1hz()
 		}
 		{
 			eros::srv_device srv;
-			srv.request.query = "DeviceType=IMU";
+			srv.request.query = (std::string("DeviceType=") + std::string(DEVICETYPE_IMU)).c_str();
 			srv.request.filter = "*";
 			if(srv_device.call(srv) == true)
 			{

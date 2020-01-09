@@ -1,4 +1,4 @@
-#include "../include/Base/BaseNodeProcess.cpp"
+#include "../../include/Base/BaseNodeProcess.cpp"
 //C System Files
 #include <math.h>       /* sqrt */
 //C++ System Files
@@ -13,7 +13,7 @@
 #define COMM_TIMEOUT_THRESHOLD 10.0f
 #define GRAVITATIONAL_ACCELERATION 9.81f
 #define MAGNETOMETER_MAGNITUDE_LOWERBOUND 0.5f
-#define MAGNETOMETER_MAGNITUDE_UPPERBOUND 5.0f
+#define MAGNETOMETER_MAGNITUDE_UPPERBOUND 1.2f
 #include <eigen3/Eigen/Dense>
 
 #include "Driver/IMUDriver.h"
@@ -98,6 +98,8 @@ public:
 		double lasttime_rx;
 		Eigen::Matrix3f MagnetometerEllipsoidFit_RotationMatrix;
 		Eigen::Vector3f MagnetometerEllipsoidFit_Bias;
+		Eigen::Vector3f MagnetometerEllipsoidFit_Offset;
+		Eigen::Vector3f MagnetometerEllipsoidFit_Scale;
 
 	};
 	///Initialization Functions
@@ -112,6 +114,7 @@ public:
 	eros::diagnostic update(double t_dt,double t_ros_time);
 
 	//Attribute Functions
+	void set_readsensorfile(bool v) { load_sensorfile = v; }
 	 bool set_imu_mounting_angles(std::string devicename,double roll_deg,double pitch_deg,double yaw_deg);
 	double get_commtimeout_threshold() { return IMU_INVALID_TIME_THRESHOLD; }
 	std::vector<IMU> get_imus() { return imus; }
@@ -169,4 +172,5 @@ private:
 	bool imu_reset_trigger;
 	bool imu_reset_inprogress;
 	double imu_reset_inprogress_timer;
+	bool load_sensorfile;
 };

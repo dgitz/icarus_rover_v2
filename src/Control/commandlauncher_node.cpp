@@ -55,18 +55,6 @@ eros::diagnostic CommandLauncherNode::finish_initialization()
 	command_sub = n->subscribe<eros::command>("/command",1,&CommandLauncherNode::Command_Callback,this);
 	std::string device_topic = "/" + std::string(host_name) + "_master_node/srv_device";
 	srv_device = n->serviceClient<eros::srv_device>(device_topic);
-	std::string param_cameraport = node_name + "/CameraStreamPort";
-	std::string camerastream_port;
-	if(n->getParam(param_cameraport,camerastream_port) == false)
-	{
-		diag.Diagnostic_Type = DATA_STORAGE;
-		diag.Level = ERROR;
-		diag.Diagnostic_Message = INITIALIZING_ERROR;
-		diag.Description = "Missing parameter: CameraStreamPort.  Exiting.";
-		logger->log_diagnostic(diag);
-		return diag;
-	}
-	process->set_camerastream_port(camerastream_port);
 	std::vector<CommandLauncherNodeProcess::ProcessCommand> process_list = process->get_processlist();
 	for(std::size_t i = 0; i < process_list.size(); i++)
 	{
@@ -226,13 +214,6 @@ bool CommandLauncherNode::new_devicemsg(std::string query,eros::device t_device)
 		{
 			set_mydevice(t_device);
 			process->set_mydevice(t_device);
-			if(process->set_camerastream(process->get_camerastream_port()) == false)
-			{
-				char tempstr[512];
-				sprintf(tempstr,"Couldn't set Camera Stream Port. Exiting.");
-				logger->log_error(tempstr);
-				return false;
-			}
 		}
 	}
 
@@ -268,7 +249,7 @@ void CommandLauncherNode::cleanup()
 /*! \brief Attempts to kill a node when an interrupt is received.
  *
  */
-void signalinterrupt_handler(int sig)
+void signalinterrupt_handler(__attribute__((unused)) int sig)
 {
 	kill_node = true;
 	exit(0);

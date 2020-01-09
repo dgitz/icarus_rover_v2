@@ -1,6 +1,8 @@
 #SensorPostProcessing Blocks
 add_library(base_postprocess BasePostProcess.cpp)
+add_dependencies(base_postprocess eros_generate_messages_cpp)
 add_library(imu_postprocess IMUPostProcess.cpp)
+add_dependencies(imu_postprocess eros_generate_messages_cpp)
 target_link_libraries(imu_postprocess ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} base_postprocess)
 #add_library(basemachine_postprocess BaseMachinePostProcess.cpp)
 #add_library(gps_postprocess GPSPostProcess.cpp)

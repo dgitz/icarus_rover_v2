@@ -1,41 +1,42 @@
 // Derived class
-#include "DataLoggerNodeProcess.cpp"
+#include "SpeakerNodeProcess.cpp"
 #include "../../include/Base/BaseNode.cpp"
 //C System Files
 //C++ System Files
+#include <boost/algorithm/string/replace.hpp>
 //ROS Base Functionality
-//#include "../../../ros_comm/tools/rosbag/include/rosbag/recorder.h"
-//#include "record_ros/record.h"
-#include <rosbag/recorder.h>
 //ROS Messages
+
+#include <sound_play/sound_play.h>
+
+
 //Project
-/*! \class DataLoggerNode DataLoggerNode.h "DataLoggerNode.h"
- *  \brief This is a DataLoggerNode class.  Used for the sample_node node.
+/*! \class SpeakerNode speaker_node.h "speaker_node.h"
+ *  \brief This is a SpeakerNode class.  Used for the speaker_node node.
  *
  */
-class DataLoggerNode: public BaseNode {
+class SpeakerNode: public BaseNode {
 public:
 
-	const string BASE_NODE_NAME = "datalogger_node";
+	const string BASE_NODE_NAME = "speaker_node";
 
-	const uint8_t MAJOR_RELEASE_VERSION = 1;
+	const uint8_t MAJOR_RELEASE_VERSION = 3;
 	const uint8_t MINOR_RELEASE_VERSION = 0;
-	const uint8_t BUILD_NUMBER = 1;
-	const string FIRMWARE_DESCRIPTION = "Latest Rev: 16-April-2019";
+	const uint8_t BUILD_NUMBER = 0;
+	const string FIRMWARE_DESCRIPTION = "Latest Rev: 11-Dec-2019";
 
 	const uint8_t DIAGNOSTIC_SYSTEM = ROVER;
 	const uint8_t DIAGNOSTIC_SUBSYSTEM = ROBOT_CONTROLLER;
-	const uint8_t DIAGNOSTIC_COMPONENT = DIAGNOSTIC_NODE;
-	~DataLoggerNode()
+	const uint8_t DIAGNOSTIC_COMPONENT = COMMUNICATION_NODE;
+	~SpeakerNode()
 	{
 	}
 	/*! \brief Initialize
 	 *
 	 */
 	bool start(int argc,char **argv);
-	DataLoggerNodeProcess* get_process() { return process; }
+	SpeakerNodeProcess* get_process() { return process; }
 	void thread_loop();
-    void run_logger(DataLoggerNode *node);
 
 	//Cleanup
 	void cleanup();
@@ -45,6 +46,7 @@ private:
 	 *
 	 */
 	eros::diagnostic read_launchparameters();
+	eros::diagnostic rescan_topics();
 	/*! \brief Setup other pubs/subs, other node specific init stuff
 	 *
 	 */
@@ -63,8 +65,10 @@ private:
 	void PPS1_Callback(const std_msgs::Bool::ConstPtr& t_msg);
 	void Command_Callback(const eros::command::ConstPtr& t_msg);
 	bool new_devicemsg(std::string query,eros::device t_device);
+	void UserMessage_Callback(const eros::usermessage::ConstPtr& msg);
+    void diagnostic_Callback(const eros::diagnostic::ConstPtr& msg);
+	void SoundPlayStatus_Callback(const actionlib_msgs::GoalStatusArray::ConstPtr& msg);
 	//Support Functions
-    
 
 
 
@@ -72,8 +76,13 @@ private:
 	ros::Subscriber pps1_sub;
 	ros::Subscriber command_sub;
 	ros::ServiceClient srv_device;
-	DataLoggerNodeProcess *process;
-    
-    //rosbag::Recorder recorder;
-
+	ros::Subscriber soundplaystatus_sub;
+	SpeakerNodeProcess *process;
+	ros::Subscriber UserMessage_sub;
+	//boost::shared_ptr<sound_play::SoundClient> sc;
+	ros::Time last_time_speech_ended;
+	std::vector<std::string> speechbuffer;
+	double initial_speech_wait;
+    std::vector<ros::Subscriber> diagnostic_subs;
+	ros::Publisher robot_sound_pub;
 };

@@ -179,8 +179,8 @@ TEST(Template, LCDMessage)
 	DiagnosticNodeProcess *process = initializeprocess();
 	eros::device lcd;
 	lcd.DeviceName = "LCD1";
-	lcd.DeviceType = "LCD";
-	lcd.PartNumber = "617003";
+	lcd.DeviceType = DEVICETYPE_LCD;
+	lcd.PartNumber = PN_617003;
 	lcd.DeviceParent = process->get_mydevice().DeviceName;
 	eros::device::ConstPtr lcd_ptr(new eros::device(lcd));
 	eros::diagnostic diag = process->new_devicemsg(lcd_ptr);
@@ -299,8 +299,8 @@ TEST(Template, SubsystemDiagnostics)
 	DiagnosticNodeProcess *process = initializeprocess();
 	eros::device lcd;
 	lcd.DeviceName = "LCD1";
-	lcd.DeviceType = "LCD";
-	lcd.PartNumber = "617003";
+	lcd.DeviceType = DEVICETYPE_LCD;
+	lcd.PartNumber = PN_617003;
 	lcd.DeviceParent = process->get_mydevice().DeviceName;
 	eros::device::ConstPtr lcd_ptr(new eros::device(lcd));
 	eros::diagnostic diag = process->new_devicemsg(lcd_ptr);

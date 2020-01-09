@@ -4,6 +4,7 @@ if (${CMAKE_HOST_SYSTEM_PROCESSOR} STREQUAL x86_64)
     add_subdirectory(Development)
     file(MAKE_DIRECTORY /home/robot/catkin_ws/build/test_results/icarus_rover_v2/pose_node)
     add_library(pose_node_process PoseNodeProcess.cpp)
+    add_dependencies(pose_node_process eros_generate_messages_cpp)
     target_link_libraries(pose_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES}
         time_compensate 
         imu_postprocess
@@ -17,7 +18,7 @@ endif ()
 #Calibration Node
 file(MAKE_DIRECTORY /home/robot/catkin_ws/build/test_results/icarus_rover_v2/calibration_node)
 add_library(calibration_node_process CalibrationNodeProcess.cpp)
-target_link_libraries(calibration_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} )
+add_dependencies(calibration_node_process eros_generate_messages_cpp)
 add_executable(calibration_node calibration_node.cpp)
 target_link_libraries(calibration_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} calibration_node_process logger resourcemonitor)
 catkin_add_gtest(test_calibration_node_process unit_tests/test_calibration_node_process.cpp)

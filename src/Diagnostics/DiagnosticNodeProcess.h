@@ -1,4 +1,4 @@
-#include "../include/Base/BaseNodeProcess.cpp"
+#include "../../include/Base/BaseNodeProcess.cpp"
 //C System Files
 //C++ System Files
 //ROS Base Functionality
@@ -106,6 +106,7 @@ public:
 	void new_diagnosticmsg(std::string topicname,const eros::diagnostic::ConstPtr& diagnostic);
     /*! \brief  Process Armed State Message. */
 	void new_armedstatemsg(uint8_t v) { armed_state = v; }
+	uint8_t get_armedstate() { return armed_state; }
 	
 	//Support Functions
 	std::string build_lcdmessage();

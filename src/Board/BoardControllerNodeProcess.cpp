@@ -1,10 +1,11 @@
 #include "BoardControllerNodeProcess.h"
 bool BoardControllerNodeProcess::initialize_supportedboards()
 {
+	supported_partnumbers.push_back(PN_100005);
 	{ //BOARD: ARDUINOBOARD PN: 100005
 		BoardControllerNodeProcess::BoardMap board;
-		board.FAST_PN = "100005";
-		board.DeviceType = "ArduinoBoard";
+		board.FAST_PN = PN_100005;
+		board.DeviceType = DEVICETYPE_ARDUINOBOARD;
 		//DIO PORT1 MAX SIZE=2
 		board.PinMap.push_back(create_pindefinition("DIO1-0",PORT_DIGIPORT_1,0));
 		board.PinMap.push_back(create_pindefinition("DIO1-1",PORT_DIGIPORT_1,1));

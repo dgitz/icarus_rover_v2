@@ -30,11 +30,11 @@ int IMUDriver::init(std::string t_partnumber,std::string t_port,std::string t_de
 
 	switch(partnumber)
 	{
-	case PN_110013:
+	case PNENUM_110013:
 		connection_method = "serial";
 		baudrate = "115200";
 		break;
-	case PN_110015:
+	case PNENUM_110015:
 		connection_method = "AHRS";
 		baudrate = "";
 		break;
@@ -128,11 +128,11 @@ int IMUDriver::init(std::string t_partnumber,std::string t_port,std::string t_de
 }
 bool IMUDriver::reset()
 {
-	if(partnumber == PN_110013)
+	if(partnumber == PNENUM_110013)
 	{
 		return false;
 	}
-	else if(partnumber == PN_110015)
+	else if(partnumber == PNENUM_110015)
 	{
 		device->ResetDevice();
 		usleep(1000000);
@@ -154,18 +154,15 @@ IMUDriver::RawIMU IMUDriver::update()
 	gettimeofday(&now,NULL);
 	bool status = true;
 
-	if(partnumber == PN_110013)
+	if(partnumber == PNENUM_110013)
 	{
 		if((measure_time_diff(now,last_timeupdate) > 100.0) or (timesync_tx_count == 0))
 		{
-			if(partnumber == PN_110013)
-			{
-				char tempstr[32];
-				sprintf(tempstr,"$T%4.2f*",convert_time(now));
-				int count = write(conn_fd,tempstr,strlen(tempstr));
-				gettimeofday(&last_timeupdate,NULL);
-				timesync_tx_count++;
-			}
+			char tempstr[32];
+			sprintf(tempstr,"$T%4.2f*",convert_time(now));
+			int count = write(conn_fd,tempstr,strlen(tempstr));
+			gettimeofday(&last_timeupdate,NULL);
+			timesync_tx_count++;
 		}
 
 		std::string data = read_serialdata();
@@ -221,7 +218,7 @@ IMUDriver::RawIMU IMUDriver::update()
 
 		}
 	}
-	else if(partnumber == PN_110015)
+	else if(partnumber == PNENUM_110015)
 	{
 		status = false;
 		t_imu.serial_number = device->GetSerialNumber();
@@ -283,7 +280,7 @@ IMUDriver::RawIMU IMUDriver::update()
 void IMUDriver::set_debugmode(uint8_t v)
 {
 	debug_mode = v;
-	if(partnumber == PN_110015)
+	if(partnumber == PNENUM_110015)
 	{
 		device->SetDebugLevel(v);
 	}
@@ -372,11 +369,11 @@ std::string IMUDriver::map_pn_tostring(IMUDriver::PartNumber v)
 {
 	switch(v)
 	{
-	case PN_110013:
-		return "110013";
+	case PNENUM_110013:
+		return PN_110013;
 		break;
-	case PN_110015:
-		return "110015";
+	case PNENUM_110015:
+		return PN_110015;
 		break;
 	default:
 		return "UNKNOWN";
@@ -385,13 +382,13 @@ std::string IMUDriver::map_pn_tostring(IMUDriver::PartNumber v)
 }
 IMUDriver::PartNumber IMUDriver::map_pn_toenum(std::string v)
 {
-	if(v == "110013")
+	if(v == PN_110013)
 	{
-		return PN_110013;
+		return PNENUM_110013;
 	}
-	else if(v == "110015")
+	else if(v == PN_110015)
 	{
-		return PN_110015;
+		return PNENUM_110015;
 	}
 	else
 	{
@@ -437,7 +434,7 @@ IMUDriver::Signal IMUDriver::update_signal(double tov,uint16_t sequence_number,d
 	newsig.value = value;
 	switch(partnumber)
 	{
-		case PN_110013:
+		case PNENUM_110013:
 		{
 			if(updated == false)
 			{
@@ -448,7 +445,7 @@ IMUDriver::Signal IMUDriver::update_signal(double tov,uint16_t sequence_number,d
 				newsig.state = SIGNALSTATE_UPDATED;
 			}
 		}
-		case PN_110015:
+		case PNENUM_110015:
 			if(updated == false)
 			{
 				newsig.state = SIGNALSTATE_HOLD;

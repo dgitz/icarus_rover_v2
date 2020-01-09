@@ -24,6 +24,7 @@ bool DiagnosticNode::start(int argc,char **argv)
 	diagnostic_types.push_back(SYSTEM_RESOURCE);
 	diagnostic_types.push_back(COMMUNICATIONS);
 	diagnostic_types.push_back(REMOTE_CONTROL);
+	resourcemonitor->disable_memoryleakdetection(); 
 	process->enable_diagnostics(diagnostic_types);
 	std::string subsystem_diagnostic_topic = "/System/Diagnostic/State";
 	subsystem_diagnostic_pub =  n->advertise<eros::subsystem_diagnostic>(subsystem_diagnostic_topic,1);
@@ -156,7 +157,7 @@ bool DiagnosticNode::run_1hz()
 	{
 		{
 			eros::srv_device srv;
-			srv.request.query = "DeviceType=LCD";
+			srv.request.query = (std::string("DeviceType=") + std::string(DEVICETYPE_LCD)).c_str();
 			if(srv_device.call(srv) == true)
 			{
 				if(srv.response.data.size() == 0)
@@ -177,7 +178,7 @@ bool DiagnosticNode::run_1hz()
 		}
 		{
 			eros::srv_device srv;
-			srv.request.query = "DeviceType=Battery";
+			srv.request.query = (std::string("DeviceType=") + std::string(DEVICETYPE_BATTERY)).c_str();
 			if(srv_device.call(srv) == true)
 			{
 				if(srv.response.data.size() == 0)
@@ -232,7 +233,12 @@ bool DiagnosticNode::run_1hz()
 }
 bool DiagnosticNode::run_10hz()
 {
+	bool last_ready_to_arm = ready_to_arm;
 	ready_to_arm = process->get_ready_to_arm();
+	if(last_ready_to_arm != ready_to_arm)
+	{
+		logger->log_notice("Ready To Arm Changed From: " + std::to_string(last_ready_to_arm) + " To: " + std::to_string(ready_to_arm));
+	}
 	eros::diagnostic diag = process->update(0.1,ros::Time::now().toSec());
 	if(diag.Level > WARN)
 	{
@@ -243,6 +249,16 @@ bool DiagnosticNode::run_10hz()
 	for (std::size_t i = 0; i < diaglist.size(); ++i)
 	{
 		if (diaglist.at(i).Level > WARN)
+		{
+			get_logger()->log_diagnostic(diaglist.at(i));
+			diagnostic_pub.publish(diaglist.at(i));
+		}
+	}
+	if(process->get_armedstate() == ARMEDSTATUS_DISARMED_CANNOTARM)
+	{
+		logger->log_warn("Checking Tasks More Frequently for now.");
+		std::vector<eros::diagnostic> diaglist = process->check_tasks();
+		for(std::size_t i = 0; i < diaglist.size(); ++i)
 		{
 			get_logger()->log_diagnostic(diaglist.at(i));
 			diagnostic_pub.publish(diaglist.at(i));
@@ -289,7 +305,7 @@ bool DiagnosticNode::new_devicemsg(std::string query,eros::device t_device)
 			process->set_mydevice(t_device);
 		}
 	}
-	else if(t_device.DeviceType == "Battery")
+	else if(t_device.DeviceType == DEVICETYPE_BATTERY)
 	{
 		std::string topic = "/" + t_device.DeviceName;
 		battery_sub = n->subscribe<eros::battery>(topic,1,&DiagnosticNode::Battery_Callback,this);
@@ -441,10 +457,10 @@ bool DiagnosticNode::log_resources()
 {
 	std::vector<DiagnosticNodeProcess::Task> TaskList = process->get_TaskList();
 	std::vector<DiagnosticNodeProcess::DeviceResourceAvailable> DeviceResourceAvailableList = process->get_DeviceResourceAvailableList();
-	std::string ram_used_file_path = "/home/robot/logs/ram_used.csv";
-	std::string cpu_used_file_path = "/home/robot/logs/cpu_used.csv";
-	std::string ram_free_file_path = "/home/robot/logs/ram_free.csv";
-	std::string cpu_free_file_path = "/home/robot/logs/cpu_free.csv";
+	std::string ram_used_file_path = "/home/robot/var/log/ram_used.csv";
+	std::string cpu_used_file_path = "/home/robot/var/log/cpu_used.csv";
+	std::string ram_free_file_path = "/home/robot/var/log/ram_free.csv";
+	std::string cpu_free_file_path = "/home/robot/var/log/cpu_free.csv";
 	if(logging_initialized == false)
 	{
 		ram_used_file.open(ram_used_file_path.c_str(),ios::out);
