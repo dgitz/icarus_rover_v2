@@ -1,6 +1,8 @@
 #include "SafetyNodeProcess.h"
 eros::diagnostic  SafetyNodeProcess::finish_initialization()
 {
+	supported_partnumbers.push_back(PN_100003);
+	supported_partnumbers.push_back(PN_625005);
     eros::diagnostic diag = root_diagnostic;
     arm_switch = false;
     return diag;
@@ -55,13 +57,13 @@ eros::diagnostic SafetyNodeProcess::new_devicemsg(const eros::device::ConstPtr& 
 				std::size_t hat_message = t_device->DeviceType.find("Hat");
 				if(hat_message != std::string::npos)
 				{
-					if(t_device->DeviceType == "TerminalHat")
+					if(t_device->DeviceType == DEVICETYPE_TERMINALHAT)
 					{
 						bool arm_switch_found = false;
 						for(std::size_t i = 0; i < t_device->pins.size(); i++)
 						{
 							if((t_device->pins.at(i).Function == "DigitalInput-Safety") and
-									(t_device->pins.at(i).Name == "ArmSwitch"))
+									(t_device->pins.at(i).ConnectedDevice == "ArmSwitch"))
 							{
 								arm_switch_found = true;
 							}
@@ -144,7 +146,7 @@ eros::diagnostic SafetyNodeProcess::set_terminalhat_initialized()
 	bool found = false;
 	for(std::size_t i = 0; i < hats.size(); i++)
 	{
-		if((hats.at(i).DeviceType == "TerminalHat"))
+		if((hats.at(i).DeviceType == DEVICETYPE_TERMINALHAT))
 		{
 			found = true;
 			hats_running.at(i) = true;
@@ -154,7 +156,7 @@ eros::diagnostic SafetyNodeProcess::set_terminalhat_initialized()
 	if(found == false)
 	{
 		char tempstr[512];
-		sprintf(tempstr,"TerminalHat Not Found");
+		sprintf(tempstr,"%s Not Found",DEVICETYPE_TERMINALHAT);
 		diag = update_diagnostic(DATA_STORAGE,ERROR,INITIALIZING_ERROR,std::string(tempstr));
 	}
 	else
@@ -164,7 +166,7 @@ eros::diagnostic SafetyNodeProcess::set_terminalhat_initialized()
 			ready = true;
 		}
 		char tempstr[512];
-		sprintf(tempstr,"TerminalHat is now Initialized");
+		sprintf(tempstr,"%s is now Initialized",DEVICETYPE_TERMINALHAT);
 		diag = update_diagnostic(DATA_STORAGE,INFO,INITIALIZING,std::string(tempstr));
 	}
 	return diag;
@@ -174,7 +176,7 @@ bool SafetyNodeProcess::set_pinvalue(std::string name,int v)
 	eros::diagnostic diag = root_diagnostic;
 	for(std::size_t i = 0; i < hats.size(); i++)
 	{
-		if((hats.at(i).DeviceType == "TerminalHat"))
+		if((hats.at(i).DeviceType == DEVICETYPE_TERMINALHAT))
 		{
 			for(std::size_t j = 0; j < hats.at(i).pins.size(); j++)
 			{
@@ -206,7 +208,7 @@ std::vector<eros::pin> SafetyNodeProcess::get_terminalhatpins(std::string Functi
 	pins.clear();
 	for(std::size_t i = 0; i < hats.size(); i++)
 	{
-		if((hats.at(i).DeviceType == "TerminalHat"))
+		if((hats.at(i).DeviceType == DEVICETYPE_TERMINALHAT))
 		{
 			for(std::size_t j = 0; j < hats.at(i).pins.size(); j++)
 			{

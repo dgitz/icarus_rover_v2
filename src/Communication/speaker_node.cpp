@@ -1,9 +1,9 @@
-#include "sample_node.h"
+#include "speaker_node.h"
 bool kill_node = false;
-bool SampleNode::start(int argc, char **argv)
+bool SpeakerNode::start(int argc, char **argv)
 {
 	bool status = false;
-	process = new SampleNodeProcess();
+	process = new SpeakerNodeProcess();
 	set_basenodename(BASE_NODE_NAME);
 	initialize_firmware(MAJOR_RELEASE_VERSION, MINOR_RELEASE_VERSION, BUILD_NUMBER, FIRMWARE_DESCRIPTION);
 	diagnostic = preinitialize_basenode(argc, argv);
@@ -18,12 +18,13 @@ bool SampleNode::start(int argc, char **argv)
 	}
 
 	process->initialize(get_basenodename(), get_nodename(), get_hostname(), DIAGNOSTIC_SYSTEM, DIAGNOSTIC_SUBSYSTEM, DIAGNOSTIC_COMPONENT);
-	process->set_config_filepaths("/home/robot/catkin_ws/src/icarus_rover_v2/src_templates/unit_tests/SampleConfig.xml");
 	std::vector<uint8_t> diagnostic_types;
 	diagnostic_types.push_back(SOFTWARE);
 	diagnostic_types.push_back(DATA_STORAGE);
 	diagnostic_types.push_back(SYSTEM_RESOURCE);
+	diagnostic_types.push_back(COMMUNICATIONS);
 	process->enable_diagnostics(diagnostic_types);
+	//sc.reset(new sound_play::SoundClient());
 	process->finish_initialization();
 	diagnostic = finish_initialization();
 	if (diagnostic.Level > WARN)
@@ -42,31 +43,34 @@ bool SampleNode::start(int argc, char **argv)
 	return status;
 }
 
-eros::diagnostic SampleNode::read_launchparameters()
+eros::diagnostic SpeakerNode::read_launchparameters()
 {
 	eros::diagnostic diag = diagnostic;
-	get_logger()->log_notice(__FILE__,__LINE__,"Configuration Files Loaded.");
+	logger->log_notice("Configuration Files Loaded.");
 	return diagnostic;
 }
-eros::diagnostic SampleNode::finish_initialization()
+eros::diagnostic SpeakerNode::finish_initialization()
 {
 	eros::diagnostic diag = diagnostic;
-	pps1_sub = n->subscribe<std_msgs::Bool>("/1PPS", 1, &SampleNode::PPS1_Callback, this);
-	command_sub = n->subscribe<eros::command>("/command", 1, &SampleNode::Command_Callback, this);
+	pps1_sub = n->subscribe<std_msgs::Bool>("/1PPS", 1, &SpeakerNode::PPS1_Callback, this);
+	command_sub = n->subscribe<eros::command>("/command", 1, &SpeakerNode::Command_Callback, this);
 	std::string device_topic = "/" + std::string(host_name) + "_master_node/srv_device";
 	srv_device = n->serviceClient<eros::srv_device>(device_topic);
+	UserMessage_sub = n->subscribe<eros::usermessage>("/usermessage",10,&SpeakerNode::UserMessage_Callback,this);
+	soundplaystatus_sub = n->subscribe<actionlib_msgs::GoalStatusArray>("/sound_play/status",1,&SpeakerNode::SoundPlayStatus_Callback,this);
+	robot_sound_pub = n->advertise<sound_play::SoundRequest>("/robotsound",1);
 	return diagnostic;
 }
-bool SampleNode::run_001hz()
+bool SpeakerNode::run_001hz()
 {
 	
 	return true;
 }
-bool SampleNode::run_01hz()
+bool SpeakerNode::run_01hz()
 {
 	return true;
 }
-bool SampleNode::run_01hz_noisy()
+bool SpeakerNode::run_01hz_noisy()
 {
 	std::vector<eros::diagnostic> diaglist = process->get_diagnostics();
 	for (std::size_t i = 0; i < diaglist.size(); ++i)
@@ -74,15 +78,21 @@ bool SampleNode::run_01hz_noisy()
 		get_logger()->log_diagnostic(diaglist.at(i));
 		diagnostic_pub.publish(diaglist.at(i));
 	}
-	//eros::diagnostic diag = rescan_topics();
-	//get_logger()->log_diagnostic(diag);
-	//diagnostic_pub.publish(diag);
+	eros::diagnostic diag = rescan_topics();
+	get_logger()->log_diagnostic(diag);
+	diagnostic_pub.publish(diag);
 	return true;
 }
-bool SampleNode::run_1hz()
+bool SpeakerNode::run_1hz()
 {
 	process->update_diagnostic(get_resource_diagnostic());
-	if (process->get_taskstate() == TASKSTATE_INITIALIZING)
+	if ((process->is_initialized() == true) and (process->is_ready() == true))
+	{
+	}
+	else if ((process->is_ready() == false) and (process->is_initialized() == true))
+	{
+	}
+	else if (process->is_initialized() == false)
 	{
 		{
 			eros::srv_device srv;
@@ -92,7 +102,7 @@ bool SampleNode::run_1hz()
 				if (srv.response.data.size() != 1)
 				{
 
-					get_logger()->log_error(__FILE__,__LINE__,"Got unexpected device message.");
+					get_logger()->log_error("Got unexpected device message.");
 				}
 				else
 				{
@@ -115,7 +125,7 @@ bool SampleNode::run_1hz()
 	}
 	return true;
 }
-bool SampleNode::run_10hz()
+bool SpeakerNode::run_10hz()
 {
 	ready_to_arm = process->get_ready_to_arm();
 	eros::diagnostic diag = process->update(0.1, ros::Time::now().toSec());
@@ -123,6 +133,16 @@ bool SampleNode::run_10hz()
 	{
 		get_logger()->log_diagnostic(diag);
 		diagnostic_pub.publish(diag);
+	}
+	if(process->readytospeak() == true)
+	{
+		//std::string speechout = process->get_speechoutput();
+		//sc->say(speechout);
+		sound_play::SoundRequest msg = process->get_speechoutput_client();
+		robot_sound_pub.publish(process->get_speechoutput_client());
+		char tempstr[512];
+		sprintf(tempstr,"Saying: %s",msg.arg.c_str());
+		logger->log_debug(tempstr);
 	}
 	std::vector<eros::diagnostic> diaglist = process->get_diagnostics();
 	for (std::size_t i = 0; i < diaglist.size(); ++i)
@@ -135,30 +155,30 @@ bool SampleNode::run_10hz()
 	}
 	return true;
 }
-bool SampleNode::run_loop1()
+bool SpeakerNode::run_loop1()
 {
 	return true;
 }
-bool SampleNode::run_loop2()
+bool SpeakerNode::run_loop2()
 {
 	return true;
 }
-bool SampleNode::run_loop3()
+bool SpeakerNode::run_loop3()
 {
 	return true;
 }
 
-void SampleNode::PPS1_Callback(const std_msgs::Bool::ConstPtr &msg)
+void SpeakerNode::PPS1_Callback(const std_msgs::Bool::ConstPtr &msg)
 {
 	new_ppsmsg(msg);
 }
 
-void SampleNode::Command_Callback(const eros::command::ConstPtr &t_msg)
+void SpeakerNode::Command_Callback(const eros::command::ConstPtr &t_msg)
 {
 	std::vector<eros::diagnostic> diaglist = process->new_commandmsg(t_msg);
 	new_commandmsg_result(t_msg, diaglist);
 }
-bool SampleNode::new_devicemsg(std::string query, eros::device t_device)
+bool SpeakerNode::new_devicemsg(std::string query, eros::device t_device)
 {
 	if (query == "SELF")
 	{
@@ -169,14 +189,69 @@ bool SampleNode::new_devicemsg(std::string query, eros::device t_device)
 		}
 	}
 
-	if ((process->get_taskstate() == TASKSTATE_INITIALIZED))
+	if ((process->is_initialized() == true))
 	{
 		eros::device::ConstPtr device_ptr(new eros::device(t_device));
 		eros::diagnostic diag = process->new_devicemsg(device_ptr);
 	}
 	return true;
 }
-eros::diagnostic SampleNode::rescan_topics()
+void SpeakerNode::UserMessage_Callback(const eros::usermessage::ConstPtr& msg)
+{
+	eros::diagnostic diag = process->new_usermessage(msg);
+	if(diag.Level > NOTICE)
+	{
+		diagnostic_pub.publish(diag);
+		logger->log_diagnostic(diag);
+	}
+}
+void SpeakerNode::SoundPlayStatus_Callback(__attribute__((unused))const actionlib_msgs::GoalStatusArray::ConstPtr& msg)
+{
+	process->new_soundplaystatus();
+}
+void SpeakerNode::diagnostic_Callback(const eros::diagnostic::ConstPtr& msg)
+{
+	if(msg->Level > NOTICE)
+	{
+		std::string tempstr;
+		switch(msg->Level)
+		{
+		case NOTICE:
+			tempstr += "NOTICE ";
+			break;
+		case WARN:
+			tempstr += "WARN ";
+			break;
+		case ERROR:
+			tempstr += "ERROR ";
+			break;
+		case FATAL:
+			tempstr += "FATAL ";
+			break;
+		default:
+			break;
+		}
+		std::string tempstr2;
+		tempstr2 = msg->Node_Name;
+		boost::replace_all(tempstr2,"/"," ");
+		boost::replace_all(tempstr2,"_"," ");
+		tempstr += tempstr2;
+		tempstr += " is ";
+		tempstr += msg->Description;
+		//speak(tempstr,true);
+        eros::usermessage usermsg;
+        usermsg.Level = msg->Level;
+        usermsg.message = tempstr;
+		eros::usermessage::ConstPtr user_msg(new eros::usermessage(usermsg));
+        eros::diagnostic diag = process->new_usermessage(user_msg);
+		if(diag.Level > NOTICE)
+		{
+			diagnostic_pub.publish(diag);
+			logger->log_diagnostic(diag);
+		}
+	}
+}
+eros::diagnostic SpeakerNode::rescan_topics()
 {
 	eros::diagnostic diag = diagnostic;
 	int found_new_topics = 0;
@@ -186,17 +261,17 @@ eros::diagnostic SampleNode::rescan_topics()
 	for (ros::master::V_TopicInfo::iterator it = master_topics.begin() ; it != master_topics.end(); it++)
 	{
 		const ros::master::TopicInfo& info = *it;
-		if(info.datatype == "eros/command")
+		if(info.datatype == "eros/diagnostic")
 		{
 			int v = process->push_topiclist(info.datatype,info.name);
 			if(v == 1)
 			{
 				found_new_topics++;
 				char tempstr[255];
-				sprintf(tempstr,"Subscribing to command topic: %s",info.name.c_str());
-			logger->log_info(__FILE__,__LINE__,tempstr);
-				ros::Subscriber sub = n->subscribe<eros::command>(info.name,20,&SampleNode::Command_Callback,this);
-				multiple_subs.push_back(sub);
+				sprintf(tempstr,"Subscribing to diagnostic topic: %s",info.name.c_str());
+				logger->log_info(tempstr);
+				ros::Subscriber sub = n->subscribe<eros::diagnostic>(info.name,20,&SpeakerNode::diagnostic_Callback,this);
+				diagnostic_subs.push_back(sub);
 			}
 		}
 	}
@@ -211,20 +286,20 @@ eros::diagnostic SampleNode::rescan_topics()
 		sprintf(tempstr,"Rescanned and found no new topics.");
 	}
 	diag = process->update_diagnostic(SOFTWARE,INFO,NOERROR,std::string(tempstr));
-	logger->log_info(__FILE__,__LINE__,tempstr);
+	logger->log_info(tempstr);
 	return diag;
 }
-void SampleNode::thread_loop()
+void SpeakerNode::thread_loop()
 {
 	while (kill_node == false)
 	{
 		ros::Duration(1.0).sleep();
 	}
 }
-void SampleNode::cleanup()
+void SpeakerNode::cleanup()
 {
 	base_cleanup();
-	get_logger()->log_info(__FILE__,__LINE__,"Node Finished Safely.");
+	get_logger()->log_info("Node Finished Safely.");
 }
 /*! \brief Attempts to kill a node when an interrupt is received.
  *
@@ -239,12 +314,12 @@ int main(int argc, char **argv)
 {
 	signal(SIGINT, signalinterrupt_handler);
 	signal(SIGTERM, signalinterrupt_handler);
-	SampleNode *node = new SampleNode();
+	SpeakerNode *node = new SpeakerNode();
 	bool status = node->start(argc, argv);
-	std::thread thread(&SampleNode::thread_loop, node);
+	std::thread thread(&SpeakerNode::thread_loop, node);
 	while ((status == true) and (kill_node == false))
 	{
-		status = node->update(node->get_process()->get_taskstate());
+		status = node->update();
 	}
 	node->cleanup();
 	thread.detach();

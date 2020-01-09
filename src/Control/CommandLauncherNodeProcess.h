@@ -1,4 +1,4 @@
-#include "../include/Base/BaseNodeProcess.cpp"
+#include "../../include/Base/BaseNodeProcess.cpp"
 //C System Files
 //C++ System Files
 //ROS Base Functionality
@@ -51,12 +51,9 @@ public:
 	eros::diagnostic update(double t_dt,double t_ros_time);
 
 	//Attribute Functions
-	bool set_camerastream(std::string portname);
 	std::vector<IPMap> get_ipmap() { return ipmap; }
 	std::vector<PortMap> get_portmap() { return portmap; }
 	std::vector<ProcessCommand> get_processlist() { return processlist; }
-	void set_camerastream_port(std::string v) { camerastream_port = v; }
-	std::string get_camerastream_port() { return camerastream_port; }
 	//Message Functions
 	/*! \brief  Process Command Message.  All implementation should use at least the code in this Sample Function.
 	 *
@@ -84,5 +81,4 @@ private:
 	std::vector<ProcessCommand> processlist;
 	std::vector<IPMap> ipmap;
 	std::vector<PortMap> portmap;
-	std::string camerastream_port;
 };

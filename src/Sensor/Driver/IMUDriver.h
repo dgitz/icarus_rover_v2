@@ -25,6 +25,7 @@
 #include <boost/algorithm/string.hpp>
 #include <sys/time.h>
 #include "110015/AHRS.h"
+#include "../../../include/Supported_PN.h"
 #define G 9.807
 #define COMM_LOSS_THRESHOLD 2.0f
 class IMUDriver
@@ -33,8 +34,8 @@ public:
 	enum PartNumber
 	{
 		UNKNOWN=0,
-		PN_110013=1,
-		PN_110015=2
+		PNENUM_110013=1,
+		PNENUM_110015=2
 	};
 	struct Signal
 	{
@@ -71,6 +72,7 @@ public:
 	void set_debugmode(uint8_t v);
 	int init(std::string t_partnumber,std::string t_port,std::string t_devicename,uint8_t verbosity);
 	int finish();
+	std::string get_port() { return port; }
 	std::string map_pn_tostring(PartNumber v);
 	IMUDriver::PartNumber map_pn_toenum(std::string v);
 	RawIMU update();

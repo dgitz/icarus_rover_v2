@@ -3,26 +3,30 @@
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include "../../../include/Supported_PN.h"
 #include "../Driver/ServoHatDriver.h"
 
 using namespace std;
 
-static void show_usage(std::string name)
+static void show_usage()
 {
-    std::cerr << "Usage: Test ServoHat. Options:\n"
-              << "\t-h,--help\t\tShow this help message\n"
-              << "\t-a,--address Address\tThe I2C Address of the Hat (Base 10).  Default=64.\n"
-              << "\t-r,--reset\tReset all PWM Outputs. Default=0.\n"
-              << "\t-m,--mode\tMode: oneshot, sweep. Default=oneshot.\n"
-              << "\toneshot: Sets a PWM Channel with a value. Options:\n"
-              << "\t -c,--channel Channel\tPWM Channel.  Valid Range: 0-15. Default=0.\n"
-              << "\t -v,--value Value\tPWM Value. Valid Range: 0-2000. Default=1000.\n"
-              << "\tsweep: Sweeps a PWM Channel with a value between a start range and stop range. Options:\n"
-              << "\t -c,--channel Channel\tPWM Channel.  Valid Range: 0-15. Default=0.\n"
-              << "\t -s,--start Start\tStart PWM Value.  Valid Range: 0-2000. Default=1000.\n"
-              << "\t -e,--end End\tStop PWM Value. Valid Range: 0-2000. Default=1000.\n"
-              << "\t -i,---increment Increment\t Amount to increment sweep by.  Default: 1.\n"
-              << std::endl;
+    std::cerr   << "This program is used to test the operation of a directly connected Servo Hat.\n"
+                << "Currently supported Part Numbers:\n"
+                << "\tPN: " << PN_625004 << "\n"
+                << "Usage: Test ServoHat via I2C. Options:\n"
+                << "\t-h,--help\t\tShow this help message\n"
+                << "\t-a,--address Address\tThe I2C Address of the Hat (Base 10).  Default=64.\n"
+                << "\t-r,--reset\t\tReset all PWM Outputs. Default=0.\n"
+                << "\t-m,--mode\t\tMode: oneshot, sweep. Default=oneshot.\n"
+                << "\toneshot: Sets a PWM Channel with a value. Options:\n"
+                << "\t -c,--channel Channel\tPWM Channel.  Valid Range: 0-15. Default=0.\n"
+                << "\t -v,--value Value\tPWM Value. Valid Range: 0-2000. Default=1000.\n"
+                << "\tsweep: Sweeps a PWM Channel with a value between a start range and stop range. Options:\n"
+                << "\t -c,--channel Channel\tPWM Channel.  Valid Range: 0-15. Default=0.\n"
+                << "\t -s,--start Start\tStart PWM Value.  Valid Range: 0-2000. Default=1000.\n"
+                << "\t -e,--end End\t\tStop PWM Value. Valid Range: 0-2000. Default=1000.\n"
+                << "\t -i,---increment Inc\tAmount to increment sweep by.  Default: 1.\n"
+                << std::endl;
 }
 
 int main(int argc, char* argv[])
@@ -36,7 +40,7 @@ int main(int argc, char* argv[])
     int stop_sweep = 2000;
     int increment = 1;
     if (argc < 2) {
-        show_usage(argv[0]);
+        show_usage();
         return 1;
     }
     for (int i = 1; i < argc; ++i) 
@@ -44,7 +48,7 @@ int main(int argc, char* argv[])
         std::string arg = argv[i];
         if ((arg == "-h") || (arg == "--help")) 
         {
-            show_usage(argv[0]);
+            show_usage();
             return 0;
         } 
         else if ((arg == "-a") || (arg == "--address"))

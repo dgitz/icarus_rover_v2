@@ -1,6 +1,6 @@
 // Derived class
 #include "SnapshotNodeProcess.cpp"
-#include "../include/Base/BaseNode.cpp"
+#include "../../include/Base/BaseNode.cpp"
 //C System Files
 //C++ System Fileset
 //ROS Base Functionality

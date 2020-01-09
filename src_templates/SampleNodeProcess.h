@@ -56,7 +56,22 @@ public:
 	 *
 	 */
 	eros::diagnostic update(double t_dt,double t_ros_time);
-
+	int push_topiclist(std::string type,std::string name)
+	{
+		if(type == "eros/command")
+		{
+			for(std::size_t i = 0; i < topic_list.size();i++)
+			{
+				if(topic_list.at(i) == name)
+				{
+					return 0;
+				}
+			}
+			topic_list.push_back(name);
+			return 1;
+		}
+		return -1;
+	}
 	//Attribute Functions
 
 	//Message Functions
@@ -82,5 +97,6 @@ private:
 	std::string config_filepath;
 
 	std::map<uint8_t,std::string> sample_map;
+	std::vector<std::string> topic_list;
 
 };

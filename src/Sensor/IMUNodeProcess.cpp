@@ -1,6 +1,8 @@
 #include "IMUNodeProcess.h"
 eros::diagnostic  IMUNodeProcess::finish_initialization()
 {
+	supported_partnumbers.push_back(PN_110012);
+	supported_partnumbers.push_back(PN_110015);
 	eros::diagnostic diag = root_diagnostic;
 	imus_initialized = false;
 	imus_running = false;
@@ -176,7 +178,19 @@ eros::diagnostic IMUNodeProcess::new_imumsg(std::string devicename,IMUDriver::Ra
 			imu_output.zmag = convert_signal(raw_data.mag_z);
 			Eigen::Vector3f mag(3);
 			mag << imu_output.xmag.value,imu_output.ymag.value,imu_output.zmag.value;
+			for(int j = 0; j < 3; ++j)
+			{
+				//printf("i: %d xxx1: %4.4f\n",j,mag(j));
+				mag(j) = mag(j)-imus.at(i).MagnetometerEllipsoidFit_Offset(j);
+				//printf("i: %d xxx2: %4.4f\n",j,mag(j));
+				mag(j) = mag(j)*imus.at(i).MagnetometerEllipsoidFit_Scale(j);
+				//printf("i: %d xxx3: %4.4f\n",j,mag(j));
+			}
+			//printf("d: %4.4f %4.4f %4.4f\n",mag(0),mag(1),mag(2));
 			mag = imus.at(i).MagnetometerEllipsoidFit_RotationMatrix*(mag-imus.at(i).MagnetometerEllipsoidFit_Bias);
+			//printf("In: %4.4f %4.4f %4.4f Out: %4.4f %4.4f %4.4f\n",
+			//	imu_output.xmag.value,imu_output.ymag.value,imu_output.zmag.value,
+			//	mag(0),mag(1),mag(2));
 			imu_output.xmag.value = mag(0);
 			imu_output.ymag.value = mag(1);
 			imu_output.zmag.value = mag(2);
@@ -228,9 +242,14 @@ eros::diagnostic IMUNodeProcess::new_imumsg(std::string devicename,IMUDriver::Ra
 				if((abs_v > MAGNETOMETER_MAGNITUDE_UPPERBOUND) or 
 				   (abs_v < MAGNETOMETER_MAGNITUDE_LOWERBOUND))
 				{
-					char tempstr[512];
-					sprintf(tempstr,"Magnetometer absolute value: %4.4f, likely requires calibration.",abs_v);
-					diag = update_diagnostic(imus.at(i).devicename,SENSORS,NOTICE,DIAGNOSTIC_FAILED,std::string(tempstr));
+					char tempstr[1024];
+					sprintf(tempstr,"Magnetometer absolute value: %4.4f, likely requires calibration. Input: X:%4.4f Y:%4.4f Z:%4.4f Output: X:%4.4f Y: %4.4f Z: %4.4f",
+					abs_v,raw_data.mag_x.value,raw_data.mag_y.value,raw_data.mag_z.value,x,y,z);
+					diag = update_diagnostic(imus.at(i).devicename,SENSORS,WARN,DIAGNOSTIC_FAILED,std::string(tempstr));
+				}
+				else
+				{
+					diag = update_diagnostic(imus.at(i).devicename,SENSORS,INFO,DIAGNOSTIC_PASSED,"No Error");
 				}
 				imu_output.xmag.value = vp(0);
 				imu_output.ymag.value = vp(1);
@@ -283,9 +302,9 @@ eros::diagnostic IMUNodeProcess::new_devicemsg(const eros::device::ConstPtr& dev
 eros::diagnostic IMUNodeProcess::new_devicemsg(const eros::device::ConstPtr& device,const eros::leverarm::ConstPtr& leverarm,bool override_config=false,std::string override_config_path="")
 {
 	eros::diagnostic diag = root_diagnostic;
-	if(device->DeviceType == "IMU")
+	if(device->DeviceType == DEVICETYPE_IMU)
 	{
-		if(device->PartNumber == "110012")
+		if(device->PartNumber == PN_110012)
 		{
 			IMUNodeProcess::IMU newimu;
 			newimu.initialized = false;
@@ -293,7 +312,7 @@ eros::diagnostic IMUNodeProcess::new_devicemsg(const eros::device::ConstPtr& dev
 			newimu.connection_method = "serial";
 			newimu.device_path = "/dev/ttyAMA0";
 			newimu.comm_rate = "115200";
-			newimu.partnumber = "110012";
+			newimu.partnumber = PN_110012;
 			newimu.acc_scale_factor = 2000.0;
 			newimu.gyro_scale_factor = 2000.0;
 			newimu.mag_scale_factor = 6.665;
@@ -315,6 +334,10 @@ eros::diagnostic IMUNodeProcess::new_devicemsg(const eros::device::ConstPtr& dev
 			newimu.mounting_angle_offset_pitch_deg = leverarm->pitch.value;
 			newimu.mounting_angle_offset_roll_deg = leverarm->roll.value;
 			newimu.mounting_angle_offset_yaw_deg = leverarm->yaw.value;
+			newimu.MagnetometerEllipsoidFit_RotationMatrix = Eigen::Matrix3f::Identity(3,3);
+			newimu.MagnetometerEllipsoidFit_Bias = Eigen::Vector3f::Zero(3);
+			newimu.MagnetometerEllipsoidFit_Offset = Eigen::Vector3f::Zero(3);
+			newimu.MagnetometerEllipsoidFit_Scale = Eigen::Vector3f::Ones(3);
 			newimu.rotate_matrix = generate_rotation_matrix(newimu.mounting_angle_offset_roll_deg,newimu.mounting_angle_offset_pitch_deg,newimu.mounting_angle_offset_yaw_deg);
 			newimu.initialized = true;
 
@@ -327,7 +350,14 @@ eros::diagnostic IMUNodeProcess::new_devicemsg(const eros::device::ConstPtr& dev
 				newimu.sensor_info_path = "/home/robot/config/sensors/" + device->PartNumber + "-" + std::to_string(device->ID) + "/" + device->PartNumber + "-" + std::to_string(device->ID) + ".xml";
 			}
 			imus.push_back(newimu);
-			diag = load_sensorinfo(device->DeviceName);
+			if(load_sensorfile == true)
+			{
+				diag = load_sensorinfo(device->DeviceName);
+			}
+			else
+			{
+				diag = update_diagnostic(DATA_STORAGE,NOTICE,NOERROR,"Not Loading Sensor File.");
+			}
 			diag = update_diagnostic(diag);
 			if(diag.Level > WARN) { return diag; }
 			ready = true;
@@ -336,7 +366,7 @@ eros::diagnostic IMUNodeProcess::new_devicemsg(const eros::device::ConstPtr& dev
 			diag = update_diagnostic(newimu.diagnostic.DeviceName,DATA_STORAGE,INFO,INITIALIZING,"Initializing.");
 			diag = update_diagnostic(newimu.diagnostic);
 		}
-		else if(device->PartNumber == "110015")
+		else if(device->PartNumber == PN_110015)
 		{
 			IMUNodeProcess::IMU newimu;
 			newimu.initialized = false;
@@ -346,7 +376,7 @@ eros::diagnostic IMUNodeProcess::new_devicemsg(const eros::device::ConstPtr& dev
 			newimu.connection_method = "serial";
 			newimu.device_path = "/dev/ttyACM0";
 			newimu.comm_rate = "115200";
-			newimu.partnumber = "110015";
+			newimu.partnumber = PN_110015;
 			newimu.acc_scale_factor = 1.0;
 			newimu.gyro_scale_factor = 1.0;
 			newimu.mag_scale_factor = 1.0;
@@ -368,6 +398,10 @@ eros::diagnostic IMUNodeProcess::new_devicemsg(const eros::device::ConstPtr& dev
 			newimu.mounting_angle_offset_pitch_deg = leverarm->pitch.value;
 			newimu.mounting_angle_offset_roll_deg = leverarm->roll.value;
 			newimu.mounting_angle_offset_yaw_deg = leverarm->yaw.value;
+			newimu.MagnetometerEllipsoidFit_RotationMatrix = Eigen::Matrix3f::Identity(3,3);
+			newimu.MagnetometerEllipsoidFit_Bias = Eigen::Vector3f::Zero(3);
+			newimu.MagnetometerEllipsoidFit_Offset = Eigen::Vector3f::Zero(3);
+			newimu.MagnetometerEllipsoidFit_Scale = Eigen::Vector3f::Ones(3);
 			newimu.rotate_matrix = generate_rotation_matrix(newimu.mounting_angle_offset_roll_deg,newimu.mounting_angle_offset_pitch_deg,newimu.mounting_angle_offset_yaw_deg);
 			newimu.initialized = true;
 
@@ -380,7 +414,14 @@ eros::diagnostic IMUNodeProcess::new_devicemsg(const eros::device::ConstPtr& dev
 				newimu.sensor_info_path = "/home/robot/config/sensors/" + device->PartNumber + "-" + std::to_string(device->ID) + "/" + device->PartNumber + "-" + std::to_string(device->ID) + ".xml";
 			}
 			imus.push_back(newimu);
-			diag = load_sensorinfo(device->DeviceName);
+			if(load_sensorfile == true)
+			{
+				diag = load_sensorinfo(device->DeviceName);
+			}
+			else
+			{
+				diag = update_diagnostic(DATA_STORAGE,NOTICE,NOERROR,"Not Loading Sensor File.");
+			}
 			if(diag.Level > WARN) { return diag; }
 			ready = true;
 			imus_initialized = true;
@@ -488,6 +529,8 @@ std::vector<eros::diagnostic> IMUNodeProcess::new_commandmsg(const eros::command
 			{
 				imus.at(i).MagnetometerEllipsoidFit_RotationMatrix = Eigen::Matrix3f::Identity(3,3);
 				imus.at(i).MagnetometerEllipsoidFit_Bias = Eigen::Vector3f::Zero(3);
+				imus.at(i).MagnetometerEllipsoidFit_Offset = Eigen::Vector3f::Zero(3);
+				imus.at(i).MagnetometerEllipsoidFit_Scale = Eigen::Vector3f::Ones(3);
 			}
 		}
 		else if(t_msg->Option1 == ROVERCOMMAND_CALIBRATION_MOUNTINGANGLEOFFSET)
@@ -580,7 +623,7 @@ eros::diagnostic IMUNodeProcess::load_sensorinfo(std::string devicename)
 		if(imus.at(i).devicename == devicename)
 		{
 			uint16_t load_count = 0;
-			uint16_t items_to_load = 2;
+			uint16_t items_to_load = 4;
 			TiXmlDocument doc(imus.at(i).sensor_info_path);
 			bool loaded = doc.LoadFile();
 			if(loaded == false)
@@ -642,7 +685,7 @@ eros::diagnostic IMUNodeProcess::load_sensorinfo(std::string devicename)
 								Eigen::Matrix3f rotate;
 								for(std::size_t i = 0; i < elements.size(); ++i)
 								{
-									rotate(j,k) = std::atof(elements.at(i).c_str());
+									rotate(k,j) = std::atof(elements.at(i).c_str());
 									j++;
 									if(j == 3)
 									{
@@ -672,6 +715,48 @@ eros::diagnostic IMUNodeProcess::load_sensorinfo(std::string devicename)
 									bias((int)i) = std::atof(elements.at(i).c_str());
 								}
 								imus.at(i).MagnetometerEllipsoidFit_Bias = bias;
+								load_count++;
+							}
+							TiXmlElement *l_pScale = l_pEllipsoidFit->FirstChildElement("Scale");
+							if(NULL != l_pScale)
+							{
+								std::string mat_string = l_pScale->GetText();
+								std::vector<std::string> elements;
+								boost::split(elements, mat_string, boost::is_any_of(" "));
+								if(elements.size() != 3)
+								{
+									char tempstr[512];
+									sprintf(tempstr,"[%s]: Not all data found in Magnetometer->EllipsoidFit->Scale Tag",devicename.c_str());
+									diag = update_diagnostic(DATA_STORAGE,ERROR,INITIALIZING_ERROR,std::string(tempstr));
+									return diag;
+								}
+								Eigen::Vector3f scale;
+								for(std::size_t i = 0; i < elements.size(); ++i)
+								{
+									scale((int)i) = std::atof(elements.at(i).c_str());
+								}
+								imus.at(i).MagnetometerEllipsoidFit_Scale = scale;
+								load_count++;
+							}
+							TiXmlElement *l_pOffset = l_pEllipsoidFit->FirstChildElement("Offset");
+							if(NULL != l_pOffset)
+							{
+								std::string mat_string = l_pOffset->GetText();
+								std::vector<std::string> elements;
+								boost::split(elements, mat_string, boost::is_any_of(" "));
+								if(elements.size() != 3)
+								{
+									char tempstr[512];
+									sprintf(tempstr,"[%s]: Not all data found in Magnetometer->EllipsoidFit->Offset Tag",devicename.c_str());
+									diag = update_diagnostic(DATA_STORAGE,ERROR,INITIALIZING_ERROR,std::string(tempstr));
+									return diag;
+								}
+								Eigen::Vector3f offset;
+								for(std::size_t i = 0; i < elements.size(); ++i)
+								{
+									offset((int)i) = std::atof(elements.at(i).c_str());
+								}
+								imus.at(i).MagnetometerEllipsoidFit_Offset = offset;
 								load_count++;
 							}
 						}

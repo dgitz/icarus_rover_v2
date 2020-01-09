@@ -10,6 +10,7 @@ ResourceMonitor::ResourceMonitor(eros::diagnostic diag,std::string device_archit
 void ResourceMonitor::init(eros::diagnostic diag,std::string device_architecture,std::string host_name,std::string task_name)
 {
 	ramfree_initialized = false;
+	memoryleak_detectection_enabled = true;
 	Device_Architecture = device_architecture;
 	Task_Name = task_name;
 	Host_Name = host_name;
@@ -324,50 +325,52 @@ eros::diagnostic ResourceMonitor::update()
 			longterm_buffer_RamUsed_kB.erase(longterm_buffer_RamUsed_kB.begin());
 		}
 	}
-
-	if(longterm_buffer_RamUsed_kB.size() == LONGTERM_BUFFER_SIZE)
+	if(memoryleak_detectection_enabled == true)
 	{
-		bool increasing = true;
-		//int d_ramused_kb = longterm_buffer_RamUsed_kB.at(longterm_buffer_RamUsed_kB.size()-1) - longterm_buffer_RamUsed_kB.at(0);
-		//if(d_ramused_kb <= 0)
-		//{
-		//	increasing = false;
-		//}
-		//printf("Task: %s d delta RAM Used: %d\n",Task_Name.c_str(),d_ramused_kb);
-		int d_ramused_kb = 0;
-		for(int i = longterm_buffer_RamUsed_kB.size()-6; i >= 0;i--)
+		if(longterm_buffer_RamUsed_kB.size() == LONGTERM_BUFFER_SIZE)
 		{
-			d_ramused_kb = longterm_buffer_RamUsed_kB.at(longterm_buffer_RamUsed_kB.size()-1) - longterm_buffer_RamUsed_kB.at(i);
-			if(d_ramused_kb <= 1)
+			bool increasing = true;
+			//int d_ramused_kb = longterm_buffer_RamUsed_kB.at(longterm_buffer_RamUsed_kB.size()-1) - longterm_buffer_RamUsed_kB.at(0);
+			//if(d_ramused_kb <= 0)
+			//{
+			//	increasing = false;
+			//}
+			//printf("Task: %s d delta RAM Used: %d\n",Task_Name.c_str(),d_ramused_kb);
+			int d_ramused_kb = 0;
+			for(int i = longterm_buffer_RamUsed_kB.size()-6; i >= 0;i--)
 			{
-				increasing = false;
+				d_ramused_kb = longterm_buffer_RamUsed_kB.at(longterm_buffer_RamUsed_kB.size()-1) - longterm_buffer_RamUsed_kB.at(i);
+				if(d_ramused_kb <= 1)
+				{
+					increasing = false;
+				}
+				//printf("Task: %s d i: %d delta RAM Used: %d\n",Task_Name.c_str(),i,d_ramused_kb);
 			}
-			//printf("Task: %s d i: %d delta RAM Used: %d\n",Task_Name.c_str(),i,d_ramused_kb);
-		}
-		if(increasing == true)
-		{
-			if((d_ramused_kb > 10) && (d_ramused_kb <= 50))
+			if(increasing == true)
 			{
-				diagnostic.Level = WARN;
-				diagnostic.Diagnostic_Message = RESOURCE_LEAK;
-				char tempstr[512];
-				sprintf(tempstr,"Found RAM Leak: %f kB/s",(double)((double)d_ramused_kb/((double)SHORTTERM_BUFFER_SIZE*(double)longterm_buffer_RamUsed_kB.size())));
-				diagnostic.Description = tempstr;
-				return diagnostic;
+				if((d_ramused_kb > 10) && (d_ramused_kb <= 50))
+				{
+					diagnostic.Level = WARN;
+					diagnostic.Diagnostic_Message = RESOURCE_LEAK;
+					char tempstr[512];
+					sprintf(tempstr,"Found RAM Leak: %f kB/s",(double)((double)d_ramused_kb/((double)SHORTTERM_BUFFER_SIZE*(double)longterm_buffer_RamUsed_kB.size())));
+					diagnostic.Description = tempstr;
+					return diagnostic;
+				}
+				else if(d_ramused_kb > 50)
+				{
+					diagnostic.Level = ERROR;
+					diagnostic.Diagnostic_Message = RESOURCE_LEAK;
+					char tempstr[512];
+					sprintf(tempstr,"Found RAM Leak: %f kiloBytes per second",(double)((double)d_ramused_kb/((double)SHORTTERM_BUFFER_SIZE*(double)longterm_buffer_RamUsed_kB.size())));
+					diagnostic.Description = tempstr;
+					return diagnostic;
+				}
+
 			}
-			else if(d_ramused_kb > 50)
-			{
-				diagnostic.Level = ERROR;
-				diagnostic.Diagnostic_Message = RESOURCE_LEAK;
-				char tempstr[512];
-				sprintf(tempstr,"Found RAM Leak: %f kiloBytes per second",(double)((double)d_ramused_kb/((double)SHORTTERM_BUFFER_SIZE*(double)longterm_buffer_RamUsed_kB.size())));
-				diagnostic.Description = tempstr;
-				return diagnostic;
-			}
+
 
 		}
-
-
 	}
 	/*for(int i = 0; i < longterm_buffer_RamUsed_kB.size();i++)
 	{

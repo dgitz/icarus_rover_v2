@@ -25,7 +25,7 @@ eros::device initialize_device(eros::device device, std::vector<HatControllerNod
 		std::vector<HatControllerNodeProcess::PinDefinition> pin_defs = supported_hats.at(i).PinMap;
 		if (supported_hats.at(i).FAST_PN == device.PartNumber)
 		{
-			if (supported_hats.at(i).FAST_PN == "625005")
+			if (supported_hats.at(i).FAST_PN == PN_625005)
 			{
 				{
 					eros::pin newpin;
@@ -42,7 +42,7 @@ eros::device initialize_device(eros::device device, std::vector<HatControllerNod
 					device.pins.push_back(newpin);
 				}
 			}
-			else if (supported_hats.at(i).FAST_PN == "100007")
+			else if (supported_hats.at(i).FAST_PN == PN_100007)
 			{
 				{
 					eros::pin newpin;
@@ -94,7 +94,7 @@ eros::device initialize_device(eros::device device, std::vector<HatControllerNod
 					device.pins.push_back(newpin);
 				}
 			}
-			else if (supported_hats.at(i).FAST_PN == "625004")
+			else if (supported_hats.at(i).FAST_PN == PN_625004)
 			{
 				{
 					eros::pin newpin;
@@ -222,8 +222,8 @@ TEST(Template, Process_Initialization_ServoHat)
 	eros::device servohat1_device;
 	servohat1_device.DeviceName = "ServoHat1";
 	servohat1_device.DeviceParent = ros_DeviceName;
-	servohat1_device.PartNumber = "625004";
-	servohat1_device.DeviceType = "ServoHat";
+	servohat1_device.PartNumber = PN_625004;
+	servohat1_device.DeviceType = DEVICETYPE_SERVOHAT;
 	servohat1_device.BoardCount = 0;
 	servohat1_device.ID = 64;
 	servohat1_device = initialize_device(servohat1_device, supported_hats);
@@ -252,8 +252,8 @@ TEST(Template, Process_Initialization_GPIOHat)
 	eros::device gpiohat1_device;
 	gpiohat1_device.DeviceName = "GPIOHat1";
 	gpiohat1_device.DeviceParent = ros_DeviceName;
-	gpiohat1_device.DeviceType = "GPIOHat";
-	gpiohat1_device.PartNumber = "100007";
+	gpiohat1_device.DeviceType = DEVICETYPE_GPIOHAT;
+	gpiohat1_device.PartNumber = PN_100007;
 	gpiohat1_device.BoardCount = 0;
 	gpiohat1_device.ID = 64;
 	gpiohat1_device = initialize_device(gpiohat1_device, supported_hats);
@@ -363,8 +363,8 @@ TEST(Template, Process_Command)
 	eros::device gpiohat1_device;
 	gpiohat1_device.DeviceName = "GPIOHat1";
 	gpiohat1_device.DeviceParent = ros_DeviceName;
-	gpiohat1_device.DeviceType = "GPIOHat";
-	gpiohat1_device.PartNumber = "100007";
+	gpiohat1_device.DeviceType = DEVICETYPE_GPIOHAT;
+	gpiohat1_device.PartNumber = PN_100007;
 	gpiohat1_device.BoardCount = 0;
 	gpiohat1_device.ID = 64;
 	gpiohat1_device = initialize_device(gpiohat1_device, supported_hats);
@@ -466,8 +466,8 @@ TEST(DeviceInitialization, DeviceInitialization_TerminalHat)
 	eros::device terminalhat1_device;
 	terminalhat1_device.DeviceName = "TerminalHat1";
 	terminalhat1_device.DeviceParent = ros_DeviceName;
-	terminalhat1_device.DeviceType = "TerminalHat";
-	terminalhat1_device.PartNumber = "625005";
+	terminalhat1_device.DeviceType = DEVICETYPE_TERMINALHAT;
+	terminalhat1_device.PartNumber = PN_625005;
 	terminalhat1_device.BoardCount = 0;
 	terminalhat1_device.ID = 64;
 	terminalhat1_device = initialize_device(terminalhat1_device, supported_hats);
@@ -611,8 +611,8 @@ TEST(DeviceInitialization,DeviceInitialization_EverySupportedHat)
 	eros::device hat1;
 	hat1.DeviceName = "ServoHat1";
 	hat1.DeviceParent = ros_DeviceName;
-	hat1.PartNumber = "625004";
-	hat1.DeviceType = "ServoHat";
+	hat1.PartNumber = PN_625004;
+	hat1.DeviceType = DEVICETYPE_SERVOHAT;
 	hat1.BoardCount = 0;
 	hat1.ID = 64;
 	hat1 = initialize_device(hat1, supported_hats);
@@ -620,9 +620,9 @@ TEST(DeviceInitialization,DeviceInitialization_EverySupportedHat)
 	
 	eros::device hat2;
 	hat2.DeviceName = "GPIOHat1";
-	hat2.DeviceType = "GPIOHat";
+	hat2.DeviceType = DEVICETYPE_GPIOHAT;
 	hat2.DeviceParent = ros_DeviceName;
-	hat2.PartNumber = "100007";
+	hat2.PartNumber = PN_100007;
 	hat2.ID = 2;
 	hat2.Architecture = "None";
 	hat2.ShieldCount = 0;
@@ -630,8 +630,8 @@ TEST(DeviceInitialization,DeviceInitialization_EverySupportedHat)
 	
 	eros::device hat3;
 	hat3.DeviceName = "TerminalHat1";
-	hat3.DeviceType = "TerminalHat";
-	hat3.PartNumber = "625005";
+	hat3.DeviceType = DEVICETYPE_TERMINALHAT;
+	hat3.PartNumber = PN_625005;
 	hat3.DeviceParent = ros_DeviceName;
 	hat3.ID = 64;
 	hat3.Architecture = "None";
@@ -657,22 +657,22 @@ TEST(DeviceInitialization,DeviceInitialization_EverySupportedHat)
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 	process = readyprocess(process);
 
-	diagnostic = process->set_hat_running("ServoHat",0);
+	diagnostic = process->set_hat_running(DEVICETYPE_SERVOHAT,0);
 	EXPECT_TRUE(diagnostic.Level > NOTICE);
 
-	diagnostic = process->set_hat_running("ServoHat",hat1.ID);
+	diagnostic = process->set_hat_running(DEVICETYPE_SERVOHAT,hat1.ID);
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 	diagnostic = process->update(0.02,.04);
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 	EXPECT_EQ(process->get_ready_to_arm(),false);
 
-	diagnostic = process->set_hat_running("GPIOHat",hat2.ID);
+	diagnostic = process->set_hat_running(DEVICETYPE_GPIOHAT,hat2.ID);
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 	diagnostic = process->update(0.02,.06);
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 	EXPECT_EQ(process->get_ready_to_arm(),false);
 
-	diagnostic = process->set_hat_running("TerminalHat",hat3.ID);
+	diagnostic = process->set_hat_running(DEVICETYPE_TERMINALHAT,hat3.ID);
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 	diagnostic = process->update(0.02,.08);
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);

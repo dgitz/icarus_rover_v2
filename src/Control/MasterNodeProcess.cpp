@@ -14,6 +14,8 @@ eros::diagnostic MasterNodeProcess::new_devicemsg(__attribute__((unused)) const 
 }
 eros::diagnostic MasterNodeProcess::finish_initialization()
 {
+	supported_partnumbers.push_back(PN_110012);
+	supported_partnumbers.push_back(PN_810090);
 	reset();
 	request_statechange(TASKSTATE_INITIALIZED);
 	eros::diagnostic diag = root_diagnostic;
@@ -935,8 +937,8 @@ bool MasterNodeProcess::build_childDevices()
 	{
 		std::string baudrate = "";
 		bool serialdevice = false;
-		if ((childDevices.at(i).PartNumber == "110012") ||
-			(childDevices.at(i).PartNumber == "810090"))
+		if ((childDevices.at(i).PartNumber == PN_110012) ||
+			(childDevices.at(i).PartNumber == PN_810090))
 		{
 			serialdevice = true;
 			baudrate = "115200";

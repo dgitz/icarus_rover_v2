@@ -16,7 +16,6 @@ bool IMUNode::start(int argc,char **argv)
 	{
 		return false;
 	}
-
 	process->initialize(get_basenodename(),get_nodename(),get_hostname(),DIAGNOSTIC_SYSTEM,DIAGNOSTIC_SUBSYSTEM,DIAGNOSTIC_COMPONENT);
 	std::vector<uint8_t> diagnostic_types;
 	diagnostic_types.push_back(SOFTWARE);
@@ -42,7 +41,23 @@ bool IMUNode::start(int argc,char **argv)
 eros::diagnostic IMUNode::read_launchparameters()
 {
 	eros::diagnostic diag = diagnostic;
-	get_logger()->log_notice("Configuration Files Loaded.");
+	std::string param_use_calibrationfile = node_name +"/use_calibrationfile";
+	bool load_calibrationfile = false;
+	if(n->getParam(param_use_calibrationfile,load_calibrationfile) == false)
+	{
+		get_logger()->log_warn("Param: use_calibrationfile Not Found.");
+	}
+	if(load_calibrationfile == false)
+	{
+		get_logger()->log_warn("Not using Calibration File.");
+	}
+	else
+	{
+		get_logger()->log_info("Using Calibration File.");
+	}
+	process->set_readsensorfile(load_calibrationfile);
+	get_logger()->log_notice("All Configuration Files Loaded.");
+	
 	return diagnostic;
 }
 eros::diagnostic IMUNode::finish_initialization()
@@ -86,6 +101,7 @@ bool IMUNode::run_1hz()
 			{
 				IMUDriver imu_driver;
 				int status = imu_driver.init(imus.at(i).partnumber,imus.at(i).device_path,imus.at(i).devicename,0);
+				logger->log_notice("Init IMU: " + imus.at(i).devicename + " at Port: " + imu_driver.get_port());
 				if(status <= 0)
 				{
 					diagnostic.Diagnostic_Type = SENSORS;
@@ -157,7 +173,7 @@ bool IMUNode::run_1hz()
 		{
 			eros::srv_device dev_srv;
 
-			dev_srv.request.query = "DeviceType=IMU";
+			dev_srv.request.query = (std::string("DeviceType=") + std::string(DEVICETYPE_IMU)).c_str();
 			if(srv_device.call(dev_srv) == true)
 			{
 				for(std::size_t i = 0; i < dev_srv.response.data.size(); i++)
@@ -330,7 +346,7 @@ bool IMUNode::new_devicemsg(std::string query,eros::device t_device)
 	}
 	return true;
 }
-bool IMUNode::new_devicemsg(std::string query,eros::device t_device,eros::leverarm t_leverarm)
+bool IMUNode::new_devicemsg(__attribute__((unused))std::string query,eros::device t_device,eros::leverarm t_leverarm)
 {
 	if((process->is_initialized() == true))
 	{
@@ -453,7 +469,7 @@ void IMUNode::cleanup()
 /*! \brief Attempts to kill a node when an interrupt is received.
  *
  */
-void signalinterrupt_handler(int sig)
+void signalinterrupt_handler(__attribute__((unused))int sig)
 {
 	kill_node = true;
 	exit(0);

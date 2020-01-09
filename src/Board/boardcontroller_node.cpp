@@ -97,7 +97,7 @@ bool BoardControllerNode::run_1hz()
 	{
 		{
 			eros::srv_device srv;
-			srv.request.query = "DeviceType=ArduinoBoard";
+			srv.request.query = (std::string("DeviceType=") + std::string(DEVICETYPE_ARDUINOBOARD)).c_str();
 			if(srv_device.call(srv) == true)
 			{
 				for(std::size_t i = 0; i < srv.response.data.size(); i++)

@@ -4,6 +4,7 @@ bool MasterNode::start(int argc,char **argv)
 {
 
 	bool status = false;
+	last_armedstate = ARMEDSTATUS_UNDEFINED;
 	process = new MasterNodeProcess();
 	disable_readytoarm_publisher();
 	serialmessagehandler = new SerialMessageHandler;
@@ -21,6 +22,7 @@ bool MasterNode::start(int argc,char **argv)
 	}
 
 	process->initialize(get_basenodename(),get_nodename(),get_hostname(),DIAGNOSTIC_SYSTEM,DIAGNOSTIC_SUBSYSTEM,DIAGNOSTIC_COMPONENT);
+	write_logfile("Master Node Starting.");
 	std::vector<uint8_t> diagnostic_types;
 	diagnostic_types.push_back(SOFTWARE);
 	diagnostic_types.push_back(DATA_STORAGE);
@@ -98,8 +100,26 @@ eros::diagnostic MasterNode::finish_initialization()
 	loadfactor_pub = n->advertise<eros::loadfactor>(loadfactor_topic,1);
 	std::string uptime_topic = "/" + process->get_mydevice().DeviceName + "/uptime";
 	uptime_pub = n->advertise<eros::uptime>(uptime_topic,1);
+	armedstate_sub = n->subscribe<std_msgs::UInt8>("/armed_state",1,&MasterNode::ArmedState_Callback,this);
 
 	return diagnostic;
+}
+bool MasterNode::write_logfile(std::string text)
+{
+	ofstream logfile;
+	std::string filepath = "/var/log/output/" + get_hostname() + "_log.txt";
+	logfile.open (filepath, ios::out | ios::app);
+	if(logfile.is_open() == false)
+	{
+		logger->log_error("Could not open system log file.");
+		return false;
+	}
+	std::string str1 = process->exec("date +%d-%b-%Y",true);
+	std::string str2 = process->exec("date +%H:%M:%S",true);
+	std::string str3 = process->exec("awk '{print $1}' /proc/uptime",true);
+	logfile << "["  << str1.substr(0,str1.size()-1) << " " << str2.substr(0,str2.size()-1) << "/" << str3.substr(0,str3.size()-1) << "] " <<  text << std::endl;
+	logfile.close();
+	return true;
 }
 bool MasterNode::run_001hz()
 {
@@ -143,7 +163,6 @@ bool MasterNode::run_01hz_noisy()
 }
 bool MasterNode::run_1hz()
 {
-
 	if(process->get_mydevice().Architecture == "armv7l")
 	{
 		process->set_devicetemperature(read_device_temperature());
@@ -197,7 +216,16 @@ void MasterNode::PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 {
 	new_ppsmsg(msg);
 }
-
+void MasterNode::ArmedState_Callback(const std_msgs::UInt8::ConstPtr& t_msg)
+{
+	if(t_msg->data != last_armedstate)
+	{
+		write_logfile("Armed State changed from: " + 
+			process->map_armedstate_tostring(last_armedstate) + " to: " + 
+			process->map_armedstate_tostring(t_msg->data));
+		last_armedstate = t_msg->data;
+	}
+}
 void MasterNode::Command_Callback(const eros::command::ConstPtr& t_msg)
 {
 	std::vector<eros::diagnostic> diaglist = process->new_commandmsg(t_msg);
@@ -552,6 +580,7 @@ void MasterNode::thread_loop()
 	{
 		ros::Duration(1.0).sleep();
 	}
+	write_logfile("Master Node Ended.");
 }
 /*! \brief Attempts to kill a node when an interrupt is received.
  *
