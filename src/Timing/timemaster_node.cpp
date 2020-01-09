@@ -47,14 +47,14 @@ eros::diagnostic TimeMasterNode::read_launchparameters()
 	std::string param_pps_source = node_name +"/pps_source";
 	if(n->getParam(param_pps_source,pps_source) == false)
 	{
-		logger->log_warn("Missing Parameter: pps_source.  Using default: self");
+		logger->log_warn(__FILE__,__LINE__,"Missing Parameter: pps_source.  Using default: self");
 		pps_source = "self";
 	}
 	if(process->set_ppssource(pps_source) == false)
 	{
 		char tempstr[512];
 		sprintf(tempstr,"PPS Source: %s Not Supported",pps_source.c_str());
-		logger->log_error(std::string(tempstr));
+		logger->log_error(__FILE__,__LINE__,std::string(tempstr));
 	}
 	if(pps_source == "self")
 	{
@@ -63,7 +63,7 @@ eros::diagnostic TimeMasterNode::read_launchparameters()
 		pps1_pub =  n->advertise<std_msgs::Bool>(pps1_topic,10);
 	}
 
-	get_logger()->log_notice("Configuration Files Loaded.");
+	get_logger()->log_notice(__FILE__,__LINE__,"Configuration Files Loaded.");
 	return diagnostic;
 }
 eros::diagnostic TimeMasterNode::finish_initialization()
@@ -105,7 +105,7 @@ bool TimeMasterNode::run_1hz()
 	}
 	else if(process->is_initialized() == false)
 	{
-		logger->log_warn("Node Not Initialized Yet.  Waiting on comms with Master Node.");
+		logger->log_warn(__FILE__,__LINE__,"Node Not Initialized Yet.  Waiting on comms with Master Node.");
 		{
 			eros::srv_device srv;
 			srv.request.query = "SELF";
@@ -114,7 +114,7 @@ bool TimeMasterNode::run_1hz()
 				if(srv.response.data.size() != 1)
 				{
 
-					get_logger()->log_error("Got unexpected device message.");
+					get_logger()->log_error(__FILE__,__LINE__,"Got unexpected device message.");
 				}
 				else
 				{
@@ -235,7 +235,7 @@ int main(int argc, char **argv) {
 		status = node->update();
 	}
 	node->cleanup();
-	node->get_logger()->log_info("Node Finished Safely.");
+	node->get_logger()->log_info(__FILE__,__LINE__,"Node Finished Safely.");
 	return 0;
 }
 
