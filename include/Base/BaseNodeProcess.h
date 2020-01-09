@@ -67,6 +67,7 @@ public:
 	/*! \brief Initializes Process.  Should be called right after instantiating variable. */
 	void initialize(std::string t_base_node_name,std::string t_node_name,std::string t_hostname,uint8_t t_system,uint8_t t_subsystem,uint8_t t_component)
 	{
+		task_state = TASKSTATE_START;
 		unittest_running = false;
 		run_time = 0.0;
 		base_node_name = t_base_node_name;
@@ -76,9 +77,9 @@ public:
 		subsystem = t_subsystem;
 		component = t_component;
 		mydevice.DeviceName = t_hostname;
-		initialized = false;
-		ready = false;
 		ready_to_arm = false;
+		task_state = TASKSTATE_INITIALIZING;
+		
 	}
 	/*! \brief Enable Diagnostics */
 	void enable_diagnostics(std::vector<uint8_t> diagnostic_types)
@@ -112,15 +113,8 @@ public:
 	virtual eros::diagnostic finish_initialization() = 0;
 	/*! \brief Sets Device Info.  When this function is executed, the Process will now be "initialized". */
 	void set_mydevice(eros::device t_device);
-	/*! \brief Sets Process Diagnostic info. */
-	/*void set_diagnostic(eros::diagnostic t_diagnostic)
-	{
-		diagnostic = t_diagnostic;
-		diagnostic.DeviceName = host_name;
-		diagnostic.Node_Name = node_name;
-		diagnostic.
-	}
-	*/
+	/*! \brief Resets Process. Used for counters, timers, etc.*/
+	virtual void reset() = 0;
 	//Update Functions
 	/*! \brief Update function must be implemented in Derived Process.  This is used for all state machine logic, etc. */
 	virtual eros::diagnostic update(double t_dt,double t_ros_time) = 0;
@@ -129,10 +123,9 @@ public:
 	eros::diagnostic update_diagnostic(eros::diagnostic diag);
 
 	//Attribute Functions
+	uint8_t get_taskstate() { return task_state; }
 	eros::device get_mydevice() { return mydevice; }
 	double get_runtime() { return run_time; }
-	bool is_initialized() { return initialized; }
-	bool is_ready() { return ready; }
 	bool get_ready_to_arm() { return ready_to_arm; }
 	std::vector<eros::diagnostic> get_diagnostics() { return diagnostics; }
 	double getROSTime() { return ros_time; }
@@ -169,9 +162,13 @@ public:
 	/*! \brief input: [1.11 2.22 3.33;4.44 5.55 6.66;7.77 8.88 9.99;] size=[<HEIGHT> <WIDTH>] */
 	bool convert_dataparameter(Eigen::MatrixXf& output,std::string param_input,std::string param_size);
 	std::string map_armedstate_tostring(uint8_t v);
+	bool isEqual(double a, double b,double precision);
+	
 protected:
+	uint8_t task_state;
 	DiagnosticClass diagnostic_helper;
 	std::vector<eros::diagnostic> diagnostics;
+	bool request_statechange(uint8_t newstate);
 	eros::diagnostic update_baseprocess(double t_dt,double t_ros_time);
 	eros::device convert_fromptr(const eros::device::ConstPtr& t_ptr);
 	eros::pin convert_fromptr(const eros::pin::ConstPtr& t_ptr);
@@ -181,9 +178,8 @@ protected:
 	eros::signal convert_fromptr(const eros::signal::ConstPtr& t_ptr);
 	eros::system_state convert_fromptr(const eros::system_state::ConstPtr& t_ptr);
 	eros::usermessage convert_fromptr(const eros::usermessage::ConstPtr& t_ptr);
-	std::vector<std::string> supported_partnumbers;
-	bool initialized;
-	bool ready;
+	//bool initialized;
+	//bool ready;
 	eros::device mydevice;
 	eros::diagnostic root_diagnostic;
 

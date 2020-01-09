@@ -97,13 +97,7 @@ bool TimeMasterNode::run_01hz_noisy()
 bool TimeMasterNode::run_1hz()
 {
 	process->update_diagnostic(get_resource_diagnostic());
-	if((process->is_initialized() == true) and (process->is_ready() == true))
-	{
-	}
-	else if((process->is_ready() == false) and (process->is_initialized() == true))
-	{
-	}
-	else if(process->is_initialized() == false)
+	if(process->get_taskstate() == TASKSTATE_INITIALIZING)
 	{
 		logger->log_warn(__FILE__,__LINE__,"Node Not Initialized Yet.  Waiting on comms with Master Node.");
 		{
@@ -155,9 +149,12 @@ bool TimeMasterNode::run_loop1()
 {
 	if(process->publish_1pps())
 	{
-		std_msgs::Bool msg;
-		msg.data = true;
-		pps1_pub.publish(msg);
+		if(process->get_taskstate() == TASKSTATE_RUNNING)
+		{
+			std_msgs::Bool msg;
+			msg.data = true;
+			pps1_pub.publish(msg);
+		}
 	}
 	return true;
 }
@@ -197,7 +194,7 @@ bool TimeMasterNode::new_devicemsg(std::string query,eros::device t_device)
 		}
 	}
 
-	if((process->is_initialized() == true))
+	if((process->get_taskstate() == TASKSTATE_INITIALIZED))
 	{
 		eros::device::ConstPtr device_ptr(new eros::device(t_device));
 		eros::diagnostic diag = process->new_devicemsg(device_ptr);
@@ -232,7 +229,7 @@ int main(int argc, char **argv) {
 	std::thread thread(&TimeMasterNode::thread_loop, node);
 	while((status == true) and (kill_node == false))
 	{
-		status = node->update();
+		status = node->update(node->get_process()->get_taskstate());
 	}
 	node->cleanup();
 	node->get_logger()->log_info(__FILE__,__LINE__,"Node Finished Safely.");

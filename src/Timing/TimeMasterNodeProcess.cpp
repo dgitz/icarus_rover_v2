@@ -2,8 +2,7 @@
 eros::diagnostic TimeMasterNodeProcess::finish_initialization()
 {
 	eros::diagnostic diag = root_diagnostic;
-	pps1_delay = 0;
-	time_since_last_1pps = 0.0;
+	reset();
 	if (pps_source == "self")
 	{
 		update_diagnostic(TIMING, INFO, NOERROR, "Using Self Timebase.");
@@ -15,11 +14,40 @@ eros::diagnostic TimeMasterNodeProcess::finish_initialization()
 eros::diagnostic TimeMasterNodeProcess::update(double t_dt, double t_ros_time)
 {
 	eros::diagnostic diag = root_diagnostic;
-	if (initialized == true)
+	if(task_state == TASKSTATE_PAUSE)
 	{
-		ready = true;
+
 	}
-	if ((is_initialized() == true) and (is_ready() == true))
+	else if(task_state == TASKSTATE_INITIALIZED)
+	{
+		diag = update_diagnostic(DATA_STORAGE, INFO, NOERROR, "No Error.");
+		bool v = request_statechange(TASKSTATE_RUNNING);
+		if(v == false)
+		{
+			diag = update_diagnostic(SOFTWARE,ERROR,DIAGNOSTIC_FAILED,
+				"Unallowed State Transition: From: " + map_taskstate_tostring(task_state) + " To: " + map_taskstate_tostring(TASKSTATE_RUNNING));
+		}
+	}
+	else if(task_state == TASKSTATE_RESET)
+	{
+		bool v = request_statechange(TASKSTATE_RUNNING);
+		if(v == false)
+		{
+			diag = update_diagnostic(SOFTWARE,ERROR,DIAGNOSTIC_FAILED,
+				"Unallowed State Transition: From: " + map_taskstate_tostring(task_state) + " To: " + map_taskstate_tostring(TASKSTATE_RUNNING));
+		}
+		
+	}
+	else if(task_state != TASKSTATE_RUNNING)
+	{
+		bool v = request_statechange(TASKSTATE_RUNNING);
+		if(v == false)
+		{
+			diag = update_diagnostic(SOFTWARE,ERROR,DIAGNOSTIC_FAILED,
+				"Unallowed State Transition: From: " + map_taskstate_tostring(task_state) + " To: " + map_taskstate_tostring(TASKSTATE_RUNNING));
+		}
+	}
+	else if (get_taskstate() == TASKSTATE_RUNNING)
 	{
 		update_diagnostic(DATA_STORAGE, INFO, NOERROR, "No Error.");
 	}
@@ -58,6 +86,31 @@ std::vector<eros::diagnostic> TimeMasterNodeProcess::new_commandmsg(const eros::
 		}
 		else if (t_msg->Option1 == LEVEL4)
 		{
+		}
+	}
+	else if(t_msg->Command == ROVERCOMMAND_TASKCONTROL)
+	{
+		if(node_name.find(t_msg->CommandText) != std::string::npos)
+		{
+			uint8_t prev_taskstate = get_taskstate();
+			bool v = request_statechange(t_msg->Option2);
+			if(v == false)
+			{
+				diag = update_diagnostic(SOFTWARE,ERROR,DIAGNOSTIC_FAILED,
+					"Unallowed State Transition: From: " + map_taskstate_tostring(prev_taskstate) + " To: " + map_taskstate_tostring(t_msg->Option2));
+				diaglist.push_back(diag);
+			}
+			else
+			{
+				if(task_state == TASKSTATE_RESET)
+				{
+					reset();
+				}
+				diag = update_diagnostic(SOFTWARE,NOTICE,DIAGNOSTIC_PASSED,
+					"Commanded State Transition: From: " + map_taskstate_tostring(prev_taskstate) + " To: " + map_taskstate_tostring(t_msg->Option2));
+				diaglist.push_back(diag);
+			}
+
 		}
 	}
 	return diaglist;

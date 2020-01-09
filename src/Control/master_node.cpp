@@ -40,30 +40,29 @@ bool MasterNode::start(int argc,char **argv)
 	bool create_nodelist = process->create_nodelist("/home/robot/config/AllNodeList","/home/robot/config/ActiveNodes");
 	if(create_nodelist == false)
 	{
-		logger->log_error("Couldn't initialize ActiveNodeList. Exiting.\n");
+		logger->log_error(__FILE__,__LINE__,"Couldn't initialize ActiveNodeList. Exiting.\n");
 		return false;
 	}
 
 	diagnostic = process->set_serialportlist(find_serialports());
 	if(diagnostic.Level > NOTICE)
 	{
-		logger->log_error("Unable to find Serial Ports. Exiting.");
+		logger->log_error(__FILE__,__LINE__,"Unable to find Serial Ports. Exiting.");
 		return false;
 	}
 
 	if(check_serialports() == false)
 	{
-		logger->log_error("Unable to check Serial Ports. Exiting.");
+		logger->log_error(__FILE__,__LINE__,"Unable to check Serial Ports. Exiting.");
 		return false;
 	}
 	else
 	{
-		logger->log_notice("Serial Port Check Complete.");
+		logger->log_notice(__FILE__,__LINE__,"Serial Port Check Complete.");
 	}
 	diagnostic = finish_initialization();
 	diagnostic = process->finish_initialization();
 	set_mydevice(process->get_mydevice());
-	process->set_initialized();
 	print_deviceinfo();
 	if(diagnostic.Level < WARN)
 	{
@@ -78,7 +77,7 @@ bool MasterNode::start(int argc,char **argv)
 eros::diagnostic MasterNode::read_launchparameters()
 {
 	eros::diagnostic diag = diagnostic;
-	get_logger()->log_notice("Configuration Files Loaded.");
+	get_logger()->log_notice(__FILE__,__LINE__,"Configuration Files Loaded.");
 	return diagnostic;
 }
 eros::diagnostic MasterNode::finish_initialization()
@@ -169,15 +168,6 @@ bool MasterNode::run_1hz()
 		process->set_devicetemperature(read_device_temperature());
 		
 	}
-	if((process->is_initialized() == true) and (process->is_ready() == true))
-	{
-	}
-	else if((process->is_ready() == false) and (process->is_initialized() == true))
-	{
-	}
-	else if(process->is_initialized() == false)
-	{
-	}
 	std::vector<eros::diagnostic> diaglist = process->get_diagnostics();
 	for (std::size_t i = 0; i < diaglist.size(); ++i)
 	{
@@ -253,7 +243,7 @@ bool MasterNode::new_devicemsg(std::string query,eros::device t_device)
 		}
 	}
 
-	if((process->is_initialized() == true))
+	if(process->get_taskstate() == TASKSTATE_INITIALIZED)
 	{
 		eros::device::ConstPtr device_ptr(new eros::device(t_device));
 		eros::diagnostic diag = process->new_devicemsg(device_ptr);
@@ -274,21 +264,21 @@ bool MasterNode::check_serialports()
 			{
 				char tempstr[512];
 				sprintf(tempstr,"Checking Serial Port: %s @ %s bps\n",ports.at(i).file.c_str(),baudrates.at(j).c_str());
-				logger->log_info(std::string(tempstr));
+				logger->log_info(__FILE__,__LINE__,std::string(tempstr));
 				std::string baudrate = baudrates.at(j);
 				int dev_fd = open(ports.at(i).file.c_str(),O_RDWR | O_NOCTTY);
 				if(dev_fd < 0)
 				{
 					char tempstr[512];
 					sprintf(tempstr,"Can't open: %s\n",ports.at(i).file.c_str());
-					logger->log_error(std::string(tempstr));
+					logger->log_error(__FILE__,__LINE__,std::string(tempstr));
 					break;
 				}
 				struct termios tty;
 				memset(&tty,0,sizeof tty);
 				if(tcgetattr(dev_fd,&tty) != 0 )
 				{
-					logger->log_error(strerror(errno));
+					logger->log_error(__FILE__,__LINE__,strerror(errno));
 				}
 				if(baudrate == "115200")
 				{
@@ -304,7 +294,7 @@ bool MasterNode::check_serialports()
 				{
 					char tempstr[512];
 					sprintf(tempstr,"Baudrate: %s Not Supported.",baudrate.c_str());
-					logger->log_error(std::string(tempstr));
+					logger->log_error(__FILE__,__LINE__,std::string(tempstr));
 				}
 				tty.c_cflag     &=  ~PARENB;            // Make 8n1
 				tty.c_cflag     &=  ~CSTOPB;
@@ -321,7 +311,7 @@ bool MasterNode::check_serialports()
 				tcflush( dev_fd, TCIFLUSH );
 				if ( tcsetattr ( dev_fd, TCSANOW, &tty ) != 0)
 				{
-					logger->log_error(strerror(errno));
+					logger->log_error(__FILE__,__LINE__,strerror(errno));
 				}
 
 				{//Command a reset
@@ -358,11 +348,11 @@ bool MasterNode::check_serialports()
 					} while(buf != '\n' &&  buf != '\r' && n > 0 && length < MAX_SERIALPACKET_SIZE);
 					if (n < 0)
 					{
-						logger->log_error(strerror(errno));
+						logger->log_error(__FILE__,__LINE__,strerror(errno));
 					}
 					else if (n == 0)
 					{
-						logger->log_error("Read Nothing.");
+						logger->log_error(__FILE__,__LINE__,"Read Nothing.");
 					}
 					else
 					{
@@ -398,14 +388,14 @@ bool MasterNode::check_serialports()
 					ports.at(i).baudrate.c_str(),
 					ports.at(i).pn.c_str(),
 					ports.at(i).id);
-			logger->log_notice(std::string(tempstr));
+			logger->log_notice(__FILE__,__LINE__,std::string(tempstr));
 		}
 		else
 		{
 			char tempstr[512];
 			sprintf(tempstr,"No ROS Device found on: %s\n",
 					ports.at(i).file.c_str());
-			logger->log_warn(std::string(tempstr));
+			logger->log_warn(__FILE__,__LINE__,std::string(tempstr));
 		}
 	}
 	if(ports.size() == 0)
@@ -426,7 +416,7 @@ std::vector<std::string> MasterNode::find_serialports()
 	struct dirent *dirp;
 	if((dp  = opendir("/dev/")) == NULL)
 	{
-		logger->log_error(strerror(errno));
+		logger->log_error(__FILE__,__LINE__,strerror(errno));
 		return ports;
 	}
 
@@ -553,7 +543,7 @@ double MasterNode::read_device_temperature()
 	}
 	else
 	{
-		logger->log_error("Unable to read system temperature.");
+		logger->log_error(__FILE__,__LINE__,"Unable to read system temperature.");
 	}
 	return temp;
 }
@@ -578,7 +568,7 @@ void MasterNode::print_deviceinfo()
 			sprintf(tempstr,"%s  [%d] Pin: %s\n",tempstr,(int)j,process->get_childdevices().at(i).pins.at(j).Name.c_str());
 		}
 	}
-	logger->log_notice(std::string(tempstr));
+	logger->log_notice(__FILE__,__LINE__,std::string(tempstr));
 }
 void MasterNode::cleanup()
 {
@@ -609,9 +599,9 @@ int main(int argc, char **argv) {
 	std::thread thread(&MasterNode::thread_loop, node);
 	while((status == true) and (kill_node == false))
 	{
-		status = node->update();
+		status = node->update(node->get_process()->get_taskstate());
 	}
-	node->get_logger()->log_info("Node Finished Safely.");
+	node->get_logger()->log_info(__FILE__,__LINE__,"Node Finished Safely.");
 	return 0;
 }
 

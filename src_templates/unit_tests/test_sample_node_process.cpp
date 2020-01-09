@@ -38,9 +38,9 @@ SampleNodeProcess *initializeprocess()
 	diagnostic_types.push_back(SYSTEM_RESOURCE);
 	process->enable_diagnostics(diagnostic_types);
 	process->finish_initialization();
-	EXPECT_TRUE(process->is_initialized() == false);
+	EXPECT_TRUE(process->get_taskstate() == TASKSTATE_INITIALIZING);
 	process->set_mydevice(device);
-	EXPECT_TRUE(process->is_initialized() == true);
+	EXPECT_TRUE(process->get_taskstate() == TASKSTATE_INITIALIZED);
 	EXPECT_TRUE(process->get_mydevice().DeviceName == device.DeviceName);
 	return process;
 }
@@ -48,7 +48,7 @@ SampleNodeProcess *readyprocess(SampleNodeProcess *process)
 {
 	eros::diagnostic diag = process->update(0.0, 0.0);
 	EXPECT_TRUE(diag.Level <= NOTICE);
-	EXPECT_TRUE(process->is_ready() == true);
+	EXPECT_TRUE(process->get_taskstate() == TASKSTATE_RUNNING);
 	{
 		std::vector<eros::diagnostic> diagnostics = process->get_diagnostics();
 		EXPECT_TRUE(diagnostics.size() == DIAGNOSTIC_TYPE_COUNT);
@@ -62,7 +62,7 @@ SampleNodeProcess *readyprocess(SampleNodeProcess *process)
 TEST(Template, Process_Initialization)
 {
 	SampleNodeProcess *process = initializeprocess();
-	EXPECT_TRUE(process->is_initialized() == true);
+	EXPECT_TRUE(process->get_taskstate() == TASKSTATE_INITIALIZED);
 }
 
 TEST(Template, Process_Command)
@@ -75,6 +75,7 @@ TEST(Template, Process_Command)
 	bool fastrate_fire = false;   //10 Hz
 	bool mediumrate_fire = false; //1 Hz
 	bool slowrate_fire = false;   //0.1 Hz
+	bool pause_resume_ran = false;
 	while (current_time <= time_to_run)
 	{
 		eros::diagnostic diag = process->update(dt, current_time);
@@ -139,9 +140,67 @@ TEST(Template, Process_Command)
 			{
 				EXPECT_TRUE(diagnostics.at(i).Level <= NOTICE);
 			}
+			if(pause_resume_ran == false)
+			{
+				{
+					EXPECT_TRUE(process->get_taskstate() == TASKSTATE_RUNNING);
+					eros::command cmd_taskcontrol;
+					cmd_taskcontrol.Command = ROVERCOMMAND_TASKCONTROL;
+					cmd_taskcontrol.Option1 = SUBSYSTEM_UNKNOWN;
+					cmd_taskcontrol.Option2 = TASKSTATE_PAUSE;
+					cmd_taskcontrol.CommandText = Node_Name;
+					eros::command::ConstPtr cmd_ptr(new eros::command(cmd_taskcontrol));
+					std::vector<eros::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
+					for (std::size_t i = 0; i < diaglist.size(); i++)
+					{
+						EXPECT_TRUE(diaglist.at(i).Level <= NOTICE);
+					}
+					EXPECT_TRUE(diaglist.size() > 0);
+					EXPECT_TRUE(process->get_taskstate() == TASKSTATE_PAUSE);
+				}
+				{
+					EXPECT_TRUE(process->get_taskstate() == TASKSTATE_PAUSE);
+					eros::command cmd_taskcontrol;
+					cmd_taskcontrol.Command = ROVERCOMMAND_TASKCONTROL;
+					cmd_taskcontrol.Option1 = SUBSYSTEM_UNKNOWN;
+					cmd_taskcontrol.Option2 = TASKSTATE_RUNNING;
+					cmd_taskcontrol.CommandText = Node_Name;
+					eros::command::ConstPtr cmd_ptr(new eros::command(cmd_taskcontrol));
+
+					std::vector<eros::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
+					for (std::size_t i = 0; i < diaglist.size(); i++)
+					{
+						EXPECT_TRUE(diaglist.at(i).Level <= NOTICE);
+					}
+					EXPECT_TRUE(diaglist.size() > 0);
+					EXPECT_TRUE(process->get_taskstate() == TASKSTATE_RUNNING);
+				}
+				{
+					EXPECT_TRUE(process->get_taskstate() == TASKSTATE_RUNNING);
+					eros::command cmd_taskcontrol;
+					cmd_taskcontrol.Command = ROVERCOMMAND_TASKCONTROL;
+					cmd_taskcontrol.Option1 = SUBSYSTEM_UNKNOWN;
+					cmd_taskcontrol.Option2 = TASKSTATE_RESET;
+					cmd_taskcontrol.CommandText = Node_Name;
+					eros::command::ConstPtr cmd_ptr(new eros::command(cmd_taskcontrol));
+
+					std::vector<eros::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
+					for (std::size_t i = 0; i < diaglist.size(); i++)
+					{
+						EXPECT_TRUE(diaglist.at(i).Level <= NOTICE);
+					}
+					EXPECT_TRUE(diaglist.size() > 0);
+					EXPECT_TRUE(process->get_taskstate() == TASKSTATE_RESET);
+					diag = process->update(0.0, 0.0);
+					EXPECT_TRUE(diag.Level <= NOTICE);
+					EXPECT_TRUE(process->get_taskstate() == TASKSTATE_RUNNING);
+				}
+				pause_resume_ran = true;
+			}
 		}
 		current_time += dt;
 	}
+	EXPECT_TRUE(pause_resume_ran == true);
 	EXPECT_TRUE(process->get_runtime() >= time_to_run);
 }
 int main(int argc, char **argv)

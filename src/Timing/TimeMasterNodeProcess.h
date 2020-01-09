@@ -24,6 +24,11 @@ public:
 	/*! \brief Implementation of the update function
 	 *
 	 */
+	void reset()
+	{
+		pps1_delay = 0;
+		time_since_last_1pps = 0.0;
+	}
 	eros::diagnostic update(double t_dt,double t_ros_time);
 
 	//Attribute Functions

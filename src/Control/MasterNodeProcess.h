@@ -59,13 +59,15 @@ public:
 	/*! \brief Set filepaths for DeviceFile and SystemFile */
 	eros::diagnostic set_filepaths(std::string t_system_filepath,std::string t_device_filepath);
 	/*! \brief NodeProcess specific Initialization */
+	void reset()
+	{
+	}
 	eros::diagnostic finish_initialization();
 	/*! \brief Create Serial Port List */
 	eros::diagnostic set_serialportlist(std::vector<std::string> list);
 	/*! \brief Create Active NodeList File. */
 	bool create_nodelist(std::string nodelist_path,std::string activenode_path);
 	/*! \brief Set Initialized, will also set Ready. */
-	void set_initialized() { initialized = true; ready = true; }
 	//Update Functions
 	/*! \brief Implementation of the update function */
 	eros::diagnostic update(double t_dt,double t_ros_time);
