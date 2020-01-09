@@ -89,7 +89,7 @@ bool HatControllerNode::run_01hz()
 		std::vector<uint16_t> ServoHats_ids = process->get_servohataddresses();
 		for(std::size_t i = 0; i < ServoHats_ids.size(); i++)
 		{
-			if(process->is_hat_running("ServoHat",ServoHats_ids.at(i)) == false)
+			if(process->is_hat_running(DEVICETYPE_SERVOHAT,ServoHats_ids.at(i)) == false)
 			{
 
 				ServoHatDriver servohat;
@@ -98,12 +98,12 @@ bool HatControllerNode::run_01hz()
 				if(status < 0)
 				{
 					char tempstr[512];
-					sprintf(tempstr,"Unable to Start ServoHat at Address: %d",ServoHats_ids.at(i));
+					sprintf(tempstr,"Unable to Start %s at Address: %d",DEVICETYPE_SERVOHAT,ServoHats_ids.at(i));
 					diag = process->update_diagnostic(COMMUNICATIONS,ERROR,INITIALIZING_ERROR,std::string(tempstr));
 					get_logger()->log_diagnostic(diag);
 					return false;
 				}
-				diag = process->set_hat_running("ServoHat",ServoHats_ids.at(i));
+				diag = process->set_hat_running(DEVICETYPE_SERVOHAT,ServoHats_ids.at(i));
 
 				if(diag.Level > NOTICE)
 				{
@@ -115,7 +115,7 @@ bool HatControllerNode::run_01hz()
 		std::vector<uint16_t> GPIOHats_ids = process->get_gpiohataddresses();
 		for(std::size_t i = 0; i < GPIOHats_ids.size(); i++)
 		{
-			if(process->is_hat_running("GPIOHat",GPIOHats_ids.at(i)) == false)
+			if(process->is_hat_running(DEVICETYPE_GPIOHAT,GPIOHats_ids.at(i)) == false)
 			{
 
 				GPIOHatDriver gpiohat;
@@ -130,7 +130,7 @@ bool HatControllerNode::run_01hz()
 					get_logger()->log_diagnostic(diag);
 					return false;
 				}
-				diag = process->set_hat_running("GPIOHat",GPIOHats_ids.at(i));
+				diag = process->set_hat_running(DEVICETYPE_GPIOHAT,GPIOHats_ids.at(i));
 				if(diag.Level > NOTICE)
 				{
 					diagnostic_pub.publish(diag);
@@ -138,7 +138,7 @@ bool HatControllerNode::run_01hz()
 				}
 			}
 		}
-		if(process->is_hat_running("TerminalHat",0) == false)
+		if(process->is_hat_running(DEVICETYPE_TERMINALHAT,0) == false)
 		{
 			bool init = TerminalHat.init(process->get_mydevice().PartNumber);
 			if(init == false)
@@ -165,7 +165,7 @@ bool HatControllerNode::run_01hz()
 				}
 				if(any_error == false)
 				{
-					diag = process->set_hat_running("TerminalHat",0);
+					diag = process->set_hat_running(DEVICETYPE_TERMINALHAT,0);
 					get_logger()->log_diagnostic(diag);
 					if(diag.Level > NOTICE) { diagnostic_pub.publish(diag); }
 				}
@@ -217,7 +217,7 @@ bool HatControllerNode::run_1hz()
 	{
 		{
 			eros::srv_device srv;
-			srv.request.query = "DeviceType=ServoHat";
+			srv.request.query = (std::string("DeviceType=") + std::string(DEVICETYPE_SERVOHAT)).c_str();
 			if(srv_device.call(srv) == true)
 			{
 				for(std::size_t i = 0; i < srv.response.data.size(); i++)
@@ -225,7 +225,7 @@ bool HatControllerNode::run_1hz()
 					bool status = new_devicemsg(srv.request.query,srv.response.data.at(i));
 				}
 			}
-			srv.request.query = "DeviceType=GPIOHat";
+			srv.request.query = (std::string("DeviceType=") + std::string(DEVICETYPE_GPIOHAT)).c_str();
 			if(srv_device.call(srv) == true)
 			{
 				for(std::size_t i = 0; i < srv.response.data.size(); i++)
@@ -236,7 +236,7 @@ bool HatControllerNode::run_1hz()
 			else
 			{
 			}
-			srv.request.query = "DeviceType=TerminalHat";
+			srv.request.query = (std::string("DeviceType=") + std::string(DEVICETYPE_TERMINALHAT)).c_str();
 			if(srv_device.call(srv) == true)
 			{
 				for(std::size_t i = 0; i < srv.response.data.size(); i++)
@@ -275,7 +275,7 @@ bool HatControllerNode::run_10hz()
 		std::vector<uint16_t> ServoHats_ids = process->get_servohataddresses();
 		for(std::size_t i = 0; i < ServoHats_ids.size(); i++)
 		{
-			if(process->is_hat_running("ServoHat",ServoHats_ids.at(i)) == true)
+			if(process->is_hat_running(DEVICETYPE_SERVOHAT,ServoHats_ids.at(i)) == true)
 			{
 				if(ServoHats_ids.at(i) == ServoHats.at(i).get_address())
 				{
@@ -309,7 +309,7 @@ bool HatControllerNode::run_10hz()
 		std::vector<uint16_t> GPIOHats_ids = process->get_gpiohataddresses();
 		for(std::size_t i = 0; i < GPIOHats_ids.size(); i++)
 		{
-			if(process->is_hat_running("GPIOHat",GPIOHats_ids.at(i)) == true)
+			if(process->is_hat_running(DEVICETYPE_GPIOHAT,GPIOHats_ids.at(i)) == true)
 			{
 				if(GPIOHats_ids.at(i) == GPIOHats.at(i).get_address())
 				{
@@ -329,7 +329,7 @@ bool HatControllerNode::run_10hz()
 			}
 
 		}
-		if(process->is_hat_running("TerminalHat",0) == true)
+		if(process->is_hat_running(DEVICETYPE_TERMINALHAT,0) == true)
 		{
 			bool any_error = false;
 			std::vector<eros::pin> pins = process->get_terminalhatpins("DigitalInput",true);
@@ -373,7 +373,7 @@ bool HatControllerNode::run_loop1()
 				bool success = i2cmessagehandler->decode_Get_DIO_Port1I2C(inputbuffer,&length,&a1,&a2,&a3,&a4);
 				if(success == true)
 				{
-					diag = process->new_message_GetDIOPort1("GPIOHat",GPIOHats.at(i).get_address(),ros::Time::now().toSec(),a1,a2,a3,a4);
+					diag = process->new_message_GetDIOPort1(DEVICETYPE_GPIOHAT,GPIOHats.at(i).get_address(),ros::Time::now().toSec(),a1,a2,a3,a4);
 					if(diag.Level >= WARN)
 					{
 						diagnostic_pub.publish(diag);
@@ -391,7 +391,7 @@ bool HatControllerNode::run_loop1()
 				bool success = i2cmessagehandler->decode_Get_ANA_Port1I2C(inputbuffer,&length,&a1,&a2,&a3,&a4,&a5,&a6);
 				if(success == true)
 				{
-					diag = process->new_message_GetANAPort1("GPIOHat",GPIOHats.at(i).get_address(),ros::Time::now().toSec(),a1,a2,a3,a4,a5,a6);
+					diag = process->new_message_GetANAPort1(DEVICETYPE_GPIOHAT,GPIOHats.at(i).get_address(),ros::Time::now().toSec(),a1,a2,a3,a4,a5,a6);
 					if(diag.Level >= WARN)
 					{
 						diagnostic_pub.publish(diag);
@@ -410,7 +410,7 @@ bool HatControllerNode::run_loop1()
 				bool success = i2cmessagehandler->decode_Get_ANA_Port2I2C(inputbuffer,&length,&a1,&a2,&a3,&a4,&a5,&a6);
 				if(success == true)
 				{
-					diag = process->new_message_GetANAPort2("GPIOHat",GPIOHats.at(i).get_address(),ros::Time::now().toSec(),a1,a2,a3,a4,a5,a6);
+					diag = process->new_message_GetANAPort2(DEVICETYPE_GPIOHAT,GPIOHats.at(i).get_address(),ros::Time::now().toSec(),a1,a2,a3,a4,a5,a6);
 					if(diag.Level >= WARN)
 					{
 						diagnostic_pub.publish(diag);
@@ -428,7 +428,7 @@ bool HatControllerNode::run_loop1()
 
 	}
 	{
-		if(process->is_hat_running("TerminalHat",0) == true)
+		if(process->is_hat_running(DEVICETYPE_TERMINALHAT,0) == true)
 		{
 			bool any_error = false;
 			{

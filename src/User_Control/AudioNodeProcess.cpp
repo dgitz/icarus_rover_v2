@@ -122,7 +122,7 @@ eros::diagnostic AudioNodeProcess::new_devicemsg(const eros::device::ConstPtr &t
 	if (t_device->DeviceName == host_name)
 	{
 	}
-	else if (t_device->DeviceType == "Microphone")
+	else if (t_device->DeviceType == DEVICETYPE_MICROPHONE)
 	{
 		if ((left_microphone_initialized == false) ||
 			(right_microphone_initialized == false))
@@ -161,7 +161,7 @@ eros::diagnostic AudioNodeProcess::new_devicemsg(const eros::device::ConstPtr &t
 			}
 		}
 	}
-	else if (t_device->DeviceType == "AudioAmplifier")
+	else if (t_device->DeviceType == DEVICETYPE_AUDIOAMPLIFIER)
 	{
 		amplifier = device;
 		amplifier_available = true;

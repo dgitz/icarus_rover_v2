@@ -173,7 +173,7 @@ bool IMUNode::run_1hz()
 		{
 			eros::srv_device dev_srv;
 
-			dev_srv.request.query = "DeviceType=IMU";
+			dev_srv.request.query = (std::string("DeviceType=") + std::string(DEVICETYPE_IMU)).c_str();
 			if(srv_device.call(dev_srv) == true)
 			{
 				for(std::size_t i = 0; i < dev_srv.response.data.size(); i++)

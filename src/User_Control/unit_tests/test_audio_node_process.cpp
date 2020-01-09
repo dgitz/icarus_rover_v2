@@ -44,7 +44,7 @@ AudioNodeProcess *initializeprocess(bool stereo)
 
 		eros::device microphone;
 		microphone.DeviceName = "MainMicrophone";
-		microphone.DeviceType = "Microphone";
+		microphone.DeviceType = DEVICETYPE_MICROPHONE;
 		microphone.DeviceParent = ros_DeviceName;
 		microphone.Capabilities.push_back("stereo");
 		eros::device::ConstPtr device_ptr(new eros::device(microphone));
@@ -55,7 +55,7 @@ AudioNodeProcess *initializeprocess(bool stereo)
 	{
 		eros::device left_microphone;
 		left_microphone.DeviceName = "LeftMicrophone";
-		left_microphone.DeviceType = "Microphone";
+		left_microphone.DeviceType = DEVICETYPE_MICROPHONE;
 		left_microphone.DeviceParent = ros_DeviceName;
 		left_microphone.Capabilities.push_back("mono");
 		eros::device::ConstPtr microphoneleft_ptr(new eros::device(left_microphone));
@@ -64,7 +64,7 @@ AudioNodeProcess *initializeprocess(bool stereo)
 
 		eros::device right_microphone;
 		right_microphone.DeviceName = "RightMicrophone";
-		right_microphone.DeviceType = "Microphone";
+		right_microphone.DeviceType = DEVICETYPE_MICROPHONE;
 		right_microphone.DeviceParent = ros_DeviceName;
 		right_microphone.Capabilities.push_back("mono");
 		eros::device::ConstPtr microphoneright_ptr(new eros::device(right_microphone));
@@ -75,7 +75,7 @@ AudioNodeProcess *initializeprocess(bool stereo)
 	{
 		eros::device amplifier;
 		amplifier.DeviceName = "AudioAmplifier1";
-		amplifier.DeviceType = "AudioAmplifier";
+		amplifier.DeviceType = DEVICETYPE_AUDIOAMPLIFIER;
 		amplifier.DeviceParent = ros_DeviceName;
 		eros::device::ConstPtr device_ptr(new eros::device(amplifier));
 		diagnostic = process->new_devicemsg(device_ptr);

@@ -1,10 +1,13 @@
 #include "HatControllerNodeProcess.h"
 bool HatControllerNodeProcess::initialize_supportedhats()
 {
+	supported_partnumbers.push_back(PN_100003);
+	supported_partnumbers.push_back(PN_100007);
+	supported_partnumbers.push_back(PN_625004);
 	{ //HAT: GPIOHAT PN: 1000007
 		HatControllerNodeProcess::HatMap hat;
-		hat.FAST_PN = "100007";
-		hat.DeviceType = "GPIOHat";
+		hat.FAST_PN = PN_100007;
+		hat.DeviceType = DEVICETYPE_GPIOHAT;
 		//DIO PORT1 MAX SIZE=4
 		hat.PinMap.push_back(create_pindefinition("PC6",PORT_DIGIPORT_1,0));
 		hat.PinMap.push_back(create_pindefinition("PE6",PORT_DIGIPORT_1,1));
@@ -28,8 +31,8 @@ bool HatControllerNodeProcess::initialize_supportedhats()
 	}
 	{ //HAT: SERVOHAT PN: 625004
 		HatControllerNodeProcess::HatMap hat;
-		hat.FAST_PN = "625004";
-		hat.DeviceType = "ServoHat";
+		hat.FAST_PN = PN_625004;
+		hat.DeviceType = DEVICETYPE_SERVOHAT;
 		//DIO PORT1 MAX SIZE=16
 		hat.PinMap.push_back(create_pindefinition("CH0",PORT_DIGOPORT_1,0));
 		hat.PinMap.push_back(create_pindefinition("CH1",PORT_DIGOPORT_1,1));
@@ -52,8 +55,8 @@ bool HatControllerNodeProcess::initialize_supportedhats()
 	}
 	{ //HAT: TERMINALHAT PN: 625005
 		HatControllerNodeProcess::HatMap hat;
-		hat.FAST_PN = "625005";
-		hat.DeviceType = "TerminalHat";
+		hat.FAST_PN = PN_625005;
+		hat.DeviceType = DEVICETYPE_TERMINALHAT;
 		//DIO PORT1 MAX SIZE=4
 		hat.PinMap.push_back(create_pindefinition("GPIO21",PORT_DIGIPORT_1,0));
 		hat.PinMap.push_back(create_pindefinition("GPIO23",PORT_DIGIPORT_1,1));
@@ -233,7 +236,7 @@ eros::diagnostic HatControllerNodeProcess::new_devicemsg(const eros::device::Con
 				std::size_t hat_message = t_newdevice->DeviceType.find("Hat");
 				if(hat_message != std::string::npos)
 				{
-					if(t_newdevice->DeviceType == "ServoHat")
+					if(t_newdevice->DeviceType == DEVICETYPE_SERVOHAT)
 					{
 						for(std::size_t i = 0; i < t_newdevice->pins.size(); i++)
 						{
@@ -250,7 +253,7 @@ eros::diagnostic HatControllerNodeProcess::new_devicemsg(const eros::device::Con
 							}
 						}
 					}
-					else if(t_newdevice->DeviceType == "TerminalHat")
+					else if(t_newdevice->DeviceType == DEVICETYPE_TERMINALHAT)
 					{
 						for(std::size_t i = 0; i < t_newdevice->pins.size(); i++)
 						{
@@ -269,7 +272,7 @@ eros::diagnostic HatControllerNodeProcess::new_devicemsg(const eros::device::Con
 							}
 						}
 					}
-					else if(t_newdevice->DeviceType == "GPIOHat")
+					else if(t_newdevice->DeviceType == DEVICETYPE_GPIOHAT)
 					{
 						for(std::size_t i = 0; i < t_newdevice->pins.size(); i++)
 						{
@@ -460,7 +463,7 @@ eros::diagnostic HatControllerNodeProcess::new_message_GetANAPort1(std::string d
 {
 	uint16_t port_width = 6;
 	eros::diagnostic diag = root_diagnostic;
-	if((device_type == "GPIOHat"))
+	if((device_type == DEVICETYPE_GPIOHAT))
 	{
 
 	}
@@ -510,7 +513,7 @@ eros::diagnostic HatControllerNodeProcess::new_message_GetANAPort2(std::string d
 {
 	uint16_t port_width = 6;
 	eros::diagnostic diag = root_diagnostic;
-	if((device_type == "GPIOHat"))
+	if((device_type == DEVICETYPE_GPIOHAT))
 	{
 
 	}
@@ -560,7 +563,7 @@ eros::diagnostic HatControllerNodeProcess::new_message_GetDIOPort1(std::string d
 {
 	uint16_t port_width = 4;
 	eros::diagnostic diag = root_diagnostic;
-	if((device_type == "GPIOHat"))
+	if((device_type == DEVICETYPE_GPIOHAT))
 	{
 
 	}
@@ -738,7 +741,7 @@ eros::diagnostic HatControllerNodeProcess::set_terminalhat_initialized()
 	bool found = false;
 	for(std::size_t i = 0; i < hats.size(); ++i)
 	{
-		if((hats.at(i).DeviceType == "TerminalHat"))
+		if((hats.at(i).DeviceType == DEVICETYPE_TERMINALHAT))
 		{
 			found = true;
 			hats_running.at(i) = true;
@@ -748,13 +751,13 @@ eros::diagnostic HatControllerNodeProcess::set_terminalhat_initialized()
 	if(found == false)
 	{
 		char tempstr[512];
-		sprintf(tempstr,"TerminalHat Not Found");
+		sprintf(tempstr,"%s Not Found",DEVICETYPE_TERMINALHAT);
 		diag = update_diagnostic(DATA_STORAGE,ERROR,INITIALIZING_ERROR,std::string(tempstr));
 	}
 	else
 	{
 		char tempstr[512];
-		sprintf(tempstr,"TerminalHat is now Initialized");
+		sprintf(tempstr,"%s is now Initialized",DEVICETYPE_TERMINALHAT);
 		diag = update_diagnostic(DATA_STORAGE,INFO,NOERROR,std::string(tempstr));
 	}
 	return diag;
@@ -765,7 +768,7 @@ std::vector<uint16_t> HatControllerNodeProcess::get_servohataddresses()
 	addresses.clear();
 	for(std::size_t i = 0; i < hats.size(); i++)
 	{
-		if(hats.at(i).DeviceType == "ServoHat")
+		if(hats.at(i).DeviceType == DEVICETYPE_SERVOHAT)
 		{
 			addresses.push_back(hats.at(i).ID);
 		}
@@ -778,7 +781,7 @@ std::vector<uint16_t> HatControllerNodeProcess::get_gpiohataddresses()
 	addresses.clear();
 	for(std::size_t i = 0; i < hats.size(); i++)
 	{
-		if(hats.at(i).DeviceType == "GPIOHat")
+		if(hats.at(i).DeviceType == DEVICETYPE_GPIOHAT)
 		{
 			addresses.push_back(hats.at(i).ID);
 		}
@@ -790,7 +793,7 @@ bool HatControllerNodeProcess::set_terminalhatpinvalue(std::string name,int v)
 	bool found = false;
 	for(std::size_t i = 0; i < hats.size(); i++)
 	{
-		if((hats.at(i).DeviceType == "TerminalHat"))
+		if((hats.at(i).DeviceType == DEVICETYPE_TERMINALHAT))
 		{
 			for(std::size_t j = 0; j < hats.at(i).pins.size(); j++)
 			{
@@ -810,7 +813,7 @@ std::vector<eros::pin> HatControllerNodeProcess::get_terminalhatpins()
 	pins.clear();
 	for(std::size_t i = 0; i < hats.size(); i++)
 	{
-		if((hats.at(i).DeviceType == "TerminalHat"))
+		if((hats.at(i).DeviceType == DEVICETYPE_TERMINALHAT))
 		{
 			return hats.at(i).pins;
 		}
@@ -823,7 +826,7 @@ std::vector<eros::pin> HatControllerNodeProcess::get_terminalhatpins(std::string
 	pins.clear();
 	for(std::size_t i = 0; i < hats.size(); i++)
 	{
-		if((hats.at(i).DeviceType == "TerminalHat"))
+		if((hats.at(i).DeviceType == DEVICETYPE_TERMINALHAT))
 		{
 			for(std::size_t j = 0; j < hats.at(i).pins.size(); j++)
 			{
@@ -852,7 +855,7 @@ std::vector<eros::pin> HatControllerNodeProcess::get_gpiohatpins(uint16_t id)
 	std::vector<eros::pin> pins;
 	for(std::size_t i = 0; i < hats.size(); i++)
 	{
-		if((hats.at(i).DeviceType == "GPIOHat") and (hats.at(i).ID == id))
+		if((hats.at(i).DeviceType == DEVICETYPE_GPIOHAT) and (hats.at(i).ID == id))
 		{
 			return hats.at(i).pins;
 		}
@@ -864,7 +867,7 @@ std::vector<eros::pin> HatControllerNodeProcess::get_servohatpins(uint16_t id)
 	std::vector<eros::pin> pins;
 	for(std::size_t i = 0; i < hats.size(); i++)
 	{
-		if((hats.at(i).DeviceType == "ServoHat") and (hats.at(i).ID == id))
+		if((hats.at(i).DeviceType == DEVICETYPE_SERVOHAT) and (hats.at(i).ID == id))
 		{
 			return hats.at(i).pins;
 		}

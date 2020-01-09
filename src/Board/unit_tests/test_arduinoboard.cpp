@@ -8,6 +8,7 @@
 #include <sys/time.h>
 #include <stdlib.h>
 #include "spimessage.h"
+#include "../../../include/Supported_PN.h"
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
 using namespace std;
 
@@ -15,7 +16,7 @@ static void show_usage()
 {
 	std::cerr  << "This program is used to test the operation of a directly connected ArduinoBoard.\n"
 			<< "Currently supported Part Numbers:\n"
-			<< "\tPN: 100005\n"
+			<< "\tPN: " << PN_100005 << "\n"
 			<< "Usage: Test SPI Comm between Raspberry Pi and Arduino. Options:\n"
 			<< "\t-h,--help\tShow this help message\n"
 			<< "\t-d,--delay\tDelay in MicroSeconds between sending each message.  Default is 100000.\n"

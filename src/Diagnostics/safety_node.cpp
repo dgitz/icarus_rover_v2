@@ -82,7 +82,7 @@ bool SafetyNode::run_1hz()
 	{
 		eros::diagnostic diag = diagnostic;
 		eros::srv_device srv;
-		srv.request.query = "DeviceType=TerminalHat";
+		srv.request.query = (std::string("DeviceType=") + std::string(DEVICETYPE_TERMINALHAT)).c_str();
 		if(srv_device.call(srv) == true)
 		{
 			for(std::size_t i = 0; i < srv.response.data.size(); i++)
@@ -93,7 +93,7 @@ bool SafetyNode::run_1hz()
 		else
 		{
 		}
-		if(process->is_hat_running("TerminalHat",0) == false)
+		if(process->is_hat_running(DEVICETYPE_TERMINALHAT,0) == false)
 		{
 			bool init = TerminalHat.init(process->get_mydevice().PartNumber);
 			if(init == false)
@@ -112,7 +112,7 @@ bool SafetyNode::run_1hz()
 					{
 						any_error = true;
 						char tempstr[512];
-						sprintf(tempstr,"[TerminalHat] Could not configure Pin: %s with Function: %s",pins.at(i).Name.c_str(),pins.at(i).Function.c_str());
+						sprintf(tempstr,"[%s] Could not configure Pin: %s with Function: %s",DEVICETYPE_TERMINALHAT,pins.at(i).Name.c_str(),pins.at(i).Function.c_str());
 						diag = process->update_diagnostic(DATA_STORAGE,ERROR,INITIALIZING_ERROR,std::string(tempstr));
 						logger->log_error(std::string(tempstr));
 						kill_node = 1;
@@ -169,14 +169,14 @@ bool SafetyNode::run_10hz()
 		get_logger()->log_diagnostic(diag);
 		diagnostic_pub.publish(diag);
 	}
-	if(process->is_hat_running("TerminalHat",0) == true)
+	if(process->is_hat_running(DEVICETYPE_TERMINALHAT,0) == true)
 	{
 		int pin_value = TerminalHat.read_pin("ArmSwitch");
 		bool v = process->set_pinvalue("ArmSwitch",pin_value);
 		if(v == false)
 		{
 			char tempstr[512];
-			sprintf(tempstr,"[TerminalHat] Could not read Arm Switch");
+			sprintf(tempstr,"[%s] Could not read Arm Switch",DEVICETYPE_TERMINALHAT);
 			diag = process->update_diagnostic(DATA_STORAGE,ERROR,DEVICE_NOT_AVAILABLE,std::string(tempstr));
 			logger->log_error(std::string(tempstr));
 			kill_node = 1;

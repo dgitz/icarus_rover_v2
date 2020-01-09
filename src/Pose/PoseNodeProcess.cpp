@@ -157,7 +157,7 @@ PoseNodeProcess::IMUSensor PoseNodeProcess::get_imudata(std::string name)
 eros::diagnostic PoseNodeProcess::new_devicemsg(const eros::device::ConstPtr& device)
 {
 	eros::diagnostic diag = root_diagnostic;
-	if(device->DeviceType == "IMU")
+	if(device->DeviceType == DEVICETYPE_IMU)
 	{
 		PoseNodeProcess::IMUSensor newimu;
 		newimu.initialized = false;

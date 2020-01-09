@@ -1,11 +1,12 @@
 #include "DiagnosticNodeProcess.h"
 eros::diagnostic  DiagnosticNodeProcess::finish_initialization()
 {
+	supported_partnumbers.push_back(PN_617003);
 	eros::diagnostic diag = root_diagnostic;
 	current_command.Command = ROVERCOMMAND_NONE;
 	last_cmd_timer = 0.0;
 	last_cmddiagnostic_timer = 0.0;
-	lcd_partnumber = "617003";
+	lcd_partnumber = PN_617003;
 	lcd_width = 20;
 	lcd_height = 4;
 	lcd_clock = 0;
@@ -99,9 +100,9 @@ eros::diagnostic DiagnosticNodeProcess::new_devicemsg(const eros::device::ConstP
 	{
 
 	}
-	else if(device->DeviceType == "LCD")
+	else if(device->DeviceType == DEVICETYPE_LCD)
 	{
-		if(device->PartNumber == "617003")
+		if(device->PartNumber == PN_617003)
 		{
 			lcd_height = 4;
 			lcd_width = 20;
@@ -186,7 +187,7 @@ std::vector<eros::diagnostic> DiagnosticNodeProcess::check_programvariables()
 }
 std::string DiagnosticNodeProcess::build_lcdmessage()
 {
-	if(lcd_partnumber == "617003")
+	if(lcd_partnumber == PN_617003)
 	{
 		char buffer[lcd_width*lcd_height];
 		//printf("a: %s\n",get_armedstatestr(armed_state).c_str());

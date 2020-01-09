@@ -110,8 +110,8 @@ TEST(DeviceInitialization,DeviceInitialization_ArduinoBoard)
 	eros::device arduinoboard1_device;
 	arduinoboard1_device.DeviceName = "ArduinoBoard1";
 	arduinoboard1_device.DeviceParent = ros_DeviceName;
-	arduinoboard1_device.PartNumber = "100005";
-	arduinoboard1_device.DeviceType = "ArduinoBoard";
+	arduinoboard1_device.PartNumber = PN_100005;
+	arduinoboard1_device.DeviceType = DEVICETYPE_ARDUINOBOARD;
 	arduinoboard1_device.BoardCount = 0;
 	arduinoboard1_device.SensorCount = 4;
 	arduinoboard1_device.ID = 0;
@@ -167,11 +167,11 @@ TEST(DeviceInitialization,DeviceInitialization_ArduinoBoard)
 
 	uint16_t v1 = 123;
 	uint16_t v2 = 456;
-	diagnostic = process->new_message_GetANAPort1("ArduinoBoard",arduinoboard1_device.ID,0.121,v1,v2,0,0,0,0);
+	diagnostic = process->new_message_GetANAPort1(DEVICETYPE_ARDUINOBOARD,arduinoboard1_device.ID,0.121,v1,v2,0,0,0,0);
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 	int16_t a1 = 123;
 	int16_t a2 = -456;
-	diagnostic = process->new_message_GetDIOPort1("ArduinoBoard",arduinoboard1_device.ID,1.234,a1,a2);
+	diagnostic = process->new_message_GetDIOPort1(DEVICETYPE_ARDUINOBOARD,arduinoboard1_device.ID,1.234,a1,a2);
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 	std::vector<BoardControllerNodeProcess::Sensor> sensors = process->get_sensordata();
 	print_sensordata(process->get_sensordata());
@@ -189,8 +189,8 @@ TEST(Template, Process_Command)
 	eros::device arduinoboard1_device;
 	arduinoboard1_device.DeviceName = "ArduinoBoard1";
 	arduinoboard1_device.DeviceParent = ros_DeviceName;
-	arduinoboard1_device.DeviceType = "ArduinoBoard";
-	arduinoboard1_device.PartNumber = "100005";
+	arduinoboard1_device.DeviceType = DEVICETYPE_ARDUINOBOARD;
+	arduinoboard1_device.PartNumber = PN_100005;
 	arduinoboard1_device.BoardCount = 0;
 	arduinoboard1_device.SensorCount = 4;
 	arduinoboard1_device.ID = 0;

@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "../../../include/i2cmessage.h"
+#include "../../../include/Supported_PN.h"
 #include "../Driver/GPIOHatDriver.h"
 
 using namespace std;
@@ -12,7 +13,7 @@ static void show_usage()
 {
 	std::cerr 	<< "This program is used to test the operation of a directly connected GPIOHat.\n"
 				<< "Currently supported Part Numbers:\n"
-				<< "\tPN: 1000007\n"
+				<< "\tPN: " << PN_100007 << "\n"
 			  	<< "Usage: Test GPIOHat via I2C. Options:\n"
 			 	<< "\t-h,--help\t\tShow this help message\n"
 			  	<< "\t-a,--address Address\tThe I2C Address of the Hat (Base 10).  Default=20.\n"

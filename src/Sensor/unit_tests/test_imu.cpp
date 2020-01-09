@@ -14,8 +14,8 @@ static void show_usage()
 {
 	std::cerr << "This program is used to test the operation of a directly connected IMU.\n"
 			<< "Currently supported Part Numbers:\n"
-			<< "\tPN: 110012\n"
-			<< "\tPN: 110015\n"
+			<< "\tPN: " << PN_110012 << "\n"
+			<< "\tPN: " << PN_110015 << "\n"
 			<<  "Usage: Tests IMU via UART Connection. Options:\n"
 			<< "\t-h,--help\t\tShow this help message\n"
 			<< "\t-d,--delay Delay (uS)\tDelay in micro Seconds.  Default is 100000.\n"
@@ -151,11 +151,11 @@ int main(int argc, char* argv[])
 	}
 	if(port_defined == false)
 	{
-		if(partnumber == "110012")
+		if(partnumber == PN_110012)
 		{
 			port = "/dev/ttyAMA0";
 		}
-		else if(partnumber == "110015")
+		else if(partnumber == PN_110015)
 		{
 			port = "/dev/ttyACM0";
 		}

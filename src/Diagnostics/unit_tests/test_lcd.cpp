@@ -4,14 +4,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "../Driver/LCDDriver.h"
-
+#include "../../../include/Supported_PN.h"
 using namespace std;
 
 static void show_usage()
 {
 	std::cerr 	<< "This program is used to test the operation of a directly connected LCD.\n"
 				<< "Currently supported Part Numbers:\n"
-				<< "\tPN: 617003\n"
+				<< "\tPN: " << PN_617003 << "\n"
 				<< "Usage: Tests LCD via USB (UART) Connection. Options:\n"
 				<< "\t-h,--help\t\tShow this help message\n"
 				<< "\t-r,--red\t\tSet Red Backlight (Default=0)\n"

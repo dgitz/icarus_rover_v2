@@ -127,12 +127,12 @@ IMUNodeProcess* initializeprocess(std::string imuname,std::string imu_partnumber
 TEST(Template,Process_Initialization)
 {
 	uint64_t id = 0;
-	initializeprocess("IMU1","110012",&id,"/home/robot/catkin_ws/src/icarus_rover_v2/src/Sensor/unit_tests/IMU1.xml");
+	initializeprocess("IMU1",PN_110012,&id,"/home/robot/catkin_ws/src/icarus_rover_v2/src/Sensor/unit_tests/IMU1.xml");
 }
 TEST(Template,Process_Msg)
 {
 	uint64_t id = 0;
-	IMUNodeProcess* process = initializeprocess("IMU1","110015",&id,"/home/robot/catkin_ws/src/icarus_rover_v2/src/Sensor/unit_tests/IMU1.xml");
+	IMUNodeProcess* process = initializeprocess("IMU1",PN_110015,&id,"/home/robot/catkin_ws/src/icarus_rover_v2/src/Sensor/unit_tests/IMU1.xml");
 	double time_to_run = 20.0;
 	double dt = 0.001;
 	double current_time = 0.0;
@@ -248,7 +248,7 @@ TEST(Template,Process_Msg)
 TEST(Template,Process_BadMsg)
 {
 	uint64_t id = 0;
-	IMUNodeProcess* process = initializeprocess("IMU1","110015",&id,"/home/robot/catkin_ws/src/icarus_rover_v2/src/Sensor/unit_tests/IMU1.xml");
+	IMUNodeProcess* process = initializeprocess("IMU1",PN_110015,&id,"/home/robot/catkin_ws/src/icarus_rover_v2/src/Sensor/unit_tests/IMU1.xml");
 	double time_to_run = 1.0;
 	double dt = 0.001;
 	double current_time = 0.0;
@@ -354,7 +354,7 @@ TEST(Template,Process_BadMsg)
 TEST(Template,Process_Command)
 {
 	uint64_t id = 0;
-	IMUNodeProcess* process = initializeprocess("IMU1","110015",&id,"/home/robot/catkin_ws/src/icarus_rover_v2/src/Sensor/unit_tests/IMU1.xml");
+	IMUNodeProcess* process = initializeprocess("IMU1",PN_110015,&id,"/home/robot/catkin_ws/src/icarus_rover_v2/src/Sensor/unit_tests/IMU1.xml");
 	double time_to_run = 20.0;
 	double dt = 0.001;
 	double current_time = 0.0;
@@ -502,7 +502,7 @@ TEST(Template,Rotation_Computation)
 {
 	{
 		uint64_t id = 0;
-		IMUNodeProcess* process = initializeprocess("IMU1","110015",&id,"/home/robot/catkin_ws/src/icarus_rover_v2/src/Sensor/unit_tests/IMU1.xml");
+		IMUNodeProcess* process = initializeprocess("IMU1",PN_110015,&id,"/home/robot/catkin_ws/src/icarus_rover_v2/src/Sensor/unit_tests/IMU1.xml");
 		IMUNodeProcess::IMU imu1 = process->get_imu("IMU1");
 		std::string filepath = "/home/robot/catkin_ws/src/icarus_rover_v2/src/Sensor/unit_tests/MountingAngleOffset_UnitTest.csv";
 		std::ifstream file(filepath.c_str());
@@ -575,7 +575,7 @@ TEST(Template,RMS_Computation)
 
 	//Test Identity Matrix
 	uint64_t id = 0;
-	IMUNodeProcess* process = initializeprocess("IMU1","110015",&id,"/home/robot/catkin_ws/src/icarus_rover_v2/src/Sensor/unit_tests/IMU1.xml");
+	IMUNodeProcess* process = initializeprocess("IMU1",PN_110015,&id,"/home/robot/catkin_ws/src/icarus_rover_v2/src/Sensor/unit_tests/IMU1.xml");
 	IMUNodeProcess::IMU imu1 = process->get_imu("IMU1");
 
 
@@ -638,7 +638,7 @@ TEST(Template,RMS_Computation)
 TEST(Template,IMUReset_Auto)
 {
 	uint64_t id = 0;
-	IMUNodeProcess* process = initializeprocess("IMU1","110015",&id,"/home/robot/catkin_ws/src/icarus_rover_v2/src/Sensor/unit_tests/IMU1.xml");
+	IMUNodeProcess* process = initializeprocess("IMU1",PN_110015,&id,"/home/robot/catkin_ws/src/icarus_rover_v2/src/Sensor/unit_tests/IMU1.xml");
 	IMUNodeProcess::IMU imu1 = process->get_imu("IMU1");
 	double time_to_run = 100.0;
 	double dt = 0.001;
@@ -749,7 +749,7 @@ TEST(Template,IMUReset_Auto)
 TEST(Template,IMUReset_Manual)
 {
 	uint64_t id = 0;
-	IMUNodeProcess* process = initializeprocess("IMU1","110015",&id,"/home/robot/catkin_ws/src/icarus_rover_v2/src/Sensor/unit_tests/IMU1.xml");
+	IMUNodeProcess* process = initializeprocess("IMU1",PN_110015,&id,"/home/robot/catkin_ws/src/icarus_rover_v2/src/Sensor/unit_tests/IMU1.xml");
 	IMUNodeProcess::IMU imu1 = process->get_imu("IMU1");
 	double time_to_run = 100.0;
 	double dt = 0.001;

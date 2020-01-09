@@ -7,6 +7,7 @@
 #include <math.h>
 #include <string>
 #include <map>
+#include "../../../include/Supported_PN.h"
 class ServoHatDriver
 {
 public:

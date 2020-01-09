@@ -1,7 +1,7 @@
 #include "TerminalHatDriver.h"
 TerminalHatDriver::TerminalHatDriver()
 {
-    supported_partnumbers.push_back("100003");
+    supported_partnumbers.push_back(PN_100003);
 	address = 0;
 }
 TerminalHatDriver::~TerminalHatDriver()
