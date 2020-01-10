@@ -4,8 +4,7 @@ eros::diagnostic  DiagnosticNodeProcess::finish_initialization()
 	supported_partnumbers.push_back(PN_617003);
 	eros::diagnostic diag = root_diagnostic;
 	current_command.Command = ROVERCOMMAND_NONE;
-	last_cmd_timer = 0.0;
-	last_cmddiagnostic_timer = 0.0;
+	reset();
 	lcd_partnumber = PN_617003;
 	lcd_width = 20;
 	lcd_height = 4;
@@ -27,7 +26,7 @@ eros::diagnostic DiagnosticNodeProcess::update(double t_dt,double t_ros_time)
 	lcdclock_timer+=t_dt;
 
 	eros::diagnostic diag = root_diagnostic;
-		if(initialized == false)
+	if(task_state == TASKSTATE_INITIALIZING)
 	{
 		diag = update_diagnostic(REMOTE_CONTROL,NOTICE,NOERROR,"No Remote Control Command Yet.");
 		diag = update_diagnostic(DATA_STORAGE,NOTICE,INITIALIZING,"Initializing.");
@@ -46,9 +45,15 @@ eros::diagnostic DiagnosticNodeProcess::update(double t_dt,double t_ros_time)
 		lcd_clock = v;
 		lcdclock_timer = 0.0;
 	}
+	if(task_state == TASKSTATE_PAUSE)
+	{
+	}
+	else if(task_state == TASKSTATE_RESET)
+	{
+	}
 	if(lcd_available == false)
 	{
-		if(initialized == true){ ready = true; }
+		request_statechange(TASKSTATE_RUNNING);
 		
 	}
 	bool status = true;
@@ -86,7 +91,7 @@ eros::diagnostic DiagnosticNodeProcess::update(double t_dt,double t_ros_time)
 	if(status == true)
 	{
 		diag = update_diagnostic(SOFTWARE,INFO,NOERROR,"Node Running");
-		if((is_initialized() == true) and (is_ready() == true))
+		if(task_state == TASKSTATE_RUNNING)
 		{
 			update_diagnostic(DATA_STORAGE,INFO,NOERROR,"No Error");
 		}
@@ -107,7 +112,7 @@ eros::diagnostic DiagnosticNodeProcess::new_devicemsg(const eros::device::ConstP
 			lcd_height = 4;
 			lcd_width = 20;
 			diag = update_diagnostic(REMOTE_CONTROL,INFO,NOERROR,"LCD Initialized.");
-			ready = true;
+			request_statechange(TASKSTATE_RUNNING);
 		}
 		else
 		{
@@ -150,7 +155,31 @@ std::vector<eros::diagnostic> DiagnosticNodeProcess::new_commandmsg(const eros::
 		{
 		}
 	}
+	else if(t_msg->Command == ROVERCOMMAND_TASKCONTROL)
+	{
+		if(node_name.find(t_msg->CommandText) != std::string::npos)
+		{
+			uint8_t prev_taskstate = get_taskstate();
+			bool v = request_statechange(t_msg->Option2);
+			if(v == false)
+			{
+				diag = update_diagnostic(SOFTWARE,ERROR,DIAGNOSTIC_FAILED,
+					"Unallowed State Transition: From: " + map_taskstate_tostring(prev_taskstate) + " To: " + map_taskstate_tostring(t_msg->Option2));
+				diaglist.push_back(diag);
+			}
+			else
+			{
+				if(task_state == TASKSTATE_RESET)
+				{
+					reset();
+				}
+				diag = update_diagnostic(SOFTWARE,NOTICE,DIAGNOSTIC_PASSED,
+					"Commanded State Transition: From: " + map_taskstate_tostring(prev_taskstate) + " To: " + map_taskstate_tostring(t_msg->Option2));
+				diaglist.push_back(diag);
+			}
 
+		}
+	}
 	else if(t_msg->Command == ROVERCOMMAND_ACQUIRE_TARGET)
 	{
 		RCControl = false;
@@ -571,7 +600,7 @@ std::vector<eros::diagnostic> DiagnosticNodeProcess::check_tasks()
 	{
 		if(TaskList.size() > 0)
 		{
-			if(ready == true) { ready_to_arm = true; }
+			if(task_state == TASKSTATE_RUNNING) { ready_to_arm = true; }
 			char tempstr[255];
 			sprintf(tempstr,"%d/%d (All) Tasks Operational.",(int)task_ok_counter,(int)TaskList.size());
 			diag = update_diagnostic(SOFTWARE,INFO,NOERROR,std::string(tempstr));

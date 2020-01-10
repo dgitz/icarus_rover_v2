@@ -68,6 +68,11 @@ public:
 	 */
 	eros::diagnostic set_config_filepaths(std::string filepath);
 	eros::diagnostic finish_initialization();
+	void reset()
+	{
+		systemsnapshot_timeout_timer = 0.0;
+		systemsnapshot_complete_timer = 0.0;
+	}
 	eros::diagnostic setInstanceMode(std::string t_mode);
 	InstanceMode getInstanceMode() { return mode; }
 	SnapshotState getDeviceSnapshotState() { return devicesnapshot_state; }

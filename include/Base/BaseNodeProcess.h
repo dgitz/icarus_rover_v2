@@ -161,9 +161,10 @@ public:
 	bool convert_dataparameter(Eigen::VectorXf& output,std::string param_input,std::string param_size);
 	/*! \brief input: [1.11 2.22 3.33;4.44 5.55 6.66;7.77 8.88 9.99;] size=[<HEIGHT> <WIDTH>] */
 	bool convert_dataparameter(Eigen::MatrixXf& output,std::string param_input,std::string param_size);
-	std::string map_armedstate_tostring(uint8_t v);
+	std::string map_taskstate_tostring(uint8_t state);
 	bool isEqual(double a, double b,double precision);
 	
+	std::string map_armedstate_tostring(uint8_t v);
 protected:
 	uint8_t task_state;
 	DiagnosticClass diagnostic_helper;
@@ -178,8 +179,7 @@ protected:
 	eros::signal convert_fromptr(const eros::signal::ConstPtr& t_ptr);
 	eros::system_state convert_fromptr(const eros::system_state::ConstPtr& t_ptr);
 	eros::usermessage convert_fromptr(const eros::usermessage::ConstPtr& t_ptr);
-	//bool initialized;
-	//bool ready;
+	std::vector<std::string> supported_partnumbers;
 	eros::device mydevice;
 	eros::diagnostic root_diagnostic;
 

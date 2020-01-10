@@ -48,7 +48,7 @@ bool DiagnosticNode::start(int argc,char **argv)
 eros::diagnostic DiagnosticNode::read_launchparameters()
 {
 	eros::diagnostic diag = diagnostic;
-	get_logger()->log_notice("Configuration Files Loaded.");
+	get_logger()->log_notice(__FILE__,__LINE__,"Configuration Files Loaded.");
 	return diag;
 }
 eros::diagnostic DiagnosticNode::finish_initialization()
@@ -81,7 +81,7 @@ eros::diagnostic DiagnosticNode::finish_initialization()
 	bool logging_resources_used;
 	if(n->getParam(param_log_resources_used,logging_resources_used) == false)
 	{
-		logger->log_warn("Missing Parameter: Log_Resources Used.  Using Default: false");
+		logger->log_warn(__FILE__,__LINE__,"Missing Parameter: Log_Resources Used.  Using Default: false");
 		logging_resources_used = false;
 	}
 	process->set_log_resources_used(logging_resources_used);
@@ -112,7 +112,7 @@ bool DiagnosticNode::run_01hz()
 		diagnostic_pub.publish(diag);
 		logger->log_diagnostic(diag);
 	}
-	logger->log_info(process->print_subsystem_diagnostics());
+	logger->log_info(__FILE__,__LINE__,process->print_subsystem_diagnostics());
 	if(measure_time_diff(ros::Time::now(),boot_time) > process->get_waitnode_bringup_time()) //Wait 20 seconds for all Nodes to start.
 	{
 		if(process->get_log_resources_used())
@@ -142,7 +142,7 @@ bool DiagnosticNode::run_01hz_noisy()
 }
 bool DiagnosticNode::run_1hz()
 {
-	if((process->is_initialized() == true) and (process->is_ready() == true))
+	if(process->get_taskstate() == TASKSTATE_RUNNING)
 	{
 		if(process->get_lcdavailable() == true)
 		{
@@ -153,7 +153,7 @@ bool DiagnosticNode::run_1hz()
 			}
 		}
 	}
-	else if((process->is_ready() == false) and (process->is_initialized() == true))
+	else if(process->get_taskstate() == TASKSTATE_INITIALIZED)
 	{
 		{
 			eros::srv_device srv;
@@ -197,7 +197,7 @@ bool DiagnosticNode::run_1hz()
 			}
 		}
 	}
-	else if(process->is_initialized() == false)
+	else if(process->get_taskstate() == TASKSTATE_INITIALIZING)
 	{
 		{
 			eros::srv_device srv;
@@ -207,7 +207,7 @@ bool DiagnosticNode::run_1hz()
 				if(srv.response.data.size() != 1)
 				{
 
-					get_logger()->log_error("Got unexpected device message.");
+					get_logger()->log_error(__FILE__,__LINE__,"Got unexpected device message.");
 				}
 				else
 				{
@@ -237,7 +237,7 @@ bool DiagnosticNode::run_10hz()
 	ready_to_arm = process->get_ready_to_arm();
 	if(last_ready_to_arm != ready_to_arm)
 	{
-		logger->log_notice("Ready To Arm Changed From: " + std::to_string(last_ready_to_arm) + " To: " + std::to_string(ready_to_arm));
+		logger->log_notice(__FILE__,__LINE__,"Ready To Arm Changed From: " + std::to_string(last_ready_to_arm) + " To: " + std::to_string(ready_to_arm));
 	}
 	eros::diagnostic diag = process->update(0.1,ros::Time::now().toSec());
 	if(diag.Level > WARN)
@@ -256,7 +256,7 @@ bool DiagnosticNode::run_10hz()
 	}
 	if(process->get_armedstate() == ARMEDSTATUS_DISARMED_CANNOTARM)
 	{
-		logger->log_warn("Checking Tasks More Frequently for now.");
+		logger->log_warn(__FILE__,__LINE__,"Checking Tasks More Frequently for now.");
 		std::vector<eros::diagnostic> diaglist = process->check_tasks();
 		for(std::size_t i = 0; i < diaglist.size(); ++i)
 		{
@@ -312,14 +312,14 @@ bool DiagnosticNode::new_devicemsg(std::string query,eros::device t_device)
 	}
 	else
 	{
-		if(process->is_ready() == false)
+		if(process->get_taskstate() == TASKSTATE_INITIALIZED)
 		{
 			eros::device::ConstPtr dev_ptr(new eros::device(t_device));
 			eros::diagnostic diag = process->new_devicemsg(dev_ptr);
 			logger->log_diagnostic(diag);
-			if(process->is_ready() == true)
+			if(process->get_taskstate() == TASKSTATE_RUNNING)
 			{
-				logger->log_notice("Device is now ready.");
+				logger->log_notice(__FILE__,__LINE__,"Device is now ready.");
 				if(process->get_lcdavailable() == true)
 				{
 					uint8_t lcd_width,lcd_height;
@@ -328,13 +328,13 @@ bool DiagnosticNode::new_devicemsg(std::string query,eros::device t_device)
 					int v = lcd.init(lcd_width,lcd_height);
 					if(v <= 0)
 					{
-						logger->log_error("Couldn't Initialize LCD. Exiting.");
+						logger->log_error(__FILE__,__LINE__,"Couldn't Initialize LCD. Exiting.");
 						kill_node = 1;
 					}
 					else
 					{
 						lcd.set_color(LCDDriver::YELLOW);
-						logger->log_notice("Initialized LCD.");
+						logger->log_notice(__FILE__,__LINE__,"Initialized LCD.");
 					}
 				}
 			}
@@ -403,7 +403,7 @@ eros::diagnostic DiagnosticNode::rescan_topics()
 	logger->log_diagnostic(diag);
 	return diag;
 }
-void DiagnosticNode::heartbeat_Callback(const eros::heartbeat::ConstPtr& msg,const std::string &topicname)
+void DiagnosticNode::heartbeat_Callback(__attribute__((unused)) const eros::heartbeat::ConstPtr& msg,const std::string &topicname)
 {
 	process->new_heartbeatmsg(topicname);
 }
@@ -466,7 +466,7 @@ bool DiagnosticNode::log_resources()
 		ram_used_file.open(ram_used_file_path.c_str(),ios::out);
 		if(ram_used_file.is_open() == false)
 		{
-			logger->log_error("Couldn't open ram_used.csv file.  Exiting.");
+			logger->log_error(__FILE__,__LINE__,"Couldn't open ram_used.csv file.  Exiting.");
 			kill_node = 1;
 		}
 		else
@@ -482,7 +482,7 @@ bool DiagnosticNode::log_resources()
 		cpu_used_file.open(cpu_used_file_path.c_str(),ios::out);
 		if(cpu_used_file.is_open() == false)
 		{
-			logger->log_error("Couldn't open cpuused.csv file.  Exiting.");
+			logger->log_error(__FILE__,__LINE__,"Couldn't open cpuused.csv file.  Exiting.");
 			kill_node = 1;
 		}
 		else
@@ -498,7 +498,7 @@ bool DiagnosticNode::log_resources()
 		ram_free_file.open(ram_free_file_path.c_str(),ios::out);
 		if(ram_free_file.is_open() == false)
 		{
-			logger->log_error("Couldn't open ram_free.csv file.  Exiting.");
+			logger->log_error(__FILE__,__LINE__,"Couldn't open ram_free.csv file.  Exiting.");
 		}
 		else
 		{
@@ -515,7 +515,7 @@ bool DiagnosticNode::log_resources()
 		cpu_free_file.open(cpu_free_file_path.c_str(),ios::out);
 		if(cpu_free_file.is_open() == false)
 		{
-			logger->log_error("Couldn't open cpu_free.csv file.  Exiting.");
+			logger->log_error(__FILE__,__LINE__,"Couldn't open cpu_free.csv file.  Exiting.");
 			kill_node = 1;
 		}
 		else
@@ -537,7 +537,7 @@ bool DiagnosticNode::log_resources()
 		ram_used_file.open(ram_used_file_path.c_str(),ios::app);
 		if(ram_used_file.is_open() == false)
 		{
-			logger->log_error("Couldn't open ram_used.csv file.  Exiting.");
+			logger->log_error(__FILE__,__LINE__,"Couldn't open ram_used.csv file.  Exiting.");
 			kill_node = 1;
 		}
 		else
@@ -553,7 +553,7 @@ bool DiagnosticNode::log_resources()
 		cpu_used_file.open(cpu_used_file_path.c_str(),ios::app);
 		if(cpu_used_file.is_open() == false)
 		{
-			logger->log_error("Couldn't open cpu_used.csv file.  Exiting.");
+			logger->log_error(__FILE__,__LINE__,"Couldn't open cpu_used.csv file.  Exiting.");
 			kill_node = 1;
 		}
 		else
@@ -570,7 +570,7 @@ bool DiagnosticNode::log_resources()
 		ram_free_file.open(ram_free_file_path.c_str(),ios::app);
 		if(ram_free_file.is_open() == false)
 		{
-			logger->log_error("Couldn't open ram_free.csv file.  Exiting.");
+			logger->log_error(__FILE__,__LINE__,"Couldn't open ram_free.csv file.  Exiting.");
 			kill_node = 1;
 		}
 		else
@@ -587,7 +587,7 @@ bool DiagnosticNode::log_resources()
 		cpu_free_file.open(cpu_free_file_path.c_str(),ios::app);
 		if(cpu_free_file.is_open() == false)
 		{
-			logger->log_error("Couldn't open cpu_free.csv file.  Exiting.");
+			logger->log_error(__FILE__,__LINE__,"Couldn't open cpu_free.csv file.  Exiting.");
 			kill_node = 1;
 		}
 		else
@@ -618,7 +618,7 @@ void DiagnosticNode::diagnostic_Callback(const eros::diagnostic::ConstPtr& msg,c
 		msg->Diagnostic_Type,
 		msg->DeviceName.c_str(),
 		msg->Level);
-		logger->log_error(tempstr);
+		logger->log_error(__FILE__,__LINE__,tempstr);
 	}
 
 	process->new_diagnosticmsg(topicname,msg);
@@ -656,10 +656,10 @@ int main(int argc, char **argv) {
 	std::thread thread(&DiagnosticNode::thread_loop, node);
 	while((status == true) and (kill_node == false))
 	{
-		status = node->update();
+		status = node->update(node->get_process()->get_taskstate());
 	}
 	node->cleanup();
-	node->get_logger()->log_info("Node Finished Safely.");
+	node->get_logger()->log_info(__FILE__,__LINE__,"Node Finished Safely.");
 	return 0;
 }
 

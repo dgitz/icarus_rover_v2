@@ -45,7 +45,7 @@ bool CommandLauncherNode::start(int argc,char **argv)
 eros::diagnostic CommandLauncherNode::read_launchparameters()
 {
 	eros::diagnostic diag = diagnostic;
-	get_logger()->log_notice("Configuration Files Loaded.");
+	get_logger()->log_notice(__FILE__,__LINE__,"Configuration Files Loaded.");
 	return diagnostic;
 }
 eros::diagnostic CommandLauncherNode::finish_initialization()
@@ -86,7 +86,7 @@ bool CommandLauncherNode::run_01hz_noisy()
 bool CommandLauncherNode::run_1hz()
 {
 	process->update_diagnostic(get_resource_diagnostic());
-	if((process->is_initialized() == true) and (process->is_ready() == true))
+	if(process->get_taskstate() == TASKSTATE_RUNNING)
 	{
 		std::vector<CommandLauncherNodeProcess::ProcessCommand> processlist = process->get_processlist();
 		for(std::size_t i = 0; i < processlist.size(); i++)
@@ -96,14 +96,14 @@ bool CommandLauncherNode::run_1hz()
 			{
 				char tempstr[512];
 				sprintf(tempstr,"Process: %s restarted %d times.  Not restarting anymore.",processlist.at(i).name.c_str(),processlist.at(i).restart_counter);
-				logger->log_warn(std::string(tempstr));
+				logger->log_warn(__FILE__,__LINE__,std::string(tempstr));
 			}
 			else if(processlist.at(i).running == false)
 			{
 				char tempstr[1024];
 				sprintf(tempstr,"Trying to restart process with command: %s",processlist.at(i).command_text.c_str());
 
-				logger->log_info(std::string(tempstr));
+				logger->log_info(__FILE__,__LINE__,std::string(tempstr));
 				system (processlist.at(i).command_text.c_str());
 				process->set_process_restarted(processlist.at(i).name);
 				check_pid = true;
@@ -116,7 +116,7 @@ bool CommandLauncherNode::run_1hz()
 					process->set_processrunning(processlist.at(i).name,false);
 					char tempstr[512];
 					sprintf(tempstr,"Process: %s is not running.  Restarting (%d) times so far.",processlist.at(i).name.c_str(),processlist.at(i).restart_counter);
-					logger->log_warn(std::string(tempstr));
+					logger->log_warn(__FILE__,__LINE__,std::string(tempstr));
 				}
 				else
 				{
@@ -126,10 +126,10 @@ bool CommandLauncherNode::run_1hz()
 			}
 		}
 	}
-	else if((process->is_ready() == false) and (process->is_initialized() == true))
+	else if(process->get_taskstate() == TASKSTATE_INITIALIZED)
 	{
 	}
-	else if(process->is_initialized() == false)
+	else if(process->get_taskstate() == TASKSTATE_INITIALIZING)
 	{
 		{
 			eros::srv_device srv;
@@ -139,7 +139,7 @@ bool CommandLauncherNode::run_1hz()
 				if(srv.response.data.size() != 1)
 				{
 
-					get_logger()->log_error("Got unexpected device message.");
+					get_logger()->log_error(__FILE__,__LINE__,"Got unexpected device message.");
 				}
 				else
 				{
@@ -217,7 +217,7 @@ bool CommandLauncherNode::new_devicemsg(std::string query,eros::device t_device)
 		}
 	}
 
-	if((process->is_initialized() == true))
+	if(process->get_taskstate() == TASKSTATE_INITIALIZED)
 	{
 		eros::device::ConstPtr device_ptr(new eros::device(t_device));
 		eros::diagnostic diag = process->new_devicemsg(device_ptr);
@@ -262,9 +262,9 @@ int main(int argc, char **argv) {
 	std::thread thread(&CommandLauncherNode::thread_loop, node);
 	while((status == true) and (kill_node == false))
 	{
-		status = node->update();
+		status = node->update(node->get_process()->get_taskstate());
 	}
-	node->get_logger()->log_info("Node Finished Safely.");
+	node->get_logger()->log_info(__FILE__,__LINE__,"Node Finished Safely.");
 	return 0;
 }
 

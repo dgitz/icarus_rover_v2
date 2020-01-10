@@ -111,7 +111,7 @@ bool MasterNode::write_logfile(std::string text)
 	logfile.open (filepath, ios::out | ios::app);
 	if(logfile.is_open() == false)
 	{
-		logger->log_error("Could not open system log file.");
+		logger->log_error(__FILE__,__LINE__,"Could not open system log file.");
 		return false;
 	}
 	std::string str1 = process->exec("date +%d-%b-%Y",true);

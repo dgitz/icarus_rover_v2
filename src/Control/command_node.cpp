@@ -44,7 +44,7 @@ bool CommandNode::start(int argc,char **argv)
 eros::diagnostic CommandNode::read_launchparameters()
 {
 	eros::diagnostic diag = diagnostic;
-	get_logger()->log_notice("Configuration Files Loaded.");
+	get_logger()->log_notice(__FILE__,__LINE__,"Configuration Files Loaded.");
 	return diagnostic;
 }
 eros::diagnostic CommandNode::finish_initialization()
@@ -71,14 +71,14 @@ eros::diagnostic CommandNode::finish_initialization()
 		{
 			char tempstr[255];
 			sprintf(tempstr,"Didn't find %s Not adding anymore.",param_topic.c_str());
-			logger->log_info(tempstr);
+			logger->log_info(__FILE__,__LINE__,tempstr);
 			search_for_topics = false;
 		}
 		else
 		{
 			char tempstr[255];
 			sprintf(tempstr,"Adding Ready to Arm Topic: %s",topic.c_str());
-			logger->log_info(tempstr);
+			logger->log_info(__FILE__,__LINE__,tempstr);
 			ready_to_arm_topics.push_back(topic);
 			search_for_topics = true;
 			topicindex++;
@@ -140,13 +140,13 @@ bool CommandNode::run_01hz_noisy()
 bool CommandNode::run_1hz()
 {
 	process->update_diagnostic(get_resource_diagnostic());
-	if((process->is_initialized() == true) and (process->is_ready() == true))
+	if(process->get_taskstate() == TASKSTATE_RUNNING)
 	{
 	}
-	else if((process->is_ready() == false) and (process->is_initialized() == true))
+	else if(process->get_taskstate() == TASKSTATE_INITIALIZED)
 	{
 	}
-	else if(process->is_initialized() == false)
+	else if(process->get_taskstate() == TASKSTATE_INITIALIZING)
 	{
 		{
 			eros::srv_device srv;
@@ -156,7 +156,7 @@ bool CommandNode::run_1hz()
 				if(srv.response.data.size() != 1)
 				{
 
-					get_logger()->log_error("Got unexpected device message.");
+					get_logger()->log_error(__FILE__,__LINE__,"Got unexpected device message.");
 				}
 				else
 				{
@@ -228,27 +228,30 @@ bool CommandNode::run_loop1()
 }
 bool CommandNode::run_loop2()
 {
-	uint8_t gazebo_message = process->get_gazebomessagetopublish();
-	if(gazebo_message != 0)
+	if(process->get_taskstate() != TASKSTATE_PAUSE)
 	{
-		ros::ServiceClient client;
-		std_srvs::Empty srv;
-		switch(gazebo_message)
+		uint8_t gazebo_message = process->get_gazebomessagetopublish();
+		if(gazebo_message != 0)
 		{
-			case ROVERCOMMAND_SIMULATIONCONTROL_RESETWORLD:
-				client = n->serviceClient<std_srvs::Empty>("/gazebo/reset_simulation");
-				client.call(srv);
-				break;
-			case ROVERCOMMAND_SIMULATIONCONTROL_STARTSIM:
-				client = n->serviceClient<std_srvs::Empty>("/gazebo/unpause_physics");
-				client.call(srv);
-				break;
-			case ROVERCOMMAND_SIMULATIONCONTROL_PAUSESIM:
-				client = n->serviceClient<std_srvs::Empty>("/gazebo/pause_physics");
-				client.call(srv);
-				break;
-			default:
-				break;
+			ros::ServiceClient client;
+			std_srvs::Empty srv;
+			switch(gazebo_message)
+			{
+				case ROVERCOMMAND_SIMULATIONCONTROL_RESETWORLD:
+					client = n->serviceClient<std_srvs::Empty>("/gazebo/reset_simulation");
+					client.call(srv);
+					break;
+				case ROVERCOMMAND_SIMULATIONCONTROL_STARTSIM:
+					client = n->serviceClient<std_srvs::Empty>("/gazebo/unpause_physics");
+					client.call(srv);
+					break;
+				case ROVERCOMMAND_SIMULATIONCONTROL_PAUSESIM:
+					client = n->serviceClient<std_srvs::Empty>("/gazebo/pause_physics");
+					client.call(srv);
+					break;
+				default:
+					break;
+			}
 		}
 	}
 	return true;
@@ -286,7 +289,7 @@ bool CommandNode::new_devicemsg(std::string query,eros::device t_device)
 		}
 	}
 
-	if((process->is_initialized() == true))
+	if(process->get_taskstate() == TASKSTATE_INITIALIZED)
 	{
 		eros::device::ConstPtr device_ptr(new eros::device(t_device));
 		eros::diagnostic diag = process->new_devicemsg(device_ptr);
@@ -330,9 +333,9 @@ int main(int argc, char **argv) {
 	std::thread thread(&CommandNode::thread_loop, node);
 	while((status == true) and (kill_node == false))
 	{
-		status = node->update();
+		status = node->update(node->get_process()->get_taskstate());
 	}
-	node->get_logger()->log_info("Node Finished Safely.");
+	node->get_logger()->log_info(__FILE__,__LINE__,"Node Finished Safely.");
 	return 0;
 }
 

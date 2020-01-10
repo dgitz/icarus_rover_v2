@@ -49,9 +49,9 @@ CommandNodeProcess* initializeprocess()
 	process->enable_diagnostics(diagnostic_types);
 	process->finish_initialization();
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
-	EXPECT_TRUE(process->is_initialized() == false);
+	EXPECT_TRUE(process->get_taskstate() == TASKSTATE_INITIALIZING);
 	process->set_mydevice(device);
-	EXPECT_TRUE(process->is_initialized() == true);
+	EXPECT_TRUE(process->get_taskstate() == TASKSTATE_INITIALIZED);
 	EXPECT_TRUE(process->get_mydevice().DeviceName == device.DeviceName);
 	EXPECT_EQ(process->get_currentcommand().Command,ROVERCOMMAND_BOOT);
 	EXPECT_EQ(process->get_currentstate(),NODESTATE_BOOTING);
@@ -63,7 +63,7 @@ CommandNodeProcess* readyprocess(CommandNodeProcess* process)
 {
 	eros::diagnostic diag = process->update(0.0,0.0);
 	EXPECT_TRUE(diag.Level <= NOTICE);
-	EXPECT_TRUE(process->is_ready() == true);
+	EXPECT_TRUE(process->get_taskstate() == TASKSTATE_RUNNING);
 	EXPECT_EQ(process->get_currentstate(),NODESTATE_RUNNING);
 	EXPECT_EQ(process->get_currentcommand().Command,ROVERCOMMAND_NONE);
 	{
