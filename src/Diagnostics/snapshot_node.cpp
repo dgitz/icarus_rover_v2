@@ -47,7 +47,7 @@ bool SnapshotNode::start(int argc, char **argv)
 eros::diagnostic SnapshotNode::read_launchparameters()
 {
 	eros::diagnostic diag = diagnostic;
-	get_logger()->log_notice("Configuration Files Loaded.");
+	get_logger()->log_notice(__FILE__,__LINE__,"Configuration Files Loaded.");
 	return diagnostic;
 }
 eros::diagnostic SnapshotNode::finish_initialization()
@@ -109,13 +109,13 @@ bool SnapshotNode::run_1hz()
 		snapshotstate_pub.publish(process->getROSSnapshotState());
 	}
 	process->update_diagnostic(get_resource_diagnostic());
-	if ((process->is_initialized() == true) and (process->is_ready() == true))
+	if(process->get_taskstate() == TASKSTATE_RUNNING)
 	{
 	}
-	else if ((process->is_ready() == false) and (process->is_initialized() == true))
+	else if(process->get_taskstate() == TASKSTATE_INITIALIZED)
 	{
 	}
-	else if (process->is_initialized() == false)
+	else if(process->get_taskstate() == TASKSTATE_INITIALIZING)
 	{
 		{
 			eros::srv_device srv;
@@ -125,7 +125,7 @@ bool SnapshotNode::run_1hz()
 				if (srv.response.data.size() != 1)
 				{
 
-					get_logger()->log_error("Got unexpected device message.");
+					get_logger()->log_error(__FILE__,__LINE__,"Got unexpected device message.");
 				}
 				else
 				{
@@ -190,14 +190,14 @@ bool SnapshotNode::run_10hz()
 		char tempstr[512];
 		sprintf(tempstr,"Snapshot State Changed: %s\n",
 			process->map_state_tostring(snapshot_state).c_str());
-		logger->log_notice(std::string(tempstr));
+		logger->log_notice(__FILE__,__LINE__,std::string(tempstr));
 	}
 	std::string snapshot_path,snapshot_name;
 	if(process->isDeviceSnapshotComplete(snapshot_path,snapshot_name))
 	{
 		char tempstr[512];
 		sprintf(tempstr,"Device Snapshot: %s Complete.",snapshot_name.c_str());
-		logger->log_notice(std::string(tempstr));
+		logger->log_notice(__FILE__,__LINE__,std::string(tempstr));
 		
 	}
 	if((process->getInstanceMode() == SnapshotNodeProcess::InstanceMode::MASTER) and 
@@ -212,7 +212,6 @@ bool SnapshotNode::run_10hz()
 			srv.request.query = "SNAPSHOTSTATE";
 			if (srv_snapshotstate.call(srv) == true)
 			{
-				get_logger()->log_debug("Got snapshot state.");
 				if(srv.response.state == (uint8_t)SnapshotNodeProcess::SnapshotState::READY)
 				{
 					//transfer via scp
@@ -297,7 +296,7 @@ void SnapshotNode::Command_Callback(const eros::command::ConstPtr &t_msg)
 							faststate.state = "RUNNING";
 						}
 						snapshotstate_pub.publish(faststate);
-						logger->log_warn("Publishing Snapshot State quickly.");
+						logger->log_warn(__FILE__,__LINE__,"Publishing Snapshot State quickly.");
 					}
 					std_msgs::Empty empty_msg;
 					datalogger_snapshot_pub.publish(empty_msg);
@@ -319,7 +318,7 @@ bool SnapshotNode::new_devicemsg(std::string query, eros::device t_device)
 		}
 	}
 
-	if ((process->is_initialized() == true))
+	if (process->get_taskstate() == TASKSTATE_INITIALIZED)
 	{
 		eros::device::ConstPtr device_ptr(new eros::device(t_device));
 		eros::diagnostic diag = process->new_devicemsg(device_ptr);
@@ -358,9 +357,8 @@ void SnapshotNode::thread_loop()
 }
 void SnapshotNode::cleanup()
 {
-	kill_node = true;
 	base_cleanup();
-	get_logger()->log_info("Node Finished Safely.");
+	get_logger()->log_info(__FILE__,__LINE__,"[SnapshotNode] Finished Safely.");
 }
 /*! \brief Attempts to kill a node when an interrupt is received.
  *
@@ -380,9 +378,10 @@ int main(int argc, char **argv)
 	std::thread thread(&SnapshotNode::thread_loop, node);
 	while ((status == true) and (kill_node == false))
 	{
-		status = node->update();
+		status = node->update(node->get_process()->get_taskstate());
 	}
 	node->cleanup();
 	thread.detach();
 	return 0;
 }
+

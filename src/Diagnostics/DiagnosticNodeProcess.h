@@ -57,6 +57,11 @@ public:
 	 *
 	 */
 	eros::diagnostic finish_initialization();
+	void reset()
+	{
+		last_cmd_timer = 0.0;
+		last_cmddiagnostic_timer = 0.0;
+	}
 	//Update Functions
 	/*! \brief Implementation of the update function
 	 *

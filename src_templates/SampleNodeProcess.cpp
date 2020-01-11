@@ -55,6 +55,7 @@ eros::diagnostic  SampleNodeProcess::finish_initialization()
 eros::diagnostic SampleNodeProcess::update(double t_dt,double t_ros_time)
 {
 	eros::diagnostic diag = root_diagnostic;
+	//Task State Machine Updates
 	if(task_state == TASKSTATE_PAUSE)
 	{
 
@@ -69,6 +70,13 @@ eros::diagnostic SampleNodeProcess::update(double t_dt,double t_ros_time)
 		}
 		
 	}
+	else if(task_state == TASKSTATE_INITIALIZED)
+	{
+		request_statechange(TASKSTATE_RUNNING);
+	}
+	else if(task_state == TASKSTATE_RUNNING)
+	{
+	}
 	else if(task_state != TASKSTATE_RUNNING)
 	{
 		bool v = request_statechange(TASKSTATE_RUNNING);
@@ -79,7 +87,7 @@ eros::diagnostic SampleNodeProcess::update(double t_dt,double t_ros_time)
 		}
 	}
 	diag = update_baseprocess(t_dt,t_ros_time);
-	if(diag.Level <= NOTICE)
+	if(task_state == TASKSTATE_RUNNING)
 	{
 		diag = update_diagnostic(DATA_STORAGE,INFO,NOERROR,"No Error.");
 		diag = update_diagnostic(SOFTWARE,INFO,NOERROR,"Node Running");

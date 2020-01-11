@@ -20,6 +20,11 @@ public:
 	 *
 	 */
 	eros::diagnostic finish_initialization();
+	void reset()
+	{
+		calibration_mode_changed = false;
+		calibration_mode = ROVERCOMMAND_CALIBRATION_NONE;
+	}
 	//Update Functions
 	/*! \brief Implementation of the update function
 	 *

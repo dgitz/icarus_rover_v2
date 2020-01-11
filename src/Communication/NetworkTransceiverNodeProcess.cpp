@@ -17,10 +17,28 @@ void NetworkTransceiverNodeProcess::set_networkconfiguration(std::string t_multi
 eros::diagnostic NetworkTransceiverNodeProcess::update(double t_dt,double t_ros_time)
 {
 	eros::diagnostic diag = root_diagnostic;
-	if(initialized == true)
+	if(task_state == TASKSTATE_PAUSE)
 	{
-		ready = true;
 
+	}
+	else if(task_state == TASKSTATE_RESET)
+	{
+		bool v = request_statechange(TASKSTATE_RUNNING);
+		if(v == false)
+		{
+			diag = update_diagnostic(SOFTWARE,ERROR,DIAGNOSTIC_FAILED,
+				"Unallowed State Transition: From: " + map_taskstate_tostring(task_state) + " To: " + map_taskstate_tostring(TASKSTATE_RUNNING));
+		}
+		
+	}
+	else if(task_state != TASKSTATE_RUNNING)
+	{
+		bool v = request_statechange(TASKSTATE_RUNNING);
+		if(v == false)
+		{
+			diag = update_diagnostic(SOFTWARE,ERROR,DIAGNOSTIC_FAILED,
+				"Unallowed State Transition: From: " + map_taskstate_tostring(task_state) + " To: " + map_taskstate_tostring(TASKSTATE_RUNNING));
+		}
 	}
 	
 	diag = update_baseprocess(t_dt,t_ros_time);
@@ -41,7 +59,7 @@ eros::diagnostic NetworkTransceiverNodeProcess::update(double t_dt,double t_ros_
 	{
 		diag = update_diagnostic(SOFTWARE,INFO,NOERROR,"Node Running.");
 	}
-	if((is_initialized() == true) and (is_ready() == true))
+	if(task_state == TASKSTATE_RUNNING)
 	{
 		diag = update_diagnostic(DATA_STORAGE,INFO,NOERROR,"No Error.");
 	}

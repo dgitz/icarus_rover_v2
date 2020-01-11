@@ -21,8 +21,8 @@ if (${CMAKE_HOST_SYSTEM_PROCESSOR} STREQUAL armv7l)
     add_executable(safety_node safety_node.cpp) #Only compatible for armv7l
     target_link_libraries(safety_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TinyXML_LIBRARIES} ${roscpp_LIBRARIES} logger resourcemonitor safety_node_process terminalhatdriver wiringPi)
 endif ()
-#catkin_add_gtest(test_safety_node_process unit_tests/test_safety_node_process.cpp)
-#target_link_libraries(test_safety_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} safety_node_process)
+catkin_add_gtest(test_safety_node_process unit_tests/test_safety_node_process.cpp)
+target_link_libraries(test_safety_node_process ${catkin_LIBRARIES} ${Boost_LIBRARIES} safety_node_process)
 
 #DataLogger_Node
 file(MAKE_DIRECTORY /home/robot/catkin_ws/build/test_results/icarus_rover_v2/datalogger_node)

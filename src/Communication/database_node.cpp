@@ -36,7 +36,6 @@ bool DatabaseNode::start(int argc, char **argv)
 		diagnostic.Description = "Node Configured.  Initializing.";
 		get_logger()->log_diagnostic(diagnostic);
 	}
-
 	status = true;
 	return status;
 }
@@ -44,7 +43,7 @@ bool DatabaseNode::start(int argc, char **argv)
 eros::diagnostic DatabaseNode::read_launchparameters()
 {
 	eros::diagnostic diag = diagnostic;
-	get_logger()->log_notice("Configuration Files Loaded.");
+	get_logger()->log_notice(__FILE__,__LINE__,"Configuration Files Loaded.");
 	return diagnostic;
 }
 eros::diagnostic DatabaseNode::finish_initialization()
@@ -103,13 +102,13 @@ bool DatabaseNode::run_01hz_noisy()
 bool DatabaseNode::run_1hz()
 {
 	process->update_diagnostic(get_resource_diagnostic());
-	if ((process->is_initialized() == true) and (process->is_ready() == true))
+	if(process->get_taskstate() == TASKSTATE_RUNNING)
 	{
 	}
-	else if ((process->is_ready() == false) and (process->is_initialized() == true))
+	else if(process->get_taskstate() == TASKSTATE_INITIALIZED)
 	{
 	}
-	else if (process->is_initialized() == false)
+	else if(process->get_taskstate() == TASKSTATE_INITIALIZING)
 	{
 		{
 			eros::srv_device srv;
@@ -119,7 +118,7 @@ bool DatabaseNode::run_1hz()
 				if (srv.response.data.size() != 1)
 				{
 
-					get_logger()->log_error("Got unexpected device message.");
+					get_logger()->log_error(__FILE__,__LINE__,"Got unexpected device message.");
 				}
 				else
 				{
@@ -274,7 +273,7 @@ bool DatabaseNode::new_devicemsg(std::string query, eros::device t_device)
 		}
 	}
 
-	if ((process->is_initialized() == true))
+	if (process->get_taskstate() == TASKSTATE_INITIALIZED)
 	{
 		eros::device::ConstPtr device_ptr(new eros::device(t_device));
 		eros::diagnostic diag = process->new_devicemsg(device_ptr);
@@ -292,14 +291,14 @@ void DatabaseNode::cleanup()
 {
 	sqlite3_close(db);
 	base_cleanup();
-	get_logger()->log_info("Node Finished Safely.");
+	get_logger()->log_info(__FILE__,__LINE__,"[DatabaseNode] Finished Safely.");
 }
 /*! \brief Attempts to kill a node when an interrupt is received.
  *
  */
 void signalinterrupt_handler(int sig)
 {
-	printf("Killing Node with Signal: %d", sig);
+	printf("Killing DatabaseNode with Signal: %d", sig);
 	kill_node = true;
 	exit(0);
 }
@@ -312,9 +311,10 @@ int main(int argc, char **argv)
 	std::thread thread(&DatabaseNode::thread_loop, node);
 	while ((status == true) and (kill_node == false))
 	{
-		status = node->update();
+		status = node->update(node->get_process()->get_taskstate());
 	}
 	node->cleanup();
 	thread.detach();
 	return 0;
 }
+

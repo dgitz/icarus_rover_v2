@@ -50,6 +50,10 @@ public:
 	 *
 	 */
 	eros::diagnostic finish_initialization();
+	void reset()
+	{
+		audio_playing = false;
+	}
 	//Update Functions
 	/*! \brief Implementation of the update function
 	 *

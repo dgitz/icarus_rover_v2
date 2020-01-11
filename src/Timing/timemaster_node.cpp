@@ -211,13 +211,15 @@ void TimeMasterNode::thread_loop()
 }
 void TimeMasterNode::cleanup()
 {
+	base_cleanup();
+	get_logger()->log_info(__FILE__,__LINE__,"[TimeMasterNode] Finished Safely.");
 }
 /*! \brief Attempts to kill a node when an interrupt is received.
  *
  */
 void signalinterrupt_handler(int sig)
 {
-	printf("Killing Node with Signal: %d", sig);
+	printf("Killing TimeMasterNode with Signal: %d", sig);
 	kill_node = true;
 	exit(0);
 }
@@ -232,7 +234,7 @@ int main(int argc, char **argv) {
 		status = node->update(node->get_process()->get_taskstate());
 	}
 	node->cleanup();
-	node->get_logger()->log_info(__FILE__,__LINE__,"Node Finished Safely.");
+	thread.detach();
 	return 0;
 }
 

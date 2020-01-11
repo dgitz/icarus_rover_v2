@@ -43,7 +43,7 @@ bool BoardControllerNode::start(int argc,char **argv)
 eros::diagnostic BoardControllerNode::read_launchparameters()
 {
 	eros::diagnostic diag = diagnostic;
-	get_logger()->log_notice("Configuration Files Loaded.");
+	get_logger()->log_notice(__FILE__,__LINE__,"Configuration Files Loaded.");
 	return diagnostic;
 }
 eros::diagnostic BoardControllerNode::finish_initialization()
@@ -83,17 +83,17 @@ bool BoardControllerNode::run_01hz_noisy()
 	sprintf(tempstr,"Passed Checksum: %d @ %f Failed Checksum: %d @ %f",
 			passed_checksum,(double)passed_checksum/process->get_runtime(),
 			failed_checksum,(double)failed_checksum/process->get_runtime());
-	logger->log_info(tempstr);
-	logger->log_info(process->get_messageinfo(false));
+	logger->log_info(__FILE__,__LINE__,tempstr);
+	logger->log_info(__FILE__,__LINE__,process->get_messageinfo(false));
 	return true;
 }
 bool BoardControllerNode::run_1hz()
 {
 	process->update_diagnostic(get_resource_diagnostic());
-	if((process->is_initialized() == true) and (process->is_ready() == true))
+	if(process->get_taskstate() == TASKSTATE_RUNNING)
 	{
 	}
-	else if((process->is_ready() == false) and (process->is_initialized() == true))
+	else if(process->get_taskstate() == TASKSTATE_INITIALIZED)
 	{
 		{
 			eros::srv_device srv;
@@ -108,7 +108,7 @@ bool BoardControllerNode::run_1hz()
 			}
 		}
 	}
-	else if(process->is_initialized() == false)
+	else if (process->get_taskstate() == TASKSTATE_INITIALIZING)
 	{
 		{
 			eros::srv_device srv;
@@ -118,7 +118,7 @@ bool BoardControllerNode::run_1hz()
 				if(srv.response.data.size() != 1)
 				{
 
-					get_logger()->log_error("Got unexpected device message.");
+					get_logger()->log_error(__FILE__,__LINE__,"Got unexpected device message.");
 				}
 				else
 				{
@@ -337,14 +337,12 @@ bool BoardControllerNode::new_devicemsg(std::string query,eros::device t_device)
 			process->set_mydevice(t_device);
 		}
 	}
-
-
-	if((process->is_initialized() == true))
+	if (process->get_taskstate() == TASKSTATE_INITIALIZED)
 	{
 		eros::device::ConstPtr device_ptr(new eros::device(t_device));
 		eros::diagnostic diag = process->new_devicemsg(device_ptr);
 	}
-	if((process->is_ready() == true))
+	if(process->get_taskstate() == TASKSTATE_RUNNING)
 	{
 		std::vector<BoardControllerNodeProcess::Sensor> sensors = process->get_sensordata();
 		for(std::size_t i = 0; i < sensors.size(); i++)
@@ -433,7 +431,7 @@ int BoardControllerNode::sendMessageQuery(unsigned char query, unsigned char * i
 		else { counter++; }
 		if(counter > 10000)
 		{
-			logger->log_fatal("No com with device after %d tries.");
+			logger->log_fatal(__FILE__,__LINE__,"No comm with device after %d tries.");
 			return -1;
 		}
 		usleep (wait_time_us);
@@ -466,12 +464,15 @@ void BoardControllerNode::thread_loop()
 }
 void BoardControllerNode::cleanup()
 {
+	base_cleanup();
+	get_logger()->log_info(__FILE__,__LINE__,"[BoardControllerNode] Finished Safely.");
 }
 /*! \brief Attempts to kill a node when an interrupt is received.
  *
  */
-void signalinterrupt_handler(__attribute__((unused))int sig)
+void signalinterrupt_handler(int sig)
 {
+	printf("Killing BoardControllerNode with Signal: %d", sig);
 	kill_node = true;
 	exit(0);
 }
@@ -483,9 +484,10 @@ int main(int argc, char **argv) {
 	std::thread thread(&BoardControllerNode::thread_loop, node);
 	while((status == true) and (kill_node == false))
 	{
-		status = node->update();
+		status = node->update(node->get_process()->get_taskstate());
 	}
-	node->get_logger()->log_info("Node Finished Safely.");
+	node->cleanup();
+	thread.detach();
 	return 0;
 }
 

@@ -353,25 +353,11 @@ eros::diagnostic ControlGroupNodeProcess::finish_initialization()
 	eros::diagnostic diag = root_diagnostic;
 	diag = load_configfile(config_filepath);
 	diag = update_diagnostic(diag);
+	reset();
 	return diag;
 }
 eros::diagnostic ControlGroupNodeProcess::update(double t_dt, double t_ros_time)
 {
-	if (initialized == true)
-	{
-		bool all_controlgroups_ready = true;
-		if(controlgroups.size() == 0)
-		{
-			ready = true;
-		}
-		for(std::size_t i = 0; i < controlgroups.size(); ++i)
-		{
-			all_controlgroups_ready = all_controlgroups_ready && controlgroups.at(i).is_ready();
-		}
-		
-		ready = all_controlgroups_ready;
-		
-	}
 	eros::diagnostic diag = update_baseprocess(t_dt, t_ros_time);
 	for(std::size_t i = 0; i < controlgroups.size(); ++i)
 	{
@@ -379,6 +365,50 @@ eros::diagnostic ControlGroupNodeProcess::update(double t_dt, double t_ros_time)
 		diag = update_diagnostic(diag);
 		//print_diagnostic(diag);
 	}
+	if(task_state == TASKSTATE_PAUSE)
+	{
+
+	}
+	else if(task_state == TASKSTATE_INITIALIZED)
+	{
+		bool all_controlgroups_ready = true;
+		if(controlgroups.size() == 0)
+		{
+			request_statechange(TASKSTATE_RUNNING);
+		}
+		for(std::size_t i = 0; i < controlgroups.size(); ++i)
+		{
+			all_controlgroups_ready = all_controlgroups_ready && controlgroups.at(i).is_ready();
+		}
+		if(all_controlgroups_ready == true)
+		{
+			request_statechange(TASKSTATE_RUNNING);
+		}
+	}
+	else if(task_state == TASKSTATE_RESET)
+	{
+		bool v = request_statechange(TASKSTATE_RUNNING);
+		if(v == false)
+		{
+			diag = update_diagnostic(SOFTWARE,ERROR,DIAGNOSTIC_FAILED,
+				"Unallowed State Transition: From: " + map_taskstate_tostring(task_state) + " To: " + map_taskstate_tostring(TASKSTATE_RUNNING));
+		}
+		
+	}
+	else if(task_state == TASKSTATE_RUNNING)
+	{
+
+	}
+	else if(task_state != TASKSTATE_RUNNING)
+	{
+		bool v = request_statechange(TASKSTATE_RUNNING);
+		if(v == false)
+		{
+			diag = update_diagnostic(SOFTWARE,ERROR,DIAGNOSTIC_FAILED,
+				"Unallowed State Transition: From: " + map_taskstate_tostring(task_state) + " To: " + map_taskstate_tostring(TASKSTATE_RUNNING));
+		}
+	}
+	
 	bool controlgroups_ok = true;
 	for(std::size_t i = 0; i < controlgroups.size(); ++i)
 	{
@@ -396,7 +426,7 @@ eros::diagnostic ControlGroupNodeProcess::update(double t_dt, double t_ros_time)
 	
 	return diag;
 }
-eros::diagnostic ControlGroupNodeProcess::new_devicemsg(const eros::device::ConstPtr &device)
+eros::diagnostic ControlGroupNodeProcess::new_devicemsg(__attribute__((unused)) const eros::device::ConstPtr &device)
 {
 	eros::diagnostic diag = update_diagnostic(SOFTWARE, INFO, NOERROR, "Updated Device");
 	return diag;
@@ -423,6 +453,31 @@ std::vector<eros::diagnostic> ControlGroupNodeProcess::new_commandmsg(const eros
 		}
 		else if (t_msg->Option1 == LEVEL4)
 		{
+		}
+	}
+	else if(t_msg->Command == ROVERCOMMAND_TASKCONTROL)
+	{
+		if(node_name.find(t_msg->CommandText) != std::string::npos)
+		{
+			uint8_t prev_taskstate = get_taskstate();
+			bool v = request_statechange(t_msg->Option2);
+			if(v == false)
+			{
+				diag = update_diagnostic(SOFTWARE,ERROR,DIAGNOSTIC_FAILED,
+					"Unallowed State Transition: From: " + map_taskstate_tostring(prev_taskstate) + " To: " + map_taskstate_tostring(t_msg->Option2));
+				diaglist.push_back(diag);
+			}
+			else
+			{
+				if(task_state == TASKSTATE_RESET)
+				{
+					reset();
+				}
+				diag = update_diagnostic(SOFTWARE,NOTICE,DIAGNOSTIC_PASSED,
+					"Commanded State Transition: From: " + map_taskstate_tostring(prev_taskstate) + " To: " + map_taskstate_tostring(t_msg->Option2));
+				diaglist.push_back(diag);
+			}
+
 		}
 	}
 	if(t_msg->Command == ROVERCOMMAND_SIMULATIONCCONTROL)

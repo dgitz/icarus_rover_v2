@@ -78,7 +78,7 @@ eros::diagnostic NetworkTransceiverNode::read_launchparameters()
 		return diag;
 	}
 	process->set_UIMode(UIMode);
-	get_logger()->log_notice("Configuration Files Loaded.");
+	get_logger()->log_notice(__FILE__,__LINE__,"Configuration Files Loaded.");
 	return diag;
 }
 eros::diagnostic NetworkTransceiverNode::finish_initialization()
@@ -166,7 +166,7 @@ bool NetworkTransceiverNode::run_001hz()
 bool NetworkTransceiverNode::run_01hz()
 {
 
-	logger->log_info(process->get_messageinfo(false));
+	logger->log_info(__FILE__,__LINE__,process->get_messageinfo(false));
 	return true;
 }
 bool NetworkTransceiverNode::run_01hz_noisy()
@@ -182,17 +182,14 @@ bool NetworkTransceiverNode::run_01hz_noisy()
 bool NetworkTransceiverNode::run_1hz()
 {
 	process->update_diagnostic(get_resource_diagnostic());
-	if((process->is_initialized() == true) and (process->is_ready() == true))
+	if(process->get_taskstate() == TASKSTATE_RUNNING)
 	{
-		//get_logger()->log_debug("Init: " + std::to_string(process->is_initialized()) + " Ready: " + std::to_string(process->is_ready()));
 	}
-	else if((process->is_ready() == false) and (process->is_initialized() == true))
+	else if(process->get_taskstate() == TASKSTATE_INITIALIZED)
 	{
-		//get_logger()->log_info("Init: " + std::to_string(process->is_initialized()) + " Ready: " + std::to_string(process->is_ready()));
 	}
-	else if(process->is_initialized() == false)
+	else if(process->get_taskstate() == TASKSTATE_INITIALIZING)
 	{
-		//get_logger()->log_info("Init: " + std::to_string(process->is_initialized()) + " Ready: " + std::to_string(process->is_ready()));
 		{
 			{
 				eros::srv_device srv;
@@ -202,7 +199,7 @@ bool NetworkTransceiverNode::run_1hz()
 					if(srv.response.data.size() != 1)
 					{
 
-						get_logger()->log_error("Got unexpected device message.");
+						get_logger()->log_error(__FILE__,__LINE__,"Got unexpected device message.");
 					}
 					else
 					{
@@ -232,7 +229,6 @@ bool NetworkTransceiverNode::run_1hz()
 	}
 	else
 	{
-		//get_logger()->log_info("Init: " + std::to_string(process->is_initialized()) + " Ready: " + std::to_string(process->is_ready()));
 	}
 	std::vector<eros::diagnostic> diaglist = process->get_diagnostics();
 	for (std::size_t i = 0; i < diaglist.size(); ++i)
@@ -255,7 +251,7 @@ bool NetworkTransceiverNode::run_10hz()
 	}
 	else
 	{
-		logger->log_warn("Remote Heartbeat Failed.");
+		logger->log_warn(__FILE__,__LINE__,"Remote Heartbeat Failed.");
 		ready_to_arm = false;
 	}
 	eros::diagnostic diag = process->update(0.1,ros::Time::now().toSec());
@@ -285,7 +281,7 @@ bool NetworkTransceiverNode::run_loop1()
 			if(sendto(senddevice_sock, buffer.at(i).item.c_str(), buffer.at(i).item.size(), 0, (struct sockaddr *)&senddevice_addr, 
 				sizeof(senddevice_addr))!=(uint16_t)buffer.at(i).item.size())
 			{
-				logger->log_warn("Mismatch in number of bytes sent");
+				logger->log_warn(__FILE__,__LINE__,"Mismatch in number of bytes sent");
 			}
 			else
 			{
@@ -301,7 +297,7 @@ bool NetworkTransceiverNode::run_loop1()
 			if(sendto(senddevice_sock, buffer.at(i).item.c_str(), buffer.at(i).item.size(), 0, 
 				(struct sockaddr *)&senddevice_addr, sizeof(senddevice_addr))!=(uint16_t)buffer.at(i).item.size())
 			{
-				logger->log_warn("Mismatch in number of bytes sent");
+				logger->log_warn(__FILE__,__LINE__,"Mismatch in number of bytes sent");
 			}
 			else
 			{
@@ -316,7 +312,7 @@ bool NetworkTransceiverNode::run_loop1()
 			if(sendto(senddevice_sock, buffer.at(i).item.c_str(), buffer.at(i).item.size(), 0, 
 				(struct sockaddr *)&senddevice_addr, sizeof(senddevice_addr))!=(uint16_t)buffer.at(i).item.size())
 			{
-				logger->log_warn("Mismatch in number of bytes sent");
+				logger->log_warn(__FILE__,__LINE__,"Mismatch in number of bytes sent");
 			}
 			else
 			{
@@ -366,7 +362,7 @@ bool NetworkTransceiverNode::new_devicemsg(std::string query,eros::device t_devi
 		}
 	}
 
-	if((process->is_initialized() == true))
+	if ((process->get_taskstate() == TASKSTATE_INITIALIZED))
 	{
 		eros::device::ConstPtr device_ptr(new eros::device(t_device));
 		eros::diagnostic diag = process->new_devicemsg(device_ptr);
@@ -391,7 +387,7 @@ eros::diagnostic NetworkTransceiverNode::rescan_topics()
 				found_new_topics++;
 				char tempstr[255];
 				sprintf(tempstr,"Subscribing to resource topic: %s",info.name.c_str());
-				logger->log_info(tempstr);
+				logger->log_info(__FILE__,__LINE__,tempstr);
 				ros::Subscriber sub = n->subscribe<eros::resource>(info.name,20,&NetworkTransceiverNode::resource_Callback,this);
 				resource_subs.push_back(sub);
 			}
@@ -404,7 +400,7 @@ eros::diagnostic NetworkTransceiverNode::rescan_topics()
 				found_new_topics++;
 				char tempstr[255];
 				sprintf(tempstr,"Subscribing to diagnostic topic: %s",info.name.c_str());
-				logger->log_info(tempstr);
+				logger->log_info(__FILE__,__LINE__,tempstr);
 				ros::Subscriber sub = n->subscribe<eros::diagnostic>(info.name,20,&NetworkTransceiverNode::diagnostic_Callback,this);
 				diagnostic_subs.push_back(sub);
 			}
@@ -417,7 +413,7 @@ eros::diagnostic NetworkTransceiverNode::rescan_topics()
 				found_new_topics++;
 				char tempstr[255];
 				sprintf(tempstr,"Subscribing to firmware topic: %s",info.name.c_str());
-				logger->log_info(tempstr);
+				logger->log_info(__FILE__,__LINE__,tempstr);
 				ros::Subscriber sub = n->subscribe<eros::firmware>(info.name,1,&NetworkTransceiverNode::firmware_Callback,this);
 				firmware_subs.push_back(sub);
 			}
@@ -435,7 +431,7 @@ eros::diagnostic NetworkTransceiverNode::rescan_topics()
 		sprintf(tempstr,"Rescanned and found no new topics.");
 	}
 	diag = process->update_diagnostic(SOFTWARE,INFO,NOERROR,std::string(tempstr));
-	logger->log_info(tempstr);
+	logger->log_info(__FILE__,__LINE__,tempstr);
 	return diag;
 }
 void NetworkTransceiverNode::viewControlGroup_Callback(const eros::view_controlgroup::ConstPtr& msg)
@@ -521,7 +517,7 @@ bool NetworkTransceiverNode::initialize_recvsocket()
 {
 	if((recvdevice_sock = socket(AF_INET,SOCK_DGRAM,0)) < 0)
 	{
-		logger->log_error("Failed to create recv socket. Exiting.");
+		logger->log_error(__FILE__,__LINE__,"Failed to create recv socket. Exiting.");
 		return false;
 	}
 	struct timeval timeout;
@@ -534,12 +530,12 @@ bool NetworkTransceiverNode::initialize_recvsocket()
 	my_addr.sin_port = htons(process->get_recv_unicast_port());
 	if(bind(recvdevice_sock,(struct sockaddr *)&my_addr,sizeof(my_addr)) < 0)
 	{
-		logger->log_error("Failed to bind recv socket. Exiting.");
+		logger->log_error(__FILE__,__LINE__,"Failed to bind recv socket. Exiting.");
 		return false;
 	}
 	else
 	{
-		logger->log_info("Bound to recv socket.");
+		logger->log_info(__FILE__,__LINE__,"Bound to recv socket.");
 	}
 	return true;
 }
@@ -550,13 +546,13 @@ bool NetworkTransceiverNode::initialize_sendsocket()
 	//Create the socket
 	if((senddevice_sock=socket(AF_INET, SOCK_DGRAM, 0))<0)
 	{
-		logger->log_error("Failed to create send socket. Exiting.");
+		logger->log_error(__FILE__,__LINE__,"Failed to create send socket. Exiting.");
 		return false;
 	}
 
 	if(bind(senddevice_sock,( struct sockaddr *) &senddevice_addr, sizeof(senddevice_addr))<0)
 	{
-		logger->log_error("Failed to bind send socket. Exiting.");
+		logger->log_error(__FILE__,__LINE__,"Failed to bind send socket. Exiting.");
 		return false;
 	}
 	inet_pton(AF_INET,process->get_multicast_group().c_str(),&senddevice_addr.sin_addr.s_addr);
@@ -567,7 +563,7 @@ void NetworkTransceiverNode::thread_loop()
 {
 	while(kill_node == false)
 	{
-		if((process->is_initialized() == true) and (process->is_ready() == true))
+		if(process->get_taskstate() == TASKSTATE_RUNNING)
 		{
 			char buf[MAX_UDP_RX_BUFFER_SIZE] = {0};
 			socklen_t addrlen = sizeof(remote_addr);
@@ -607,7 +603,7 @@ void NetworkTransceiverNode::thread_loop()
 				}
 				else
 				{
-					printf("Couldn't decode message.\n");
+					logger->log_warn(__FILE__,__LINE__,"Couldn't decode Message.");
 				}
 				break;
 			case UDPMessageHandler::UDP_Heartbeat_ID:
@@ -622,7 +618,7 @@ void NetworkTransceiverNode::thread_loop()
 				}
 				else
 				{
-					printf("Couldn't decode message.\n");
+					logger->log_warn(__FILE__,__LINE__,"Couldn't decode Message.");
 				}
 				break;
 			case UDPMessageHandler::UDP_RemoteControl_ID:
@@ -656,7 +652,7 @@ void NetworkTransceiverNode::thread_loop()
 				}
 				else
 				{
-					printf("Couldn't decode message.\n");
+					logger->log_warn(__FILE__,__LINE__,"Couldn't decode Message.");
 				}
 				break;
 			case UDPMessageHandler::UDP_TuneControlGroup_ID:
@@ -675,7 +671,7 @@ void NetworkTransceiverNode::thread_loop()
 				}
 				else
 				{
-					printf("Couldn't decode message.\n");
+					logger->log_warn(__FILE__,__LINE__,"Couldn't decode Message.");
 				}
 				break;
 			case UDPMessageHandler::UDP_ArmControl_ID:
@@ -702,7 +698,7 @@ void NetworkTransceiverNode::thread_loop()
 				}
 				else
 				{
-					printf("Couldn't decode message.\n");
+					logger->log_warn(__FILE__,__LINE__,"Couldn't decode Message.");
 				}
 				break;
 			default:
@@ -710,7 +706,7 @@ void NetworkTransceiverNode::thread_loop()
 
 				sprintf(tempstr,"Message: %d Not Supported.",id);
 				printf("%s\n",tempstr);
-				logger->log_warn(std::string(tempstr));
+				logger->log_warn(__FILE__,__LINE__,std::string(tempstr));
 				break;
 			}
 		}
@@ -722,12 +718,15 @@ void NetworkTransceiverNode::cleanup()
 {
 	close(recvdevice_sock);
 	close(senddevice_sock);
+	base_cleanup();
+	get_logger()->log_info(__FILE__,__LINE__,"[NetworkTransceiverNode] Finished Safely.");
 }
 /*! \brief Attempts to kill a node when an interrupt is received.
  *
  */
-void signalinterrupt_handler(__attribute__((unused)) int sig)
+void signalinterrupt_handler(int sig)
 {
+	printf("Killing NetworkTransceiverNode with Signal: %d", sig);
 	kill_node = true;
 	exit(0);
 }
@@ -739,10 +738,10 @@ int main(int argc, char **argv) {
 	std::thread thread(&NetworkTransceiverNode::thread_loop, node);
 	while((status == true) and (kill_node == false))
 	{
-		status = node->update();
+		status = node->update(node->get_process()->get_taskstate());
 	}
 	node->cleanup();
-	node->get_logger()->log_info("Node Finished Safely.");
+	thread.detach();
 	return 0;
 }
 

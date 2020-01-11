@@ -42,7 +42,7 @@ bool SafetyNode::start(int argc,char **argv)
 eros::diagnostic SafetyNode::read_launchparameters()
 {
 	eros::diagnostic diag = diagnostic;
-	get_logger()->log_notice("Configuration Files Loaded.");
+	get_logger()->log_notice(__FILE__,__LINE__,"Configuration Files Loaded.");
 	return diagnostic;
 }
 eros::diagnostic SafetyNode::finish_initialization()
@@ -75,10 +75,10 @@ bool SafetyNode::run_01hz_noisy()
 bool SafetyNode::run_1hz()
 {
 	process->update_diagnostic(get_resource_diagnostic());
-	if ((process->is_initialized() == true) and (process->is_ready() == true))
+	if(process->get_taskstate() == TASKSTATE_RUNNING)
 	{
 	}
-	else if((process->is_ready() == false) and (process->is_initialized() == true))
+	else if(process->get_taskstate() == TASKSTATE_INITIALIZED)
 	{
 		eros::diagnostic diag = diagnostic;
 		eros::srv_device srv;
@@ -114,7 +114,7 @@ bool SafetyNode::run_1hz()
 						char tempstr[512];
 						sprintf(tempstr,"[%s] Could not configure Pin: %s with Function: %s",DEVICETYPE_TERMINALHAT,pins.at(i).Name.c_str(),pins.at(i).Function.c_str());
 						diag = process->update_diagnostic(DATA_STORAGE,ERROR,INITIALIZING_ERROR,std::string(tempstr));
-						logger->log_error(std::string(tempstr));
+						logger->log_error(__FILE__,__LINE__,std::string(tempstr));
 						kill_node = 1;
 					}
 				}
@@ -127,7 +127,7 @@ bool SafetyNode::run_1hz()
 			}
 		}
 	}
-	else if(process->is_initialized() == false)
+	else if(process->get_taskstate() == TASKSTATE_INITIALIZING)
 	{
 		{
 			eros::srv_device srv;
@@ -137,7 +137,7 @@ bool SafetyNode::run_1hz()
 				if(srv.response.data.size() != 1)
 				{
 
-					get_logger()->log_error("Got unexpected device message.");
+					get_logger()->log_error(__FILE__,__LINE__,"Got unexpected device message.");
 				}
 				else
 				{
@@ -178,7 +178,7 @@ bool SafetyNode::run_10hz()
 			char tempstr[512];
 			sprintf(tempstr,"[%s] Could not read Arm Switch",DEVICETYPE_TERMINALHAT);
 			diag = process->update_diagnostic(DATA_STORAGE,ERROR,DEVICE_NOT_AVAILABLE,std::string(tempstr));
-			logger->log_error(std::string(tempstr));
+			logger->log_error(__FILE__,__LINE__,std::string(tempstr));
 			kill_node = 1;
 		}
 	}
@@ -227,7 +227,7 @@ bool SafetyNode::new_devicemsg(std::string query,eros::device t_device)
 		}
 	}
 
-	if((process->is_initialized() == true))
+	if ((process->get_taskstate() == TASKSTATE_INITIALIZED))
 	{
 		eros::device::ConstPtr device_ptr(new eros::device(t_device));
 		eros::diagnostic diag = process->new_devicemsg(device_ptr);
@@ -244,12 +244,15 @@ void SafetyNode::thread_loop()
 }
 void SafetyNode::cleanup()
 {
+	base_cleanup();
+	get_logger()->log_info(__FILE__,__LINE__,"[SafetyNode] Finished Safely.");
 }
 /*! \brief Attempts to kill a node when an interrupt is received.
  *
  */
 void signalinterrupt_handler(int sig)
 {
+	printf("Killing SafetyNode with Signal: %d", sig);
 	kill_node = true;
 	exit(0);
 }
@@ -261,9 +264,10 @@ int main(int argc, char **argv) {
 	std::thread thread(&SafetyNode::thread_loop, node);
 	while((status == true) and (kill_node == false))
 	{
-		status = node->update();
+		status = node->update(node->get_process()->get_taskstate());
 	}
-	node->get_logger()->log_info("Node Finished Safely.");
+	node->cleanup();
+	thread.detach();
 	return 0;
 }
 

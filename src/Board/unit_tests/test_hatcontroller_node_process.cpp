@@ -10,12 +10,16 @@ std::string ros_DeviceName = Host_Name;
 std::string ros_ParentDevice = "";
 std::string ros_DeviceType = "ControlModule";
 #define DIAGNOSTIC_TYPE_COUNT 5
-void print_diagnostic(uint8_t level, eros::diagnostic diagnostic)
+void print_diagnostic(uint8_t level,eros::diagnostic diagnostic)
 {
-	if (diagnostic.Level >= level)
+	DiagnosticClass diag_helper;
+	if(diagnostic.Level >= level)
 	{
-		printf("Type: %d Message: %d Level: %d Device: %s Desc: %s\n", diagnostic.Diagnostic_Type, diagnostic.Diagnostic_Message,
-			   diagnostic.Level, diagnostic.DeviceName.c_str(), diagnostic.Description.c_str());
+		printf("Type: %s Message: %s Level: %s Device: %s Desc: %s\n",
+			diag_helper.get_DiagTypeString(diagnostic.Diagnostic_Type).c_str(),
+			diag_helper.get_DiagMessageString(diagnostic.Diagnostic_Message).c_str(),
+			diag_helper.get_DiagLevelString(diagnostic.Level).c_str(),
+			diagnostic.DeviceName.c_str(),diagnostic.Description.c_str());
 	}
 }
 eros::device initialize_device(eros::device device, std::vector<HatControllerNodeProcess::HatMap> supported_hats)
@@ -151,9 +155,9 @@ HatControllerNodeProcess *initializeprocess()
 	diagnostic_types.push_back(SENSORS);
 	process->enable_diagnostics(diagnostic_types);
 	process->finish_initialization();
-	EXPECT_TRUE(process->is_initialized() == false);
+	EXPECT_TRUE(process->get_taskstate() == TASKSTATE_INITIALIZING);
 	process->set_mydevice(device);
-	EXPECT_TRUE(process->is_initialized() == true);
+	EXPECT_TRUE(process->get_taskstate() == TASKSTATE_INITIALIZED);
 	EXPECT_TRUE(process->get_mydevice().DeviceName == device.DeviceName);
 	return process;
 }
@@ -170,9 +174,9 @@ HatControllerNodeProcess *initializeprocess(eros::device device)
 	diagnostic_types.push_back(SENSORS);
 	process->enable_diagnostics(diagnostic_types);
 	process->finish_initialization();
-	EXPECT_TRUE(process->is_initialized() == false);
+	EXPECT_TRUE(process->get_taskstate() == TASKSTATE_INITIALIZING);
 	process->set_mydevice(device);
-	EXPECT_TRUE(process->is_initialized() == true);
+	EXPECT_TRUE(process->get_taskstate() == TASKSTATE_INITIALIZED);
 	EXPECT_TRUE(process->get_mydevice().DeviceName == device.DeviceName);
 	return process;
 }
@@ -190,21 +194,7 @@ HatControllerNodeProcess *readyprocess(HatControllerNodeProcess *process)
 			EXPECT_TRUE(diagnostics.at(i).Level <= NOTICE);
 		}
 	}
-	if(process->is_ready() == false)
-	{
-		printf("[ERROR]: Process is not ready yet.  Configured Hats:\n");
-		std::vector<eros::device> hats = process->get_hats();
-		if(hats.size() == 0)
-		{
-			printf("[ERROR]: No Configured Hats!\n");
-		}
-		for(std::size_t i = 0; i < hats.size(); ++i)
-		{
-			printf("\t[%d] PN=%s DeviceName=%s\n",(int)i,hats.at(i).PartNumber.c_str(),hats.at(i).DeviceName.c_str());
-		}
-		print_diagnostic(INFO,diag);
-	}
-	EXPECT_TRUE(process->is_ready() == true);
+	EXPECT_TRUE(process->get_taskstate() == TASKSTATE_RUNNING);
 	return process;
 }
 TEST(Template, Process_Initialization_ServoHat)
@@ -229,8 +219,6 @@ TEST(Template, Process_Initialization_ServoHat)
 	servohat1_device = initialize_device(servohat1_device, supported_hats);
 
 	process->set_mydevice(ros_device);
-	EXPECT_TRUE(process->is_initialized() == true);
-	EXPECT_TRUE(process->is_ready() == false);
 
 	eros::device::ConstPtr dev_ptr(new eros::device(servohat1_device));
 	eros::diagnostic diagnostic = process->new_devicemsg(dev_ptr);
@@ -259,8 +247,6 @@ TEST(Template, Process_Initialization_GPIOHat)
 	gpiohat1_device = initialize_device(gpiohat1_device, supported_hats);
 
 	process->set_mydevice(ros_device);
-	EXPECT_TRUE(process->is_initialized() == true);
-	EXPECT_TRUE(process->is_ready() == false);
 
 	eros::device::ConstPtr dev_ptr(new eros::device(gpiohat1_device));
 	eros::diagnostic diagnostic = process->new_devicemsg(dev_ptr);
@@ -370,8 +356,7 @@ TEST(Template, Process_Command)
 	gpiohat1_device = initialize_device(gpiohat1_device, supported_hats);
 
 	process->set_mydevice(ros_device);
-	EXPECT_TRUE(process->is_initialized() == true);
-	EXPECT_TRUE(process->is_ready() == false);
+
 
 	eros::device::ConstPtr dev_ptr(new eros::device(gpiohat1_device));
 	eros::diagnostic diagnostic = process->new_devicemsg(dev_ptr);
@@ -384,6 +369,7 @@ TEST(Template, Process_Command)
 	bool fastrate_fire = false;   //10 Hz
 	bool mediumrate_fire = false; //1 Hz
 	bool slowrate_fire = false;   //0.1 Hz
+	bool pause_resume_ran = false;
 	while (current_time <= time_to_run)
 	{
 		eros::diagnostic diag = process->update(dt, current_time);
@@ -447,9 +433,67 @@ TEST(Template, Process_Command)
 				print_diagnostic(WARN, diagnostics.at(i));
 				EXPECT_TRUE(diagnostics.at(i).Level <= NOTICE);
 			}
+			if(pause_resume_ran == false)
+			{
+				{
+					EXPECT_TRUE(process->get_taskstate() == TASKSTATE_RUNNING);
+					eros::command cmd_taskcontrol;
+					cmd_taskcontrol.Command = ROVERCOMMAND_TASKCONTROL;
+					cmd_taskcontrol.Option1 = SUBSYSTEM_UNKNOWN;
+					cmd_taskcontrol.Option2 = TASKSTATE_PAUSE;
+					cmd_taskcontrol.CommandText = Node_Name;
+					eros::command::ConstPtr cmd_ptr(new eros::command(cmd_taskcontrol));
+					std::vector<eros::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
+					for (std::size_t i = 0; i < diaglist.size(); i++)
+					{
+						EXPECT_TRUE(diaglist.at(i).Level <= NOTICE);
+					}
+					EXPECT_TRUE(diaglist.size() > 0);
+					EXPECT_TRUE(process->get_taskstate() == TASKSTATE_PAUSE);
+				}
+				{
+					EXPECT_TRUE(process->get_taskstate() == TASKSTATE_PAUSE);
+					eros::command cmd_taskcontrol;
+					cmd_taskcontrol.Command = ROVERCOMMAND_TASKCONTROL;
+					cmd_taskcontrol.Option1 = SUBSYSTEM_UNKNOWN;
+					cmd_taskcontrol.Option2 = TASKSTATE_RUNNING;
+					cmd_taskcontrol.CommandText = Node_Name;
+					eros::command::ConstPtr cmd_ptr(new eros::command(cmd_taskcontrol));
+
+					std::vector<eros::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
+					for (std::size_t i = 0; i < diaglist.size(); i++)
+					{
+						EXPECT_TRUE(diaglist.at(i).Level <= NOTICE);
+					}
+					EXPECT_TRUE(diaglist.size() > 0);
+					EXPECT_TRUE(process->get_taskstate() == TASKSTATE_RUNNING);
+				}
+				{
+					EXPECT_TRUE(process->get_taskstate() == TASKSTATE_RUNNING);
+					eros::command cmd_taskcontrol;
+					cmd_taskcontrol.Command = ROVERCOMMAND_TASKCONTROL;
+					cmd_taskcontrol.Option1 = SUBSYSTEM_UNKNOWN;
+					cmd_taskcontrol.Option2 = TASKSTATE_RESET;
+					cmd_taskcontrol.CommandText = Node_Name;
+					eros::command::ConstPtr cmd_ptr(new eros::command(cmd_taskcontrol));
+
+					std::vector<eros::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
+					for (std::size_t i = 0; i < diaglist.size(); i++)
+					{
+						EXPECT_TRUE(diaglist.at(i).Level <= NOTICE);
+					}
+					EXPECT_TRUE(diaglist.size() > 0);
+					EXPECT_TRUE(process->get_taskstate() == TASKSTATE_RESET);
+					diag = process->update(0.0, 0.0);
+					EXPECT_TRUE(diag.Level <= NOTICE);
+					EXPECT_TRUE(process->get_taskstate() == TASKSTATE_RUNNING);
+				}
+				pause_resume_ran = true;
+			}
 		}
 		current_time += dt;
 	}
+	EXPECT_TRUE(pause_resume_ran == true);
 	EXPECT_TRUE(process->get_runtime() >= time_to_run);
 }
 TEST(DeviceInitialization, DeviceInitialization_TerminalHat)
@@ -645,12 +689,12 @@ TEST(DeviceInitialization,DeviceInitialization_EverySupportedHat)
 	eros::device::ConstPtr hat1_ptr(new eros::device(hat1));
 	diagnostic = process->new_devicemsg(hat1_ptr);
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
-	EXPECT_TRUE(process->is_ready() == false);
+	EXPECT_TRUE(process->get_taskstate() == TASKSTATE_INITIALIZED);
 
 	eros::device::ConstPtr hat2_ptr(new eros::device(hat2));
 	diagnostic = process->new_devicemsg(hat2_ptr);
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
-	EXPECT_TRUE(process->is_ready() == false);
+	EXPECT_TRUE(process->get_taskstate() == TASKSTATE_INITIALIZED);
 
 	eros::device::ConstPtr hat3_ptr(new eros::device(hat3));
 	diagnostic = process->new_devicemsg(hat3_ptr);

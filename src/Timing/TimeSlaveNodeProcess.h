@@ -31,6 +31,10 @@ public:
 	 *
 	 */
 	eros::diagnostic finish_initialization();
+	void reset()
+	{
+		ntp_initialized = false;
+	}
 	//Update Functions
 	/*! \brief Implementation of the update function
 	 *

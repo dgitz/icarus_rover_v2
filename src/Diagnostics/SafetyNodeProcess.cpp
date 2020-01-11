@@ -3,6 +3,7 @@ eros::diagnostic  SafetyNodeProcess::finish_initialization()
 {
 	supported_partnumbers.push_back(PN_100003);
 	supported_partnumbers.push_back(PN_625005);
+	reset();
     eros::diagnostic diag = root_diagnostic;
     arm_switch = false;
     return diag;
@@ -11,20 +12,32 @@ eros::diagnostic SafetyNodeProcess::update(double t_dt,double t_ros_time)
 {
 	eros::diagnostic diag = root_diagnostic;
 	diag = update_baseprocess(t_dt,t_ros_time);
-    if(ready == true)
-    {
-        if((arm_switch == true))
+	if(task_state == TASKSTATE_PAUSE)
+	{
+
+	}
+	else if(task_state == TASKSTATE_RESET)
+	{
+		bool v = request_statechange(TASKSTATE_RUNNING);
+		if(v == false)
 		{
-			ready_to_arm = true;
+			diag = update_diagnostic(SOFTWARE,ERROR,DIAGNOSTIC_FAILED,
+				"Unallowed State Transition: From: " + map_taskstate_tostring(task_state) + " To: " + map_taskstate_tostring(TASKSTATE_RUNNING));
+		}
+		
+	}
+	if(task_state == TASKSTATE_RUNNING)
+	{
+		diag = update_diagnostic(DATA_STORAGE,INFO,NOERROR,"No Error.");
+		if(arm_switch == true)
+		{
+				ready_to_arm = true;
 		}
 		else
 		{
 			ready_to_arm = false;
 		}
-    }
-	if((is_initialized() == true) and (is_ready() == true))
-	{
-		diag = update_diagnostic(DATA_STORAGE,INFO,NOERROR,"No Error.");
+
 	}
 	if(diag.Level <= NOTICE)
 	{
@@ -37,12 +50,12 @@ eros::diagnostic SafetyNodeProcess::update(double t_dt,double t_ros_time)
 eros::diagnostic SafetyNodeProcess::new_devicemsg(const eros::device::ConstPtr& t_device)
 {
 	eros::diagnostic diag = root_diagnostic;
-    if(initialized == false)
+    if(task_state == TASKSTATE_INITIALIZING)
 	{
 	}
 	else
 	{
-		if(ready == false)
+		if(task_state == TASKSTATE_INITIALIZED)
 		{
 			if(t_device->DeviceParent == host_name)
 			{
@@ -94,9 +107,7 @@ eros::diagnostic SafetyNodeProcess::new_devicemsg(const eros::device::ConstPtr& 
 		{
 		}
 	}
-	char tempstr[512];
-	sprintf(tempstr,"Initialized: %d Ready: %d",initialized,ready);
-	diag = update_diagnostic(DATA_STORAGE,INFO,NOERROR,std::string(tempstr));
+	diag = update_diagnostic(DATA_STORAGE,INFO,NOERROR,"No Error");
 	return diag;
 }
 std::vector<eros::diagnostic> SafetyNodeProcess::new_commandmsg(const eros::command::ConstPtr& t_msg)
@@ -122,6 +133,35 @@ std::vector<eros::diagnostic> SafetyNodeProcess::new_commandmsg(const eros::comm
 		else if (t_msg->Option1 == LEVEL4)
 		{
 		}
+	}
+	else if(t_msg->Command == ROVERCOMMAND_TASKCONTROL)
+	{
+		if(node_name.find(t_msg->CommandText) != std::string::npos)
+		{
+			uint8_t prev_taskstate = get_taskstate();
+			bool v = request_statechange(t_msg->Option2);
+			if(v == false)
+			{
+				diag = update_diagnostic(SOFTWARE,ERROR,DIAGNOSTIC_FAILED,
+					"Unallowed State Transition: From: " + map_taskstate_tostring(prev_taskstate) + " To: " + map_taskstate_tostring(t_msg->Option2));
+				diaglist.push_back(diag);
+			}
+			else
+			{
+				if(task_state == TASKSTATE_RESET)
+				{
+					reset();
+				}
+				diag = update_diagnostic(SOFTWARE,NOTICE,DIAGNOSTIC_PASSED,
+					"Commanded State Transition: From: " + map_taskstate_tostring(prev_taskstate) + " To: " + map_taskstate_tostring(t_msg->Option2));
+				diaglist.push_back(diag);
+			}
+
+		}
+	}
+	for(std::size_t i = 0; i < diaglist.size(); ++i)
+	{
+		diag = update_diagnostic(diaglist.at(i));
 	}
 	return diaglist;
 }
@@ -161,9 +201,9 @@ eros::diagnostic SafetyNodeProcess::set_terminalhat_initialized()
 	}
 	else
 	{
-		if(initialized == true)
+		if(task_state == TASKSTATE_INITIALIZED)
 		{
-			ready = true;
+			request_statechange(TASKSTATE_RUNNING);
 		}
 		char tempstr[512];
 		sprintf(tempstr,"%s is now Initialized",DEVICETYPE_TERMINALHAT);
@@ -180,7 +220,7 @@ bool SafetyNodeProcess::set_pinvalue(std::string name,int v)
 		{
 			for(std::size_t j = 0; j < hats.at(i).pins.size(); j++)
 			{
-				if((hats.at(i).pins.at(j).Name == name))
+				if((hats.at(i).pins.at(j).ConnectedDevice == name))
 				{
 					hats.at(i).pins.at(j).Value = v;
 					if(name == "ArmSwitch")

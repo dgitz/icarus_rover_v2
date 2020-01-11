@@ -2,20 +2,44 @@
 eros::diagnostic  CalibrationNodeProcess::finish_initialization()
 {
     eros::diagnostic diag = root_diagnostic;
-	calibration_mode_changed = false;
-	calibration_mode = ROVERCOMMAND_CALIBRATION_NONE;
+	reset();
     return diag;
 }
 eros::diagnostic CalibrationNodeProcess::update(double t_dt,double t_ros_time)
 {
 	eros::diagnostic diag = root_diagnostic;
-	if(initialized == true)
+	if(task_state == TASKSTATE_PAUSE)
 	{
-		ready = true;
 
 	}
+	else if(task_state == TASKSTATE_RESET)
+	{
+		bool v = request_statechange(TASKSTATE_RUNNING);
+		if(v == false)
+		{
+			diag = update_diagnostic(SOFTWARE,ERROR,DIAGNOSTIC_FAILED,
+				"Unallowed State Transition: From: " + map_taskstate_tostring(task_state) + " To: " + map_taskstate_tostring(TASKSTATE_RUNNING));
+		}
+		
+	}
+	else if(task_state == TASKSTATE_INITIALIZED)
+	{
+		request_statechange(TASKSTATE_RUNNING);
+	}
+	else if(task_state == TASKSTATE_RUNNING)
+	{
+	}
+	else if(task_state != TASKSTATE_RUNNING)
+	{
+		bool v = request_statechange(TASKSTATE_RUNNING);
+		if(v == false)
+		{
+			diag = update_diagnostic(SOFTWARE,ERROR,DIAGNOSTIC_FAILED,
+				"Unallowed State Transition: From: " + map_taskstate_tostring(task_state) + " To: " + map_taskstate_tostring(TASKSTATE_RUNNING));
+		}
+	}
 	diag = update_baseprocess(t_dt,t_ros_time);
-	if((is_initialized() == true) and (is_ready() == true))
+	if(task_state == TASKSTATE_RUNNING)
 	{
 		diag = update_diagnostic(DATA_STORAGE,INFO,NOERROR,"No Error.");
 	}
@@ -40,7 +64,7 @@ eros::diagnostic CalibrationNodeProcess::update(double t_dt,double t_ros_time)
 	
 	return diag;
 }
-eros::diagnostic CalibrationNodeProcess::new_devicemsg(const eros::device::ConstPtr& device)
+eros::diagnostic CalibrationNodeProcess::new_devicemsg(__attribute__((unused))const eros::device::ConstPtr& device)
 {
 	eros::diagnostic diag = root_diagnostic;
 	return diag;
@@ -67,6 +91,31 @@ std::vector<eros::diagnostic> CalibrationNodeProcess::new_commandmsg(const eros:
 		}
 		else if (t_msg->Option1 == LEVEL4)
 		{
+		}
+	}
+	else if(t_msg->Command == ROVERCOMMAND_TASKCONTROL)
+	{
+		if(node_name.find(t_msg->CommandText) != std::string::npos)
+		{
+			uint8_t prev_taskstate = get_taskstate();
+			bool v = request_statechange(t_msg->Option2);
+			if(v == false)
+			{
+				diag = update_diagnostic(SOFTWARE,ERROR,DIAGNOSTIC_FAILED,
+					"Unallowed State Transition: From: " + map_taskstate_tostring(prev_taskstate) + " To: " + map_taskstate_tostring(t_msg->Option2));
+				diaglist.push_back(diag);
+			}
+			else
+			{
+				if(task_state == TASKSTATE_RESET)
+				{
+					reset();
+				}
+				diag = update_diagnostic(SOFTWARE,NOTICE,DIAGNOSTIC_PASSED,
+					"Commanded State Transition: From: " + map_taskstate_tostring(prev_taskstate) + " To: " + map_taskstate_tostring(t_msg->Option2));
+				diaglist.push_back(diag);
+			}
+
 		}
 	}
 	else if(t_msg->Command == ROVERCOMMAND_CALIBRATION)

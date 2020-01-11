@@ -196,25 +196,25 @@ TEST(Template, Process_Command)
 						EXPECT_TRUE(process->get_taskstate() == TASKSTATE_RUNNING);
 					}
 					{
-					EXPECT_TRUE(process->get_taskstate() == TASKSTATE_RUNNING);
-					eros::command cmd_taskcontrol;
-					cmd_taskcontrol.Command = ROVERCOMMAND_TASKCONTROL;
-					cmd_taskcontrol.Option1 = SUBSYSTEM_UNKNOWN;
-					cmd_taskcontrol.Option2 = TASKSTATE_RESET;
-					cmd_taskcontrol.CommandText = Node_Name;
-					eros::command::ConstPtr cmd_ptr(new eros::command(cmd_taskcontrol));
+						EXPECT_TRUE(process->get_taskstate() == TASKSTATE_RUNNING);
+						eros::command cmd_taskcontrol;
+						cmd_taskcontrol.Command = ROVERCOMMAND_TASKCONTROL;
+						cmd_taskcontrol.Option1 = SUBSYSTEM_UNKNOWN;
+						cmd_taskcontrol.Option2 = TASKSTATE_RESET;
+						cmd_taskcontrol.CommandText = Node_Name;
+						eros::command::ConstPtr cmd_ptr(new eros::command(cmd_taskcontrol));
 
-					std::vector<eros::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
-					for (std::size_t i = 0; i < diaglist.size(); i++)
-					{
-						EXPECT_TRUE(diaglist.at(i).Level <= NOTICE);
+						std::vector<eros::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
+						for (std::size_t i = 0; i < diaglist.size(); i++)
+						{
+							EXPECT_TRUE(diaglist.at(i).Level <= NOTICE);
+						}
+						EXPECT_TRUE(diaglist.size() > 0);
+						EXPECT_TRUE(process->get_taskstate() == TASKSTATE_RESET);
+						diag = process->update(0.0, 0.0);
+						EXPECT_TRUE(diag.Level <= NOTICE);
+						EXPECT_TRUE(process->get_taskstate() == TASKSTATE_RUNNING);
 					}
-					EXPECT_TRUE(diaglist.size() > 0);
-					EXPECT_TRUE(process->get_taskstate() == TASKSTATE_RESET);
-					diag = process->update(0.0, 0.0);
-					EXPECT_TRUE(diag.Level <= NOTICE);
-					EXPECT_TRUE(process->get_taskstate() == TASKSTATE_RUNNING);
-				}
 					pause_resume_ran = true;
 				}
 			}

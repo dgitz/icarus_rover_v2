@@ -82,7 +82,13 @@ bool SampleNode::run_01hz_noisy()
 bool SampleNode::run_1hz()
 {
 	process->update_diagnostic(get_resource_diagnostic());
-	if (process->get_taskstate() == TASKSTATE_INITIALIZING)
+	if(process->get_taskstate() == TASKSTATE_RUNNING)
+	{
+	}
+	else if(process->get_taskstate() == TASKSTATE_INITIALIZED)
+	{
+	}
+	else if (process->get_taskstate() == TASKSTATE_INITIALIZING)
 	{
 		{
 			eros::srv_device srv;
@@ -168,8 +174,7 @@ bool SampleNode::new_devicemsg(std::string query, eros::device t_device)
 			process->set_mydevice(t_device);
 		}
 	}
-
-	if ((process->get_taskstate() == TASKSTATE_INITIALIZED))
+	if (process->get_taskstate() == TASKSTATE_INITIALIZED)
 	{
 		eros::device::ConstPtr device_ptr(new eros::device(t_device));
 		eros::diagnostic diag = process->new_devicemsg(device_ptr);
@@ -224,14 +229,14 @@ void SampleNode::thread_loop()
 void SampleNode::cleanup()
 {
 	base_cleanup();
-	get_logger()->log_info(__FILE__,__LINE__,"Node Finished Safely.");
+	get_logger()->log_info(__FILE__,__LINE__,"[SampleNode] Finished Safely.");
 }
 /*! \brief Attempts to kill a node when an interrupt is received.
  *
  */
 void signalinterrupt_handler(int sig)
 {
-	printf("Killing Node with Signal: %d", sig);
+	printf("Killing SampleNode with Signal: %d", sig);
 	kill_node = true;
 	exit(0);
 }
@@ -250,3 +255,4 @@ int main(int argc, char **argv)
 	thread.detach();
 	return 0;
 }
+

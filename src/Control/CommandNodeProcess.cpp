@@ -4,12 +4,10 @@ eros::diagnostic  CommandNodeProcess::finish_initialization()
 	eros::diagnostic diag = root_diagnostic;
 	init_StateList();
 	diag = init_PeriodicCommands();
+	reset();
 	ms_timer = 0;
 	gazebo_updaterate = -1.0;
 	timeout_value_ms = 0;
-	armeddisarmed_state = ARMEDSTATUS_DISARMED_CANNOTARM;
-	ReadyToArmList.clear();
-	ready_to_arm = false;
 	batterylevel_perc = 0.0;
 	current_command.Command = ROVERCOMMAND_BOOT;
 	last_command = current_command;
@@ -40,14 +38,31 @@ eros::diagnostic  CommandNodeProcess::finish_initialization()
 eros::diagnostic CommandNodeProcess::update(double t_dt,double t_ros_time)
 {
 	eros::diagnostic diag = root_diagnostic;
-
-	if(initialized == true)
+	diag = update_baseprocess(t_dt,t_ros_time);
+	if(task_state == TASKSTATE_PAUSE)
 	{
-		ready = true;
 
 	}
-	diag = update_baseprocess(t_dt,t_ros_time);
-	if(ready == true)
+	else if(task_state == TASKSTATE_RESET)
+	{
+		bool v = request_statechange(TASKSTATE_RUNNING);
+		if(v == false)
+		{
+			diag = update_diagnostic(SOFTWARE,ERROR,DIAGNOSTIC_FAILED,
+				"Unallowed State Transition: From: " + map_taskstate_tostring(task_state) + " To: " + map_taskstate_tostring(TASKSTATE_RUNNING));
+		}
+		
+	}
+	else if(task_state != TASKSTATE_RUNNING)
+	{
+		bool v = request_statechange(TASKSTATE_RUNNING);
+		if(v == false)
+		{
+			diag = update_diagnostic(SOFTWARE,ERROR,DIAGNOSTIC_FAILED,
+				"Unallowed State Transition: From: " + map_taskstate_tostring(task_state) + " To: " + map_taskstate_tostring(TASKSTATE_RUNNING));
+		}
+	}
+	if(task_state == TASKSTATE_RUNNING)
 	{
 		node_state = NODESTATE_RUNNING;
 		current_command.Command = ROVERCOMMAND_NONE;
@@ -137,7 +152,7 @@ eros::diagnostic CommandNodeProcess::update(double t_dt,double t_ros_time)
 			periodic_commands.at(i).lasttime_ran = run_time;
 		}
 	}
-	if((is_initialized() == true) and (is_ready() == true))
+	if(task_state == TASKSTATE_RUNNING)
 	{
 		diag = update_diagnostic(DATA_STORAGE,INFO,NOERROR,"No Error.");
 	}
@@ -212,6 +227,31 @@ std::vector<eros::diagnostic> CommandNodeProcess::new_commandmsg(const eros::com
 		}
 		else if (t_msg->Option1 == LEVEL4)
 		{
+		}
+	}
+	else if(t_msg->Command == ROVERCOMMAND_TASKCONTROL)
+	{
+		if(node_name.find(t_msg->CommandText) != std::string::npos)
+		{
+			uint8_t prev_taskstate = get_taskstate();
+			bool v = request_statechange(t_msg->Option2);
+			if(v == false)
+			{
+				diag = update_diagnostic(SOFTWARE,ERROR,DIAGNOSTIC_FAILED,
+					"Unallowed State Transition: From: " + map_taskstate_tostring(prev_taskstate) + " To: " + map_taskstate_tostring(t_msg->Option2));
+				diaglist.push_back(diag);
+			}
+			else
+			{
+				if(task_state == TASKSTATE_RESET)
+				{
+					reset();
+				}
+				diag = update_diagnostic(SOFTWARE,NOTICE,DIAGNOSTIC_PASSED,
+					"Commanded State Transition: From: " + map_taskstate_tostring(prev_taskstate) + " To: " + map_taskstate_tostring(t_msg->Option2));
+				diaglist.push_back(diag);
+			}
+
 		}
 	}
 	return diaglist;

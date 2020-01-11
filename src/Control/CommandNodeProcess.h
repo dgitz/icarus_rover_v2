@@ -62,6 +62,12 @@ public:
 	eros::diagnostic finish_initialization();
 	eros::diagnostic init_readytoarm_list(std::vector<std::string> topics);
 	eros::diagnostic load_loadscriptingfiles(std::string directory); //Use "" for default path, otherwise use specified directory
+	void reset()
+	{
+		armeddisarmed_state = ARMEDSTATUS_DISARMED_CANNOTARM;
+		ReadyToArmList.clear();
+		ready_to_arm = false;
+	}
 	//Update Functions
 	/*! \brief Implementation of the update function
 	 *

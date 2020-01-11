@@ -107,6 +107,12 @@ public:
 	 *
 	 */
 	eros::diagnostic finish_initialization();
+	void reset()
+	{
+		imu_reset_trigger = false;
+		imu_reset_inprogress = false;
+		imu_reset_inprogress_timer = 0.0;
+	}
 	//Update Functions
 	/*! \brief Implementation of the update function
 	 *

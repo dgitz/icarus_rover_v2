@@ -42,7 +42,7 @@ bool TopicRemapperNode::start(int argc,char **argv)
 eros::diagnostic TopicRemapperNode::read_launchparameters()
 {
 	eros::diagnostic diag = diagnostic;
-	get_logger()->log_notice("Configuration Files Loaded.");
+	get_logger()->log_notice(__FILE__,__LINE__,"Configuration Files Loaded.");
 	return diagnostic;
 }
 eros::diagnostic TopicRemapperNode::finish_initialization()
@@ -54,7 +54,7 @@ eros::diagnostic TopicRemapperNode::finish_initialization()
 		logger->log_diagnostic(diagnostic);
 		return diagnostic;
 	}
-	logger->log_debug(process->print_topicmaps().c_str());
+	logger->log_debug(__FILE__,__LINE__,process->print_topicmaps().c_str());
 	pps1_sub = n->subscribe<std_msgs::Bool>("/1PPS",1,&TopicRemapperNode::PPS1_Callback,this);
 	command_sub = n->subscribe<eros::command>("/command",1,&TopicRemapperNode::Command_Callback,this);
 	std::string device_topic = "/" + std::string(host_name) + "_master_node/srv_device";
@@ -67,7 +67,7 @@ eros::diagnostic TopicRemapperNode::finish_initialization()
 			ros::Subscriber sub = n->subscribe<sensor_msgs::Joy>(TopicMaps.at(i).in.topic,10,boost::bind(&TopicRemapperNode::Joystick_Callback,this,_1,TopicMaps.at(i).in.topic));
 			char tempstr[255];
 			sprintf(tempstr,"Subscribing to: %s",TopicMaps.at(i).in.topic.c_str());
-			logger->log_info(tempstr);
+			logger->log_info(__FILE__,__LINE__,tempstr);
 			subs.push_back(sub);
 		}
 		for(std::size_t j = 0; j < TopicMaps.at(i).outs.size();j++)
@@ -113,13 +113,13 @@ bool TopicRemapperNode::run_01hz_noisy()
 bool TopicRemapperNode::run_1hz()
 {
 	process->update_diagnostic(get_resource_diagnostic());
-	if ((process->is_initialized() == true) and (process->is_ready() == true))
+	if(process->get_taskstate() == TASKSTATE_RUNNING)
 	{
 	}
-	else if((process->is_ready() == false) and (process->is_initialized() == true))
+	else if(process->get_taskstate() == TASKSTATE_INITIALIZED)
 	{
 	}
-	else if(process->is_initialized() == false)
+	else if (process->get_taskstate() == TASKSTATE_INITIALIZING)
 	{
 		{
 			eros::srv_device srv;
@@ -129,7 +129,7 @@ bool TopicRemapperNode::run_1hz()
 				if(srv.response.data.size() != 1)
 				{
 
-					get_logger()->log_error("Got unexpected device message.");
+					get_logger()->log_error(__FILE__,__LINE__,"Got unexpected device message.");
 				}
 				else
 				{
@@ -155,8 +155,8 @@ bool TopicRemapperNode::run_1hz()
 bool TopicRemapperNode::run_10hz()
 {
 	ready_to_arm = process->get_ready_to_arm();
-	eros::diagnostic diag = process->update(0.1,ros::Time::now().toSec());
-	if(diag.Level > WARN)
+	eros::diagnostic diag = process->update(0.1, ros::Time::now().toSec());
+	if (diag.Level > WARN)
 	{
 		get_logger()->log_diagnostic(diag);
 		diagnostic_pub.publish(diag);
@@ -242,7 +242,7 @@ bool TopicRemapperNode::new_devicemsg(std::string query,eros::device t_device)
 		}
 	}
 
-	if((process->is_initialized() == true))
+	if ((process->get_taskstate() == TASKSTATE_INITIALIZED))
 	{
 		eros::device::ConstPtr device_ptr(new eros::device(t_device));
 		eros::diagnostic diag = process->new_devicemsg(device_ptr);
@@ -259,12 +259,15 @@ void TopicRemapperNode::thread_loop()
 }
 void TopicRemapperNode::cleanup()
 {
+	base_cleanup();
+	get_logger()->log_info(__FILE__,__LINE__,"[TopicRemapperNode] Finished Safely.");
 }
 /*! \brief Attempts to kill a node when an interrupt is received.
  *
  */
-void signalinterrupt_handler(__attribute__((unused)) int sig)
+void signalinterrupt_handler(int sig)
 {
+	printf("Killing TopicRemapperNode with Signal: %d", sig);
 	kill_node = true;
 	exit(0);
 }
@@ -276,9 +279,9 @@ int main(int argc, char **argv) {
 	std::thread thread(&TopicRemapperNode::thread_loop, node);
 	while((status == true) and (kill_node == false))
 	{
-		status = node->update();
+		status = node->update(node->get_process()->get_taskstate());
 	}
-	node->get_logger()->log_info("Node Finished Safely.");
+	node->cleanup();
+	thread.detach();
 	return 0;
 }
-

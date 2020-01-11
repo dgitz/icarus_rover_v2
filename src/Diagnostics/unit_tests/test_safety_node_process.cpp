@@ -10,7 +10,18 @@ std::string ros_DeviceName = Host_Name;
 std::string ros_ParentDevice = "";
 std::string ros_DeviceType = DEVICETYPE_CONTROLMODULE;
 #define DIAGNOSTIC_TYPE_COUNT 4
-
+void print_diagnostic(uint8_t level,eros::diagnostic diagnostic)
+{
+	DiagnosticClass diag_helper;
+	if(diagnostic.Level >= level)
+	{
+		printf("Type: %s Message: %s Level: %s Device: %s Desc: %s\n",
+			diag_helper.get_DiagTypeString(diagnostic.Diagnostic_Type).c_str(),
+			diag_helper.get_DiagMessageString(diagnostic.Diagnostic_Message).c_str(),
+			diag_helper.get_DiagLevelString(diagnostic.Level).c_str(),
+			diagnostic.DeviceName.c_str(),diagnostic.Description.c_str());
+	}
+}
 SafetyNodeProcess* initializeprocess()
 {
 
@@ -30,9 +41,9 @@ SafetyNodeProcess* initializeprocess()
 	diagnostic_types.push_back(REMOTE_CONTROL);
 	process->enable_diagnostics(diagnostic_types);
 	process->finish_initialization();
-	EXPECT_TRUE(process->is_initialized() == false);
+	EXPECT_TRUE(process->get_taskstate() == TASKSTATE_INITIALIZING);
 	process->set_mydevice(device);
-	EXPECT_TRUE(process->is_initialized() == true);
+	EXPECT_TRUE(process->get_taskstate() == TASKSTATE_INITIALIZED);
 	EXPECT_TRUE(process->get_mydevice().DeviceName == device.DeviceName);
 
 	eros::device hat1;
@@ -46,7 +57,7 @@ SafetyNodeProcess* initializeprocess()
 	hat1.pins.clear();
 	eros::pin newpin;
 	newpin.Function = "DigitalInput-Safety";
-	newpin.Name = "ArmSwitch";
+	newpin.ConnectedDevice = "ArmSwitch";
 	newpin.DefaultValue = 0;
 	newpin.Value = 0;
 	newpin.ParentDevice = hat1.DeviceName;
@@ -58,14 +69,13 @@ SafetyNodeProcess* initializeprocess()
 
     eros::device::ConstPtr hat_ptr(new eros::device(hat1));
 	diagnostic = process->new_devicemsg(hat_ptr);
+
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
-
-
-	EXPECT_TRUE(process->is_ready() == false);
+	EXPECT_TRUE(process->get_taskstate() == TASKSTATE_INITIALIZED);
 	EXPECT_FALSE(process->is_hat_running(hat1.DeviceType,hat1.ID));
 	diagnostic = process->set_terminalhat_initialized();
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
-	EXPECT_TRUE(process->is_ready() == true);
+	EXPECT_TRUE(process->get_taskstate() == TASKSTATE_RUNNING);
 
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 	EXPECT_TRUE(process->is_hat_running(hat1.DeviceType,hat1.ID));
@@ -73,22 +83,22 @@ SafetyNodeProcess* initializeprocess()
 	diagnostic = process->update(0.02,0.04);
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 	EXPECT_TRUE(process->get_ready_to_arm() == false);
-	EXPECT_TRUE(process->set_pinvalue(newpin.Name,0));
+	EXPECT_TRUE(process->set_pinvalue(newpin.ConnectedDevice,0));
 	diagnostic = process->update(0.02,0.06);
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 	EXPECT_TRUE(process->get_ready_to_arm() == false);
 
-	EXPECT_TRUE(process->set_pinvalue(newpin.Name,1));
+	EXPECT_TRUE(process->set_pinvalue(newpin.ConnectedDevice,1));
 	diagnostic = process->update(0.02,0.08);
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 	EXPECT_TRUE(process->get_ready_to_arm() == true);
 
-	EXPECT_TRUE(process->set_pinvalue(newpin.Name,0));
+	EXPECT_TRUE(process->set_pinvalue(newpin.ConnectedDevice,0));
 	diagnostic = process->update(0.02,0.10);
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 	EXPECT_TRUE(process->get_ready_to_arm() == false);
 
-	EXPECT_TRUE(process->set_pinvalue(newpin.Name,1));
+	EXPECT_TRUE(process->set_pinvalue(newpin.ConnectedDevice,1));
 	diagnostic = process->update(0.02,0.12);
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 	EXPECT_TRUE(process->get_ready_to_arm() == true);
@@ -99,7 +109,7 @@ SafetyNodeProcess* readyprocess(SafetyNodeProcess* process)
 {
 	eros::diagnostic diag = process->update(0.0,0.0);
 	EXPECT_TRUE(diag.Level <= NOTICE);
-	EXPECT_TRUE(process->is_ready() == true);
+	EXPECT_TRUE(process->get_taskstate() == TASKSTATE_RUNNING);
 	{
 		std::vector<eros::diagnostic> diagnostics = process->get_diagnostics();
 		EXPECT_TRUE(diagnostics.size() == DIAGNOSTIC_TYPE_COUNT);
@@ -125,7 +135,7 @@ TEST(Template,Process_Command)
 	bool fastrate_fire = false; //10 Hz
 	bool mediumrate_fire = false; //1 Hz
 	bool slowrate_fire = false; //0.1 Hz
-
+	bool pause_resume_ran = false;
 	while(current_time <= time_to_run)
 	{
 		eros::diagnostic diag = process->update(dt,current_time);
@@ -182,9 +192,67 @@ TEST(Template,Process_Command)
 					EXPECT_TRUE(diagnostics.at(i).Level <= NOTICE);
 				}
 			}
+			if(pause_resume_ran == false)
+			{
+				{
+					EXPECT_TRUE(process->get_taskstate() == TASKSTATE_RUNNING);
+					eros::command cmd_taskcontrol;
+					cmd_taskcontrol.Command = ROVERCOMMAND_TASKCONTROL;
+					cmd_taskcontrol.Option1 = SUBSYSTEM_UNKNOWN;
+					cmd_taskcontrol.Option2 = TASKSTATE_PAUSE;
+					cmd_taskcontrol.CommandText = Node_Name;
+					eros::command::ConstPtr cmd_ptr(new eros::command(cmd_taskcontrol));
+					std::vector<eros::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
+					for (std::size_t i = 0; i < diaglist.size(); i++)
+					{
+						EXPECT_TRUE(diaglist.at(i).Level <= NOTICE);
+					}
+					EXPECT_TRUE(diaglist.size() > 0);
+					EXPECT_TRUE(process->get_taskstate() == TASKSTATE_PAUSE);
+				}
+				{
+					EXPECT_TRUE(process->get_taskstate() == TASKSTATE_PAUSE);
+					eros::command cmd_taskcontrol;
+					cmd_taskcontrol.Command = ROVERCOMMAND_TASKCONTROL;
+					cmd_taskcontrol.Option1 = SUBSYSTEM_UNKNOWN;
+					cmd_taskcontrol.Option2 = TASKSTATE_RUNNING;
+					cmd_taskcontrol.CommandText = Node_Name;
+					eros::command::ConstPtr cmd_ptr(new eros::command(cmd_taskcontrol));
+
+					std::vector<eros::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
+					for (std::size_t i = 0; i < diaglist.size(); i++)
+					{
+						EXPECT_TRUE(diaglist.at(i).Level <= NOTICE);
+					}
+					EXPECT_TRUE(diaglist.size() > 0);
+					EXPECT_TRUE(process->get_taskstate() == TASKSTATE_RUNNING);
+				}
+				{
+					EXPECT_TRUE(process->get_taskstate() == TASKSTATE_RUNNING);
+					eros::command cmd_taskcontrol;
+					cmd_taskcontrol.Command = ROVERCOMMAND_TASKCONTROL;
+					cmd_taskcontrol.Option1 = SUBSYSTEM_UNKNOWN;
+					cmd_taskcontrol.Option2 = TASKSTATE_RESET;
+					cmd_taskcontrol.CommandText = Node_Name;
+					eros::command::ConstPtr cmd_ptr(new eros::command(cmd_taskcontrol));
+
+					std::vector<eros::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
+					for (std::size_t i = 0; i < diaglist.size(); i++)
+					{
+						EXPECT_TRUE(diaglist.at(i).Level <= NOTICE);
+					}
+					EXPECT_TRUE(diaglist.size() > 0);
+					EXPECT_TRUE(process->get_taskstate() == TASKSTATE_RESET);
+					diag = process->update(0.0, 0.0);
+					EXPECT_TRUE(diag.Level <= NOTICE);
+					EXPECT_TRUE(process->get_taskstate() == TASKSTATE_RUNNING);
+				}
+				pause_resume_ran = true;
+			}
 		}
 		current_time += dt;
 	}
+	EXPECT_TRUE(pause_resume_ran == true);
 	EXPECT_TRUE(process->get_runtime() >= time_to_run);
 }
 

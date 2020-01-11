@@ -2,6 +2,7 @@
 eros::diagnostic AudioNodeProcess::finish_initialization()
 {
 	eros::diagnostic diag = root_diagnostic;
+	reset();
 	query_for_device_configuration = true;
 	audiorecord_timer = 0.0;
 	totalaudio_tokeep = 30.0;
@@ -13,7 +14,6 @@ eros::diagnostic AudioNodeProcess::finish_initialization()
 	amplifier_initialized = false;
 	amplifier_available = false;
 	microphone_count = 0;
-	audio_playing = false;
 	audioplay_nextimeavailable = 0.0;
 	volume_perc = 100.0;
 	last_armedstate = ARMEDSTATUS_UNDEFINED;
@@ -23,46 +23,77 @@ eros::diagnostic AudioNodeProcess::update(double t_dt, double t_ros_time)
 {
 	eros::diagnostic diag = root_diagnostic;
 	diag = update_baseprocess(t_dt, t_ros_time);
+	if (task_state == TASKSTATE_PAUSE)
+	{
+	}
+	else if (task_state == TASKSTATE_RESET)
+	{
+		bool v = request_statechange(TASKSTATE_RUNNING);
+		if (v == false)
+		{
+			diag = update_diagnostic(SOFTWARE, ERROR, DIAGNOSTIC_FAILED,
+									 "Unallowed State Transition: From: " + map_taskstate_tostring(task_state) + " To: " + map_taskstate_tostring(TASKSTATE_RUNNING));
+		}
+	}
+	else if(task_state == TASKSTATE_INITIALIZING)
+	{
+		diag = update_diagnostic(DATA_STORAGE, NOTICE, INITIALIZING, "Node Not Initialized Yet.");
+	}
+	else if (task_state == TASKSTATE_INITIALIZED)
+	{
+		diag = update_diagnostic(DATA_STORAGE, NOTICE, INITIALIZING, "Node Initialized but not Running.");
+		if (microphone_count == 0)
+		{
+		}
+		else if (microphone_count == 1)
+		{
+			if ((left_microphone_available == true) and (left_microphone_initialized == true) and (amplifier_available == true) and (amplifier_initialized == true))
+			{
+				request_statechange(TASKSTATE_RUNNING);
+				diag = update_diagnostic(SENSORS, INFO, NOERROR, "Microphone Ready.");
+			}
+			else
+			{
+				//ready = false;
+			}
+		}
+		else if (microphone_count == 2)
+		{
+			if ((left_microphone_available == true) and
+				(left_microphone_initialized == true) and
+				(right_microphone_available == true) and
+				(right_microphone_initialized == true) and
+				(amplifier_available == true) and
+				(amplifier_initialized == true))
+			{
+				diag = update_diagnostic(SENSORS, INFO, NOERROR, "Microphone Ready.");
+				request_statechange(TASKSTATE_RUNNING);
+			}
+			else
+			{
+				//ready = false;
+			}
+		}
+		else
+		{
+			//ready = false;
+		}
+	}
+	else if (task_state == TASKSTATE_RUNNING)
+	{
+	}
+	else if (task_state != TASKSTATE_RUNNING)
+	{
+		bool v = request_statechange(TASKSTATE_RUNNING);
+		if (v == false)
+		{
+			diag = update_diagnostic(SOFTWARE, ERROR, DIAGNOSTIC_FAILED,
+									 "Unallowed State Transition: From: " + map_taskstate_tostring(task_state) + " To: " + map_taskstate_tostring(TASKSTATE_RUNNING));
+		}
+	}
 	audiorecord_timer += t_dt;
-	if (microphone_count == 0)
-	{
-		ready = false; //At least 1 required
-		
-	}
-	else if (microphone_count == 1)
-	{
-		if ((left_microphone_available == true) and (left_microphone_initialized == true) and (amplifier_available == true) and (amplifier_initialized == true))
-		{
-			ready = true;
-			diag = update_diagnostic(SENSORS, INFO, NOERROR, "Microphone Ready.");
-		}
-		else
-		{
-			ready = false;
-		}
-	}
-	else if (microphone_count == 2)
-	{
-		if ((left_microphone_available == true) and
-			(left_microphone_initialized == true) and
-			(right_microphone_available == true) and
-			(right_microphone_initialized == true) and
-			(amplifier_available == true) and
-			(amplifier_initialized == true))
-		{
-			diag = update_diagnostic(SENSORS, INFO, NOERROR, "Microphone Ready.");
-			ready = true;
-		}
-		else
-		{
-			ready = false;
-		}
-	}
-	else
-	{
-		ready = false;
-	}
-	if (ready == true)
+
+	if (task_state == TASKSTATE_RUNNING)
 	{
 
 		for (std::size_t i = 0; i < audiorecord_files.size(); i++)
@@ -73,7 +104,7 @@ eros::diagnostic AudioNodeProcess::update(double t_dt, double t_ros_time)
 				{
 					char tempstr[256];
 					sprintf(tempstr, "rm %s", audiorecord_files.at(i).filepath.c_str());
-					exec(tempstr, false); 
+					exec(tempstr, false);
 				}
 				else
 				{
@@ -99,17 +130,6 @@ eros::diagnostic AudioNodeProcess::update(double t_dt, double t_ros_time)
 				}
 			}
 		}
-	}
-	if (initialized == false)
-	{
-		diag = update_diagnostic(DATA_STORAGE, NOTICE, INITIALIZING, "Node Not Initialized Yet.");
-	}
-	else if ((initialized == true) and (ready == false))
-	{
-		diag = update_diagnostic(DATA_STORAGE, NOTICE, INITIALIZING, "Node Initialized but not Running.");
-	}
-	else if (ready == true)
-	{
 		diag = update_diagnostic(DATA_STORAGE, INFO, NOERROR, "No Error.");
 		diag = update_diagnostic(SOFTWARE, INFO, NOERROR, "Node Running.");
 	}
@@ -195,6 +215,34 @@ std::vector<eros::diagnostic> AudioNodeProcess::new_commandmsg(const eros::comma
 		{
 		}
 	}
+	else if (t_msg->Command == ROVERCOMMAND_TASKCONTROL)
+	{
+		if (node_name.find(t_msg->CommandText) != std::string::npos)
+		{
+			uint8_t prev_taskstate = get_taskstate();
+			bool v = request_statechange(t_msg->Option2);
+			if (v == false)
+			{
+				diag = update_diagnostic(SOFTWARE, ERROR, DIAGNOSTIC_FAILED,
+										 "Unallowed State Transition: From: " + map_taskstate_tostring(prev_taskstate) + " To: " + map_taskstate_tostring(t_msg->Option2));
+				diaglist.push_back(diag);
+			}
+			else
+			{
+				if (task_state == TASKSTATE_RESET)
+				{
+					reset();
+				}
+				diag = update_diagnostic(SOFTWARE, NOTICE, DIAGNOSTIC_PASSED,
+										 "Commanded State Transition: From: " + map_taskstate_tostring(prev_taskstate) + " To: " + map_taskstate_tostring(t_msg->Option2));
+				diaglist.push_back(diag);
+			}
+		}
+	}
+	for (std::size_t i = 0; i < diaglist.size(); ++i)
+	{
+		diag = update_diagnostic(diaglist.at(i));
+	}
 	return diaglist;
 }
 std::vector<eros::diagnostic> AudioNodeProcess::check_programvariables()
@@ -257,7 +305,7 @@ bool AudioNodeProcess::set_audiostoragedirectory(std::string v)
 
 		char tempstr[256];
 		sprintf(tempstr, "rm -r -f %s/input/*", v.c_str());
-		exec(tempstr, false); 
+		exec(tempstr, false);
 		init_audioplayfiles();
 		return true;
 	}
@@ -283,7 +331,7 @@ bool AudioNodeProcess::set_audioarchivedirectory(std::string v)
 }
 bool AudioNodeProcess::get_audiorecordtrigger(std::string &command, std::string &filepath)
 {
-	if (ready == true)
+	if (task_state == TASKSTATE_RUNNING)
 	{
 		if (audiorecord_timer > ((double)audiorecord_duration + AUDIOWAIT_TIME))
 		{
@@ -316,7 +364,7 @@ bool AudioNodeProcess::get_audiorecordtrigger(std::string &command, std::string 
 bool AudioNodeProcess::get_audioplaytrigger(std::string &command, std::string &filepath)
 {
 	bool trigger = false;
-	if (ready == true)
+	if (task_state == TASKSTATE_RUNNING)
 	{
 		if (audio_playing == true)
 		{
@@ -446,7 +494,7 @@ bool AudioNodeProcess::new_audioplaytrigger(std::string trigger, bool bypass)
 {
 	if (bypass == false)
 	{
-		if (ready == false)
+		if (task_state == TASKSTATE_INITIALIZED)
 		{
 			return false;
 		}
