@@ -67,7 +67,6 @@ ControlGroupNodeProcess *initializeprocess(std::string controlgroupconfig_filepa
 ControlGroupNodeProcess *readyprocess(ControlGroupNodeProcess *process)
 {
 	eros::diagnostic diag = process->update(0.0, 0.0);
-	EXPECT_TRUE(process->get_taskstate() == TASKSTATE_RUNNING);
 	//Simulate get pin message for Control Group Output
 	{
 		eros::pin output_pin;
@@ -261,7 +260,7 @@ TEST(Operation,TimingTest)
 		ros::Time ros_stop = process->convert_time(stop);
 		single_controlgroup_runtime = ros_stop.toSec()-ros_start.toSec();
 	}
-	printf("Simple Run Time: %4.4f (sec) Time Per Loop: %4.4f (nS)\n",simple_operation_run,1000000.0*simple_operation_run/(double)(loop_count));
+	printf("Simple (No Control Groups) Run Time: %4.4f (sec) Time Per Loop: %4.4f (nS)\n",simple_operation_run,1000000.0*simple_operation_run/(double)(loop_count));
 	printf("Single ControlGroup Run Time: %4.4f (sec) Time Per Loop: %4.4f (nS)\n",single_controlgroup_runtime,1000000.0*single_controlgroup_runtime/(double)(loop_count));
 	printf("Speed Reduction Factor: %4.4f\n",single_controlgroup_runtime/simple_operation_run);
 

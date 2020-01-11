@@ -82,7 +82,13 @@ bool SampleNode::run_01hz_noisy()
 bool SampleNode::run_1hz()
 {
 	process->update_diagnostic(get_resource_diagnostic());
-	if (process->get_taskstate() == TASKSTATE_INITIALIZING)
+	if(process->get_taskstate() == TASKSTATE_RUNNING)
+	{
+	}
+	else if(process->get_taskstate() == TASKSTATE_INITIALIZED)
+	{
+	}
+	else if (process->get_taskstate() == TASKSTATE_INITIALIZING)
 	{
 		{
 			eros::srv_device srv;
@@ -246,6 +252,7 @@ int main(int argc, char **argv)
 	{
 		status = node->update(node->get_process()->get_taskstate());
 	}
+	node->get_logger()->log_info(__FILE__,__LINE__,"Node Finished Safely.");
 	node->cleanup();
 	thread.detach();
 	return 0;

@@ -359,6 +359,12 @@ eros::diagnostic ControlGroupNodeProcess::finish_initialization()
 eros::diagnostic ControlGroupNodeProcess::update(double t_dt, double t_ros_time)
 {
 	eros::diagnostic diag = update_baseprocess(t_dt, t_ros_time);
+	for(std::size_t i = 0; i < controlgroups.size(); ++i)
+	{
+		diag = controlgroups.at(i).update(t_dt);
+		diag = update_diagnostic(diag);
+		//print_diagnostic(diag);
+	}
 	if(task_state == TASKSTATE_PAUSE)
 	{
 
@@ -389,6 +395,10 @@ eros::diagnostic ControlGroupNodeProcess::update(double t_dt, double t_ros_time)
 		}
 		
 	}
+	else if(task_state == TASKSTATE_RUNNING)
+	{
+
+	}
 	else if(task_state != TASKSTATE_RUNNING)
 	{
 		bool v = request_statechange(TASKSTATE_RUNNING);
@@ -398,12 +408,7 @@ eros::diagnostic ControlGroupNodeProcess::update(double t_dt, double t_ros_time)
 				"Unallowed State Transition: From: " + map_taskstate_tostring(task_state) + " To: " + map_taskstate_tostring(TASKSTATE_RUNNING));
 		}
 	}
-	for(std::size_t i = 0; i < controlgroups.size(); ++i)
-	{
-		diag = controlgroups.at(i).update(t_dt);
-		diag = update_diagnostic(diag);
-		//print_diagnostic(diag);
-	}
+	
 	bool controlgroups_ok = true;
 	for(std::size_t i = 0; i < controlgroups.size(); ++i)
 	{

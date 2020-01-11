@@ -45,18 +45,18 @@ eros::diagnostic IMUNode::read_launchparameters()
 	bool load_calibrationfile = false;
 	if(n->getParam(param_use_calibrationfile,load_calibrationfile) == false)
 	{
-		get_logger()->log_warn("Param: use_calibrationfile Not Found.");
+		get_logger()->log_warn(__FILE__,__LINE__,"Param: use_calibrationfile Not Found.");
 	}
 	if(load_calibrationfile == false)
 	{
-		get_logger()->log_warn("Not using Calibration File.");
+		get_logger()->log_warn(__FILE__,__LINE__,"Not using Calibration File.");
 	}
 	else
 	{
-		get_logger()->log_info("Using Calibration File.");
+		get_logger()->log_info(__FILE__,__LINE__,"Using Calibration File.");
 	}
 	process->set_readsensorfile(load_calibrationfile);
-	get_logger()->log_notice("All Configuration Files Loaded.");
+	get_logger()->log_notice(__FILE__,__LINE__,"All Configuration Files Loaded.");
 	
 	return diagnostic;
 }
@@ -92,7 +92,7 @@ bool IMUNode::run_01hz_noisy()
 bool IMUNode::run_1hz()
 {
 	process->update_diagnostic(get_resource_diagnostic());
-	if((process->is_initialized() == true) and (process->is_ready() == true))
+	if(process->get_taskstate() == TASKSTATE_RUNNING)
 	{
 		if((process->get_imus_initialized() == true) and (process->get_imus_running() == false))
 		{
@@ -101,7 +101,7 @@ bool IMUNode::run_1hz()
 			{
 				IMUDriver imu_driver;
 				int status = imu_driver.init(imus.at(i).partnumber,imus.at(i).device_path,imus.at(i).devicename,0);
-				logger->log_notice("Init IMU: " + imus.at(i).devicename + " at Port: " + imu_driver.get_port());
+				logger->log_notice(__FILE__,__LINE__,"Init IMU: " + imus.at(i).devicename + " at Port: " + imu_driver.get_port());
 				if(status <= 0)
 				{
 					diagnostic.Diagnostic_Type = SENSORS;
@@ -130,7 +130,7 @@ bool IMUNode::run_1hz()
 						imu_drivers.push_back(imu_driver);
 						char tempstr[512];
 						sprintf(tempstr,"IMU Driver Started: %s",imus.at(i).devicename.c_str());
-						logger->log_notice(tempstr);
+						logger->log_notice(__FILE__,__LINE__,tempstr);
 						IMUNodeProcess::IMU imu = process->get_imu(imus.at(i).devicename);
 						print_imustats(imu);
 					}
@@ -138,7 +138,7 @@ bool IMUNode::run_1hz()
 					{
 						char tempstr[512];
 						sprintf(tempstr,"IMU Driver Failed to Start: %s. Exiting.",imus.at(i).devicename.c_str());
-						logger->log_error(tempstr);
+						logger->log_error(__FILE__,__LINE__,tempstr);
 						kill_node = 1;
 					}
 				}
@@ -146,10 +146,10 @@ bool IMUNode::run_1hz()
 
 		}
 	}
-	else if((process->is_ready() == false) and (process->is_initialized() == true))
+	else if(process->get_taskstate() == TASKSTATE_INITIALIZED)
 	{
 	}
-	else if(process->is_initialized() == false)
+	else if (process->get_taskstate() == TASKSTATE_INITIALIZING)
 	{
 		{
 			eros::srv_device srv;
@@ -159,7 +159,7 @@ bool IMUNode::run_1hz()
 				if(srv.response.data.size() != 1)
 				{
 
-					get_logger()->log_error("Got unexpected device message.");
+					get_logger()->log_error(__FILE__,__LINE__,"Got unexpected device message.");
 				}
 				else
 				{
@@ -245,7 +245,7 @@ bool IMUNode::run_10hz()
 bool IMUNode::run_loop1()
 {
 	eros::diagnostic diag;
-	if((process->is_initialized() == true) and (process->is_ready() == true))
+	if(process->get_taskstate() == TASKSTATE_RUNNING)
 	{
 		if((process->get_imus_initialized() == true) and (process->get_imus_running() == true))
 		{
@@ -300,9 +300,6 @@ void IMUNode::Command_Callback(const eros::command::ConstPtr& t_msg)
 	{
 		if(t_msg->Option1 == POSE_NODE)
 		{
-			char tempstr[128];
-			sprintf(tempstr,"Setting Debug Level: %d",t_msg->Option2);
-			logger->log_notice(std::string(tempstr));
 			for(std::size_t i = 0; i < imu_drivers.size(); ++i)
 			{
 				imu_drivers.at(i).set_debugmode(t_msg->Option2);
@@ -313,11 +310,11 @@ void IMUNode::Command_Callback(const eros::command::ConstPtr& t_msg)
 	{
 		if(t_msg->Option1 == ROVERCOMMAND_CALIBRATION_MAGNETOMETER)
 		{
-			logger->log_notice("Resetting Magnetometer Calibration Data.");
+			logger->log_notice(__FILE__,__LINE__,"Resetting Magnetometer Calibration Data.");
 		}
 		if(t_msg->Option1 == ROVERCOMMAND_CALIBRATION_MOUNTINGANGLEOFFSET)
 		{
-			logger->log_notice("Resetting Mounting Angle Offset Data.");
+			logger->log_notice(__FILE__,__LINE__,"Resetting Mounting Angle Offset Data.");
 		}
 		std::vector<IMUNodeProcess::IMU> imus = process->get_imus();
 		for(std::size_t i = 0; i < imus.size(); ++i)
@@ -338,17 +335,16 @@ bool IMUNode::new_devicemsg(std::string query,eros::device t_device)
 		}
 	}
 
-	if((process->is_initialized() == true))
+	if ((process->get_taskstate() == TASKSTATE_INITIALIZED))
 	{
 		eros::device::ConstPtr device_ptr(new eros::device(t_device));
 		eros::diagnostic diag = process->new_devicemsg(device_ptr);
-		
 	}
 	return true;
 }
 bool IMUNode::new_devicemsg(__attribute__((unused))std::string query,eros::device t_device,eros::leverarm t_leverarm)
 {
-	if((process->is_initialized() == true))
+	if(process->get_taskstate() == TASKSTATE_INITIALIZED)
 	{
 		eros::device::ConstPtr device_ptr(new eros::device(t_device));
 		eros::leverarm::ConstPtr leverarm_ptr(new eros::leverarm(t_leverarm));
@@ -365,12 +361,12 @@ void IMUNode::print_imustats(IMUNodeProcess::IMU imu)
 		{
 			char tempstr[256];
 			sprintf(tempstr,"IMU Stats-%s",imu.devicename.c_str());
-			logger->log_notice(std::string(tempstr));
+			logger->log_notice(__FILE__,__LINE__,std::string(tempstr));
 		}
 		{
 			char tempstr[256];
 			sprintf(tempstr,"Sensor Info File Path: %s\n",imu.sensor_info_path.c_str());
-			logger->log_notice(std::string(tempstr));
+			logger->log_notice(__FILE__,__LINE__,std::string(tempstr));
 		}
 		{
 			print_3x3_matricies(imu.rotate_matrix);
@@ -390,7 +386,7 @@ void IMUNode::print_imustats(IMUNodeProcess::IMU imu)
 					imu.MagnetometerEllipsoidFit_RotationMatrix(2,0),
 					imu.MagnetometerEllipsoidFit_RotationMatrix(2,1),
 					imu.MagnetometerEllipsoidFit_RotationMatrix(2,2));
-			logger->log_notice(std::string(tempstr));
+			logger->log_notice(__FILE__,__LINE__,std::string(tempstr));
 		}
 		{
 			char tempstr[1024];
@@ -399,7 +395,7 @@ void IMUNode::print_imustats(IMUNodeProcess::IMU imu)
 					imu.MagnetometerEllipsoidFit_Bias(0),
 					imu.MagnetometerEllipsoidFit_Bias(1),
 					imu.MagnetometerEllipsoidFit_Bias(2));
-			logger->log_notice(std::string(tempstr));
+			logger->log_notice(__FILE__,__LINE__,std::string(tempstr));
 		}
 }
 void IMUNode::print_3x3_matricies(IMUNodeProcess::RotationMatrix mat)
@@ -419,7 +415,7 @@ void IMUNode::print_3x3_matricies(IMUNodeProcess::RotationMatrix mat)
 				mat.Rotation_Acc(2,0),
 				mat.Rotation_Acc(2,1),
 				mat.Rotation_Acc(2,2));
-		logger->log_notice(std::string(tempstr));
+		logger->log_notice(__FILE__,__LINE__,std::string(tempstr));
 	}
 	{
 		char tempstr[1024];
@@ -436,7 +432,7 @@ void IMUNode::print_3x3_matricies(IMUNodeProcess::RotationMatrix mat)
 				mat.Rotation_Gyro(2,0),
 				mat.Rotation_Gyro(2,1),
 				mat.Rotation_Gyro(2,2));
-		logger->log_notice(std::string(tempstr));
+		logger->log_notice(__FILE__,__LINE__,std::string(tempstr));
 	}
 	{
 		char tempstr[1024];
@@ -453,7 +449,7 @@ void IMUNode::print_3x3_matricies(IMUNodeProcess::RotationMatrix mat)
 				mat.Rotation_Mag(2,0),
 				mat.Rotation_Mag(2,1),
 				mat.Rotation_Mag(2,2));
-		logger->log_notice(std::string(tempstr));
+		logger->log_notice(__FILE__,__LINE__,std::string(tempstr));
 	}
 }
 void IMUNode::thread_loop()
@@ -469,8 +465,9 @@ void IMUNode::cleanup()
 /*! \brief Attempts to kill a node when an interrupt is received.
  *
  */
-void signalinterrupt_handler(__attribute__((unused))int sig)
+void signalinterrupt_handler(int sig)
 {
+	printf("Killing Node with Signal: %d", sig);
 	kill_node = true;
 	exit(0);
 }
@@ -482,10 +479,10 @@ int main(int argc, char **argv) {
 	std::thread thread(&IMUNode::thread_loop, node);
 	while((status == true) and (kill_node == false))
 	{
-		status = node->update();
+		status = node->update(node->get_process()->get_taskstate());
 	}
+	node->get_logger()->log_info(__FILE__,__LINE__,"Node Finished Safely.");
 	node->cleanup();
-	node->get_logger()->log_info("Node Finished Safely.");
+	thread.detach();
 	return 0;
 }
-

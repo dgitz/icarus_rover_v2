@@ -41,7 +41,10 @@ public:
 	eros::diagnostic finish_initialization();
 	void reset()
 	{
-		
+		for(std::size_t i = 0; i < controlgroups.size(); ++i)
+		{
+			controlgroups.at(i).reset_integral();
+		}
 	}
 	eros::diagnostic set_PIDGains(std::string controlgroup_name,double P,double I,double D);
 	eros::diagnostic set_pinproperties(eros::pin pin);

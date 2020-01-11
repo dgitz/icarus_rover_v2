@@ -12,48 +12,19 @@
 class DatabaseNodeProcess: public BaseNodeProcess {
 public:
     //Constants
-	//const uint8_t SAMPLE_CONSTANT = 0;
     //Enums
-	/*
-	enum class SampleEnum 
-	{
-		UNKNOWN=0,
-		ENUMTYPEA=1,
-		ENUMTYPEB=2,
-	};
-	*/
     //Structs
-	/*
-	struct SampleStruct
-	{
-		std::string field;
-	};
-	*/
 	//Sub-Classes
-	/*
-	class SampleSubClass
-	{
-		public:
-		bool initialize(std::string t_name)
-		{
-			name = t_name;
-			return true;
-		}
-		std::string getName()
-		{
-			return name;
-		}
-		private:
-
-			std::string name;
-	};
-	*/
 	///Initialization Functions
 	/*! \brief NodeProcess specific Initialization
 	 *
 	 */
 	eros::diagnostic set_config_filepaths(std::string filepath);
 	eros::diagnostic finish_initialization();
+	void reset()
+	{
+		
+	}
 	//Update Functions
 	/*! \brief Implementation of the update function
 	 *

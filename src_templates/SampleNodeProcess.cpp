@@ -55,6 +55,7 @@ eros::diagnostic  SampleNodeProcess::finish_initialization()
 eros::diagnostic SampleNodeProcess::update(double t_dt,double t_ros_time)
 {
 	eros::diagnostic diag = root_diagnostic;
+	//Task State Machine Updates
 	if(task_state == TASKSTATE_PAUSE)
 	{
 
@@ -68,6 +69,12 @@ eros::diagnostic SampleNodeProcess::update(double t_dt,double t_ros_time)
 				"Unallowed State Transition: From: " + map_taskstate_tostring(task_state) + " To: " + map_taskstate_tostring(TASKSTATE_RUNNING));
 		}
 		
+	}
+	else if(task_state == TASKSTATE_INITIALIZED)
+	{
+	}
+	else if(task_state == TASKSTATE_RUNNING)
+	{
 	}
 	else if(task_state != TASKSTATE_RUNNING)
 	{

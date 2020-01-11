@@ -68,12 +68,11 @@ IMUNodeProcess* initializeprocess(std::string imuname,std::string imu_partnumber
 	diagnostic_types.push_back(SENSORS);
 	process->enable_diagnostics(diagnostic_types);
 	process->finish_initialization();
-	EXPECT_TRUE(process->is_initialized() == false);
+	EXPECT_TRUE(process->get_taskstate() == TASKSTATE_INITIALIZING);
 	process->set_readsensorfile(true);
 	process->set_mydevice(device);
-	EXPECT_TRUE(process->is_initialized() == true);
+	EXPECT_TRUE(process->get_taskstate() == TASKSTATE_INITIALIZED);
 	EXPECT_TRUE(process->get_mydevice().DeviceName == device.DeviceName);
-	EXPECT_TRUE(process->is_ready() == false);
 	eros::device::ConstPtr imu_ptr(new eros::device(imu));
 	eros::leverarm leverarm;
 
@@ -103,7 +102,7 @@ IMUNodeProcess* initializeprocess(std::string imuname,std::string imu_partnumber
 	eros::diagnostic diagnostic = process->new_devicemsg(imu_ptr,leverarm_ptr,true,override_config_path);
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 	diagnostic = process->update(0.0,0.0);
-	EXPECT_TRUE(process->is_ready() == true);
+	EXPECT_TRUE(process->get_taskstate() == TASKSTATE_RUNNING);
 	{
 		std::vector<eros::diagnostic> diagnostics = process->get_diagnostics();
 		EXPECT_TRUE(diagnostics.size() == (DIAGNOSTIC_TYPE_COUNT +(2*process->get_imus().size())));
@@ -761,6 +760,7 @@ TEST(Template,IMUReset_Manual)
 	bool sent_imu_msg = false;
 	bool reset_test_ok = false;
 	int counter = 0;
+	bool pause_resume_ran = false;
 	while(current_time <= time_to_run)
 	{
 		eros::diagnostic diag = process->update(dt,current_time);
@@ -848,6 +848,63 @@ TEST(Template,IMUReset_Manual)
 		}
 		if(slowrate_fire == true)
 		{
+			if(pause_resume_ran == false)
+			{
+				{
+					EXPECT_TRUE(process->get_taskstate() == TASKSTATE_RUNNING);
+					eros::command cmd_taskcontrol;
+					cmd_taskcontrol.Command = ROVERCOMMAND_TASKCONTROL;
+					cmd_taskcontrol.Option1 = SUBSYSTEM_UNKNOWN;
+					cmd_taskcontrol.Option2 = TASKSTATE_PAUSE;
+					cmd_taskcontrol.CommandText = Node_Name;
+					eros::command::ConstPtr cmd_ptr(new eros::command(cmd_taskcontrol));
+					std::vector<eros::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
+					for (std::size_t i = 0; i < diaglist.size(); i++)
+					{
+						EXPECT_TRUE(diaglist.at(i).Level <= NOTICE);
+					}
+					EXPECT_TRUE(diaglist.size() > 0);
+					EXPECT_TRUE(process->get_taskstate() == TASKSTATE_PAUSE);
+				}
+				{
+					EXPECT_TRUE(process->get_taskstate() == TASKSTATE_PAUSE);
+					eros::command cmd_taskcontrol;
+					cmd_taskcontrol.Command = ROVERCOMMAND_TASKCONTROL;
+					cmd_taskcontrol.Option1 = SUBSYSTEM_UNKNOWN;
+					cmd_taskcontrol.Option2 = TASKSTATE_RUNNING;
+					cmd_taskcontrol.CommandText = Node_Name;
+					eros::command::ConstPtr cmd_ptr(new eros::command(cmd_taskcontrol));
+
+					std::vector<eros::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
+					for (std::size_t i = 0; i < diaglist.size(); i++)
+					{
+						EXPECT_TRUE(diaglist.at(i).Level <= NOTICE);
+					}
+					EXPECT_TRUE(diaglist.size() > 0);
+					EXPECT_TRUE(process->get_taskstate() == TASKSTATE_RUNNING);
+				}
+				{
+					EXPECT_TRUE(process->get_taskstate() == TASKSTATE_RUNNING);
+					eros::command cmd_taskcontrol;
+					cmd_taskcontrol.Command = ROVERCOMMAND_TASKCONTROL;
+					cmd_taskcontrol.Option1 = SUBSYSTEM_UNKNOWN;
+					cmd_taskcontrol.Option2 = TASKSTATE_RESET;
+					cmd_taskcontrol.CommandText = Node_Name;
+					eros::command::ConstPtr cmd_ptr(new eros::command(cmd_taskcontrol));
+
+					std::vector<eros::diagnostic> diaglist = process->new_commandmsg(cmd_ptr);
+					for (std::size_t i = 0; i < diaglist.size(); i++)
+					{
+						EXPECT_TRUE(diaglist.at(i).Level <= NOTICE);
+					}
+					EXPECT_TRUE(diaglist.size() > 0);
+					EXPECT_TRUE(process->get_taskstate() == TASKSTATE_RESET);
+					diag = process->update(0.0, 0.0);
+					EXPECT_TRUE(diag.Level <= NOTICE);
+					EXPECT_TRUE(process->get_taskstate() == TASKSTATE_RUNNING);
+				}
+				pause_resume_ran = true;
+			}
 			if((current_time >= 20.0) and (reset_test_ok == false))
 			{
 				eros::command cmd;
@@ -870,9 +927,11 @@ TEST(Template,IMUReset_Manual)
 		counter++;
 		current_time += dt;
 	}
+	EXPECT_TRUE(pause_resume_ran == true);
 	EXPECT_TRUE(process->get_runtime() >= time_to_run);
 }
-int main(int argc, char **argv){
+int main(int argc, char **argv)
+{
 	testing::InitGoogleTest(&argc, argv);
 	return RUN_ALL_TESTS();
 }

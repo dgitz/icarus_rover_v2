@@ -3,25 +3,51 @@ eros::diagnostic  IMUNodeProcess::finish_initialization()
 {
 	supported_partnumbers.push_back(PN_110012);
 	supported_partnumbers.push_back(PN_110015);
+	reset();
 	eros::diagnostic diag = root_diagnostic;
 	imus_initialized = false;
 	imus_running = false;
-	imu_reset_trigger = false;
-	imu_reset_inprogress = false;
-	imu_reset_inprogress_timer = 0.0;
 	return diag;
 }
 eros::diagnostic IMUNodeProcess::update(double t_dt,double t_ros_time)
 {
 	eros::diagnostic diag = root_diagnostic;
-	if(initialized == true)
+	//Task State Machine Updates
+	if(task_state == TASKSTATE_PAUSE)
+	{
+
+	}
+	else if(task_state == TASKSTATE_RESET)
+	{
+		bool v = request_statechange(TASKSTATE_RUNNING);
+		if(v == false)
+		{
+			diag = update_diagnostic(SOFTWARE,ERROR,DIAGNOSTIC_FAILED,
+				"Unallowed State Transition: From: " + map_taskstate_tostring(task_state) + " To: " + map_taskstate_tostring(TASKSTATE_RUNNING));
+		}
+		
+	}
+	else if(task_state == TASKSTATE_INITIALIZED)
 	{
 		if(mydevice.SensorCount == 0)
 		{
-			ready = true;
+			request_statechange(TASKSTATE_RUNNING);
 		}
 	}
-	if((is_initialized() == true) and (is_ready() == true))
+	else if(task_state == TASKSTATE_RUNNING)
+	{
+	}
+	else if(task_state != TASKSTATE_RUNNING)
+	{
+		bool v = request_statechange(TASKSTATE_RUNNING);
+		if(v == false)
+		{
+			diag = update_diagnostic(SOFTWARE,ERROR,DIAGNOSTIC_FAILED,
+				"Unallowed State Transition: From: " + map_taskstate_tostring(task_state) + " To: " + map_taskstate_tostring(TASKSTATE_RUNNING));
+		}
+	}
+	diag = update_baseprocess(t_dt,t_ros_time);
+	if(task_state == TASKSTATE_RUNNING)
 	{
 		diag = update_diagnostic(DATA_STORAGE,INFO,NOERROR,"No Error.");
 
@@ -360,7 +386,7 @@ eros::diagnostic IMUNodeProcess::new_devicemsg(const eros::device::ConstPtr& dev
 			}
 			diag = update_diagnostic(diag);
 			if(diag.Level > WARN) { return diag; }
-			ready = true;
+			request_statechange(TASKSTATE_RUNNING);
 			imus_initialized = true;
 			diag = update_diagnostic(SENSORS,INFO,NOERROR,"Sensors Initialized.");
 			diag = update_diagnostic(newimu.diagnostic.DeviceName,DATA_STORAGE,INFO,INITIALIZING,"Initializing.");
@@ -423,7 +449,7 @@ eros::diagnostic IMUNodeProcess::new_devicemsg(const eros::device::ConstPtr& dev
 				diag = update_diagnostic(DATA_STORAGE,NOTICE,NOERROR,"Not Loading Sensor File.");
 			}
 			if(diag.Level > WARN) { return diag; }
-			ready = true;
+			request_statechange(TASKSTATE_RUNNING);
 			imus_initialized = true;
 			diag = update_diagnostic(SENSORS,INFO,NOERROR,"Sensors Initialized.");
 			diag = update_diagnostic(newimu.diagnostic.DeviceName,DATA_STORAGE,INFO,INITIALIZING,"Initializing.");
@@ -508,6 +534,31 @@ std::vector<eros::diagnostic> IMUNodeProcess::new_commandmsg(const eros::command
 		}
 		else if (t_msg->Option1 == LEVEL4)
 		{
+		}
+	}
+	else if(t_msg->Command == ROVERCOMMAND_TASKCONTROL)
+	{
+		if(node_name.find(t_msg->CommandText) != std::string::npos)
+		{
+			uint8_t prev_taskstate = get_taskstate();
+			bool v = request_statechange(t_msg->Option2);
+			if(v == false)
+			{
+				diag = update_diagnostic(SOFTWARE,ERROR,DIAGNOSTIC_FAILED,
+					"Unallowed State Transition: From: " + map_taskstate_tostring(prev_taskstate) + " To: " + map_taskstate_tostring(t_msg->Option2));
+				diaglist.push_back(diag);
+			}
+			else
+			{
+				if(task_state == TASKSTATE_RESET)
+				{
+					reset();
+				}
+				diag = update_diagnostic(SOFTWARE,NOTICE,DIAGNOSTIC_PASSED,
+					"Commanded State Transition: From: " + map_taskstate_tostring(prev_taskstate) + " To: " + map_taskstate_tostring(t_msg->Option2));
+				diaglist.push_back(diag);
+			}
+
 		}
 	}
 	else if(t_msg->Command == ROVERCOMMAND_RESET)

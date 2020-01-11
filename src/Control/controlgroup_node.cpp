@@ -46,7 +46,7 @@ bool ControlGroupNode::start(int argc, char **argv)
 eros::diagnostic ControlGroupNode::read_launchparameters()
 {
 	eros::diagnostic diag = diagnostic;
-	get_logger()->log_notice("Configuration Files Loaded.");
+	get_logger()->log_notice(__FILE__,__LINE__,"Configuration Files Loaded.");
 	return diagnostic;
 }
 eros::diagnostic ControlGroupNode::finish_initialization()
@@ -112,10 +112,10 @@ bool ControlGroupNode::run_01hz_noisy()
 bool ControlGroupNode::run_1hz()
 {
 	process->update_diagnostic(get_resource_diagnostic());
-	if ((process->is_initialized() == true) and (process->is_ready() == true))
+	if (process->get_taskstate() == TASKSTATE_RUNNING)
 	{
 	}
-	else if ((process->is_ready() == false) and (process->is_initialized() == true))
+	else if (process->get_taskstate() == TASKSTATE_INITIALIZED)
 	{
 		std::vector<eros::pin> output_pins = process->get_outputpins();
 		for(std::size_t i = 0; i < output_pins.size(); ++i)
@@ -126,7 +126,7 @@ bool ControlGroupNode::run_1hz()
 			{
 				if (srv.response.pins.size() != 1)
 				{
-					get_logger()->log_error("Got unexpected pin message.");
+					get_logger()->log_error(__FILE__,__LINE__,"Got unexpected pin message.");
 				}
 				else
 				{
@@ -137,7 +137,7 @@ bool ControlGroupNode::run_1hz()
 		
 
 	}
-	else if (process->is_initialized() == false)
+	else if (process->get_taskstate() == TASKSTATE_INITIALIZING)
 	{
 		{
 			eros::srv_device srv;
@@ -147,7 +147,7 @@ bool ControlGroupNode::run_1hz()
 				if (srv.response.data.size() != 1)
 				{
 
-					get_logger()->log_error("Got unexpected device message.");
+					get_logger()->log_error(__FILE__,__LINE__,"Got unexpected device message.");
 				}
 				else
 				{
@@ -251,7 +251,7 @@ bool ControlGroupNode::new_devicemsg(std::string query, eros::device t_device)
 		}
 	}
 
-	if ((process->is_initialized() == true))
+	if (process->get_taskstate() == TASKSTATE_INITIALIZED)
 	{
 		eros::device::ConstPtr device_ptr(new eros::device(t_device));
 		eros::diagnostic diag = process->new_devicemsg(device_ptr);
@@ -268,7 +268,7 @@ void ControlGroupNode::thread_loop()
 void ControlGroupNode::cleanup()
 {
 	base_cleanup();
-	get_logger()->log_info("Node Finished Safely.");
+	get_logger()->log_info(__FILE__,__LINE__,"Node Finished Safely.");
 }
 /*! \brief Attempts to kill a node when an interrupt is received.
  *
@@ -288,7 +288,7 @@ int main(int argc, char **argv)
 	std::thread thread(&ControlGroupNode::thread_loop, node);
 	while ((status == true) and (kill_node == false))
 	{
-		status = node->update();
+		status = node->update(node->get_process()->get_taskstate());
 	}
 	node->cleanup();
 	thread.detach();

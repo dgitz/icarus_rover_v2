@@ -59,6 +59,10 @@ public:
 	 *
 	 */
 	eros::diagnostic finish_initialization();
+	void reset()
+	{
+		
+	}
 	//Update Functions
 	/*! \brief Implementation of the update function
 	 *

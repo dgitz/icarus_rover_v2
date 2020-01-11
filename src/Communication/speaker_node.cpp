@@ -46,7 +46,7 @@ bool SpeakerNode::start(int argc, char **argv)
 eros::diagnostic SpeakerNode::read_launchparameters()
 {
 	eros::diagnostic diag = diagnostic;
-	logger->log_notice("Configuration Files Loaded.");
+	logger->log_notice(__FILE__,__LINE__,"Configuration Files Loaded.");
 	return diagnostic;
 }
 eros::diagnostic SpeakerNode::finish_initialization()
@@ -86,13 +86,13 @@ bool SpeakerNode::run_01hz_noisy()
 bool SpeakerNode::run_1hz()
 {
 	process->update_diagnostic(get_resource_diagnostic());
-	if ((process->is_initialized() == true) and (process->is_ready() == true))
+	if(process->get_taskstate() == TASKSTATE_RUNNING)
 	{
 	}
-	else if ((process->is_ready() == false) and (process->is_initialized() == true))
+	else if(process->get_taskstate() == TASKSTATE_INITIALIZED)
 	{
 	}
-	else if (process->is_initialized() == false)
+	else if (process->get_taskstate() == TASKSTATE_INITIALIZING)
 	{
 		{
 			eros::srv_device srv;
@@ -102,7 +102,7 @@ bool SpeakerNode::run_1hz()
 				if (srv.response.data.size() != 1)
 				{
 
-					get_logger()->log_error("Got unexpected device message.");
+					get_logger()->log_error(__FILE__,__LINE__,"Got unexpected device message.");
 				}
 				else
 				{
@@ -140,9 +140,6 @@ bool SpeakerNode::run_10hz()
 		//sc->say(speechout);
 		sound_play::SoundRequest msg = process->get_speechoutput_client();
 		robot_sound_pub.publish(process->get_speechoutput_client());
-		char tempstr[512];
-		sprintf(tempstr,"Saying: %s",msg.arg.c_str());
-		logger->log_debug(tempstr);
 	}
 	std::vector<eros::diagnostic> diaglist = process->get_diagnostics();
 	for (std::size_t i = 0; i < diaglist.size(); ++i)
@@ -189,7 +186,7 @@ bool SpeakerNode::new_devicemsg(std::string query, eros::device t_device)
 		}
 	}
 
-	if ((process->is_initialized() == true))
+	if ((process->get_taskstate() == TASKSTATE_INITIALIZED))
 	{
 		eros::device::ConstPtr device_ptr(new eros::device(t_device));
 		eros::diagnostic diag = process->new_devicemsg(device_ptr);
@@ -269,7 +266,7 @@ eros::diagnostic SpeakerNode::rescan_topics()
 				found_new_topics++;
 				char tempstr[255];
 				sprintf(tempstr,"Subscribing to diagnostic topic: %s",info.name.c_str());
-				logger->log_info(tempstr);
+				logger->log_info(__FILE__,__LINE__,tempstr);
 				ros::Subscriber sub = n->subscribe<eros::diagnostic>(info.name,20,&SpeakerNode::diagnostic_Callback,this);
 				diagnostic_subs.push_back(sub);
 			}
@@ -286,7 +283,7 @@ eros::diagnostic SpeakerNode::rescan_topics()
 		sprintf(tempstr,"Rescanned and found no new topics.");
 	}
 	diag = process->update_diagnostic(SOFTWARE,INFO,NOERROR,std::string(tempstr));
-	logger->log_info(tempstr);
+	logger->log_info(__FILE__,__LINE__,tempstr);
 	return diag;
 }
 void SpeakerNode::thread_loop()
@@ -299,7 +296,7 @@ void SpeakerNode::thread_loop()
 void SpeakerNode::cleanup()
 {
 	base_cleanup();
-	get_logger()->log_info("Node Finished Safely.");
+	get_logger()->log_info(__FILE__,__LINE__,"Node Finished Safely.");
 }
 /*! \brief Attempts to kill a node when an interrupt is received.
  *
@@ -319,7 +316,7 @@ int main(int argc, char **argv)
 	std::thread thread(&SpeakerNode::thread_loop, node);
 	while ((status == true) and (kill_node == false))
 	{
-		status = node->update();
+		status = node->update(node->get_process()->get_taskstate());
 	}
 	node->cleanup();
 	thread.detach();
