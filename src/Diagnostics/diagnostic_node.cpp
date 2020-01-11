@@ -17,14 +17,14 @@ bool DiagnosticNode::start(int argc,char **argv)
 		return false;
 	}
 
-	process->initialize(get_basenodename(),get_nodename(),get_hostname(),DIAGNOSTIC_SYSTEM,DIAGNOSTIC_SUBSYSTEM,DIAGNOSTIC_COMPONENT);
+	process->initialize(get_basenodename(),get_nodename(),get_hostname(),DIAGNOSTIC_SYSTEM,DIAGNOSTIC_SUBSYSTEM,DIAGNOSTIC_COMPONENT);;
 	std::vector<uint8_t> diagnostic_types;
 	diagnostic_types.push_back(SOFTWARE);
 	diagnostic_types.push_back(DATA_STORAGE);
 	diagnostic_types.push_back(SYSTEM_RESOURCE);
 	diagnostic_types.push_back(COMMUNICATIONS);
 	diagnostic_types.push_back(REMOTE_CONTROL);
-	resourcemonitor->disable_memoryleakdetection(); 
+	
 	process->enable_diagnostics(diagnostic_types);
 	std::string subsystem_diagnostic_topic = "/System/Diagnostic/State";
 	subsystem_diagnostic_pub =  n->advertise<eros::subsystem_diagnostic>(subsystem_diagnostic_topic,1);
@@ -286,7 +286,6 @@ void DiagnosticNode::PPS1_Callback(const std_msgs::Bool::ConstPtr& msg)
 }
 void DiagnosticNode::Battery_Callback(const eros::battery::ConstPtr& msg)
 {
-	printf("got bat\n");
 	process->set_batterylevel(msg->level_perc);
 	process->set_batteryvoltage(msg->voltage);
 }
@@ -303,6 +302,7 @@ bool DiagnosticNode::new_devicemsg(std::string query,eros::device t_device)
 		{
 			set_mydevice(t_device);
 			process->set_mydevice(t_device);
+			resourcemonitor->disable_memoryleakdetection(); 
 		}
 	}
 	else if(t_device.DeviceType == DEVICETYPE_BATTERY)
@@ -638,13 +638,15 @@ void DiagnosticNode::cleanup()
 		lcd.set_color(LCDDriver::RED);
 		lcd.send("SHUTTING DOWN");
 	}
+	base_cleanup();
+	get_logger()->log_info(__FILE__,__LINE__,"[DiagnosticNode] Finished Safely.");
 }
 /*! \brief Attempts to kill a node when an interrupt is received.
  *
  */
 void signalinterrupt_handler(int sig)
 {
-	printf("Killing Node with Signal: %d",sig);
+	printf("Killing DiagnosticNode with Signal: %d", sig);
 	kill_node = true;
 	exit(0);
 }
@@ -659,7 +661,7 @@ int main(int argc, char **argv) {
 		status = node->update(node->get_process()->get_taskstate());
 	}
 	node->cleanup();
-	node->get_logger()->log_info(__FILE__,__LINE__,"Node Finished Safely.");
+	thread.detach();
 	return 0;
 }
 

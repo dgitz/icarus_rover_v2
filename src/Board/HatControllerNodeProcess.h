@@ -10,11 +10,12 @@
  *  \brief This is a HatControllerNodeProcess class.  Used for the hatcontroller_node node.
  *
  */
-class HatControllerNodeProcess: public BaseNodeProcess {
+class HatControllerNodeProcess : public BaseNodeProcess
+{
 public:
 	//Constants
 	const uint8_t TIMING_BUFFER_LENGTH = 100;
-	static const uint16_t SUPPORTED_HATCOUNT = 3;  //Number of Different Hats supported, by PN
+	static const uint16_t SUPPORTED_HATCOUNT = 3; //Number of Different Hats supported, by PN
 	//Enums
 	//Structs
 	struct Sensor
@@ -53,11 +54,19 @@ public:
 	 */
 	eros::diagnostic finish_initialization();
 	bool initialize_supportedhats();
+	void reset()
+	{
+		ready_to_arm = false;
+		armed_state = ARMEDSTATUS_DISARMED_CANNOTARM;
+		time_sincelast_pps = 0.0;
+		pps_counter = 0;
+		timing_diff.clear();
+	}
 	//Update Functions
 	/*! \brief Implementation of the update function
 	 *
 	 */
-	eros::diagnostic update(double t_dt,double t_ros_time);
+	eros::diagnostic update(double t_dt, double t_ros_time);
 
 	//Attribute Functions
 	void set_analyzetiming(bool v) { analyze_timing = v; }
@@ -68,15 +77,15 @@ public:
 	/*! \brief  Process Command Message.
 	 *
 	 */
-	std::vector<eros::diagnostic> new_commandmsg(const eros::command::ConstPtr& t_msg);
+	std::vector<eros::diagnostic> new_commandmsg(const eros::command::ConstPtr &t_msg);
 	eros::diagnostic new_armedstatemsg(uint8_t msg);
-	eros::diagnostic new_pinmsg(const eros::pin::ConstPtr& t_msg);
+	eros::diagnostic new_pinmsg(const eros::pin::ConstPtr &t_msg);
 	eros::diagnostic new_ppsmsg(std_msgs::Bool t_msg);
-	eros::diagnostic new_devicemsg(const eros::device::ConstPtr& t_device);
+	eros::diagnostic new_devicemsg(const eros::device::ConstPtr &t_device);
 	//Support Functions
-	eros::pin find_pin(const eros::device::ConstPtr& t_device,uint8_t port_id,uint8_t port_pinnumber);
-	eros::pin find_pin(const eros::device::ConstPtr& hat,std::string pin_name);
-	eros::diagnostic update_pin(std::string device_type,uint8_t device_id,std::string pin_name,eros::pin new_pin);
+	eros::pin find_pin(const eros::device::ConstPtr &t_device, uint8_t port_id, uint8_t port_pinnumber);
+	eros::pin find_pin(const eros::device::ConstPtr &hat, std::string pin_name);
+	eros::diagnostic update_pin(std::string device_type, uint8_t device_id, std::string pin_name, eros::pin new_pin);
 	double get_timedelay();
 
 	//Printing Functions
@@ -86,15 +95,15 @@ public:
 	std::vector<Sensor> get_sensordata() { return sensors; }
 
 	//Generic Hat Functions
-	eros::diagnostic new_message_GetDIOPort1(std::string device_type,uint8_t hatid,double tov,uint16_t v1,uint16_t v2,uint16_t v3,uint16_t v4);
-	eros::diagnostic new_message_GetANAPort1(std::string device_type,uint8_t hatid,double tov,uint16_t v1,uint16_t v2,uint16_t v3,uint16_t v4,uint16_t v5, uint16_t v6);
-	eros::diagnostic new_message_GetANAPort2(std::string device_type,uint8_t hatid,double tov,uint16_t v1,uint16_t v2,uint16_t v3,uint16_t v4,uint16_t v5, uint16_t v6);
+	eros::diagnostic new_message_GetDIOPort1(std::string device_type, uint8_t hatid, double tov, uint16_t v1, uint16_t v2, uint16_t v3, uint16_t v4);
+	eros::diagnostic new_message_GetANAPort1(std::string device_type, uint8_t hatid, double tov, uint16_t v1, uint16_t v2, uint16_t v3, uint16_t v4, uint16_t v5, uint16_t v6);
+	eros::diagnostic new_message_GetANAPort2(std::string device_type, uint8_t hatid, double tov, uint16_t v1, uint16_t v2, uint16_t v3, uint16_t v4, uint16_t v5, uint16_t v6);
 	std::vector<HatMap> get_allsupportedhats() { return supported_hats; }
 	HatMap get_hatmap_bypartnumber(std::string partnumber);
-	eros::diagnostic set_hat_running(std::string devicetype,uint16_t id);
-	bool is_hat_running(std::string devicetype,uint16_t id);
+	eros::diagnostic set_hat_running(std::string devicetype, uint16_t id);
+	bool is_hat_running(std::string devicetype, uint16_t id);
 	std::vector<eros::device> get_hats() { return hats; }
-	std::vector<eros::pin> get_pins_byport(std::string devicetype,uint16_t id,uint8_t port_id);
+	std::vector<eros::pin> get_pins_byport(std::string devicetype, uint16_t id, uint8_t port_id);
 
 	//Servo Hat Functions
 	std::vector<eros::pin> get_servohatpins(uint16_t id);
@@ -103,8 +112,8 @@ public:
 	//Terminal Hat Functions
 	eros::diagnostic set_terminalhat_initialized();
 	std::vector<eros::pin> get_terminalhatpins();
-	std::vector<eros::pin> get_terminalhatpins(std::string Function,bool match_exact);
-	bool set_terminalhatpinvalue(std::string name,int v);
+	std::vector<eros::pin> get_terminalhatpins(std::string Function, bool match_exact);
+	bool set_terminalhatpinvalue(std::string name, int v);
 
 	//GPIO Hat Functions
 	bool is_gpiohat_running(uint16_t id);
@@ -117,7 +126,7 @@ private:
 	 *
 	 */
 	std::vector<eros::diagnostic> check_programvariables();
-	PinDefinition create_pindefinition(std::string pinname,uint8_t port_id,uint8_t port_pinnumber)
+	PinDefinition create_pindefinition(std::string pinname, uint8_t port_id, uint8_t port_pinnumber)
 	{
 		PinDefinition pin_def;
 		pin_def.PinName = pinname;
@@ -127,15 +136,15 @@ private:
 	}
 	void init_messages();
 	std::string map_PinFunction_ToString(int function);
-	double map_input_to_output(double input_value,double min_input,double max_input,double min_output,double max_output);
+	double map_input_to_output(double input_value, double min_input, double max_input, double min_output, double max_output);
 	int map_PinFunction_ToInt(std::string Function);
 	bool sensors_initialized();
-	bool update_sensor(const eros::device::ConstPtr& t_device,eros::pin::ConstPtr& t_pin,double tov,double value);
+	bool update_sensor(const eros::device::ConstPtr &t_device, eros::pin::ConstPtr &t_pin, double tov, double value);
 	bool load_sensorinfo(std::string name);
-	bool parse_sensorfile(TiXmlDocument doc,std::string name);
+	bool parse_sensorfile(TiXmlDocument doc, std::string name);
 	eros::device find_hat(uint8_t hatid);
-	
-	bool hat_present(const eros::device::ConstPtr& device);
+
+	bool hat_present(const eros::device::ConstPtr &device);
 	std::vector<HatMap> supported_hats;
 	std::vector<Sensor> sensors;
 

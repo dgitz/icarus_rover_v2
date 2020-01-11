@@ -1,7 +1,6 @@
 #ifndef SPEAKERNODEPROCESS_H
 #define SPEAKERNODEPROCESS_H
 #include "../../include/Base/BaseNodeProcess.cpp"
-#include <serialmessage.h>
 #include <math.h>
 
 #include "actionlib_msgs/GoalStatusArray.h"

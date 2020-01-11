@@ -130,10 +130,10 @@ bool AudioNode::run_01hz_noisy()
 bool AudioNode::run_1hz()
 {
 	process->update_diagnostic(get_resource_diagnostic());
-	if ((process->is_initialized() == true) and (process->is_ready() == true))
+	if(process->get_taskstate() == TASKSTATE_RUNNING)
 	{
 	}
-	else if((process->is_ready() == false) and (process->is_initialized() == true) and (process->get_query_for_device_configuration()))
+	else if((process->get_taskstate() == TASKSTATE_INITIALIZED) and (process->get_query_for_device_configuration()))
 	{
 		{
 			eros::srv_device srv;
@@ -167,7 +167,7 @@ bool AudioNode::run_1hz()
 		}
 		process->set_query_for_device_configuration(false);
 	}
-	else if(process->is_initialized() == false)
+	else if (process->get_taskstate() == TASKSTATE_INITIALIZING)
 	{
 		{
 			eros::srv_device srv;
@@ -177,7 +177,7 @@ bool AudioNode::run_1hz()
 				if(srv.response.data.size() != 1)
 				{
 
-					get_logger()->log_error("Got unexpected device message.");
+					get_logger()->log_error(__FILE__,__LINE__,"Got unexpected device message.");
 				}
 				else
 				{
@@ -258,7 +258,7 @@ bool AudioNode::new_devicemsg(std::string query,eros::device t_device)
 			process->set_mydevice(t_device);
 		}
 	}
-	if((process->is_initialized() == true))
+	if (process->get_taskstate() == TASKSTATE_INITIALIZED)
 	{
 		eros::device::ConstPtr device_ptr(new eros::device(t_device));
 		eros::diagnostic diag = process->new_devicemsg(device_ptr);
@@ -279,12 +279,15 @@ void AudioNode::thread_loop()
 }
 void AudioNode::cleanup()
 {
+	base_cleanup();
+	get_logger()->log_info(__FILE__,__LINE__,"[AudioNode] Finished Safely.");
 }
 /*! \brief Attempts to kill a node when an interrupt is received.
  *
  */
 void signalinterrupt_handler(int sig)
 {
+	printf("Killing AudioNode with Signal: %d", sig);
 	kill_node = true;
 	exit(0);
 }
@@ -296,10 +299,9 @@ int main(int argc, char **argv) {
 	std::thread thread(&AudioNode::thread_loop, node);
 	while((status == true) and (kill_node == false))
 	{
-		status = node->update();
+		status = node->update(node->get_process()->get_taskstate());
 	}
 	node->cleanup();
-	node->get_logger()->log_info("Node Finished Safely.");
+	thread.detach();
 	return 0;
 }
-

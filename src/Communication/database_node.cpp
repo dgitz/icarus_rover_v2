@@ -291,14 +291,14 @@ void DatabaseNode::cleanup()
 {
 	sqlite3_close(db);
 	base_cleanup();
-	get_logger()->log_info(__FILE__,__LINE__,"Node Finished Safely.");
+	get_logger()->log_info(__FILE__,__LINE__,"[DatabaseNode] Finished Safely.");
 }
 /*! \brief Attempts to kill a node when an interrupt is received.
  *
  */
 void signalinterrupt_handler(int sig)
 {
-	printf("Killing Node with Signal: %d", sig);
+	printf("Killing DatabaseNode with Signal: %d", sig);
 	kill_node = true;
 	exit(0);
 }
@@ -317,3 +317,4 @@ int main(int argc, char **argv)
 	thread.detach();
 	return 0;
 }
+

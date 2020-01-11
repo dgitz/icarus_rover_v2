@@ -570,10 +570,6 @@ void MasterNode::print_deviceinfo()
 	}
 	logger->log_notice(__FILE__,__LINE__,std::string(tempstr));
 }
-void MasterNode::cleanup()
-{
-
-}
 void MasterNode::thread_loop()
 {
 	while(kill_node == false)
@@ -582,12 +578,17 @@ void MasterNode::thread_loop()
 	}
 	write_logfile("Master Node Ended.");
 }
+void MasterNode::cleanup()
+{
+	base_cleanup();
+	get_logger()->log_info(__FILE__,__LINE__,"[MasterNode] Finished Safely.");
+}
 /*! \brief Attempts to kill a node when an interrupt is received.
  *
  */
 void signalinterrupt_handler(int sig)
 {
-	printf("Killing Node with Signal: %d", sig);
+	printf("Killing MasterNode with Signal: %d", sig);
 	kill_node = true;
 	exit(0);
 }
@@ -601,7 +602,8 @@ int main(int argc, char **argv) {
 	{
 		status = node->update(node->get_process()->get_taskstate());
 	}
-	node->get_logger()->log_info(__FILE__,__LINE__,"Node Finished Safely.");
+	node->cleanup();
+	thread.detach();
 	return 0;
 }
 

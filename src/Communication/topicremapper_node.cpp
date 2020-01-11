@@ -259,13 +259,15 @@ void TopicRemapperNode::thread_loop()
 }
 void TopicRemapperNode::cleanup()
 {
+	base_cleanup();
+	get_logger()->log_info(__FILE__,__LINE__,"[TopicRemapperNode] Finished Safely.");
 }
 /*! \brief Attempts to kill a node when an interrupt is received.
  *
  */
 void signalinterrupt_handler(int sig)
 {
-	printf("Killing Node with Signal: %d", sig);
+	printf("Killing TopicRemapperNode with Signal: %d", sig);
 	kill_node = true;
 	exit(0);
 }
@@ -279,7 +281,6 @@ int main(int argc, char **argv) {
 	{
 		status = node->update(node->get_process()->get_taskstate());
 	}
-	node->get_logger()->log_info(__FILE__,__LINE__,"Node Finished Safely.");
 	node->cleanup();
 	thread.detach();
 	return 0;

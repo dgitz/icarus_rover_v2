@@ -174,8 +174,7 @@ bool SampleNode::new_devicemsg(std::string query, eros::device t_device)
 			process->set_mydevice(t_device);
 		}
 	}
-
-	if ((process->get_taskstate() == TASKSTATE_INITIALIZED))
+	if (process->get_taskstate() == TASKSTATE_INITIALIZED)
 	{
 		eros::device::ConstPtr device_ptr(new eros::device(t_device));
 		eros::diagnostic diag = process->new_devicemsg(device_ptr);
@@ -230,14 +229,14 @@ void SampleNode::thread_loop()
 void SampleNode::cleanup()
 {
 	base_cleanup();
-	get_logger()->log_info(__FILE__,__LINE__,"Node Finished Safely.");
+	get_logger()->log_info(__FILE__,__LINE__,"[SampleNode] Finished Safely.");
 }
 /*! \brief Attempts to kill a node when an interrupt is received.
  *
  */
 void signalinterrupt_handler(int sig)
 {
-	printf("Killing Node with Signal: %d", sig);
+	printf("Killing SampleNode with Signal: %d", sig);
 	kill_node = true;
 	exit(0);
 }
@@ -252,8 +251,8 @@ int main(int argc, char **argv)
 	{
 		status = node->update(node->get_process()->get_taskstate());
 	}
-	node->get_logger()->log_info(__FILE__,__LINE__,"Node Finished Safely.");
 	node->cleanup();
 	thread.detach();
 	return 0;
 }
+

@@ -19,9 +19,9 @@ public:
 	const string BASE_NODE_NAME = "master_node";
 
 	const uint8_t MAJOR_RELEASE_VERSION = 3;
-	const uint8_t MINOR_RELEASE_VERSION = 0;
+	const uint8_t MINOR_RELEASE_VERSION = 1;
 	const uint8_t BUILD_NUMBER = 0;
-	const string FIRMWARE_DESCRIPTION = "Latest Rev: 26-November-2018";
+	const string FIRMWARE_DESCRIPTION = "Latest Rev: 11-January-2020";
 
 	const uint8_t DIAGNOSTIC_SYSTEM = ROVER;
 	const uint8_t DIAGNOSTIC_SUBSYSTEM = ROBOT_CONTROLLER;

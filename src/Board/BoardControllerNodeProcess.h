@@ -71,6 +71,10 @@ public:
 	/*! \brief NodeProcess specific Initialization  */
 	eros::diagnostic finish_initialization();
 	bool initialize_supportedboards();
+	void reset()
+	{
+		
+	}
 	//Update Functions
 	/*! \brief Implementation of the update function */
 	eros::diagnostic update(double t_dt,double t_ros_time);

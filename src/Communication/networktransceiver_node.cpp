@@ -188,7 +188,7 @@ bool NetworkTransceiverNode::run_1hz()
 	else if(process->get_taskstate() == TASKSTATE_INITIALIZED)
 	{
 	}
-	else if(process->get_taskstate() == TASKSTATE_INITIALIZED)
+	else if(process->get_taskstate() == TASKSTATE_INITIALIZING)
 	{
 		{
 			{
@@ -718,12 +718,15 @@ void NetworkTransceiverNode::cleanup()
 {
 	close(recvdevice_sock);
 	close(senddevice_sock);
+	base_cleanup();
+	get_logger()->log_info(__FILE__,__LINE__,"[NetworkTransceiverNode] Finished Safely.");
 }
 /*! \brief Attempts to kill a node when an interrupt is received.
  *
  */
-void signalinterrupt_handler(__attribute__((unused)) int sig)
+void signalinterrupt_handler(int sig)
 {
+	printf("Killing NetworkTransceiverNode with Signal: %d", sig);
 	kill_node = true;
 	exit(0);
 }
@@ -738,7 +741,7 @@ int main(int argc, char **argv) {
 		status = node->update(node->get_process()->get_taskstate());
 	}
 	node->cleanup();
-	node->get_logger()->log_info(__FILE__,__LINE__,"Node Finished Safely.");
+	thread.detach();
 	return 0;
 }
 

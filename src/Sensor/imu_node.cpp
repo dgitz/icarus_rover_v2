@@ -461,13 +461,15 @@ void IMUNode::thread_loop()
 }
 void IMUNode::cleanup()
 {
+	base_cleanup();
+	get_logger()->log_info(__FILE__,__LINE__,"[IMUNode] Finished Safely.");
 }
 /*! \brief Attempts to kill a node when an interrupt is received.
  *
  */
 void signalinterrupt_handler(int sig)
 {
-	printf("Killing Node with Signal: %d", sig);
+	printf("Killing IMUNode with Signal: %d", sig);
 	kill_node = true;
 	exit(0);
 }
@@ -481,7 +483,6 @@ int main(int argc, char **argv) {
 	{
 		status = node->update(node->get_process()->get_taskstate());
 	}
-	node->get_logger()->log_info(__FILE__,__LINE__,"Node Finished Safely.");
 	node->cleanup();
 	thread.detach();
 	return 0;

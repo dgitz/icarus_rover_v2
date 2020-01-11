@@ -42,7 +42,7 @@ bool HatControllerNode::start(int argc,char **argv)
 eros::diagnostic HatControllerNode::read_launchparameters()
 {
 	eros::diagnostic diag = diagnostic;
-	get_logger()->log_notice("Configuration Files Loaded.");
+	get_logger()->log_notice(__FILE__,__LINE__,"Configuration Files Loaded.");
 	return diagnostic;
 }
 eros::diagnostic HatControllerNode::finish_initialization()
@@ -52,13 +52,13 @@ eros::diagnostic HatControllerNode::finish_initialization()
 	bool analyze_timing;
 	if(n->getParam(param_analyze_timing,analyze_timing) == false)
 	{
-		get_logger()->log_notice("Missing parameter: analyze_timing.  Not analyzing timing.");
+		get_logger()->log_notice(__FILE__,__LINE__,"Missing parameter: analyze_timing.  Not analyzing timing.");
 	}
 	else
 	{
 		if(analyze_timing == true)
 		{
-			get_logger()->log_notice("Analyzing Timing.");
+			get_logger()->log_notice(__FILE__,__LINE__,"Analyzing Timing.");
 		}
 		process->set_analyzetiming(analyze_timing);
 	}
@@ -84,7 +84,7 @@ bool HatControllerNode::run_001hz()
 bool HatControllerNode::run_01hz()
 {
 	eros::diagnostic diag = diagnostic;
-	if(process->is_ready())
+	if(process->get_taskstate() == TASKSTATE_RUNNING)
 	{
 		std::vector<uint16_t> ServoHats_ids = process->get_servohataddresses();
 		for(std::size_t i = 0; i < ServoHats_ids.size(); i++)
@@ -159,7 +159,7 @@ bool HatControllerNode::run_01hz()
 						char tempstr[512];
 						sprintf(tempstr,"[TerminalHat] Could not configure Pin: %s with Function: %s",pins.at(i).Name.c_str(),pins.at(i).Function.c_str());
 						diag = process->update_diagnostic(SOFTWARE,ERROR,INITIALIZING_ERROR,std::string(tempstr));
-						get_logger()->log_error(std::string(tempstr));
+						get_logger()->log_error(__FILE__,__LINE__,std::string(tempstr));
 						kill_node = 1;
 					}
 				}
@@ -188,32 +188,10 @@ bool HatControllerNode::run_01hz_noisy()
 bool HatControllerNode::run_1hz()
 {
 	process->update_diagnostic(get_resource_diagnostic());
-	if((process->is_initialized() == true) and (process->is_ready() == true))
+	if(process->get_taskstate() == TASKSTATE_RUNNING)
 	{
 	}
-	else if(process->is_initialized() == false)
-	{
-		{
-			eros::srv_device srv;
-			srv.request.query = "SELF";
-			if(srv_device.call(srv) == true)
-			{
-				if(srv.response.data.size() != 1)
-				{
-
-					get_logger()->log_error("Got unexpected device message.");
-				}
-				else
-				{
-					bool status = new_devicemsg(srv.request.query,srv.response.data.at(0));
-				}
-			}
-			else
-			{
-			}
-		}
-	}
-	else if((process->is_ready() == false) and (process->is_initialized() == true))
+	else if(process->get_taskstate() == TASKSTATE_INITIALIZED)
 	{
 		{
 			eros::srv_device srv;
@@ -250,6 +228,28 @@ bool HatControllerNode::run_1hz()
 
 		}
 	}
+	else if (process->get_taskstate() == TASKSTATE_INITIALIZING)
+	{
+		{
+			eros::srv_device srv;
+			srv.request.query = "SELF";
+			if(srv_device.call(srv) == true)
+			{
+				if(srv.response.data.size() != 1)
+				{
+
+					get_logger()->log_error(__FILE__,__LINE__,"Got unexpected device message.");
+				}
+				else
+				{
+					bool status = new_devicemsg(srv.request.query,srv.response.data.at(0));
+				}
+			}
+			else
+			{
+			}
+		}
+	}
 	std::vector<eros::diagnostic> diaglist = process->get_diagnostics();
 	for (std::size_t i = 0; i < diaglist.size(); ++i)
 	{
@@ -270,7 +270,7 @@ bool HatControllerNode::run_10hz()
 		get_logger()->log_diagnostic(diag);
 		diagnostic_pub.publish(diag);
 	}
-	if(process->is_ready())
+	if(process->get_taskstate() == TASKSTATE_RUNNING)
 	{
 		std::vector<uint16_t> ServoHats_ids = process->get_servohataddresses();
 		for(std::size_t i = 0; i < ServoHats_ids.size(); i++)
@@ -341,7 +341,7 @@ bool HatControllerNode::run_10hz()
 					char tempstr[512];
 					sprintf(tempstr,"[TerminalHat] Could not configure Pin: %s with Function: %s",pins.at(i).Name.c_str(),pins.at(i).Function.c_str());
 					diag = process->update_diagnostic(SOFTWARE,ERROR,INITIALIZING_ERROR,std::string(tempstr));
-					get_logger()->log_error(std::string(tempstr));
+					get_logger()->log_error(__FILE__,__LINE__,std::string(tempstr));
 					kill_node = 1;
 				}
 			}
@@ -508,9 +508,9 @@ bool HatControllerNode::new_devicemsg(std::string query,eros::device t_device)
 	}
 	else
 	{
-		if(process->is_ready() == false)
+		if(process->get_taskstate() == TASKSTATE_INITIALIZED)
 		{
-			get_logger()->log_notice("Device not initialized yet.");
+			get_logger()->log_notice(__FILE__,__LINE__,"Device not initialized yet.");
 			eros::device::ConstPtr device_ptr(new eros::device(t_device));
 			eros::diagnostic diag = process->new_devicemsg(device_ptr);
 
@@ -519,7 +519,7 @@ bool HatControllerNode::new_devicemsg(std::string query,eros::device t_device)
 				get_logger()->log_diagnostic(diag);
 				diagnostic_pub.publish(diag);
 			}
-			if(process->is_ready() == true)
+			if(process->get_taskstate() == TASKSTATE_RUNNING)
 			{
 				std::vector<HatControllerNodeProcess::Sensor> sensors = process->get_sensordata();
 				for(std::size_t i = 0; i < sensors.size(); i++)
@@ -593,7 +593,7 @@ bool HatControllerNode::new_devicemsg(std::string query,eros::device t_device)
 						}
 					}
 				}
-				get_logger()->log_notice("Device finished initializing.");
+				get_logger()->log_notice(__FILE__,__LINE__,"Device finished initializing.");
 			}
 			else
 			{
@@ -647,12 +647,15 @@ void HatControllerNode::thread_loop()
 }
 void HatControllerNode::cleanup()
 {
+	base_cleanup();
+	get_logger()->log_info(__FILE__,__LINE__,"[HatControllerNode] Finished Safely.");
 }
 /*! \brief Attempts to kill a node when an interrupt is received.
  *
  */
 void signalinterrupt_handler(int sig)
 {
+	printf("Killing HatControllerNode with Signal: %d", sig);
 	kill_node = true;
 	exit(0);
 }
@@ -664,8 +667,9 @@ int main(int argc, char **argv) {
 	std::thread thread(&HatControllerNode::thread_loop, node);
 	while((status == true) and (kill_node == false))
 	{
-		status = node->update();
+		status = node->update(node->get_process()->get_taskstate());
 	}
-	node->get_logger()->log_info("Node Finished Safely.");
+	node->cleanup();
+	thread.detach();
 	return 0;
 }

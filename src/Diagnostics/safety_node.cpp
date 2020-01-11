@@ -75,10 +75,10 @@ bool SafetyNode::run_01hz_noisy()
 bool SafetyNode::run_1hz()
 {
 	process->update_diagnostic(get_resource_diagnostic());
-	if ((process->is_initialized() == true) and (process->is_ready() == true))
+	if(process->get_taskstate() == TASKSTATE_RUNNING)
 	{
 	}
-	else if((process->is_ready() == false) and (process->is_initialized() == true))
+	else if(process->get_taskstate() == TASKSTATE_INITIALIZED)
 	{
 		eros::diagnostic diag = diagnostic;
 		eros::srv_device srv;
@@ -127,7 +127,7 @@ bool SafetyNode::run_1hz()
 			}
 		}
 	}
-	else if(process->is_initialized() == false)
+	else if(process->get_taskstate() == TASKSTATE_INITIALIZING)
 	{
 		{
 			eros::srv_device srv;
@@ -244,12 +244,15 @@ void SafetyNode::thread_loop()
 }
 void SafetyNode::cleanup()
 {
+	base_cleanup();
+	get_logger()->log_info(__FILE__,__LINE__,"[SafetyNode] Finished Safely.");
 }
 /*! \brief Attempts to kill a node when an interrupt is received.
  *
  */
 void signalinterrupt_handler(int sig)
 {
+	printf("Killing SafetyNode with Signal: %d", sig);
 	kill_node = true;
 	exit(0);
 }
@@ -263,7 +266,8 @@ int main(int argc, char **argv) {
 	{
 		status = node->update(node->get_process()->get_taskstate());
 	}
-	node->get_logger()->log_info(__FILE__,__LINE__,"Node Finished Safely.");
+	node->cleanup();
+	thread.detach();
 	return 0;
 }
 

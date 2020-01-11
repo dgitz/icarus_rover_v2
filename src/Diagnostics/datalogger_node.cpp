@@ -227,12 +227,15 @@ void DataLoggerNode::thread_loop()
 }
 void DataLoggerNode::cleanup()
 {
+	base_cleanup();
+	get_logger()->log_info(__FILE__,__LINE__,"[DataLoggerNode] Finished Safely.");
 }
 /*! \brief Attempts to kill a node when an interrupt is received.
  *
  */
 void signalinterrupt_handler(int sig)
 {
+	printf("Killing DataLoggerNode with Signal: %d", sig);
 	kill_node = true;
 	exit(0);
 }
@@ -257,23 +260,22 @@ void DataLoggerNode::run_logger(DataLoggerNode *node)
 	return;
 
 }
-int main(int argc, char **argv) {
+int main(int argc, char **argv) 
+{
 	signal(SIGINT, signalinterrupt_handler);
 	signal(SIGTERM, signalinterrupt_handler);
 	DataLoggerNode *node = new DataLoggerNode();
 	bool status = node->start(argc,argv);
-    if(status == true)
-    {
-        std::thread thread(&DataLoggerNode::thread_loop, node);
-        std::thread thread2(&DataLoggerNode::run_logger,node,node);
-        while((status == true) and (kill_node == false))
-        {
-            status = node->update(node->get_process()->get_taskstate());
-        }
-        node->cleanup();
-        thread2.join();
-    }
-	node->get_logger()->log_info(__FILE__,__LINE__,"Node Finished Safely.");
+	std::thread thread(&DataLoggerNode::thread_loop, node);
+	std::thread thread2(&DataLoggerNode::run_logger,node,node);
+	while((status == true) and (kill_node == false))
+	{
+	    status = node->update(node->get_process()->get_taskstate());
+	}
+	node->cleanup();
+	thread2.join();
+	node->cleanup();
+	thread.detach();
 	return 0;
 }
 

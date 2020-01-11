@@ -357,9 +357,8 @@ void SnapshotNode::thread_loop()
 }
 void SnapshotNode::cleanup()
 {
-	kill_node = true;
 	base_cleanup();
-	get_logger()->log_info(__FILE__,__LINE__,"Node Finished Safely.");
+	get_logger()->log_info(__FILE__,__LINE__,"[SnapshotNode] Finished Safely.");
 }
 /*! \brief Attempts to kill a node when an interrupt is received.
  *
@@ -385,3 +384,4 @@ int main(int argc, char **argv)
 	thread.detach();
 	return 0;
 }
+
