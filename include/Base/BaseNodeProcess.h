@@ -47,8 +47,8 @@
 #include "../Definitions.h"
 #include "../../../eROS/include/PoseHelper.h"
 #include "../../../eROS/include/DiagnosticClass.h"
-#include "../Supported_PN.h"
-#include "../Supported_DeviceType.h"
+#include "../../../eROS/include/Supported_PN.h"
+#include "../../../eROS/include/Supported_DeviceType.h"
 #include <nlohmann/json.hpp> //See: https://github.com/nlohmann/json#projects-using-json-for-modern-c
 
 using json = nlohmann::json;
