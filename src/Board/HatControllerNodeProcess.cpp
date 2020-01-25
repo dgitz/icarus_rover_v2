@@ -4,6 +4,7 @@ bool HatControllerNodeProcess::initialize_supportedhats()
 	supported_partnumbers.push_back(PN_100003);
 	supported_partnumbers.push_back(PN_100007);
 	supported_partnumbers.push_back(PN_625004);
+	supported_sensor_partnumbers.push_back(PN_110001);
 	{ //HAT: GPIOHAT PN: 1000007
 		HatControllerNodeProcess::HatMap hat;
 		hat.FAST_PN = PN_100007;
@@ -1060,7 +1061,30 @@ bool HatControllerNodeProcess::parse_sensorfile(TiXmlDocument doc, std::string n
 		}
 		else
 		{
-			printf("Element: Type not found.\n");
+			printf("Element: Type not found for Sensor: %s.\n",name.c_str());
+			return false;
+		}
+		TiXmlElement *l_pPartNumber = l_pRootElement->FirstChildElement("PartNumber");
+		if( NULL != l_pPartNumber)
+		{
+			sensors.at(sensor_index).partnumber = l_pPartNumber->GetText();
+		}
+		else
+		{
+			printf("Element: PartNumber not found for Sensor: %s.\n",name.c_str());
+			return false;
+		}
+		bool found = false;
+		for(std::size_t i = 0; i < supported_sensor_partnumbers.size(); ++i)
+		{
+			if(supported_sensor_partnumbers.at(i) == sensors.at(sensor_index).partnumber)
+			{
+				found = true;
+			}
+		}
+		if(found == false)
+		{
+			printf("Sensor: %s Part Number: %s Not Supported.\n",name.c_str(),sensors.at(sensor_index).partnumber.c_str());
 			return false;
 		}
 		if ((sensors.at(sensor_index).type == "UltraSonicSensor"))
@@ -1068,7 +1092,7 @@ bool HatControllerNodeProcess::parse_sensorfile(TiXmlDocument doc, std::string n
 		}
 		else
 		{
-			printf("Sensor Type: %s Not Supported.\n", sensors.at(sensor_index).type.c_str());
+			printf("Sensor Type: %s Not Supported for Sensor: %s.\n", sensors.at(sensor_index).type.c_str(),name.c_str());
 			return false;
 		}
 
@@ -1079,7 +1103,7 @@ bool HatControllerNodeProcess::parse_sensorfile(TiXmlDocument doc, std::string n
 		}
 		else
 		{
-			printf("Element: OutputDataType not found.\n");
+			printf("Element: OutputDataType not found for Sensor: %s.\n",name.c_str());
 			return false;
 		}
 		if ((sensors.at(sensor_index).output_datatype == "signal"))
@@ -1088,7 +1112,7 @@ bool HatControllerNodeProcess::parse_sensorfile(TiXmlDocument doc, std::string n
 		}
 		else
 		{
-			printf("Sensor OutputDataType: %s Not Supported.\n", sensors.at(sensor_index).output_datatype.c_str());
+			printf("Sensor OutputDataType: %s Not Supported for Sensor: %s\n", sensors.at(sensor_index).output_datatype.c_str(),name.c_str());
 			return false;
 		}
 

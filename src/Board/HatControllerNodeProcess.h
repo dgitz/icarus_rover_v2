@@ -22,6 +22,7 @@ public:
 	{
 		uint8_t status;
 		bool initialized;
+		std::string partnumber;
 		double conversion_factor;
 		std::string type;
 		std::string name;
@@ -147,6 +148,7 @@ private:
 	bool hat_present(const eros::device::ConstPtr &device);
 	std::vector<HatMap> supported_hats;
 	std::vector<Sensor> sensors;
+	std::vector<std::string> supported_sensor_partnumbers;
 
 	std::vector<eros::device> hats;
 	std::vector<bool> hats_running;

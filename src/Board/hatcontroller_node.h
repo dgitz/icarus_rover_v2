@@ -24,12 +24,12 @@
 class HatControllerNode: public BaseNode {
 public:
 
-	const string BASE_NODE_NAME = "sample_node";
+	const string BASE_NODE_NAME = "hatcontroller_node";
 
 	const uint8_t MAJOR_RELEASE_VERSION = 2;
-	const uint8_t MINOR_RELEASE_VERSION = 2;
+	const uint8_t MINOR_RELEASE_VERSION = 3;
 	const uint8_t BUILD_NUMBER = 0;
-	const string FIRMWARE_DESCRIPTION = "Latest Rev: 11-January-2020";
+	const string FIRMWARE_DESCRIPTION = "Latest Rev: 25-January-2020";
 
 	const uint8_t DIAGNOSTIC_SYSTEM = ROVER;
 	const uint8_t DIAGNOSTIC_SUBSYSTEM = ROBOT_CONTROLLER;

@@ -1,6 +1,7 @@
 // A list of all supported Part Numbers
 #define PN_100003 "100003" // Raspberry Pi 2 Model B
 #define PN_100005 "100005" // Arduino Mega 2560
+#define PN_110001 "110001" // Parallax Ping Sonar
 #define PN_100007 "100007" // A-Star 32U4 Robot Controller SV GPIO Hat
 #define PN_110012 "110012" // Sparkfun Razor IMU
 #define PN_110013 "110013" // Adafruit LSM9DS0 IMU

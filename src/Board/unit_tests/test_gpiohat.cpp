@@ -14,6 +14,8 @@ static void show_usage()
 	std::cerr 	<< "This program is used to test the operation of a directly connected GPIOHat.\n"
 				<< "Currently supported Part Numbers:\n"
 				<< "\tPN: " << PN_100007 << "\n"
+				<< "Currently supported Sensor Part Numbers:\n"
+				<< "\tPN: " << PN_110001 << "\n"
 			  	<< "Usage: Test GPIOHat via I2C. Options:\n"
 			 	<< "\t-h,--help\t\tShow this help message\n"
 			  	<< "\t-a,--address Address\tThe I2C Address of the Hat (Base 10).  Default=20.\n"
@@ -22,8 +24,9 @@ static void show_usage()
 			  	<< "\t\t [0] Get_Diagnostic (0xAB12)\n"
 			  	<< "\t\t [1] TestMessageCounter (0xAB14)\n"
 			  	<< "\t\t [2] Get_DIO_Port1 (0xAB19)\n"
-			  	<< "\t\t [2] Get_ANA_Port1 (0xAB20)\n"
-			  	<< "\t\t [2] Get_ANA_Port2 (0xAB21)\n"
+			  	<< "\t\t [3] Get_ANA_Port1 (0xAB20)\n"
+			  	<< "\t\t [4] Get_ANA_Port2 (0xAB21)\n"
+				<< "\t\t [5] Run TestProgram (0xAB47)\n"
 			  	<< std::endl;
 }
 /**********************************************************
@@ -108,6 +111,9 @@ int main(int argc, char *argv[])
 					case 4:
 						query_type = I2CMessageHandler::I2C_Get_ANA_Port2_ID;
 						break;
+					case 5:
+						query_type = I2CMessageHandler::I2C_TestProgram_ID;
+						break;
 					default:
 						printf("Unsupported Query Message.  Exiting.\n");
 						return 0;
@@ -128,6 +134,7 @@ int main(int argc, char *argv[])
 	GPIOHatDriver gpiohat;
 	printf("Using address: %d\n", hat_address);
 	int status = gpiohat.init(hat_address);
+	printf("Power On Self Test Passed: %d\n",gpiohat.get_poweron_selftest_result());
 	int last_counter_received = 0;
 	int counter = 0;
 	long missed = 0;
@@ -229,6 +236,24 @@ int main(int argc, char *argv[])
 				{
 					printf("Unable to Decode\n");
 				}
+			case I2CMessageHandler::I2C_TestProgram_ID:
+				success = i2cmessagehandler->decode_TestProgramI2C(inputbuffer, &length, &v1);
+				if (success == 1)
+				{
+					printf("%d Test Program State: %d\n",
+						   passed_checksum_calc, v1);
+				}
+				if(v1 == TESTPROGRAMSTATE_PASSED)
+				{
+					printf("[INFO] Test Program Passed. Exiting.\n");
+					return 0;
+				}
+				if(v1 == TESTPROGRAMSTATE_FAILED)
+				{
+					printf("[ERROR]: Test Program Failed!\n");
+					return 0;
+				}
+				break;
 			default:
 				break;
 			}
@@ -255,6 +280,7 @@ int main(int argc, char *argv[])
 				   100.0 * (double)passed_checksum / ((double)passed_checksum + (double)failed_checksum));
 			gettimeofday(&last_printtime, NULL);
 		}
+		usleep(loop_delay);
 	}
 	return 0;
 }
