@@ -24,6 +24,20 @@ int GPIOHatDriver::init(int address_)
 	{ //Using ioctl set the i2c device to talk to address in the "addr" variable.
 		printf("Can't set the I2C address for the slave device\n");
 	}
+	poweron_selftest_passed = true;
+	/*
+	unsigned char inputbuffer[12];
+	int result = sendQuery(I2CMessageHandler::I2C_TestProgram_ID,inputbuffer);
+	
+	if(result == TESTPROGRAMSTATE_PASSED)
+	{
+		poweron_selftest_passed = true;
+	}
+	else
+	{
+		printf("[WARN] Power On Self Test Failed with Result: %d\n",result);
+	}
+	*/
 	/*
 
     // zero all PWM ports

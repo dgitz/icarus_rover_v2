@@ -10,6 +10,7 @@
 #include <unistd.h>   /* For open(), */
 #include <sys/ioctl.h>
 #include "../../../include/Supported_PN.h"
+#include <i2cmessage.h>
 class GPIOHatDriver
 {
 public:
@@ -18,6 +19,7 @@ public:
 	GPIOHatDriver();
 	~GPIOHatDriver();
 	int init(int address = 0x14);
+	bool get_poweron_selftest_result() { return poweron_selftest_passed; }
 	int get_address() { return address; }
 	int test_comm(int v);
 	int i2cRead(char *data,int length);
@@ -37,6 +39,7 @@ public:
 	int sendQuery(unsigned char query,unsigned char * inputbuffer);
 
 private:
+	bool poweron_selftest_passed;
 	int address;
 	int GPIOHatfd;
 };
