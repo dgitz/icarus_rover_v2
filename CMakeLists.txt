@@ -215,8 +215,6 @@ install(DIRECTORY include/${PROJECT_NAME}/
 #Libraries-General
 add_library(resourcemonitor util/resourcemonitor.cpp)
 add_dependencies(resourcemonitor eros_generate_messages_cpp)
-add_library(controlgroup util/controlgroup.cpp)
-add_dependencies(controlgroup eros_generate_messages_cpp)
 
 
 #Libraries-Communications
