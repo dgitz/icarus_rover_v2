@@ -6,7 +6,7 @@
 //Project
 #include <tinyxml.h>
 #include "fl/Headers.h"
-#include "../../include/controlgroup.h"
+#include "../../../eROS/include/controlgroup.h"
 /*! \class ControlGroupNodeProcess ControlGroupNodeProcess.h "ControlGroupNodeProcess.h"
  *  \brief This is a ControlGroupNodeProcess class.  Used for the implement_node node.
  *
