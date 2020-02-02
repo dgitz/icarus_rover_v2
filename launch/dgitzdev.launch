@@ -8,37 +8,6 @@
         <param name="loop1_rate"            value="50.0"/> <!-- publish -->
         <param name="loop2_rate"            value="100.0"/> <!-- process update -->
 </node>
-<node name="$(env ROS_HOSTNAME)_networktransceiver_node" pkg="icarus_rover_v2" type="networktransceiver_node"  output="screen" clear_params="true">
-        <param name="verbosity_level"       value="NOTICE"/>
-        <param name="startup_delay"         value="1.0" />
-        <param name="require_pps_to_start"  value="false"/> 
-        <param name="Mode"                  value="DriverStation"/> <!--Diagnostics_GUI-->
-        <param name="loop1_rate"            value="20.0"/> <!-- Send High Priority Messages -->  
-        <param name="loop2_rate"            value="5.0"/> <!-- Send Medium and Low Priority Messages, Ready To Arm -->
-        <param name="loop3_rate"            value="50.0"/> <!-- Process Update -->
-</node>
-<node name="$(env ROS_HOSTNAME)_topicremapper_node" pkg="icarus_rover_v2" type="topicremapper_node"  output="screen" clear_params="true">
-        <param name="verbosity_level"       value="NOTICE"/>
-        <param name="require_pps_to_start"  value="false"/> 
-        <param name="loop1_rate"            value="20.0"/> <!-- Publish -->
-</node>
-<node name="$(env ROS_HOSTNAME)_database_node" pkg="icarus_rover_v2" type="database_node"  output="screen" clear_params="true">
-        <param name="startup_delay"       value="0.0"/>
-        <param name="verbosity_level"       value="NOTICE"/>
-        <param name="require_pps_to_start"  value="false"/> 
-        <param name="database_path"         value="/home/robot/config/configdatabase.db"/>
-</node>
-<node name="$(env ROS_HOSTNAME)_command_node" pkg="icarus_rover_v2" type="command_node"  output="screen" clear_params="true">
-        <param name="verbosity_level"       value="NOTICE"/>
-        <param name="startup_delay"       value="5.0"/> 
-        <param name="require_pps_to_start"  value="false"/> 
-        <param name="loop1_rate"            value="2.0"/> <!-- Armed State Publish -->  
-        <param name="loop2_rate"            value="5.0"/> <!-- Process Update -->
-        <param name="loop3_rate"            value="10.0"/> <!-- Periodic Commands (max) -->
-        <param name="ready_to_arm_topic1"  value="/dgitzdev_diagnostic_node/readytoarm"/>
-        <param name="ready_to_arm_topic2"   value="/dgitzdev_networktransceiver_node/readytoarm"/>
-        <param name="user_command_topic" value="/DriverStation/user_command"/>
-</node>
 <node name="$(env ROS_HOSTNAME)_master_node" pkg="icarus_rover_v2" type="master_node"  output="screen" clear_params="true">
         <param name="startup_delay"       value="0.0"/>
 	    <param name="verbosity_level"       value="NOTICE"/>
@@ -54,13 +23,18 @@
         <param name="loop2_rate"            value="5.0"/> <!-- Publish -->
         <param name="Mode"                  value="MASTER"/>
 </node>
-<node name="$(env ROS_HOSTNAME)_diagnostic_node" pkg="icarus_rover_v2" type="diagnostic_node"  output="screen" clear_params="true">
-        <param name="startup_delay"       value="1.0"/>
+<node name="$(env ROS_HOSTNAME)_datalogger_node" pkg="icarus_rover_v2" type="datalogger_node"  output="screen" clear_params="true">
+        <param name="startup_delay"       value="5.0"/>
         <param name="verbosity_level"       value="NOTICE"/>
         <param name="require_pps_to_start"  value="false"/> 
-        <param name="RAM_usage_threshold_MB"    value="2000"/>
-        <param name="CPU_usage_threshold_percent"    value="30"/> 
-        <param name="Log_Resources_Used"        value="false"/>  
-        <param name="loop1_rate"            value="5.0"/> <!-- Publish System Diagnostics -->   
+        <param name="LogFile_Duration"      value="7200.0"/>
+        <param name="LogFile_Directory"     value="/home/robot/storage/DATALOGS/"/> 
+        <param name="SnapshotMode"          value="false"/>
+        <param name="ChannelExclude"        value="(.*)dgitzdev_master_node/(.*)"/> <!-- Regex Expression, see: http://wiki.ros.org/rosbag/Commandline#record -->
+        <!-- Exclude Examples:
+            dgitzdev_master_node/heartbeat(.*) : Will not log the heartbeat message from the dgitzdev master node
+            dgitzdev_master_node/(.*) : Will not log any message from the dgitzdev master node
+            (.*)/raspicam_node/image/compressed(.*)
+        -->
 </node>
 </launch>

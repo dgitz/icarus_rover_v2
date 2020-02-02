@@ -31,6 +31,8 @@ public:
 	eros::diagnostic update(double t_dt,double t_ros_time);
 
 	//Attribute Functions
+	void set_channelexclude(std::string v) { channel_exclude = v; }
+	std::string get_channelexclude() { return channel_exclude; }
     void set_logfileduration(double v) {logfile_duration = v; }
     double get_logfile_duration() { return logfile_duration; }
 	bool set_logdirectory(std::string v) 
@@ -73,6 +75,7 @@ private:
     double logfile_duration;
 	bool logging_enabled;
 	bool snapshot_mode;
+	std::string channel_exclude;
 
 
 };

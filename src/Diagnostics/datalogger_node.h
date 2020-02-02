@@ -3,6 +3,7 @@
 #include "../../include/Base/BaseNode.cpp"
 //C System Files
 //C++ System Files
+#include <boost/regex.hpp>
 //ROS Base Functionality
 //#include "../../../ros_comm/tools/rosbag/include/rosbag/recorder.h"
 //#include "record_ros/record.h"

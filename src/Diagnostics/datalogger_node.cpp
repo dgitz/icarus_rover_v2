@@ -84,6 +84,14 @@ eros::diagnostic DataLoggerNode::finish_initialization()
 		logger->log_diagnostic(diag);
 	}
     process->setSnapshotMode(snapshot_mode);
+	std::string channel_exclude = "";
+	std::string param_channel_exclude = node_name + "/ChannelExclude";
+	if(n->getParam(param_channel_exclude,channel_exclude) == false)
+	{
+		diag = process->update_diagnostic(DATA_STORAGE,WARN,NOERROR,"Missing Parameter: ChannelExclude.");
+		logger->log_diagnostic(diag);
+	}
+    process->set_channelexclude(channel_exclude);
 	if(snapshot_mode == false)
 	{
 		diag = process->update_diagnostic(DATA_STORAGE,WARN,NOERROR,"SnapshotMode Disabled.  Logging Everything.");
@@ -252,6 +260,8 @@ void DataLoggerNode::run_logger(DataLoggerNode *node)
 		opts.max_duration = ros::Duration(node->get_process()->get_logfile_duration()); //30 minutes
 		opts.split = true;
 		opts.snapshot = node->get_process()->getSnapshotMode();
+		static const boost::regex ex("(.*)dgitzdev_master_node/(.*)");
+		opts.exclude_regex = ex;//node->get_process()->get_channelexclude();
 		rosbag::Recorder recorder(opts);
 		recorder.run();
 		node->get_logger()->log_info(__FILE__,__LINE__,"Logger Finished.");

@@ -83,7 +83,7 @@ int LCDDriver::send(std::string buffer)
 	locked = true;
 	if(buffer.size() > buffer_max)
 	{
-		printf("Buffer is too big: %d/%d\n",(int)buffer.size(),buffer_max);
+		printf("[ERROR]: LCD Driver Buffer is too big: %d/%d\n",(int)buffer.size(),buffer_max);
 		return -1;
 	}
 	write(fd,"|-",2);

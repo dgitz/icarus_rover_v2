@@ -4,6 +4,7 @@ eros::diagnostic  DataLoggerNodeProcess::finish_initialization()
 	log_directory_available = false;
 	logging_enabled = false;
 	snapshot_mode = false;
+	channel_exclude = "";
 	reset();
     eros::diagnostic diag = root_diagnostic; 
     return diag;
