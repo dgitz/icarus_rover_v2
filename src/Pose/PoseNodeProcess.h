@@ -4,11 +4,9 @@
 //ROS Base Functionality
 //ROS Messages
 //Project
+#include "Pose_AutoCode_grt_rtw/Pose_AutoCode.h"
 #include "PoseModel/Definitions/PoseDefinitions.h"
-#include <tf/transform_broadcaster.h>
-#include "PoseModel/Blocks/Timing/TimeCompensate.h"
-#include "PoseModel/Blocks/SensorPostProcessing/IMUPostProcess.h"
-#include "PoseModel/Blocks/SignalLinker/MasterLinker.h"
+//#include <tf/transform_broadcaster.h>
 #include "../../../eROS/include/PoseHelper.h"
 /*! \class PoseNodeProcess PoseNodeProcess.h "PoseNodeProcess.h"
  *  \brief This is a PoseNodeProcess class.  Used for the pose_node node.
@@ -21,7 +19,8 @@ public:
     enum PoseMode
     {
         UNKNOWN=0,
-        CALIBRATE=1
+        CALIBRATE=1,
+		EXECUTE=2
     };
     //Structs
 	struct IMUSensor
@@ -29,7 +28,7 @@ public:
 		bool initialized;
 		bool running;
 		std::string topicname;
-        tf::Transform transform;
+       // tf::Transform transform;
 		eros::device device;
 		eros::imu imu_data;
 		eros::signal orientation_pitch;
@@ -78,15 +77,13 @@ private:
 	/*! \brief Process Specific Implementation
 	 *
 	 */
+	Pose_AutoCodeModelClass m_model;
 	PoseHelper pose_helper;
 	uint16_t expected_sensorsignal_count;
 	void update_sensorsignal(uint64_t sequence_number,eros::signal sig,std::string source_sensor);
 	
 	eros::diagnostic update_pose(double t_dt, double t_ros_time);
 	std::vector<SensorSignal> sensor_signals;
-	std::vector<TimeCompensate> time_compensators;
-	std::vector<IMUPostProcess> imu_postprocessors;
-	MasterLinker signal_linker;
 	std::vector<InputSignal_3d> linearacc_inputsignals;
     //PoseAcceleration pose_acc;
 	std::vector<eros::diagnostic> check_programvariables();
