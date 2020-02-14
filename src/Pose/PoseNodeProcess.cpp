@@ -5,7 +5,7 @@ eros::diagnostic  PoseNodeProcess::finish_initialization()
 	expected_sensorsignal_count = 0;
 	eros::diagnostic diag = root_diagnostic;
 	imu_count = -1;
-	current_mode = PoseMode::CALIBRATE;
+	current_mode = PoseMode::EXECUTE;
 	return diag;
 }
 bool PoseNodeProcess::set_imucount(uint8_t v)
@@ -65,76 +65,7 @@ eros::diagnostic PoseNodeProcess::update(double t_dt,double t_ros_time)
 			{ // Sensor Post Process
 			}
 			{ // Initialize Sensor Linkers
-				signal_linker.initialize_object("signal_linker",root_diagnostic);
-				/*
-				std::vector<eros::signal> xacc_signals;
-				std::vector<eros::signal> yacc_signals;
-				std::vector<eros::signal> zacc_signals;
-				for(std::size_t i = 0; i < imus.size(); ++i)
-				{
-					xacc_signals.push_back(imus.at(i).imu_data.xacc);
-					yacc_signals.push_back(imus.at(i).imu_data.yacc);
-					zacc_signals.push_back(imus.at(i).imu_data.zacc);
-				}
-				std::string linker_name;
-				{	// XAcc Linker
-					linker_name = "XAcc";
-					xacc_linker = new LinearAccelerationLinker;
-					if(xacc_linker->initialize_object(linker_name, diag) == false)
-					{
-						diag = update_diagnostic(DATA_STORAGE,ERROR,INITIALIZING_ERROR,"Unable to Initialize Linker: " + linker_name);
-						return diag;
-					}
-					diag = update_diagnostic(xacc_linker->initialize_inputsignals(xacc_signals));
-					if(diag.Level > ERROR)
-					{
-						return diag;
-					}
-					diag = update_diagnostic(xacc_linker->initialize_outputsignals(xacc_signals));
-					if(diag.Level > ERROR)
-					{
-						return diag;
-					}					
-				}
-				{	// YAcc Linker
-					linker_name = "YAcc";
-					yacc_linker = new LinearAccelerationLinker;
-					if(xacc_linker->initialize_object(linker_name, diag) == false)
-					{
-						diag = update_diagnostic(DATA_STORAGE,ERROR,INITIALIZING_ERROR,"Unable to Initialize Linker: " + linker_name);
-						return diag;
-					}
-					diag = update_diagnostic(yacc_linker->initialize_inputsignals(yacc_signals));
-					if(diag.Level > ERROR)
-					{
-						return diag;
-					}
-					diag = update_diagnostic(yacc_linker->initialize_outputsignals(yacc_signals));
-					if(diag.Level > ERROR)
-					{
-						return diag;
-					}					
-				}
-				{	// ZAcc Linker
-					linker_name = "ZAcc";
-					zacc_linker = new LinearAccelerationLinker;
-					if(zacc_linker->initialize_object(linker_name, diag) == false)
-					{
-						diag = update_diagnostic(DATA_STORAGE,ERROR,INITIALIZING_ERROR,"Unable to Initialize Linker: " + linker_name);
-						return diag;
-					}
-					diag = update_diagnostic(zacc_linker->initialize_inputsignals(zacc_signals));
-					if(diag.Level > ERROR)
-					{
-						return diag;
-					}
-					diag = update_diagnostic(zacc_linker->initialize_outputsignals(zacc_signals));
-					if(diag.Level > ERROR)
-					{
-						return diag;
-					}					
-				}
-				*/
+			
 				
 			}
 			diag = update_diagnostic(DATA_STORAGE,INFO,NOERROR,"Node Ready.");
@@ -144,6 +75,11 @@ eros::diagnostic PoseNodeProcess::update(double t_dt,double t_ros_time)
 	}
 	else if(task_state == TASKSTATE_RUNNING)
 	{
+		if(current_mode == PoseMode::EXECUTE)
+		{
+			printf("Executing Pose Model.\n");
+			m_model.step();
+		}
 	}
 	else if(task_state != TASKSTATE_RUNNING)
 	{
@@ -195,10 +131,11 @@ eros::diagnostic PoseNodeProcess::new_devicemsg(const eros::device::ConstPtr& de
 		newimu.orientation_pitch.type = SIGNALTYPE_ANGLE;
 		newimu.orientation_roll.type = SIGNALTYPE_ANGLE;
 		newimu.orientation_yaw.type = SIGNALTYPE_ANGLE;
-		newimu.transform.setOrigin( tf::Vector3(0.0,0.0, 0.0) );
+		/*newimu.transform.setOrigin( tf::Vector3(0.0,0.0, 0.0) );
 		tf::Quaternion q;
 		q.setRPY(0.0,0.0,0.0);
 		newimu.transform.setRotation(q);
+		*/
 		newimu.device = convert_fromptr(device);
 		newimu.topicname = "/" + newimu.device.DeviceName;
 		char tempstr[512];
@@ -346,16 +283,6 @@ eros::diagnostic PoseNodeProcess::new_imumsg(std::string topic, const eros::imu:
 	return diag;
 
 }
-double PoseNodeProcess::compute_acceleration_based_roll(double xacc,double yacc,double zacc)
-{
-	double R = pow((xacc*xacc+yacc*yacc+zacc*zacc),0.5);
-	return -asin(yacc/R);
-}
-double PoseNodeProcess::compute_acceleration_based_pitch(double xacc,double yacc,double zacc)
-{
-	double R = pow((xacc*xacc+yacc*yacc+zacc*zacc),0.5);
-	return -asin(xacc/R);
-}
 std::string PoseNodeProcess::map_posemode_tostring(PoseNodeProcess::PoseMode t_posemode)
 {
 	switch(t_posemode)
@@ -364,6 +291,8 @@ std::string PoseNodeProcess::map_posemode_tostring(PoseNodeProcess::PoseMode t_p
 		return "UNKNOWN";
 	case PoseMode::CALIBRATE:
 		return "CALIBRATE";
+	case PoseMode::EXECUTE:
+		return "EXECUTE";
 	default:
 		return "UNKNOWN";
 	}
@@ -379,6 +308,10 @@ PoseNodeProcess::PoseMode PoseNodeProcess::map_posemode_tovalue(std::string t_po
 	{
 		return PoseMode::CALIBRATE;
 	}
+	else if(t_posemode == "EXECUTE")
+	{
+		return PoseMode::EXECUTE;
+	}
 	else
 	{
 		return PoseMode::UNKNOWN;
@@ -393,33 +326,6 @@ eros::diagnostic PoseNodeProcess::update_pose(__attribute__((unused)) double t_d
 	}
 	else
 	{
-		std::vector<TimedSignal> timedsignal_list;
-		std::vector<PostProcessedSignal> postprocessedsignal_list;
-		{ // Time Compensate
-			
-			for(std::size_t i = 0; i < sensor_signals.size(); ++i)
-			{
-				TimedSignal sig = time_compensators.at(i).new_signal(t_ros_time,sensor_signals.at(i));
-				timedsignal_list.push_back(sig);
-			}
-		}
-		{ // Sensor Post-Process
-			for(std::size_t i = 0; i < timedsignal_list.size(); ++i)
-			{
-				for(std::size_t j = 0; j < imu_postprocessors.size(); ++j)
-				{
-					if(timedsignal_list.at(i).signal.name == imu_postprocessors.at(j).get_name())
-					{
-						PostProcessedSignal post_signal = imu_postprocessors.at(i).new_signal(timedsignal_list.at(i));
-						postprocessedsignal_list.push_back(post_signal);
-					}
-				}
-			}
-		}
-		{ // Signal Linkers
-			diag = signal_linker.new_input(postprocessedsignal_list);
-			linearacc_inputsignals = signal_linker.get_linearaccelerations();
-		}
 		diag = update_diagnostic(POSE,INFO,NOERROR,"Pose Updated at time: " + std::to_string(t_ros_time));
 	}
 	return diag;
@@ -438,20 +344,5 @@ void PoseNodeProcess::update_sensorsignal(uint64_t sequence_number,eros::signal 
 	}
 	if(found == false)
 	{
-		SensorSignal new_sig;
-		new_sig.sequence_number = sequence_number;
-		new_sig.signal = signal;
-		sensor_signals.push_back(new_sig);
-
-		TimeCompensate tc;
-		tc.init(new_sig.signal.name,TimeCompensate::SamplingMethod::SAMPLEANDHOLD);
-		time_compensators.push_back(tc);
-
-		if(source_sensor == "imu")
-		{
-			IMUPostProcess post_processor;
-			post_processor.init(new_sig.signal.name);
-			imu_postprocessors.push_back(post_processor);
-		}
 	}
 }

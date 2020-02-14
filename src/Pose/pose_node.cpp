@@ -157,6 +157,7 @@ bool PoseNode::run_loop1()
 	std::vector<PoseNodeProcess::IMUSensor> imus = process->get_imus();
 	for(std::size_t i = 0; i < imus.size(); ++i)
 	{
+		/*
 		static tf::TransformBroadcaster br;
 		br.sendTransform(tf::StampedTransform(imus.at(i).transform, ros::Time::now(), "world", imus.at(i).device.DeviceName));
 		printf("%s X: %4.2f Y: %4.2f Z: %4.2f Pitch: %4.2f Roll: %4.2f\n",imus.at(i).device.DeviceName.c_str(),
@@ -164,6 +165,7 @@ bool PoseNode::run_loop1()
 				imus.at(i).imu_data.yacc.value,
 				imus.at(i).imu_data.zacc.value,
 				imus.at(i).orientation_pitch.value*180.0/M_PI,imus.at(i).orientation_roll.value*180.0/M_PI);
+				*/
 	}
 	std::vector<eros::diagnostic> diaglist = process->get_diagnostics();
 	for (std::size_t i = 0; i < diaglist.size(); ++i)

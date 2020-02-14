@@ -6,6 +6,7 @@
 //ROS Base Functionality
 //ROS Messages
 //Project
+
 /*! \class PoseNode PoseNode.h "PoseNode.h"
  *  \brief This is a SampleNode class.  Used for the sample_node node.
  *
@@ -70,5 +71,6 @@ private:
 	ros::ServiceClient srv_device;
 	PoseNodeProcess *process;
 	std::vector<ros::Subscriber> imu_subs;
+	
 
 };
