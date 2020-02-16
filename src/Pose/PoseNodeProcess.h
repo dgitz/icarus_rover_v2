@@ -5,7 +5,7 @@
 //ROS Messages
 //Project
 #include "Pose_AutoCode_grt_rtw/Pose_AutoCode.h"
-#include "PoseModel/Definitions/PoseDefinitions.h"
+#include "PoseDefinitions.h"
 //#include <tf/transform_broadcaster.h>
 #include "../../../eROS/include/PoseHelper.h"
 /*! \class PoseNodeProcess PoseNodeProcess.h "PoseNodeProcess.h"
@@ -35,6 +35,12 @@ public:
 		eros::signal orientation_roll;
 		eros::signal orientation_yaw;
 	};
+	struct TimedSignals
+	{
+		eros::signal accel1x;
+		eros::signal accel1y;
+		eros::signal accel1z;
+	};
 	///Initialization Functions
 	/*! \brief NodeProcess specific Initialization
 	 *
@@ -42,7 +48,7 @@ public:
 	eros::diagnostic finish_initialization();
 	void reset()
 	{
-		
+		pose_update_counter = 0;
 	}
 	//Update Functions
 	/*! \brief Implementation of the update function
@@ -56,6 +62,8 @@ public:
 	bool set_imucount(uint8_t v);
 	IMUSensor get_imudata(std::string name);
     std::vector<IMUSensor> get_imus() { return imus; }
+	TimedSignals get_timedsignals() { return timed_signals; }
+	uint64_t get_poseupdate_counter() { return pose_update_counter; }
 
 	//Message Functions
 	/*! \brief  Process Command Message.  All implementation should use at least the code in this Sample Function.
@@ -70,6 +78,7 @@ public:
     PoseNodeProcess::PoseMode map_posemode_tovalue(std::string t_posemode);
     double compute_acceleration_based_roll(double xacc,double yacc,double zacc);
     double compute_acceleration_based_pitch(double xacc,double yacc,double zacc);
+	uint8_t map_imuname_toindex(std::string name);
 
     //Printing Functions
 protected:
@@ -90,4 +99,6 @@ private:
     PoseMode current_mode;
 	std::vector<IMUSensor> imus;
 	uint8_t imu_count;
+	TimedSignals timed_signals;
+	uint64_t pose_update_counter;
 };

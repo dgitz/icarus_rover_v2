@@ -144,12 +144,7 @@ bool PoseNode::run_1hz()
 bool PoseNode::run_10hz()
 {
 	ready_to_arm = process->get_ready_to_arm();
-	eros::diagnostic diag = process->update(0.1,ros::Time::now().toSec());
-	if(diag.Level > WARN)
-	{
-		get_logger()->log_diagnostic(diag);
-		diagnostic_pub.publish(diag);
-	}
+	
 	return true;
 }
 bool PoseNode::run_loop1()
@@ -166,6 +161,12 @@ bool PoseNode::run_loop1()
 				imus.at(i).imu_data.zacc.value,
 				imus.at(i).orientation_pitch.value*180.0/M_PI,imus.at(i).orientation_roll.value*180.0/M_PI);
 				*/
+	}
+	eros::diagnostic diag = process->update(0.1,ros::Time::now().toSec());
+	if(diag.Level > WARN)
+	{
+		get_logger()->log_diagnostic(diag);
+		diagnostic_pub.publish(diag);
 	}
 	std::vector<eros::diagnostic> diaglist = process->get_diagnostics();
 	for (std::size_t i = 0; i < diaglist.size(); ++i)

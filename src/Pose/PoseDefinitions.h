@@ -2,17 +2,15 @@
 #define POSEDEFINITIONS_H
 #include <stdio.h>
 #include <iostream>
-#include "../../../../../eROS/include/DiagnosticClass.h"
-#include "../../../../include/Definitions.h"
+#include "../../../eROS/include/DiagnosticClass.h"
+#include "../../include/Definitions.h"
 #include <eros/signal.h>
+#define TIMEDSIGNAL_ACCEL1X_INDEX 0
+#define TIMEDSIGNAL_ACCEL1Y_INDEX 1
+#define TIMEDSIGNAL_ACCEL1Z_INDEX 2
 struct SensorSignal
 {
 	uint64_t sequence_number;
-	eros::signal signal;
-	uint8_t signal_class;
-};
-struct TimedSignal
-{
 	eros::signal signal;
 	uint8_t signal_class;
 };

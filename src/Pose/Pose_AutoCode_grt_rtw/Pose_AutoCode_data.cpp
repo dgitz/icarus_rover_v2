@@ -1,5 +1,5 @@
 /*
- *  rtmodel.h:
+ * Pose_AutoCode_data.cpp
  *
  * Student License - for use by students to meet course requirements and
  * perform academic research at degree granting institutions only.  Not
@@ -18,27 +18,28 @@
  * Validation result: Not run
  */
 
-#ifndef RTW_HEADER_rtmodel_h_
-#define RTW_HEADER_rtmodel_h_
-
-/*
- *  Includes the appropriate headers when we are using rtModel
- */
 #include "Pose_AutoCode.h"
-#define GRTINTERFACE                   0
+#include "Pose_AutoCode_private.h"
 
-/*
- * ROOT_IO_FORMAT: 0 (Individual arguments)
- * ROOT_IO_FORMAT: 1 (Structure reference)
- * ROOT_IO_FORMAT: 2 (Part of model data structure)
- */
-# define ROOT_IO_FORMAT                2
+/* Block parameters (default storage) */
+P_Pose_AutoCode_T Pose_AutoCodeModelClass::Pose_AutoCode_P = {
+  /* Computed Parameter: Memory_InitialCondition
+   * Referenced by: '<S5>/Memory'
+   */
+  {
+    0U,                                /* initialized */
+    0U,                                /* signal1_update_counter */
+    0U,                                /* signal2_update_counter */
+    0U                                 /* signal3_update_counter */
+  },
 
-/* Macros generated for backwards compatibility  */
-#ifndef rtmGetStopRequested
-# define rtmGetStopRequested(rtm)      ((void*) 0)
-#endif
+  /* Expression: 0
+   * Referenced by: '<S5>/Memory1'
+   */
+  0.0,
 
-#define MODEL_CLASSNAME                Pose_AutoCodeModelClass
-#define MODEL_STEPNAME                 step
-#endif                                 /* RTW_HEADER_rtmodel_h_ */
+  /* Expression: 0
+   * Referenced by: '<S5>/Memory2'
+   */
+  0.0
+};
