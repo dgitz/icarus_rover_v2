@@ -7,9 +7,9 @@
  *
  * Code generation for model "Pose_AutoCode".
  *
- * Model version              : 1.41
+ * Model version              : 1.97
  * Simulink Coder version : 9.2 (R2019b) 18-Jul-2019
- * C++ source code generated on : Fri Feb 14 07:35:24 2020
+ * C++ source code generated on : Sun Feb 16 09:36:46 2020
  *
  * Target selection: grt.tlc
  * Note: GRT includes extra infrastructure and instrumentation for prototyping

@@ -30,15 +30,15 @@ eros::signal generate_signal(std::string name,double value)
 eros::imu generate_imumsg(uint16_t id)
 {
 	eros::imu msg;
-	msg.xacc = generate_signal("xacc" + std::to_string(id),0.0);
-	msg.yacc = generate_signal("yacc" + std::to_string(id),0.0);
-	msg.zacc = generate_signal("zacc" + std::to_string(id),0.0);
-	msg.xgyro = generate_signal("xgyro" + std::to_string(id),0.0);
-	msg.ygyro = generate_signal("ygyro" + std::to_string(id),0.0);
-	msg.zgyro = generate_signal("zgyro" + std::to_string(id),0.0);
-	msg.xmag = generate_signal("xmag" + std::to_string(id),0.0);
-	msg.ymag = generate_signal("ymag" + std::to_string(id),0.0);
-	msg.zmag = generate_signal("zmag" + std::to_string(id),0.0);
+	msg.xacc = generate_signal("xacc" + std::to_string(id),10.0);
+	msg.yacc = generate_signal("yacc" + std::to_string(id),1.0);
+	msg.zacc = generate_signal("zacc" + std::to_string(id),2.0);
+	msg.xgyro = generate_signal("xgyro" + std::to_string(id),3.0);
+	msg.ygyro = generate_signal("ygyro" + std::to_string(id),4.0);
+	msg.zgyro = generate_signal("zgyro" + std::to_string(id),5.0);
+	msg.xmag = generate_signal("xmag" + std::to_string(id),6.0);
+	msg.ymag = generate_signal("ymag" + std::to_string(id),7.0);
+	msg.zmag = generate_signal("zmag" + std::to_string(id),8.0);
 	return msg;
 }
 PoseNodeProcess* initializeprocess(uint8_t imucount)
@@ -292,11 +292,13 @@ TEST(Template,Process_SensorInputs)
 				eros::imu imu_msg = generate_imumsg(1);
 				eros::imu::ConstPtr imudata_ptr(new eros::imu(imu_msg));
 				diag = process->new_imumsg("/IMU1", imudata_ptr);
+				EXPECT_TRUE(diag.Level <= NOTICE);
 			}
 			{
 				eros::imu imu_msg = generate_imumsg(2);
 				eros::imu::ConstPtr imudata_ptr(new eros::imu(imu_msg));
 				diag = process->new_imumsg("/IMU2", imudata_ptr);
+				EXPECT_TRUE(diag.Level <= NOTICE);
 			}
 			allsensor_data_received = true;
 			//PoseNodeProcess::IMUSensor imu = process->get_imudata("IMU1");
@@ -392,6 +394,15 @@ TEST(Template,Process_SensorInputs)
 	}
 	EXPECT_TRUE(pause_resume_ran == true);
 	EXPECT_TRUE(process->get_runtime() >= time_to_run);
+	EXPECT_TRUE(process->get_poseupdate_counter() > 0);
+	//Check Pose Outputs
+	{
+		PoseNodeProcess::TimedSignals timed_signals = process->get_timedsignals();
+		EXPECT_TRUE(fabs(timed_signals.accel1x.value) > 0.0);
+		EXPECT_TRUE(fabs(timed_signals.accel1y.value) > 0.0);
+		EXPECT_TRUE(fabs(timed_signals.accel1z.value) > 0.0);
+
+	}
 }
 int main(int argc, char **argv){
 	testing::InitGoogleTest(&argc, argv);

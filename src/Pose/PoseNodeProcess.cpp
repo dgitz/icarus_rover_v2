@@ -77,8 +77,6 @@ eros::diagnostic PoseNodeProcess::update(double t_dt,double t_ros_time)
 	{
 		if(current_mode == PoseMode::EXECUTE)
 		{
-			printf("Executing Pose Model.\n");
-			m_model.step();
 		}
 	}
 	else if(task_state != TASKSTATE_RUNNING)
@@ -234,6 +232,34 @@ eros::diagnostic PoseNodeProcess::new_imumsg(std::string topic, const eros::imu:
 			found = true;
 			imus.at(i).imu_data = convert_fromptr(data);
 			imus.at(i).running = true;
+			uint8_t index = map_imuname_toindex(imus.at(i).topicname);
+			switch(index)
+			{
+				case 1:
+					m_model.Pose_AutoCode_U.accel1x_in.value = data->xacc.value;
+					m_model.Pose_AutoCode_U.accel1x_in.status = data->xacc.status;
+					m_model.Pose_AutoCode_U.accel1x_in.rms = data->xacc.rms;
+					m_model.Pose_AutoCode_U.accel1x_in.sequence_number = data->sequence_number;
+
+					m_model.Pose_AutoCode_U.accel1y_in.value = data->yacc.value;
+					m_model.Pose_AutoCode_U.accel1y_in.status = data->yacc.status;
+					m_model.Pose_AutoCode_U.accel1y_in.rms = data->yacc.rms;
+					m_model.Pose_AutoCode_U.accel1y_in.sequence_number = data->sequence_number;
+
+					m_model.Pose_AutoCode_U.accel1z_in.value = data->zacc.value;
+					m_model.Pose_AutoCode_U.accel1z_in.status = data->zacc.status;
+					m_model.Pose_AutoCode_U.accel1z_in.rms = data->zacc.rms;
+					m_model.Pose_AutoCode_U.accel1z_in.sequence_number = data->sequence_number;
+					break;
+				case 2:
+					break;
+				default:
+					diag = update_diagnostic(DATA_STORAGE,WARN,DEVICE_NOT_AVAILABLE,"Unable to Resolve IMU: " + imus.at(i).topicname + " To Index.");
+					return diag;
+					break;
+				//m_model.Pose_AutoCode_U.accel2x_in.value = data->xacc.value;
+			}
+			/*
 			update_sensorsignal(imus.at(i).imu_data.sequence_number,imus.at(i).imu_data.xacc,"imu");
 			update_sensorsignal(imus.at(i).imu_data.sequence_number,imus.at(i).imu_data.yacc,"imu");
 			update_sensorsignal(imus.at(i).imu_data.sequence_number,imus.at(i).imu_data.zacc,"imu");
@@ -243,6 +269,7 @@ eros::diagnostic PoseNodeProcess::new_imumsg(std::string topic, const eros::imu:
 			update_sensorsignal(imus.at(i).imu_data.sequence_number,imus.at(i).imu_data.xmag,"imu");
 			update_sensorsignal(imus.at(i).imu_data.sequence_number,imus.at(i).imu_data.ymag,"imu");
 			update_sensorsignal(imus.at(i).imu_data.sequence_number,imus.at(i).imu_data.zmag,"imu");
+			*/
 
 			/*
 			imus.at(i).orientation_roll.value = compute_acceleration_based_roll(imus.at(i).imu_data.xacc.value,
@@ -320,13 +347,55 @@ PoseNodeProcess::PoseMode PoseNodeProcess::map_posemode_tovalue(std::string t_po
 eros::diagnostic PoseNodeProcess::update_pose(__attribute__((unused)) double t_dt, double t_ros_time)
 {
 	eros::diagnostic diag = root_diagnostic;
-	if((sensor_signals.size() < expected_sensorsignal_count) || (expected_sensorsignal_count == 0))
+	bool ok_to_run = true;
+	// Determine if all Sensor data is being received
+	bool imus_ok = true;
+	for(std::size_t i = 0; i < imus.size(); ++i)
 	{
-		diag = update_diagnostic(POSE,WARN,INITIALIZING,"Pose has not received all Sensor Inputs Yet.");
+		if(imus.at(i).running == false)
+		{
+			imus_ok = false;
+		}
+	}
+	if((imus_ok == true))
+	{
+		ok_to_run = true;
 	}
 	else
 	{
+		ok_to_run = false;
+		diag = update_diagnostic(POSE,WARN,INITIALIZING,"Pose has not received all Sensor Inputs Yet.");
+	}
+	/*
+	printf("check: %d %d\n",sensor_signals.size(),expected_sensorsignal_count);
+	if((sensor_signals.size() < expected_sensorsignal_count) || (expected_sensorsignal_count == 0))
+	{
+		
+	}
+	else
+	{	
 		diag = update_diagnostic(POSE,INFO,NOERROR,"Pose Updated at time: " + std::to_string(t_ros_time));
+	}
+	*/
+	if(ok_to_run == true)
+	{
+			m_model.Pose_AutoCode_U.current_time = run_time;
+			m_model.step();
+			pose_update_counter++;
+			timed_signals.accel1x.value = m_model.Pose_AutoCode_Y.timed_signals_output[TIMEDSIGNAL_ACCEL1X_INDEX].value;
+			timed_signals.accel1x.status = m_model.Pose_AutoCode_Y.timed_signals_output[TIMEDSIGNAL_ACCEL1X_INDEX].status;
+			timed_signals.accel1x.rms = m_model.Pose_AutoCode_Y.timed_signals_output[TIMEDSIGNAL_ACCEL1X_INDEX].rms;
+
+			timed_signals.accel1y.value = m_model.Pose_AutoCode_Y.timed_signals_output[TIMEDSIGNAL_ACCEL1Y_INDEX].value;
+			timed_signals.accel1y.status = m_model.Pose_AutoCode_Y.timed_signals_output[TIMEDSIGNAL_ACCEL1Y_INDEX].status;
+			timed_signals.accel1y.rms = m_model.Pose_AutoCode_Y.timed_signals_output[TIMEDSIGNAL_ACCEL1Y_INDEX].rms;
+
+			timed_signals.accel1z.value = m_model.Pose_AutoCode_Y.timed_signals_output[TIMEDSIGNAL_ACCEL1Z_INDEX].value;
+			timed_signals.accel1z.status = m_model.Pose_AutoCode_Y.timed_signals_output[TIMEDSIGNAL_ACCEL1Z_INDEX].status;
+			timed_signals.accel1z.rms = m_model.Pose_AutoCode_Y.timed_signals_output[TIMEDSIGNAL_ACCEL1Z_INDEX].rms;
+			diag = update_diagnostic(POSE,NOTICE,NOERROR,"Pose Last Updated at time: " + std::to_string(t_ros_time));
+
+	
 	}
 	return diag;
 }
@@ -345,4 +414,27 @@ void PoseNodeProcess::update_sensorsignal(uint64_t sequence_number,eros::signal 
 	if(found == false)
 	{
 	}
+}
+uint8_t PoseNodeProcess::map_imuname_toindex(std::string name)
+{
+	uint8_t index = 0;
+	// Search if imu is index:1
+	if(name.find("1") != std::string::npos)
+	{
+		return 1;
+	}
+	else if(name.find("Left") != std::string::npos)
+	{
+		return 1;
+	}
+	// Search if imu is index:2
+	else if(name.find("2") != std::string::npos)
+	{
+		return 2;
+	}
+	else if(name.find("Right") != std::string::npos)
+	{
+		return 2;
+	}
+	return index;
 }

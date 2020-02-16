@@ -2,7 +2,7 @@
 ## Makefile generated for Simulink model 'Pose_AutoCode'. 
 ## 
 ## Makefile     : Pose_AutoCode.mk
-## Generated on : Fri Feb 14 07:37:57 2020
+## Generated on : Sun Feb 16 07:04:29 2020
 ## MATLAB Coder version: 4.3 (R2019b)
 ## 
 ## Build Info:
@@ -174,7 +174,7 @@ DEFINES = $(DEFINES_BUILD_ARGS) $(DEFINES_CUSTOM) $(DEFINES_IMPLIED) $(DEFINES_S
 ## SOURCE FILES
 ###########################################################################
 
-SRCS = $(START_DIR)/Pose_AutoCode_grt_rtw/Pose_AutoCode.cpp
+SRCS = $(START_DIR)/Pose_AutoCode_grt_rtw/Pose_AutoCode.cpp $(START_DIR)/Pose_AutoCode_grt_rtw/Pose_AutoCode_data.cpp
 
 MAIN_SRC = $(MATLAB_ROOT)/rtw/c/src/common/rt_cppclass_main.cpp
 
@@ -184,7 +184,7 @@ ALL_SRCS = $(SRCS) $(MAIN_SRC)
 ## OBJECTS
 ###########################################################################
 
-OBJS = Pose_AutoCode.o
+OBJS = Pose_AutoCode.o Pose_AutoCode_data.o
 
 MAIN_OBJ = rt_cppclass_main.o
 
@@ -333,6 +333,10 @@ $(PRODUCT) : $(OBJS) $(PREBUILT_OBJS) $(MAIN_OBJ)
 
 
 Pose_AutoCode.o : $(START_DIR)/Pose_AutoCode_grt_rtw/Pose_AutoCode.cpp
+	$(CPP) $(CPPFLAGS) -o "$@" "$<"
+
+
+Pose_AutoCode_data.o : $(START_DIR)/Pose_AutoCode_grt_rtw/Pose_AutoCode_data.cpp
 	$(CPP) $(CPPFLAGS) -o "$@" "$<"
 
 
