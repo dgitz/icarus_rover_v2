@@ -262,7 +262,6 @@ bool IMUNode::run_loop1()
 					logger->log_diagnostic(diag);
 					kill_node = 1;
 				}
-				proc_imu.timestamp = ros::Time::now().toSec();
 				imutemp_pubs.at(i).publish(proc_imu_temp);
 				if(diag.Level <= NOTICE)
 				{
