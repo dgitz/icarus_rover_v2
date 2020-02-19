@@ -139,9 +139,9 @@ eros::diagnostic CommandNodeProcess::update(double t_dt,double t_ros_time)
 	{
 		if(armeddisarmed_state == ARMEDSTATUS_DISARMED_CANNOTARM)
 		{
-			disarmed_reason = "None";
 			armeddisarmed_state = ARMEDSTATUS_DISARMED;
 		}
+		disarmed_reason = "None";
 	}
 	for(std::size_t i = 0; i < periodic_commands.size(); i++)
 	{
@@ -291,7 +291,6 @@ void CommandNodeProcess::new_readytoarmmsg(std::string topic, bool value)
 	{
 		if(ReadyToArmList.at(i).topic == topic)
 		{
-
 			ReadyToArmList.at(i).ready_to_arm = value;
 			ReadyToArmList.at(i).time_since_lastrx = run_time;
 		}

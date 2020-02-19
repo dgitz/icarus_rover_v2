@@ -181,6 +181,7 @@ bool NetworkTransceiverNode::run_01hz_noisy()
 }
 bool NetworkTransceiverNode::run_1hz()
 {
+	process->update_diagnostic(process->check_remoteHeartbeats());
 	process->update_diagnostic(get_resource_diagnostic());
 	if(process->get_taskstate() == TASKSTATE_RUNNING)
 	{
