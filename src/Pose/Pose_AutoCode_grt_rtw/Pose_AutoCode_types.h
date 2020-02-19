@@ -7,9 +7,9 @@
  *
  * Code generation for model "Pose_AutoCode".
  *
- * Model version              : 1.97
+ * Model version              : 1.98
  * Simulink Coder version : 9.2 (R2019b) 18-Jul-2019
- * C++ source code generated on : Sun Feb 16 09:36:46 2020
+ * C++ source code generated on : Tue Feb 18 05:27:33 2020
  *
  * Target selection: grt.tlc
  * Note: GRT includes extra infrastructure and instrumentation for prototyping
@@ -63,13 +63,13 @@ typedef struct {
 typedef uint8_T SignalState;
 
 /* enum SignalState */
-const SignalState SIGSTATE_UNDEFINED = 0U;/* Default value */
-const SignalState SIGSTATE_INVALID = 1U;
-const SignalState SIGSTATE_INITIALIZING = 2U;
-const SignalState SIGSTATE_UPDATED = 3U;
-const SignalState SIGSTATE_EXTRAPOLATED = 4U;
-const SignalState SIGSTATE_HOLD = 5U;
-const SignalState SIGSTATE_CALIBRATING = 6U;
+const SignalState SIGNALSTATE_UNDEFINED_ = 0U;/* Default value */
+const SignalState SIGNALSTATE_INVALID_ = 1U;
+const SignalState SIGNALSTATE_INITIALIZING_ = 2U;
+const SignalState SIGNALSTATE_UPDATED_ = 3U;
+const SignalState SIGNALSTATE_EXTRAPOLATED_ = 4U;
+const SignalState SIGNALSTATE_HOLD_ = 5U;
+const SignalState SIGNALSTATE_CALIBRATING_ = 6U;
 
 #endif
 

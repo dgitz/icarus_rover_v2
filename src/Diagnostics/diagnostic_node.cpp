@@ -85,9 +85,8 @@ eros::diagnostic DiagnosticNode::finish_initialization()
 		logging_resources_used = false;
 	}
 	process->set_log_resources_used(logging_resources_used);
-
 	std::string armed_state_topic = "/armed_state";
-	armed_state_sub = n->subscribe<std_msgs::UInt8>(armed_state_topic,1,&DiagnosticNode::ArmedState_Callback,this);
+	armed_state_sub = n->subscribe<std_msgs::UInt8>(armed_state_topic,10,&DiagnosticNode::ArmedState_Callback,this);
 	diag = rescan_topics();
 	diag = process->update_diagnostic(diag);
 	if(diagnostic.Level > NOTICE)

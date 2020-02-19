@@ -59,6 +59,7 @@ public:
 	/*! \brief Implementation of the update function
 	 *
 	 */
+	eros::diagnostic check_remoteHeartbeats();
 	eros::diagnostic update(double t_dt,double t_ros_time);
 
 	//Attribute Functions
@@ -173,7 +174,7 @@ private:
 	 */
 	int parse_miscconfigfile(TiXmlDocument doc);
 	std::vector<eros::diagnostic> check_programvariables();
-	eros::diagnostic check_remoteHeartbeats();
+	
 	void init_messages();
 	Message get_messagebyid(uint16_t id)
 	{

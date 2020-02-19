@@ -332,7 +332,6 @@ eros::signal BaseNodeProcess::convert_fromptr(const eros::signal::ConstPtr& t_pt
 eros::imu BaseNodeProcess::convert_fromptr(const eros::imu::ConstPtr &t_ptr)
 {
 	eros::imu imu;
-	imu.timestamp = t_ptr->timestamp;
 	imu.sequence_number = t_ptr->sequence_number;
 	imu.tov = t_ptr->tov;
 	imu.xacc = t_ptr->xacc;
