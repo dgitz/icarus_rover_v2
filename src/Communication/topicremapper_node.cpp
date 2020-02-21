@@ -62,13 +62,18 @@ eros::diagnostic TopicRemapperNode::finish_initialization()
 	std::vector<TopicRemapperNodeProcess::TopicMap> TopicMaps = process->get_topicmaps();
 	for(std::size_t i = 0; i < TopicMaps.size();i++)
 	{
-		if(TopicMaps.at(i).in.type == "sensor_msgs/Joy")
+		if(	(TopicMaps.at(i).outputmode.mode == TopicRemapperNodeProcess::OutputModeEnum::DIRECT) ||
+			(TopicMaps.at(i).outputmode.mode == TopicRemapperNodeProcess::OutputModeEnum::SWITCH))
 		{
-			ros::Subscriber sub = n->subscribe<sensor_msgs::Joy>(TopicMaps.at(i).in.topic,10,boost::bind(&TopicRemapperNode::Joystick_Callback,this,_1,TopicMaps.at(i).in.topic));
-			char tempstr[255];
-			sprintf(tempstr,"Subscribing to: %s",TopicMaps.at(i).in.topic.c_str());
-			logger->log_info(__FILE__,__LINE__,tempstr);
-			subs.push_back(sub);
+			if(TopicMaps.at(i).ins.at(0).type == "sensor_msgs/Joy")
+			{
+				ros::Subscriber sub = n->subscribe<sensor_msgs::Joy>(TopicMaps.at(i).ins.at(0).topic,
+					10,boost::bind(&TopicRemapperNode::Joystick_Callback,this,_1,TopicMaps.at(i).ins.at(0).topic));
+				char tempstr[255];
+				sprintf(tempstr,"Subscribing to: %s",TopicMaps.at(i).ins.at(0).topic.c_str());
+				logger->log_info(__FILE__,__LINE__,tempstr);
+				subs.push_back(sub);
+			}
 		}
 		for(std::size_t j = 0; j < TopicMaps.at(i).outs.size();j++)
 		{
@@ -81,6 +86,11 @@ eros::diagnostic TopicRemapperNode::finish_initialization()
 			{
 				ros::Publisher pub = n->advertise<std_msgs::Float32>(TopicMaps.at(i).outs.at(j).topic,10);
 				float32_pubs.push_back(pub);
+			}
+			else if(TopicMaps.at(i).outs.at(j).type == "std_msgs/Bool")
+			{
+				ros::Publisher pub = n->advertise<std_msgs::Bool>(TopicMaps.at(i).outs.at(j).topic,10);
+				bool_pubs.push_back(pub);
 			}
 			else if(TopicMaps.at(i).outs.at(j).type == "sensor_msgs/JointState")
 			{
@@ -176,7 +186,7 @@ bool TopicRemapperNode::run_loop1()
 {
 	{
 		std::vector<eros::pin> outs = process->get_outputs_pins();
-		for(std::size_t i = 0; i < pin_pubs.size(); i++)
+		for(std::size_t i = 0; i < pin_pubs.size(); ++i)
 		{
 			outs.at(i).stamp = ros::Time::now();
 			pin_pubs.at(i).publish(outs.at(i));
@@ -184,9 +194,16 @@ bool TopicRemapperNode::run_loop1()
 	}
 	{
 		std::vector<std_msgs::Float32> outs = process->get_outputs_float32();
-		for(std::size_t i = 0; i < float32_pubs.size(); i++)
+		for(std::size_t i = 0; i < float32_pubs.size(); ++i)
 		{
 			float32_pubs.at(i).publish(outs.at(i));
+		}
+	}
+	{
+		std::vector<std_msgs::Bool> outs = process->get_outputs_bool();
+		for(std::size_t i = 0; i < bool_pubs.size(); ++i)
+		{
+			bool_pubs.at(i).publish(outs.at(i));
 		}
 	}
 	return true;

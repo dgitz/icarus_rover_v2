@@ -67,6 +67,52 @@ TEST(Template, Process_Initialization)
 	EXPECT_TRUE(diagnostic.Level <= NOTICE);
 	
 }
+TEST(Execution,TopicRemapping)
+{
+	TopicRemapperNodeProcess *process = initializeprocess();
+	eros::diagnostic diag = process->load("/home/robot/catkin_ws/src/icarus_rover_v2/src/Communication/unit_tests/UnitTestTopicMap.xml");
+	EXPECT_TRUE(diag.Level <= NOTICE);
+	process = readyprocess(process);
+	printf("%s\n",process->print_topicmaps().c_str());
+	sensor_msgs::Joy joy;
+	joy.buttons.resize(8);
+	for(std::size_t i = 0; i < joy.buttons.size(); ++i)
+	{
+		joy.buttons[i] = true;
+	}
+	joy.axes.resize(8);
+	for(std::size_t i = 0; i < joy.axes.size(); ++i)
+	{
+		joy.axes[i] = 0.0;
+	}
+	diag = process->new_joymsg(joy,"/DriverStation/joystick");
+	EXPECT_TRUE(diag.Level <= NOTICE);
+	diag = process->update(0.1,0.1);
+	EXPECT_TRUE(diag.Level <= NOTICE);
+
+	std::vector<std_msgs::Bool> bool_outputs = process->get_outputs_bool();
+	EXPECT_TRUE(bool_outputs.size() == 4);
+	for(std::size_t i = 0; i < bool_outputs.size(); ++i)
+	{
+		EXPECT_TRUE(bool_outputs.at(i).data == true);
+	}
+	std::vector<eros::pin> pin_outs = process->get_outputs_pins();
+	int found_count = 0;
+	for(std::size_t i = 0; i < pin_outs.size(); ++i)
+	{
+		if(pin_outs.at(i).ConnectedDevice == "LeftMotorController")
+		{
+			found_count++;
+			EXPECT_TRUE(pin_outs.at(i).Value == 1500);
+		}
+		if(pin_outs.at(i).ConnectedDevice == "RightMotorController")
+		{
+			found_count++;
+			EXPECT_TRUE(pin_outs.at(i).Value == 1600);
+		}
+	}
+	EXPECT_TRUE(found_count == 2);
+}
 
 TEST(Template, Process_Command)
 {
