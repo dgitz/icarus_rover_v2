@@ -16,9 +16,9 @@ public:
 	const string BASE_NODE_NAME = "topicremapper_node";
 
 	const uint8_t MAJOR_RELEASE_VERSION = 3;
-	const uint8_t MINOR_RELEASE_VERSION = 1;
-	const uint8_t BUILD_NUMBER = 1;
-	const string FIRMWARE_DESCRIPTION = "Latest Rev: 11-January-2020";
+	const uint8_t MINOR_RELEASE_VERSION = 2;
+	const uint8_t BUILD_NUMBER = 0;
+	const string FIRMWARE_DESCRIPTION = "Latest Rev: 19-Feb-2020";
 
 	const uint8_t DIAGNOSTIC_SYSTEM = ROVER;
 	const uint8_t DIAGNOSTIC_SUBSYSTEM = ROBOT_CONTROLLER;
@@ -73,5 +73,6 @@ private:
 	ros::Subscriber joy_sub;
 	std::vector<ros::Publisher> pin_pubs;
 	std::vector<ros::Publisher> float32_pubs;
+	std::vector<ros::Publisher> bool_pubs;
 
 };
