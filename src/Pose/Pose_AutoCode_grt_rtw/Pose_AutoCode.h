@@ -7,9 +7,9 @@
  *
  * Code generation for model "Pose_AutoCode".
  *
- * Model version              : 1.98
+ * Model version              : 1.102
  * Simulink Coder version : 9.2 (R2019b) 18-Jul-2019
- * C++ source code generated on : Tue Feb 18 05:27:33 2020
+ * C++ source code generated on : Fri Feb 28 20:45:21 2020
  *
  * Target selection: grt.tlc
  * Note: GRT includes extra infrastructure and instrumentation for prototyping
@@ -42,11 +42,34 @@
 # define rtmSetErrorStatus(rtm, val)   ((rtm)->errorStatus = (val))
 #endif
 
+/* Block signals for system '<S2>/KalmanFilter' */
+typedef struct {
+  real_T xhat;                         /* '<S2>/KalmanFilter' */
+  real_T P;                            /* '<S2>/KalmanFilter' */
+  KalmanFilterObjectState state;       /* '<S2>/KalmanFilter' */
+} B_KalmanFilter_Pose_AutoCode_T;
+
+/* Block signals (default storage) */
+typedef struct {
+  B_KalmanFilter_Pose_AutoCode_T sf_KalmanFilter2;/* '<S2>/KalmanFilter2' */
+  B_KalmanFilter_Pose_AutoCode_T sf_KalmanFilter1;/* '<S2>/KalmanFilter1' */
+  B_KalmanFilter_Pose_AutoCode_T sf_KalmanFilter;/* '<S2>/KalmanFilter' */
+} B_Pose_AutoCode_T;
+
 /* Block states (default storage) for system '<Root>' */
 typedef struct {
-  TimeCompensatorObjectState Memory_PreviousInput;/* '<S5>/Memory' */
-  real_T Memory1_PreviousInput[24];    /* '<S5>/Memory1' */
-  real_T Memory2_PreviousInput[24];    /* '<S5>/Memory2' */
+  TimeCompensatorObjectState Memory_PreviousInput;/* '<S15>/Memory' */
+  real_T Memory1_PreviousInput;        /* '<S2>/Memory1' */
+  real_T Memory3_PreviousInput;        /* '<S2>/Memory3' */
+  real_T Memory4_PreviousInput;        /* '<S2>/Memory4' */
+  real_T Memory6_PreviousInput;        /* '<S2>/Memory6' */
+  real_T Memory7_PreviousInput;        /* '<S2>/Memory7' */
+  real_T Memory9_PreviousInput;        /* '<S2>/Memory9' */
+  real_T Memory1_PreviousInput_m[24];  /* '<S15>/Memory1' */
+  real_T Memory2_PreviousInput[24];    /* '<S15>/Memory2' */
+  KalmanFilterObjectState Memory2_PreviousInput_j;/* '<S2>/Memory2' */
+  KalmanFilterObjectState Memory5_PreviousInput;/* '<S2>/Memory5' */
+  KalmanFilterObjectState Memory8_PreviousInput;/* '<S2>/Memory8' */
 } DW_Pose_AutoCode_T;
 
 /* External inputs (root inport signals with default storage) */
@@ -66,13 +89,49 @@ typedef struct {
 struct P_Pose_AutoCode_T_ {
   TimeCompensatorObjectState Memory_InitialCondition;
                                   /* Computed Parameter: Memory_InitialCondition
-                                   * Referenced by: '<S5>/Memory'
+                                   * Referenced by: '<S15>/Memory'
                                    */
+  KalmanFilterObjectState Memory2_InitialCondition;
+                                 /* Computed Parameter: Memory2_InitialCondition
+                                  * Referenced by: '<S2>/Memory2'
+                                  */
+  KalmanFilterObjectState Memory5_InitialCondition;
+                                 /* Computed Parameter: Memory5_InitialCondition
+                                  * Referenced by: '<S2>/Memory5'
+                                  */
+  KalmanFilterObjectState Memory8_InitialCondition;
+                                 /* Computed Parameter: Memory8_InitialCondition
+                                  * Referenced by: '<S2>/Memory8'
+                                  */
   real_T Memory1_InitialCondition;     /* Expression: 0
-                                        * Referenced by: '<S5>/Memory1'
+                                        * Referenced by: '<S15>/Memory1'
                                         */
-  real_T Memory2_InitialCondition;     /* Expression: 0
-                                        * Referenced by: '<S5>/Memory2'
+  real_T Memory2_InitialCondition_o;   /* Expression: 0
+                                        * Referenced by: '<S15>/Memory2'
+                                        */
+  real_T Constant_Value;               /* Expression: 1
+                                        * Referenced by: '<S1>/Constant'
+                                        */
+  real_T Constant1_Value;              /* Expression: 0
+                                        * Referenced by: '<S1>/Constant1'
+                                        */
+  real_T Memory1_InitialCondition_e;   /* Expression: 0
+                                        * Referenced by: '<S2>/Memory1'
+                                        */
+  real_T Memory3_InitialCondition;     /* Expression: 0
+                                        * Referenced by: '<S2>/Memory3'
+                                        */
+  real_T Memory4_InitialCondition;     /* Expression: 0
+                                        * Referenced by: '<S2>/Memory4'
+                                        */
+  real_T Memory6_InitialCondition;     /* Expression: 0
+                                        * Referenced by: '<S2>/Memory6'
+                                        */
+  real_T Memory7_InitialCondition;     /* Expression: 0
+                                        * Referenced by: '<S2>/Memory7'
+                                        */
+  real_T Memory9_InitialCondition;     /* Expression: 0
+                                        * Referenced by: '<S2>/Memory9'
                                         */
 };
 
@@ -117,11 +176,20 @@ class Pose_AutoCodeModelClass {
   /* Tunable parameters */
   static P_Pose_AutoCode_T Pose_AutoCode_P;
 
+  /* Block signals */
+  B_Pose_AutoCode_T Pose_AutoCode_B;
+
   /* Block states */
   DW_Pose_AutoCode_T Pose_AutoCode_DW;
 
   /* Real-Time Model */
   RT_MODEL_Pose_AutoCode_T Pose_AutoCode_M;
+
+  /* private member function(s) for subsystem '<S2>/KalmanFilter'*/
+  void Pose_AutoCode_KalmanFilter(real_T rtu_reset, real_T rtu_enable, real_T
+    rtu_z, real_T rtu_R, real_T rtu_Q, real_T rtu_C, const
+    KalmanFilterObjectState *rtu_state_in, B_KalmanFilter_Pose_AutoCode_T
+    *localB);
 
   /* private member function(s) for subsystem '<Root>'*/
   void Pose_Auto_timecompensate_signal(real_T current_time, uint32_T
@@ -147,10 +215,20 @@ class Pose_AutoCodeModelClass {
  *
  * '<Root>' : 'Pose_AutoCode'
  * '<S1>'   : 'Pose_AutoCode/PoseModel'
- * '<S2>'   : 'Pose_AutoCode/PoseModel/SensorPostProcessing'
- * '<S3>'   : 'Pose_AutoCode/PoseModel/SignalLinker'
- * '<S4>'   : 'Pose_AutoCode/PoseModel/TimeCompensate'
- * '<S5>'   : 'Pose_AutoCode/PoseModel/TimeCompensate/Time Compensate Signal x12'
- * '<S6>'   : 'Pose_AutoCode/PoseModel/TimeCompensate/Time Compensate Signal x12/TimeCompensator1'
+ * '<S2>'   : 'Pose_AutoCode/PoseModel/PoseAccelerationBlock'
+ * '<S3>'   : 'Pose_AutoCode/PoseModel/SensorPostProcessing'
+ * '<S4>'   : 'Pose_AutoCode/PoseModel/SignalLinker'
+ * '<S5>'   : 'Pose_AutoCode/PoseModel/TimeCompensate'
+ * '<S6>'   : 'Pose_AutoCode/PoseModel/PoseAccelerationBlock/KalmanFilter'
+ * '<S7>'   : 'Pose_AutoCode/PoseModel/PoseAccelerationBlock/KalmanFilter1'
+ * '<S8>'   : 'Pose_AutoCode/PoseModel/PoseAccelerationBlock/KalmanFilter2'
+ * '<S9>'   : 'Pose_AutoCode/PoseModel/PoseAccelerationBlock/PostKalmanFilter'
+ * '<S10>'  : 'Pose_AutoCode/PoseModel/PoseAccelerationBlock/PostKalmanFilter1'
+ * '<S11>'  : 'Pose_AutoCode/PoseModel/PoseAccelerationBlock/PostKalmanFilter2'
+ * '<S12>'  : 'Pose_AutoCode/PoseModel/PoseAccelerationBlock/PreKalmanFilterXAcceleration'
+ * '<S13>'  : 'Pose_AutoCode/PoseModel/PoseAccelerationBlock/PreKalmanFilterYAcceleration'
+ * '<S14>'  : 'Pose_AutoCode/PoseModel/PoseAccelerationBlock/PreKalmanFilterZAcceleration'
+ * '<S15>'  : 'Pose_AutoCode/PoseModel/TimeCompensate/Time Compensate Signal x12'
+ * '<S16>'  : 'Pose_AutoCode/PoseModel/TimeCompensate/Time Compensate Signal x12/TimeCompensator1'
  */
 #endif                                 /* RTW_HEADER_Pose_AutoCode_h_ */
