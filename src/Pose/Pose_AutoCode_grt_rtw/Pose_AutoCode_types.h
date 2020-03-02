@@ -7,9 +7,9 @@
  *
  * Code generation for model "Pose_AutoCode".
  *
- * Model version              : 1.102
+ * Model version              : 1.117
  * Simulink Coder version : 9.2 (R2019b) 18-Jul-2019
- * C++ source code generated on : Fri Feb 28 20:45:21 2020
+ * C++ source code generated on : Sun Mar  1 16:57:12 2020
  *
  * Target selection: grt.tlc
  * Note: GRT includes extra infrastructure and instrumentation for prototyping
@@ -34,16 +34,6 @@ typedef struct {
 
 #endif
 
-#ifndef DEFINED_TYPEDEF_FOR_KalmanFilterObjectState_
-#define DEFINED_TYPEDEF_FOR_KalmanFilterObjectState_
-
-typedef struct {
-  uint8_T initialized;
-  uint32_T update_counter;
-} KalmanFilterObjectState;
-
-#endif
-
 #ifndef DEFINED_TYPEDEF_FOR_OutputSignalObject_
 #define DEFINED_TYPEDEF_FOR_OutputSignalObject_
 
@@ -52,6 +42,16 @@ typedef struct {
   uint8_T status;
   real_T rms;
 } OutputSignalObject;
+
+#endif
+
+#ifndef DEFINED_TYPEDEF_FOR_KalmanFilterObjectState_
+#define DEFINED_TYPEDEF_FOR_KalmanFilterObjectState_
+
+typedef struct {
+  uint8_T initialized;
+  uint32_T update_counter;
+} KalmanFilterObjectState;
 
 #endif
 

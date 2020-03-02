@@ -2,7 +2,7 @@
 ## Makefile generated for Simulink model 'Pose_AutoCode'. 
 ## 
 ## Makefile     : Pose_AutoCode.mk
-## Generated on : Sun Feb 16 07:04:29 2020
+## Generated on : Sun Mar 01 16:50:04 2020
 ## MATLAB Coder version: 4.3 (R2019b)
 ## 
 ## Build Info:
@@ -174,7 +174,7 @@ DEFINES = $(DEFINES_BUILD_ARGS) $(DEFINES_CUSTOM) $(DEFINES_IMPLIED) $(DEFINES_S
 ## SOURCE FILES
 ###########################################################################
 
-SRCS = $(START_DIR)/Pose_AutoCode_grt_rtw/Pose_AutoCode.cpp $(START_DIR)/Pose_AutoCode_grt_rtw/Pose_AutoCode_data.cpp
+SRCS = $(START_DIR)/Pose_AutoCode_grt_rtw/Pose_AutoCode.cpp $(START_DIR)/Pose_AutoCode_grt_rtw/Pose_AutoCode_data.cpp $(START_DIR)/Pose_AutoCode_grt_rtw/rtGetInf.cpp $(START_DIR)/Pose_AutoCode_grt_rtw/rtGetNaN.cpp $(START_DIR)/Pose_AutoCode_grt_rtw/rt_nonfinite.cpp
 
 MAIN_SRC = $(MATLAB_ROOT)/rtw/c/src/common/rt_cppclass_main.cpp
 
@@ -184,7 +184,7 @@ ALL_SRCS = $(SRCS) $(MAIN_SRC)
 ## OBJECTS
 ###########################################################################
 
-OBJS = Pose_AutoCode.o Pose_AutoCode_data.o
+OBJS = Pose_AutoCode.o Pose_AutoCode_data.o rtGetInf.o rtGetNaN.o rt_nonfinite.o
 
 MAIN_OBJ = rt_cppclass_main.o
 
@@ -337,6 +337,18 @@ Pose_AutoCode.o : $(START_DIR)/Pose_AutoCode_grt_rtw/Pose_AutoCode.cpp
 
 
 Pose_AutoCode_data.o : $(START_DIR)/Pose_AutoCode_grt_rtw/Pose_AutoCode_data.cpp
+	$(CPP) $(CPPFLAGS) -o "$@" "$<"
+
+
+rtGetInf.o : $(START_DIR)/Pose_AutoCode_grt_rtw/rtGetInf.cpp
+	$(CPP) $(CPPFLAGS) -o "$@" "$<"
+
+
+rtGetNaN.o : $(START_DIR)/Pose_AutoCode_grt_rtw/rtGetNaN.cpp
+	$(CPP) $(CPPFLAGS) -o "$@" "$<"
+
+
+rt_nonfinite.o : $(START_DIR)/Pose_AutoCode_grt_rtw/rt_nonfinite.cpp
 	$(CPP) $(CPPFLAGS) -o "$@" "$<"
 
 
