@@ -7,9 +7,9 @@
  *
  * Code generation for model "Pose_AutoCode".
  *
- * Model version              : 1.102
+ * Model version              : 1.117
  * Simulink Coder version : 9.2 (R2019b) 18-Jul-2019
- * C++ source code generated on : Fri Feb 28 20:45:21 2020
+ * C++ source code generated on : Sun Mar  1 16:57:12 2020
  *
  * Target selection: grt.tlc
  * Note: GRT includes extra infrastructure and instrumentation for prototyping
@@ -24,7 +24,7 @@
 /* Block parameters (default storage) */
 P_Pose_AutoCode_T Pose_AutoCodeModelClass::Pose_AutoCode_P = {
   /* Computed Parameter: Memory_InitialCondition
-   * Referenced by: '<S15>/Memory'
+   * Referenced by: '<S17>/Memory'
    */
   {
     0U,                                /* initialized */
@@ -58,24 +58,24 @@ P_Pose_AutoCode_T Pose_AutoCodeModelClass::Pose_AutoCode_P = {
   },
 
   /* Expression: 0
-   * Referenced by: '<S15>/Memory1'
+   * Referenced by: '<S17>/Memory1'
    */
   0.0,
 
   /* Expression: 0
-   * Referenced by: '<S15>/Memory2'
+   * Referenced by: '<S17>/Memory2'
+   */
+  0.0,
+
+  /* Expression: 0
+   * Referenced by: '<S1>/reset_poseaccelerationfilter'
    */
   0.0,
 
   /* Expression: 1
-   * Referenced by: '<S1>/Constant'
+   * Referenced by: '<S1>/enable_poseaccelerationfilter'
    */
   1.0,
-
-  /* Expression: 0
-   * Referenced by: '<S1>/Constant1'
-   */
-  0.0,
 
   /* Expression: 0
    * Referenced by: '<S2>/Memory1'

@@ -1,8 +1,13 @@
 #Pose Node
-include_directories("Pose_AutoCode_grt_rtw")
+include_directories("Pose_AutoCode_grt_rtw/")
 include_directories("R2019b/extern/include/")
 include_directories("R2019b/simulink/include/")
-add_library(pose_library Pose_AutoCode_grt_rtw/Pose_AutoCode.cpp Pose_AutoCode_grt_rtw/Pose_AutoCode_data.cpp)
+add_library(pose_library 
+    Pose_AutoCode_grt_rtw/Pose_AutoCode.cpp 
+    Pose_AutoCode_grt_rtw/Pose_AutoCode_data.cpp 
+    Pose_AutoCode_grt_rtw/rt_nonfinite.cpp
+    Pose_AutoCode_grt_rtw/rtGetInf.cpp
+    Pose_AutoCode_grt_rtw/rtGetNaN.cpp)
 file(MAKE_DIRECTORY /home/robot/catkin_ws/build/test_results/icarus_rover_v2/pose_node)
 add_library(pose_node_process PoseNodeProcess.cpp)
 add_dependencies(pose_node_process eros_generate_messages_cpp)

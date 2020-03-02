@@ -7,9 +7,9 @@
  *
  * Code generation for model "Pose_AutoCode".
  *
- * Model version              : 1.102
+ * Model version              : 1.117
  * Simulink Coder version : 9.2 (R2019b) 18-Jul-2019
- * C++ source code generated on : Fri Feb 28 20:45:21 2020
+ * C++ source code generated on : Sun Mar  1 16:57:12 2020
  *
  * Target selection: grt.tlc
  * Note: GRT includes extra infrastructure and instrumentation for prototyping
@@ -20,12 +20,6 @@
 
 #include "Pose_AutoCode.h"
 #include "Pose_AutoCode_private.h"
-
-const OutputSignalObject Pose_AutoCode_rtZOutputSignalObject = {
-  0.0,                                 /* value */
-  0U,                                  /* status */
-  0.0                                  /* rms */
-} ;                                    /* OutputSignalObject ground */
 
 /*
  * Output and update for atomic system:
@@ -76,7 +70,21 @@ void Pose_AutoCodeModelClass::Pose_AutoCode_KalmanFilter(real_T rtu_reset,
   localB->state = state;
 }
 
-/* Function for MATLAB Function: '<S15>/TimeCompensator1' */
+/*
+ * Output and update for atomic system:
+ *    '<S2>/PostKalmanFilter'
+ *    '<S2>/PostKalmanFilter1'
+ *    '<S2>/PostKalmanFilter2'
+ */
+void Pose_AutoCodeModelClass::Pose_AutoCode_PostKalmanFilter(real_T rtu_xhat,
+  real_T rtu_P, B_PostKalmanFilter_Pose_AutoC_T *localB)
+{
+  localB->value = rtu_xhat;
+  localB->status = SIGNALSTATE_UPDATED_;
+  localB->rms = rtu_P;
+}
+
+/* Function for MATLAB Function: '<S17>/TimeCompensator1' */
 void Pose_AutoCodeModelClass::Pose_Auto_timecompensate_signal(real_T
   current_time, uint32_T update_count_in, real_T b_index, real_T value_in,
   uint8_T status_in, real_T rms_in, const real_T buffers_x_in[24], const real_T
@@ -140,8 +148,8 @@ void Pose_AutoCodeModelClass::step()
   KalmanFilterObjectState *rtb_Memory2_a_0;
 
   /* Outputs for Atomic SubSystem: '<S1>/TimeCompensate' */
-  /* MATLAB Function: '<S15>/TimeCompensator1' incorporates:
-   *  Memory: '<S15>/Memory'
+  /* MATLAB Function: '<S17>/TimeCompensator1' incorporates:
+   *  Memory: '<S17>/Memory'
    */
   rtb_state_initialized = Pose_AutoCode_DW.Memory_PreviousInput.initialized;
   rtb_state_signal1_update_counte =
@@ -157,15 +165,15 @@ void Pose_AutoCodeModelClass::step()
     rtb_state_initialized = 1U;
   }
 
-  /* Update for Memory: '<S15>/Memory' incorporates:
-   *  BusCreator: '<S15>/Bus Creator1'
-   *  BusCreator: '<S15>/Bus Creator4'
+  /* Update for Memory: '<S17>/Memory' incorporates:
+   *  BusCreator: '<S17>/Bus Creator1'
+   *  BusCreator: '<S17>/Bus Creator4'
    *  Inport: '<Root>/accel1x_in'
    *  Inport: '<Root>/accel1y_in'
    *  Inport: '<Root>/current_time'
-   *  MATLAB Function: '<S15>/TimeCompensator1'
-   *  Memory: '<S15>/Memory1'
-   *  Memory: '<S15>/Memory2'
+   *  MATLAB Function: '<S17>/TimeCompensator1'
+   *  Memory: '<S17>/Memory1'
+   *  Memory: '<S17>/Memory2'
    *  Outport: '<Root>/timed_signals_output'
    */
   Pose_Auto_timecompensate_signal(Pose_AutoCode_U.current_time,
@@ -187,21 +195,21 @@ void Pose_AutoCodeModelClass::step()
     &Pose_AutoCode_DW.Memory_PreviousInput.signal2_update_counter, rtb_buffers_x,
     rtb_buffers_t);
 
-  /* Memory: '<S15>/Memory2' */
+  /* Memory: '<S17>/Memory2' */
   std::memcpy(&rtb_buffers_x[0], &Pose_AutoCode_DW.Memory2_PreviousInput[0], 24U
               * sizeof(real_T));
 
-  /* Memory: '<S15>/Memory1' */
+  /* Memory: '<S17>/Memory1' */
   std::memcpy(&rtb_buffers_t[0], &Pose_AutoCode_DW.Memory1_PreviousInput_m[0],
               24U * sizeof(real_T));
 
-  /* Update for Memory: '<S15>/Memory' incorporates:
-   *  BusCreator: '<S15>/Bus Creator2'
+  /* Update for Memory: '<S17>/Memory' incorporates:
+   *  BusCreator: '<S17>/Bus Creator2'
    *  Inport: '<Root>/accel1z_in'
    *  Inport: '<Root>/current_time'
-   *  MATLAB Function: '<S15>/TimeCompensator1'
-   *  Memory: '<S15>/Memory1'
-   *  Memory: '<S15>/Memory2'
+   *  MATLAB Function: '<S17>/TimeCompensator1'
+   *  Memory: '<S17>/Memory1'
+   *  Memory: '<S17>/Memory2'
    *  Outport: '<Root>/timed_signals_output'
    */
   Pose_Auto_timecompensate_signal(Pose_AutoCode_U.current_time,
@@ -214,25 +222,25 @@ void Pose_AutoCodeModelClass::step()
     Pose_AutoCode_DW.Memory2_PreviousInput,
     Pose_AutoCode_DW.Memory1_PreviousInput_m);
 
-  /* BusCreator: '<S15>/Bus Creator1' incorporates:
-   *  MATLAB Function: '<S15>/TimeCompensator1'
+  /* BusCreator: '<S17>/Bus Creator1' incorporates:
+   *  MATLAB Function: '<S17>/TimeCompensator1'
    *  Outport: '<Root>/timed_signals_output'
    */
   Pose_AutoCode_Y.timed_signals_output[1].value = value2;
 
-  /* BusCreator: '<S15>/Bus Creator2' incorporates:
-   *  MATLAB Function: '<S15>/TimeCompensator1'
+  /* BusCreator: '<S17>/Bus Creator2' incorporates:
+   *  MATLAB Function: '<S17>/TimeCompensator1'
    *  Outport: '<Root>/timed_signals_output'
    */
   Pose_AutoCode_Y.timed_signals_output[2].value = value3;
 
-  /* BusCreator: '<S15>/Bus Creator4' incorporates:
-   *  MATLAB Function: '<S15>/TimeCompensator1'
+  /* BusCreator: '<S17>/Bus Creator4' incorporates:
+   *  MATLAB Function: '<S17>/TimeCompensator1'
    *  Outport: '<Root>/timed_signals_output'
    */
   Pose_AutoCode_Y.timed_signals_output[0].value = value1;
 
-  /* Update for Memory: '<S15>/Memory' */
+  /* Update for Memory: '<S17>/Memory' */
   Pose_AutoCode_DW.Memory_PreviousInput.initialized = rtb_state_initialized;
 
   /* End of Outputs for SubSystem: '<S1>/TimeCompensate' */
@@ -241,9 +249,9 @@ void Pose_AutoCodeModelClass::step()
   rtb_Memory2_a_0 = &Pose_AutoCode_DW.Memory2_PreviousInput_j;
 
   /* MATLAB Function: '<S2>/KalmanFilter' incorporates:
-   *  Constant: '<S1>/Constant'
-   *  Constant: '<S1>/Constant1'
-   *  MATLAB Function: '<S15>/TimeCompensator1'
+   *  Constant: '<S1>/enable_poseaccelerationfilter'
+   *  Constant: '<S1>/reset_poseaccelerationfilter'
+   *  MATLAB Function: '<S17>/TimeCompensator1'
    *  MATLAB Function: '<S2>/PreKalmanFilterXAcceleration'
    *  Memory: '<S2>/Memory1'
    *  Memory: '<S2>/Memory3'
@@ -252,19 +260,29 @@ void Pose_AutoCodeModelClass::step()
   Pose_AutoCode_B.sf_KalmanFilter.xhat = Pose_AutoCode_DW.Memory1_PreviousInput;
 
   /* Outputs for Atomic SubSystem: '<S1>/TimeCompensate' */
-  Pose_AutoCode_KalmanFilter(Pose_AutoCode_P.Constant1_Value,
-    Pose_AutoCode_P.Constant_Value, value1, 0.64, 0.05, 1.0, rtb_Memory2_a_0,
-    &Pose_AutoCode_B.sf_KalmanFilter);
+  Pose_AutoCode_KalmanFilter(Pose_AutoCode_P.reset_poseaccelerationfilter_Va,
+    Pose_AutoCode_P.enable_poseaccelerationfilter_V, value1, 0.64, 0.05, 1.0,
+    rtb_Memory2_a_0, &Pose_AutoCode_B.sf_KalmanFilter);
 
   /* End of Outputs for SubSystem: '<S1>/TimeCompensate' */
+
+  /* MATLAB Function: '<S2>/PostKalmanFilter' */
+  Pose_AutoCode_PostKalmanFilter(Pose_AutoCode_B.sf_KalmanFilter.xhat,
+    Pose_AutoCode_B.sf_KalmanFilter.P, &Pose_AutoCode_B.sf_PostKalmanFilter);
+
+  /* SignalConversion generated from: '<S2>/Vector Concatenate' incorporates:
+   *  Outport: '<Root>/pose_linearacceleration_signals_output'
+   */
+  Pose_AutoCode_Y.pose_linearacceleration_signals[0] =
+    Pose_AutoCode_B.sf_PostKalmanFilter.value;
 
   /* Memory: '<S2>/Memory5' */
   rtb_Memory2_a_0 = &Pose_AutoCode_DW.Memory5_PreviousInput;
 
   /* MATLAB Function: '<S2>/KalmanFilter1' incorporates:
-   *  Constant: '<S1>/Constant'
-   *  Constant: '<S1>/Constant1'
-   *  MATLAB Function: '<S15>/TimeCompensator1'
+   *  Constant: '<S1>/enable_poseaccelerationfilter'
+   *  Constant: '<S1>/reset_poseaccelerationfilter'
+   *  MATLAB Function: '<S17>/TimeCompensator1'
    *  MATLAB Function: '<S2>/PreKalmanFilterYAcceleration'
    *  Memory: '<S2>/Memory4'
    *  Memory: '<S2>/Memory6'
@@ -273,19 +291,29 @@ void Pose_AutoCodeModelClass::step()
   Pose_AutoCode_B.sf_KalmanFilter1.xhat = Pose_AutoCode_DW.Memory4_PreviousInput;
 
   /* Outputs for Atomic SubSystem: '<S1>/TimeCompensate' */
-  Pose_AutoCode_KalmanFilter(Pose_AutoCode_P.Constant1_Value,
-    Pose_AutoCode_P.Constant_Value, value2, 0.64, 0.05, 1.0, rtb_Memory2_a_0,
-    &Pose_AutoCode_B.sf_KalmanFilter1);
+  Pose_AutoCode_KalmanFilter(Pose_AutoCode_P.reset_poseaccelerationfilter_Va,
+    Pose_AutoCode_P.enable_poseaccelerationfilter_V, value2, 0.64, 0.05, 1.0,
+    rtb_Memory2_a_0, &Pose_AutoCode_B.sf_KalmanFilter1);
 
   /* End of Outputs for SubSystem: '<S1>/TimeCompensate' */
+
+  /* MATLAB Function: '<S2>/PostKalmanFilter1' */
+  Pose_AutoCode_PostKalmanFilter(Pose_AutoCode_B.sf_KalmanFilter1.xhat,
+    Pose_AutoCode_B.sf_KalmanFilter1.P, &Pose_AutoCode_B.sf_PostKalmanFilter1);
+
+  /* SignalConversion generated from: '<S2>/Vector Concatenate' incorporates:
+   *  Outport: '<Root>/pose_linearacceleration_signals_output'
+   */
+  Pose_AutoCode_Y.pose_linearacceleration_signals[1] =
+    Pose_AutoCode_B.sf_PostKalmanFilter1.value;
 
   /* Memory: '<S2>/Memory8' */
   rtb_Memory2_a_0 = &Pose_AutoCode_DW.Memory8_PreviousInput;
 
   /* MATLAB Function: '<S2>/KalmanFilter2' incorporates:
-   *  Constant: '<S1>/Constant'
-   *  Constant: '<S1>/Constant1'
-   *  MATLAB Function: '<S15>/TimeCompensator1'
+   *  Constant: '<S1>/enable_poseaccelerationfilter'
+   *  Constant: '<S1>/reset_poseaccelerationfilter'
+   *  MATLAB Function: '<S17>/TimeCompensator1'
    *  MATLAB Function: '<S2>/PreKalmanFilterZAcceleration'
    *  Memory: '<S2>/Memory7'
    *  Memory: '<S2>/Memory9'
@@ -294,11 +322,24 @@ void Pose_AutoCodeModelClass::step()
   Pose_AutoCode_B.sf_KalmanFilter2.xhat = Pose_AutoCode_DW.Memory7_PreviousInput;
 
   /* Outputs for Atomic SubSystem: '<S1>/TimeCompensate' */
-  Pose_AutoCode_KalmanFilter(Pose_AutoCode_P.Constant1_Value,
-    Pose_AutoCode_P.Constant_Value, value3, 0.64, 0.05, 1.0, rtb_Memory2_a_0,
-    &Pose_AutoCode_B.sf_KalmanFilter2);
+  Pose_AutoCode_KalmanFilter(Pose_AutoCode_P.reset_poseaccelerationfilter_Va,
+    Pose_AutoCode_P.enable_poseaccelerationfilter_V, value3, 0.64, 0.05, 1.0,
+    rtb_Memory2_a_0, &Pose_AutoCode_B.sf_KalmanFilter2);
 
   /* End of Outputs for SubSystem: '<S1>/TimeCompensate' */
+
+  /* MATLAB Function: '<S2>/PostKalmanFilter2' */
+  Pose_AutoCode_PostKalmanFilter(Pose_AutoCode_B.sf_KalmanFilter2.xhat,
+    Pose_AutoCode_B.sf_KalmanFilter2.P, &Pose_AutoCode_B.sf_PostKalmanFilter2);
+
+  /* SignalConversion generated from: '<S2>/Vector Concatenate' incorporates:
+   *  Outport: '<Root>/pose_linearacceleration_signals_output'
+   */
+  Pose_AutoCode_Y.pose_linearacceleration_signals[2] =
+    Pose_AutoCode_B.sf_PostKalmanFilter2.value;
+
+  /* Outport: '<Root>/pose_orientation_signals_output' */
+  Pose_AutoCode_Y.pose_orientation_signals_output = 0.0;
 
   /* Update for Memory: '<S2>/Memory1' */
   Pose_AutoCode_DW.Memory1_PreviousInput = Pose_AutoCode_B.sf_KalmanFilter.xhat;
@@ -336,6 +377,9 @@ void Pose_AutoCodeModelClass::initialize()
 {
   /* Registration code */
 
+  /* initialize non-finites */
+  rt_InitInfAndNaN(sizeof(real_T));
+
   /* block I/O */
   (void) std::memset((static_cast<void *>(&Pose_AutoCode_B)), 0,
                      sizeof(B_Pose_AutoCode_T));
@@ -348,8 +392,8 @@ void Pose_AutoCodeModelClass::initialize()
   (void)std::memset(&Pose_AutoCode_U, 0, sizeof(ExtU_Pose_AutoCode_T));
 
   /* external outputs */
-  (void) std::memset(&Pose_AutoCode_Y.timed_signals_output[0], 0,
-                     3U*sizeof(OutputSignalObject));
+  (void) std::memset(static_cast<void *>(&Pose_AutoCode_Y), 0,
+                     sizeof(ExtY_Pose_AutoCode_T));
 
   {
     int32_T i;
@@ -391,15 +435,15 @@ void Pose_AutoCodeModelClass::initialize()
       Pose_AutoCode_P.Memory8_InitialCondition;
 
     /* SystemInitialize for Atomic SubSystem: '<S1>/TimeCompensate' */
-    /* InitializeConditions for Memory: '<S15>/Memory' */
+    /* InitializeConditions for Memory: '<S17>/Memory' */
     Pose_AutoCode_DW.Memory_PreviousInput =
       Pose_AutoCode_P.Memory_InitialCondition;
     for (i = 0; i < 24; i++) {
-      /* InitializeConditions for Memory: '<S15>/Memory1' */
+      /* InitializeConditions for Memory: '<S17>/Memory1' */
       Pose_AutoCode_DW.Memory1_PreviousInput_m[i] =
         Pose_AutoCode_P.Memory1_InitialCondition;
 
-      /* InitializeConditions for Memory: '<S15>/Memory2' */
+      /* InitializeConditions for Memory: '<S17>/Memory2' */
       Pose_AutoCode_DW.Memory2_PreviousInput[i] =
         Pose_AutoCode_P.Memory2_InitialCondition_o;
     }
