@@ -250,6 +250,22 @@ eros::diagnostic PoseNodeProcess::new_imumsg(std::string topic, const eros::imu:
 					m_model.Pose_AutoCode_U.accel1z_in.status = data->zacc.status;
 					m_model.Pose_AutoCode_U.accel1z_in.rms = data->zacc.rms;
 					m_model.Pose_AutoCode_U.accel1z_in.sequence_number = data->sequence_number;
+
+					m_model.Pose_AutoCode_U.rotationrate1x_in.value = data->xgyro.value;
+					m_model.Pose_AutoCode_U.rotationrate1x_in.status = data->xgyro.status;
+					m_model.Pose_AutoCode_U.rotationrate1x_in.rms = data->xgyro.rms;
+					m_model.Pose_AutoCode_U.rotationrate1x_in.sequence_number = data->sequence_number;
+
+					m_model.Pose_AutoCode_U.rotationrate1y_in.value = data->ygyro.value;
+					m_model.Pose_AutoCode_U.rotationrate1y_in.status = data->ygyro.status;
+					m_model.Pose_AutoCode_U.rotationrate1y_in.rms = data->ygyro.rms;
+					m_model.Pose_AutoCode_U.rotationrate1y_in.sequence_number = data->sequence_number;
+
+					m_model.Pose_AutoCode_U.rotationrate1z_in.value = data->zgyro.value;
+					m_model.Pose_AutoCode_U.rotationrate1z_in.status = data->zgyro.status;
+					m_model.Pose_AutoCode_U.rotationrate1z_in.rms = data->zgyro.rms;
+					m_model.Pose_AutoCode_U.rotationrate1z_in.sequence_number = data->sequence_number;
+
 					break;
 				case 2:
 					break;

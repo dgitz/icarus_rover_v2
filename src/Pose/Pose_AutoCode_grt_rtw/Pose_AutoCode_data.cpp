@@ -7,9 +7,9 @@
  *
  * Code generation for model "Pose_AutoCode".
  *
- * Model version              : 1.117
+ * Model version              : 1.137
  * Simulink Coder version : 9.2 (R2019b) 18-Jul-2019
- * C++ source code generated on : Sun Mar  1 16:57:12 2020
+ * C++ source code generated on : Wed Mar  4 21:29:51 2020
  *
  * Target selection: grt.tlc
  * Note: GRT includes extra infrastructure and instrumentation for prototyping
@@ -24,13 +24,16 @@
 /* Block parameters (default storage) */
 P_Pose_AutoCode_T Pose_AutoCodeModelClass::Pose_AutoCode_P = {
   /* Computed Parameter: Memory_InitialCondition
-   * Referenced by: '<S17>/Memory'
+   * Referenced by: '<S32>/Memory'
    */
   {
     0U,                                /* initialized */
     0U,                                /* signal1_update_counter */
     0U,                                /* signal2_update_counter */
-    0U                                 /* signal3_update_counter */
+    0U,                                /* signal3_update_counter */
+    0U,                                /* signal4_update_counter */
+    0U,                                /* signal5_update_counter */
+    0U                                 /* signal6_update_counter */
   },
 
   /* Computed Parameter: Memory2_InitialCondition
@@ -57,13 +60,53 @@ P_Pose_AutoCode_T Pose_AutoCodeModelClass::Pose_AutoCode_P = {
     0U                                 /* update_counter */
   },
 
+  /* Computed Parameter: Memory2_InitialCondition_e
+   * Referenced by: '<S3>/Memory2'
+   */
+  {
+    0U,                                /* initialized */
+    0U                                 /* update_counter */
+  },
+
+  /* Computed Parameter: Memory5_InitialCondition_e
+   * Referenced by: '<S3>/Memory5'
+   */
+  {
+    0U,                                /* initialized */
+    0U                                 /* update_counter */
+  },
+
+  /* Computed Parameter: Memory2_InitialCondition_m
+   * Referenced by: '<S4>/Memory2'
+   */
+  {
+    0U,                                /* initialized */
+    0U                                 /* update_counter */
+  },
+
+  /* Computed Parameter: Memory5_InitialCondition_es
+   * Referenced by: '<S4>/Memory5'
+   */
+  {
+    0U,                                /* initialized */
+    0U                                 /* update_counter */
+  },
+
+  /* Computed Parameter: Memory8_InitialCondition_d
+   * Referenced by: '<S4>/Memory8'
+   */
+  {
+    0U,                                /* initialized */
+    0U                                 /* update_counter */
+  },
+
   /* Expression: 0
-   * Referenced by: '<S17>/Memory1'
+   * Referenced by: '<S32>/Memory1'
    */
   0.0,
 
   /* Expression: 0
-   * Referenced by: '<S17>/Memory2'
+   * Referenced by: '<S32>/Memory2'
    */
   0.0,
 
@@ -104,6 +147,76 @@ P_Pose_AutoCode_T Pose_AutoCodeModelClass::Pose_AutoCode_P = {
 
   /* Expression: 0
    * Referenced by: '<S2>/Memory9'
+   */
+  0.0,
+
+  /* Expression: 0
+   * Referenced by: '<S1>/reset_poseorientationblock'
+   */
+  0.0,
+
+  /* Expression: 1
+   * Referenced by: '<S1>/enable_poseorientationblock'
+   */
+  1.0,
+
+  /* Expression: 0
+   * Referenced by: '<S3>/Memory1'
+   */
+  0.0,
+
+  /* Expression: 0
+   * Referenced by: '<S3>/Memory3'
+   */
+  0.0,
+
+  /* Expression: 0
+   * Referenced by: '<S3>/Memory4'
+   */
+  0.0,
+
+  /* Expression: 0
+   * Referenced by: '<S3>/Memory6'
+   */
+  0.0,
+
+  /* Expression: 0
+   * Referenced by: '<S1>/reset_poserotationratefilter'
+   */
+  0.0,
+
+  /* Expression: 1
+   * Referenced by: '<S1>/enable_poserotationratefilter'
+   */
+  1.0,
+
+  /* Expression: 0
+   * Referenced by: '<S4>/Memory1'
+   */
+  0.0,
+
+  /* Expression: 0
+   * Referenced by: '<S4>/Memory3'
+   */
+  0.0,
+
+  /* Expression: 0
+   * Referenced by: '<S4>/Memory4'
+   */
+  0.0,
+
+  /* Expression: 0
+   * Referenced by: '<S4>/Memory6'
+   */
+  0.0,
+
+  /* Expression: 0
+   * Referenced by: '<S4>/Memory7'
+   */
+  0.0,
+
+  /* Expression: 0
+   * Referenced by: '<S4>/Memory9'
    */
   0.0
 };
