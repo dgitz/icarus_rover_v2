@@ -7,9 +7,9 @@
  *
  * Code generation for model "Pose_AutoCode".
  *
- * Model version              : 1.117
+ * Model version              : 1.137
  * Simulink Coder version : 9.2 (R2019b) 18-Jul-2019
- * C++ source code generated on : Sun Mar  1 16:57:12 2020
+ * C++ source code generated on : Wed Mar  4 21:29:51 2020
  *
  * Target selection: grt.tlc
  * Note: GRT includes extra infrastructure and instrumentation for prototyping
@@ -20,7 +20,9 @@
 
 #ifndef RTW_HEADER_Pose_AutoCode_h_
 #define RTW_HEADER_Pose_AutoCode_h_
+#include <cmath>
 #include <cstring>
+#include <math.h>
 #ifndef Pose_AutoCode_COMMON_INCLUDES_
 # define Pose_AutoCode_COMMON_INCLUDES_
 #include "rtwtypes.h"
@@ -32,8 +34,10 @@
 
 /* Shared type includes */
 #include "multiword_types.h"
-#include "rtGetInf.h"
+#include "rtGetNaN.h"
 #include "rt_nonfinite.h"
+#include "rt_defines.h"
+#include "rtGetInf.h"
 
 /* Macros for accessing real-time model data structure */
 #ifndef rtmGetErrorStatus
@@ -60,6 +64,14 @@ typedef struct {
 
 /* Block signals (default storage) */
 typedef struct {
+  B_PostKalmanFilter_Pose_AutoC_T sf_PostKalmanFilter2_m;/* '<S4>/PostKalmanFilter2' */
+  B_PostKalmanFilter_Pose_AutoC_T sf_PostKalmanFilter1_n;/* '<S4>/PostKalmanFilter1' */
+  B_PostKalmanFilter_Pose_AutoC_T sf_PostKalmanFilter_c;/* '<S4>/PostKalmanFilter' */
+  B_KalmanFilter_Pose_AutoCode_T sf_KalmanFilter2_o;/* '<S4>/KalmanFilter2' */
+  B_KalmanFilter_Pose_AutoCode_T sf_KalmanFilter1_f;/* '<S4>/KalmanFilter1' */
+  B_KalmanFilter_Pose_AutoCode_T sf_KalmanFilter_i;/* '<S4>/KalmanFilter' */
+  B_KalmanFilter_Pose_AutoCode_T sf_KalmanFilter1_c;/* '<S3>/KalmanFilter1' */
+  B_KalmanFilter_Pose_AutoCode_T sf_KalmanFilter_f;/* '<S3>/KalmanFilter' */
   B_PostKalmanFilter_Pose_AutoC_T sf_PostKalmanFilter2;/* '<S2>/PostKalmanFilter2' */
   B_PostKalmanFilter_Pose_AutoC_T sf_PostKalmanFilter1;/* '<S2>/PostKalmanFilter1' */
   B_PostKalmanFilter_Pose_AutoC_T sf_PostKalmanFilter;/* '<S2>/PostKalmanFilter' */
@@ -70,18 +82,33 @@ typedef struct {
 
 /* Block states (default storage) for system '<Root>' */
 typedef struct {
-  TimeCompensatorObjectState Memory_PreviousInput;/* '<S17>/Memory' */
+  TimeCompensatorObjectState Memory_PreviousInput;/* '<S32>/Memory' */
   real_T Memory1_PreviousInput;        /* '<S2>/Memory1' */
   real_T Memory3_PreviousInput;        /* '<S2>/Memory3' */
   real_T Memory4_PreviousInput;        /* '<S2>/Memory4' */
   real_T Memory6_PreviousInput;        /* '<S2>/Memory6' */
   real_T Memory7_PreviousInput;        /* '<S2>/Memory7' */
   real_T Memory9_PreviousInput;        /* '<S2>/Memory9' */
-  real_T Memory1_PreviousInput_m[24];  /* '<S17>/Memory1' */
-  real_T Memory2_PreviousInput[24];    /* '<S17>/Memory2' */
+  real_T Memory1_PreviousInput_e;      /* '<S3>/Memory1' */
+  real_T Memory3_PreviousInput_o;      /* '<S3>/Memory3' */
+  real_T Memory4_PreviousInput_h;      /* '<S3>/Memory4' */
+  real_T Memory6_PreviousInput_d;      /* '<S3>/Memory6' */
+  real_T Memory1_PreviousInput_i;      /* '<S4>/Memory1' */
+  real_T Memory3_PreviousInput_e;      /* '<S4>/Memory3' */
+  real_T Memory4_PreviousInput_e;      /* '<S4>/Memory4' */
+  real_T Memory6_PreviousInput_j;      /* '<S4>/Memory6' */
+  real_T Memory7_PreviousInput_m;      /* '<S4>/Memory7' */
+  real_T Memory9_PreviousInput_m;      /* '<S4>/Memory9' */
+  real_T Memory1_PreviousInput_m[48];  /* '<S32>/Memory1' */
+  real_T Memory2_PreviousInput[48];    /* '<S32>/Memory2' */
   KalmanFilterObjectState Memory2_PreviousInput_j;/* '<S2>/Memory2' */
   KalmanFilterObjectState Memory5_PreviousInput;/* '<S2>/Memory5' */
   KalmanFilterObjectState Memory8_PreviousInput;/* '<S2>/Memory8' */
+  KalmanFilterObjectState Memory2_PreviousInput_m;/* '<S3>/Memory2' */
+  KalmanFilterObjectState Memory5_PreviousInput_p;/* '<S3>/Memory5' */
+  KalmanFilterObjectState Memory2_PreviousInput_d;/* '<S4>/Memory2' */
+  KalmanFilterObjectState Memory5_PreviousInput_f;/* '<S4>/Memory5' */
+  KalmanFilterObjectState Memory8_PreviousInput_g;/* '<S4>/Memory8' */
 } DW_Pose_AutoCode_T;
 
 /* External inputs (root inport signals with default storage) */
@@ -90,22 +117,27 @@ typedef struct {
   InputSignalObject accel1x_in;        /* '<Root>/accel1x_in' */
   InputSignalObject accel1y_in;        /* '<Root>/accel1y_in' */
   InputSignalObject accel1z_in;        /* '<Root>/accel1z_in' */
+  InputSignalObject rotationrate1x_in; /* '<Root>/rotationrate1x_in' */
+  InputSignalObject rotationrate1y_in; /* '<Root>/rotationrate1y_in' */
+  InputSignalObject rotationrate1z_in; /* '<Root>/rotationrate1z_in' */
 } ExtU_Pose_AutoCode_T;
 
 /* External outputs (root outports fed by signals with default storage) */
 typedef struct {
-  OutputSignalObject timed_signals_output[3];/* '<Root>/timed_signals_output' */
-  real_T pose_linearacceleration_signals[3];
+  OutputSignalObject timed_signals_output[6];/* '<Root>/timed_signals_output' */
+  OutputSignalObject pose_linearacceleration_signals[3];
                            /* '<Root>/pose_linearacceleration_signals_output' */
-  real_T pose_orientation_signals_output;
+  OutputSignalObject pose_orientation_signals_output[2];
                                   /* '<Root>/pose_orientation_signals_output' */
+  OutputSignalObject pose_rotationrate_signals_outpu[3];
+                                 /* '<Root>/pose_rotationrate_signals_output' */
 } ExtY_Pose_AutoCode_T;
 
 /* Parameters (default storage) */
 struct P_Pose_AutoCode_T_ {
   TimeCompensatorObjectState Memory_InitialCondition;
                                   /* Computed Parameter: Memory_InitialCondition
-                                   * Referenced by: '<S17>/Memory'
+                                   * Referenced by: '<S32>/Memory'
                                    */
   KalmanFilterObjectState Memory2_InitialCondition;
                                  /* Computed Parameter: Memory2_InitialCondition
@@ -119,11 +151,31 @@ struct P_Pose_AutoCode_T_ {
                                  /* Computed Parameter: Memory8_InitialCondition
                                   * Referenced by: '<S2>/Memory8'
                                   */
+  KalmanFilterObjectState Memory2_InitialCondition_e;
+                               /* Computed Parameter: Memory2_InitialCondition_e
+                                * Referenced by: '<S3>/Memory2'
+                                */
+  KalmanFilterObjectState Memory5_InitialCondition_e;
+                               /* Computed Parameter: Memory5_InitialCondition_e
+                                * Referenced by: '<S3>/Memory5'
+                                */
+  KalmanFilterObjectState Memory2_InitialCondition_m;
+                               /* Computed Parameter: Memory2_InitialCondition_m
+                                * Referenced by: '<S4>/Memory2'
+                                */
+  KalmanFilterObjectState Memory5_InitialCondition_es;
+                              /* Computed Parameter: Memory5_InitialCondition_es
+                               * Referenced by: '<S4>/Memory5'
+                               */
+  KalmanFilterObjectState Memory8_InitialCondition_d;
+                               /* Computed Parameter: Memory8_InitialCondition_d
+                                * Referenced by: '<S4>/Memory8'
+                                */
   real_T Memory1_InitialCondition;     /* Expression: 0
-                                        * Referenced by: '<S17>/Memory1'
+                                        * Referenced by: '<S32>/Memory1'
                                         */
   real_T Memory2_InitialCondition_o;   /* Expression: 0
-                                        * Referenced by: '<S17>/Memory2'
+                                        * Referenced by: '<S32>/Memory2'
                                         */
   real_T reset_poseaccelerationfilter_Va;/* Expression: 0
                                           * Referenced by: '<S1>/reset_poseaccelerationfilter'
@@ -148,6 +200,48 @@ struct P_Pose_AutoCode_T_ {
                                         */
   real_T Memory9_InitialCondition;     /* Expression: 0
                                         * Referenced by: '<S2>/Memory9'
+                                        */
+  real_T reset_poseorientationblock_Valu;/* Expression: 0
+                                          * Referenced by: '<S1>/reset_poseorientationblock'
+                                          */
+  real_T enable_poseorientationblock_Val;/* Expression: 1
+                                          * Referenced by: '<S1>/enable_poseorientationblock'
+                                          */
+  real_T Memory1_InitialCondition_b;   /* Expression: 0
+                                        * Referenced by: '<S3>/Memory1'
+                                        */
+  real_T Memory3_InitialCondition_h;   /* Expression: 0
+                                        * Referenced by: '<S3>/Memory3'
+                                        */
+  real_T Memory4_InitialCondition_p;   /* Expression: 0
+                                        * Referenced by: '<S3>/Memory4'
+                                        */
+  real_T Memory6_InitialCondition_i;   /* Expression: 0
+                                        * Referenced by: '<S3>/Memory6'
+                                        */
+  real_T reset_poserotationratefilter_Va;/* Expression: 0
+                                          * Referenced by: '<S1>/reset_poserotationratefilter'
+                                          */
+  real_T enable_poserotationratefilter_V;/* Expression: 1
+                                          * Referenced by: '<S1>/enable_poserotationratefilter'
+                                          */
+  real_T Memory1_InitialCondition_c;   /* Expression: 0
+                                        * Referenced by: '<S4>/Memory1'
+                                        */
+  real_T Memory3_InitialCondition_g;   /* Expression: 0
+                                        * Referenced by: '<S4>/Memory3'
+                                        */
+  real_T Memory4_InitialCondition_c;   /* Expression: 0
+                                        * Referenced by: '<S4>/Memory4'
+                                        */
+  real_T Memory6_InitialCondition_m;   /* Expression: 0
+                                        * Referenced by: '<S4>/Memory6'
+                                        */
+  real_T Memory7_InitialCondition_e;   /* Expression: 0
+                                        * Referenced by: '<S4>/Memory7'
+                                        */
+  real_T Memory9_InitialCondition_f;   /* Expression: 0
+                                        * Referenced by: '<S4>/Memory9'
                                         */
 };
 
@@ -211,9 +305,9 @@ class Pose_AutoCodeModelClass {
   /* private member function(s) for subsystem '<Root>'*/
   void Pose_Auto_timecompensate_signal(real_T current_time, uint32_T
     update_count_in, real_T b_index, real_T value_in, uint8_T status_in, real_T
-    rms_in, const real_T buffers_x_in[24], const real_T buffers_t_in[24], real_T
+    rms_in, const real_T buffers_x_in[48], const real_T buffers_t_in[48], real_T
     *value, uint8_T *status, real_T *rms, uint32_T *update_count, real_T
-    buffers_x[24], real_T buffers_t[24]);
+    buffers_x[48], real_T buffers_t[48]);
 };
 
 /*-
@@ -234,20 +328,35 @@ class Pose_AutoCodeModelClass {
  * '<S1>'   : 'Pose_AutoCode/PoseModel'
  * '<S2>'   : 'Pose_AutoCode/PoseModel/PoseAccelerationBlock'
  * '<S3>'   : 'Pose_AutoCode/PoseModel/PoseOrientationBlock'
- * '<S4>'   : 'Pose_AutoCode/PoseModel/SensorPostProcessing'
- * '<S5>'   : 'Pose_AutoCode/PoseModel/SignalLinker'
- * '<S6>'   : 'Pose_AutoCode/PoseModel/TimeCompensate'
- * '<S7>'   : 'Pose_AutoCode/PoseModel/PoseAccelerationBlock/KalmanFilter'
- * '<S8>'   : 'Pose_AutoCode/PoseModel/PoseAccelerationBlock/KalmanFilter1'
- * '<S9>'   : 'Pose_AutoCode/PoseModel/PoseAccelerationBlock/KalmanFilter2'
- * '<S10>'  : 'Pose_AutoCode/PoseModel/PoseAccelerationBlock/PostKalmanFilter'
- * '<S11>'  : 'Pose_AutoCode/PoseModel/PoseAccelerationBlock/PostKalmanFilter1'
- * '<S12>'  : 'Pose_AutoCode/PoseModel/PoseAccelerationBlock/PostKalmanFilter2'
- * '<S13>'  : 'Pose_AutoCode/PoseModel/PoseAccelerationBlock/PreKalmanFilterXAcceleration'
- * '<S14>'  : 'Pose_AutoCode/PoseModel/PoseAccelerationBlock/PreKalmanFilterYAcceleration'
- * '<S15>'  : 'Pose_AutoCode/PoseModel/PoseAccelerationBlock/PreKalmanFilterZAcceleration'
- * '<S16>'  : 'Pose_AutoCode/PoseModel/PoseOrientationBlock/PreKalmanFilterXOrientation'
- * '<S17>'  : 'Pose_AutoCode/PoseModel/TimeCompensate/Time Compensate Signal x12'
- * '<S18>'  : 'Pose_AutoCode/PoseModel/TimeCompensate/Time Compensate Signal x12/TimeCompensator1'
+ * '<S4>'   : 'Pose_AutoCode/PoseModel/PoseRotationRateBlock'
+ * '<S5>'   : 'Pose_AutoCode/PoseModel/SensorPostProcessing'
+ * '<S6>'   : 'Pose_AutoCode/PoseModel/SignalLinker'
+ * '<S7>'   : 'Pose_AutoCode/PoseModel/TimeCompensate'
+ * '<S8>'   : 'Pose_AutoCode/PoseModel/PoseAccelerationBlock/KalmanFilter'
+ * '<S9>'   : 'Pose_AutoCode/PoseModel/PoseAccelerationBlock/KalmanFilter1'
+ * '<S10>'  : 'Pose_AutoCode/PoseModel/PoseAccelerationBlock/KalmanFilter2'
+ * '<S11>'  : 'Pose_AutoCode/PoseModel/PoseAccelerationBlock/PostKalmanFilter'
+ * '<S12>'  : 'Pose_AutoCode/PoseModel/PoseAccelerationBlock/PostKalmanFilter1'
+ * '<S13>'  : 'Pose_AutoCode/PoseModel/PoseAccelerationBlock/PostKalmanFilter2'
+ * '<S14>'  : 'Pose_AutoCode/PoseModel/PoseAccelerationBlock/PreKalmanFilterXAcceleration'
+ * '<S15>'  : 'Pose_AutoCode/PoseModel/PoseAccelerationBlock/PreKalmanFilterYAcceleration'
+ * '<S16>'  : 'Pose_AutoCode/PoseModel/PoseAccelerationBlock/PreKalmanFilterZAcceleration'
+ * '<S17>'  : 'Pose_AutoCode/PoseModel/PoseOrientationBlock/KalmanFilter'
+ * '<S18>'  : 'Pose_AutoCode/PoseModel/PoseOrientationBlock/KalmanFilter1'
+ * '<S19>'  : 'Pose_AutoCode/PoseModel/PoseOrientationBlock/PostKalmanFilterXOrientation'
+ * '<S20>'  : 'Pose_AutoCode/PoseModel/PoseOrientationBlock/PostKalmanFilterYOrientation'
+ * '<S21>'  : 'Pose_AutoCode/PoseModel/PoseOrientationBlock/PreKalmanFilterXOrientation'
+ * '<S22>'  : 'Pose_AutoCode/PoseModel/PoseOrientationBlock/PreKalmanFilterYOrientation'
+ * '<S23>'  : 'Pose_AutoCode/PoseModel/PoseRotationRateBlock/KalmanFilter'
+ * '<S24>'  : 'Pose_AutoCode/PoseModel/PoseRotationRateBlock/KalmanFilter1'
+ * '<S25>'  : 'Pose_AutoCode/PoseModel/PoseRotationRateBlock/KalmanFilter2'
+ * '<S26>'  : 'Pose_AutoCode/PoseModel/PoseRotationRateBlock/PostKalmanFilter'
+ * '<S27>'  : 'Pose_AutoCode/PoseModel/PoseRotationRateBlock/PostKalmanFilter1'
+ * '<S28>'  : 'Pose_AutoCode/PoseModel/PoseRotationRateBlock/PostKalmanFilter2'
+ * '<S29>'  : 'Pose_AutoCode/PoseModel/PoseRotationRateBlock/PreKalmanFilterXRotationRate'
+ * '<S30>'  : 'Pose_AutoCode/PoseModel/PoseRotationRateBlock/PreKalmanFilterYRotationRate'
+ * '<S31>'  : 'Pose_AutoCode/PoseModel/PoseRotationRateBlock/PreKalmanFilterZRotationRate'
+ * '<S32>'  : 'Pose_AutoCode/PoseModel/TimeCompensate/Time Compensate Signal x12'
+ * '<S33>'  : 'Pose_AutoCode/PoseModel/TimeCompensate/Time Compensate Signal x12/TimeCompensator_x6'
  */
 #endif                                 /* RTW_HEADER_Pose_AutoCode_h_ */
