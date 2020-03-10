@@ -34,6 +34,7 @@ public:
 		int16_t PID;
 		int16_t CPU_Perc;
 		int64_t RAM_MB;
+		bool EnableResourceDiagnostic;
 		uint8_t last_diagnostic_level;
 		std::string resource_topic;
 		std::string diagnostic_topic;

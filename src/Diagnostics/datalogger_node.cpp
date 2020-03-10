@@ -208,6 +208,8 @@ bool DataLoggerNode::new_devicemsg(std::string query,eros::device t_device)
 		{
 			set_mydevice(t_device);
 			process->set_mydevice(t_device);
+			resourcemonitor->disable_memoryleakdetection();
+			resourcemonitor->disable_resourceusage_diagnostic();
 		}
 	}
 

@@ -216,7 +216,6 @@ install(DIRECTORY include/${PROJECT_NAME}/
 add_library(resourcemonitor util/resourcemonitor.cpp)
 add_dependencies(resourcemonitor eros_generate_messages_cpp)
 
-
 #Libraries-Communications
 add_library(udpmessage util/udpmessage.cpp)
 add_library(serialmessage util/serialmessage.cpp)
