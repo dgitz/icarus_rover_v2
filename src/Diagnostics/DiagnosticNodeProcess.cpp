@@ -451,6 +451,7 @@ void DiagnosticNodeProcess::add_Task(Task v)
 	v.CPU_Perc = 0;
 	v.PID = -1;
 	v.RAM_MB = 0;
+	v.EnableResourceDiagnostic = true;
 	v.last_diagnostic_received = 0;
 	v.last_heartbeat_received = 0;
 	v.last_resource_received = 0;
@@ -477,6 +478,7 @@ void DiagnosticNodeProcess::new_resourcemsg(std::string topicname,const eros::re
 			TaskList.at(i).CPU_Perc = resource->CPU_Perc;
 			TaskList.at(i).RAM_MB = resource->RAM_MB;
 			TaskList.at(i).PID = resource->PID;
+			TaskList.at(i).EnableResourceDiagnostic = resource->EnableResourceDiagnostic;
 		}
 	}
 
@@ -564,23 +566,26 @@ std::vector<eros::diagnostic> DiagnosticNodeProcess::check_tasks()
 	{
 		bool task_ok = true;
 		DiagnosticNodeProcess::Task Task = TaskList.at(i);
-		if(Task.CPU_Perc > CPU_usage_threshold_percent)
+		if(Task.EnableResourceDiagnostic == true)
 		{
-			task_ok = false;
-			char tempstr[512];
-			sprintf(tempstr,"Task: %s is using high CPU resource: %d/%d %%",
-					Task.Task_Name.c_str(),Task.CPU_Perc,CPU_usage_threshold_percent);
-			diag = update_diagnostic(SYSTEM_RESOURCE,WARN,HIGH_RESOURCE_USAGE,std::string(tempstr));
-			diaglist.push_back(diag);
-		}
-		if(Task.RAM_MB > RAM_usage_threshold_MB)
-		{
-			task_ok = false;
-			char tempstr[512];
-			sprintf(tempstr,"Task: %s is using high RAM resource: %ld/%d (MB)",
-					Task.Task_Name.c_str(),Task.RAM_MB,RAM_usage_threshold_MB);
-			diag = update_diagnostic(SYSTEM_RESOURCE,WARN,HIGH_RESOURCE_USAGE,std::string(tempstr));
-			diaglist.push_back(diag);
+			if(Task.CPU_Perc > CPU_usage_threshold_percent)
+			{
+				task_ok = false;
+				char tempstr[512];
+				sprintf(tempstr,"Task: %s is using high CPU resource: %d/%d %%",
+						Task.Task_Name.c_str(),Task.CPU_Perc,CPU_usage_threshold_percent);
+				diag = update_diagnostic(SYSTEM_RESOURCE,WARN,HIGH_RESOURCE_USAGE,std::string(tempstr));
+				diaglist.push_back(diag);
+			}
+			if(Task.RAM_MB > RAM_usage_threshold_MB)
+			{
+				task_ok = false;
+				char tempstr[512];
+				sprintf(tempstr,"Task: %s is using high RAM resource: %ld/%d (MB)",
+						Task.Task_Name.c_str(),Task.RAM_MB,RAM_usage_threshold_MB);
+				diag = update_diagnostic(SYSTEM_RESOURCE,WARN,HIGH_RESOURCE_USAGE,std::string(tempstr));
+				diaglist.push_back(diag);
+			}
 		}
 		
 		double heartbeat_time_duration = run_time-Task.last_heartbeat_received;

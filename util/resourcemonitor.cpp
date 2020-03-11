@@ -11,6 +11,7 @@ void ResourceMonitor::init(eros::diagnostic diag,std::string device_architecture
 {
 	ramfree_initialized = false;
 	memoryleak_detectection_enabled = true;
+	resourceusage_diagnostic_enabled = true;
 	Device_Architecture = device_architecture;
 	Task_Name = task_name;
 	Host_Name = host_name;
@@ -197,6 +198,7 @@ eros::resource ResourceMonitor::get_resourceused()
 	newresource.PID = PID;
 	newresource.CPU_Perc = CPUUsed_perc;
 	newresource.RAM_MB = (double)(RAMUsed_kB/1000.0);
+	newresource.EnableResourceDiagnostic = resourceusage_diagnostic_enabled;
 	return newresource;
 }
 int ResourceMonitor::get_DISKFree_perc()
