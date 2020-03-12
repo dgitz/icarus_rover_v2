@@ -7,7 +7,7 @@
 #include <stdio.h>
 #include <sys/time.h>
 #include <stdlib.h>
-#include "spimessage.h"
+#include "../../../include/spimessage.h"
 #include "../../../include/Supported_PN.h"
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
 using namespace std;
