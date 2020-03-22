@@ -136,7 +136,7 @@ int ResourceMonitor::get_RAMFree_kB()
 		{
 			continue;
 		}
-		if(std::string::npos != fields.at(0).find("MemFree:"))
+		if((std::string::npos != fields.at(0).find("MemFree:")) and (std::string::npos == fields.at(0).find("NvMapMemFree:")))
 		{
 			memfree = std::atoi(fields.at(1).c_str());
 			found_entry_count++;
@@ -177,6 +177,10 @@ int ResourceMonitor::get_RAMFree_kB()
     {
         RAMFree_kB = memfree + membuffer + memcached;
     }
+	else if(Device_Architecture == "aarch64")
+	{
+		RAMFree_kB = memavail;
+	}
 	return RAMFree_kB;
 }
 int ResourceMonitor::get_CPUUsed_perc()

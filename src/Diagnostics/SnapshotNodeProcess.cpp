@@ -364,7 +364,9 @@ eros::diagnostic SnapshotNodeProcess::new_devicemsg(const eros::device::ConstPtr
 	eros::diagnostic diag = update_diagnostic(SOFTWARE,INFO,NOERROR,"Updated Device");
 	if(device->DeviceName != mydevice.DeviceName)
 	{
-		if((device->DeviceType == DEVICETYPE_CONTROLMODULE) or (device->DeviceType == DEVICETYPE_COMPUTEMODULE))
+		if(	(device->DeviceType == DEVICETYPE_CONTROLMODULE) or 
+			(device->DeviceType == DEVICETYPE_COMPUTEMODULE) or
+			(device->DeviceType == DEVICETYPE_GPUMODULE))
 		{
 			all_snapshot_devices.push_back(device->DeviceName);
 		}
@@ -581,8 +583,7 @@ std::vector<eros::diagnostic> SnapshotNodeProcess::createnew_snapshot(uint8_t sn
 	else
 	{
 		diag = update_diagnostic(DATA_STORAGE,NOERROR,INFO,"Snapshot generation in progress.");
-	}
-	
+	}	
 	systemsnapshot_info.rostime_start = getROSTime();
 	
 	filtered_snapshot_devices = all_snapshot_devices;
@@ -608,6 +609,8 @@ std::vector<eros::diagnostic> SnapshotNodeProcess::createnew_snapshot(uint8_t sn
 		char tempstr[512];
 		sprintf(tempstr,"Unable to create snapshot folder: %s",snapshot_path.c_str());
 		diag = update_diagnostic(DATA_STORAGE,ERROR,INITIALIZING_ERROR,std::string(tempstr));
+		diaglist.push_back(diag);
+		return diaglist;
 	}
 	for(std::size_t i = 0; i < snapshot_config.commands.size(); ++i)
 	{
@@ -622,6 +625,7 @@ std::vector<eros::diagnostic> SnapshotNodeProcess::createnew_snapshot(uint8_t sn
 		{
 			std::string tempstr = "Command Exec failed with error: " + std::string(e.what());
 			diag = update_diagnostic(DATA_STORAGE,WARN,DROPPING_PACKETS,tempstr);
+			diaglist.push_back(diag);
 		}
 	}
 	for(std::size_t i = 0; i < snapshot_config.scripts.size(); ++i)
@@ -636,6 +640,7 @@ std::vector<eros::diagnostic> SnapshotNodeProcess::createnew_snapshot(uint8_t sn
 		{
 			std::string tempstr = "Script Exec failed with error: " + std::string(e.what());
 			diag = update_diagnostic(DATA_STORAGE,WARN,DROPPING_PACKETS,tempstr);
+			diaglist.push_back(diag);
 		}
 	}
 	//Copy all folders into new snapshot 
@@ -654,6 +659,7 @@ std::vector<eros::diagnostic> SnapshotNodeProcess::createnew_snapshot(uint8_t sn
 		{
 			std::string tempstr = "Folder Create failed with error: " + std::string(e.what());
 			diag = update_diagnostic(DATA_STORAGE,WARN,DROPPING_PACKETS,tempstr);
+			diaglist.push_back(diag);
 		}
 		char tempstr2[1024];
 		sprintf(tempstr2, "rsync -a --exclude='.*' %s %s/%s",  
@@ -668,6 +674,7 @@ std::vector<eros::diagnostic> SnapshotNodeProcess::createnew_snapshot(uint8_t sn
 		{
 			std::string tempstr = "Folder Copy failed with error: " + std::string(e.what());
 			diag = update_diagnostic(DATA_STORAGE,WARN,DROPPING_PACKETS,tempstr);
+			diaglist.push_back(diag);
 		}
 	}
 	for(std::size_t i = 0; i < snapshot_config.files.size(); ++i)
@@ -684,6 +691,7 @@ std::vector<eros::diagnostic> SnapshotNodeProcess::createnew_snapshot(uint8_t sn
 		{
 			std::string tempstr = "File Copy failed with error: " + std::string(e.what());
 			diag = update_diagnostic(DATA_STORAGE,WARN,DROPPING_PACKETS,tempstr);
+			diaglist.push_back(diag);
 		}
 	}
 	//Zip it up
