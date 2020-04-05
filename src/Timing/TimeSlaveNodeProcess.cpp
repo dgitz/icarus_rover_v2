@@ -336,9 +336,9 @@ eros::diagnostic TimeSlaveNodeProcess::update_timeserver(std::string name)
 		diag = update_diagnostic(TIMING,ERROR,DIAGNOSTIC_FAILED,std::string(tempstr));
 		return diag;
 	}
-	server.delay = std::atof(items.at(delay_index).c_str());
-	server.offset = std::atof(items.at(offset_index).c_str());
-	server.jitter = std::atof(items.at(jitter_index).c_str());
+	server.delay = std::atof(items.at(delay_index).c_str())*1000.0;
+	server.offset = std::atof(items.at(offset_index).c_str())*1000.0;
+	server.jitter = std::atof(items.at(jitter_index).c_str())*1000.0;
 	server.update_count++;
 	server.updated_time = ros_time;
 	set_timeserver(server);
